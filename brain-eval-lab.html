@@ -8,6 +8,16 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
+<script type="module">
+  // Configure pdf.js (loaded as a module above). We attach to window so the
+  // non-module ingest code can use it without bundler plumbing.
+  import * as pdfjs from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs";
+  pdfjs.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";
+  window.pdfjsLib = pdfjs;
+  window.dispatchEvent(new Event("pdfjs-ready"));
+</script>
 <style>
   :root {
     --bg: #0a0d0c;
@@ -129,8 +139,12 @@
     border-bottom: 1px solid var(--line); background: var(--bg-2);
     position: sticky; top: 0; z-index: 2;
   }
+  .panel-h { display: flex; align-items: center; gap: 8px; }
   .panel-h .num { color: var(--acc); margin-right: 8px; }
-  .panel-h .right-meta { float: right; color: var(--ink-2); font-size: 9px; }
+  .panel-h .right-meta {
+    margin-left: auto; color: var(--ink-2); font-size: 9px;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
 
   .section { padding: 14px 16px; border-bottom: 1px solid var(--line); }
   .section h3 {
@@ -145,15 +159,51 @@
 
   /* ── Buttons & drops ─────────────── */
   .drop {
-    border: 1px dashed var(--line-2); border-radius: 4px; padding: 14px 12px;
-    text-align: center; cursor: pointer; transition: all 0.15s;
-    background: var(--bg-2); margin-bottom: 8px;
+    position: relative;
+    border: 1.5px dashed var(--line-2); border-radius: 6px;
+    padding: 18px 14px 16px;
+    text-align: center; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.15s, box-shadow 0.18s;
+    background: var(--bg-2); margin-bottom: 10px;
+    display: block;
   }
   .drop:hover { border-color: var(--acc-dim); background: var(--bg-3); }
-  .drop .ico { font-family: var(--mono); color: var(--ink-3); font-size: 14px; margin-bottom: 4px; }
-  .drop p { font-size: 11px; color: var(--ink-2); }
-  .drop .small { font-family: var(--mono); font-size: 9px; color: var(--ink-3); margin-top: 2px; }
+  .drop .ico {
+    font-family: var(--mono); color: var(--ink-3);
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 4px;
+    background: var(--bg-3); margin-bottom: 8px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .drop p { font-size: 11.5px; color: var(--ink); line-height: 1.3; }
+  .drop .small { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); margin-top: 3px; letter-spacing: 0.04em; }
+  .drop .accept {
+    display: inline-block; font-family: var(--mono); font-size: 8.5px;
+    color: var(--ink-3); margin-top: 6px; padding: 1px 5px;
+    border: 1px solid var(--line); border-radius: 2px; letter-spacing: 0.04em;
+  }
   .drop input { display: none; }
+
+  /* drag-over visual */
+  .drop.is-active,
+  .left.is-dropping .drop {
+    border-color: var(--acc-dim); background: var(--bg-3);
+  }
+  .drop.is-active {
+    border-color: var(--acc); border-style: solid;
+    background: rgba(0,229,160,0.06);
+    box-shadow: 0 0 0 4px rgba(0,229,160,0.08), inset 0 0 0 1px rgba(0,229,160,0.18);
+    transform: scale(1.01);
+  }
+  .drop.is-active .ico {
+    background: var(--acc); color: var(--bg);
+  }
+
+  /* PDF / CSV / VIDEO color accents on the icon chip */
+  .drop[data-kind="pdf"]   .ico { color: #e8efe9; }
+  .drop[data-kind="csv"]   .ico { color: var(--c-data); }
+  .drop[data-kind="video"] .ico { color: var(--c-video); }
 
   .btn {
     width: 100%; background: var(--acc); color: var(--bg);
@@ -173,30 +223,115 @@
   }
 
   /* ── Ingested artifact rows ────────────── */
-  .artifact-list { display: flex; flex-direction: column; gap: 4px; }
+  .artifact-list { display: flex; flex-direction: column; gap: 5px; }
   .artifact {
-    display: grid; grid-template-columns: 18px 1fr auto;
-    gap: 8px; padding: 7px 10px;
+    position: relative;
+    display: grid; grid-template-columns: 26px 1fr auto;
+    gap: 10px; padding: 8px 10px;
     background: var(--bg-2); border: 1px solid var(--line);
-    border-radius: 3px; cursor: pointer; align-items: center;
-    transition: all 0.1s;
+    border-radius: 4px; cursor: pointer; align-items: center;
+    transition: border-color 0.12s, background 0.12s;
   }
-  .artifact:hover { border-color: var(--line-2); }
+  .artifact:hover { border-color: var(--line-2); background: var(--bg-3); }
   .artifact .ic {
-    font-family: var(--mono); font-size: 10px; font-weight: 600;
-    width: 18px; height: 18px;
+    font-family: var(--mono); font-size: 9.5px; font-weight: 700;
+    width: 26px; height: 22px; letter-spacing: 0.04em;
     display: flex; align-items: center; justify-content: center;
-    border-radius: 2px;
+    border-radius: 3px;
   }
-  .artifact .ic.pdf { background: rgba(232,239,233,0.1); color: var(--ink); }
-  .artifact .ic.csv { background: rgba(34,211,238,0.12); color: var(--c-data); }
-  .artifact .ic.video { background: rgba(239,83,80,0.12); color: var(--c-video); }
-  .artifact .ic.text { background: rgba(251,191,36,0.12); color: var(--c-tribal); }
+  .artifact .ic.pdf   { background: rgba(232,239,233,0.10); color: var(--ink); }
+  .artifact .ic.csv   { background: rgba(34,211,238,0.14);  color: var(--c-data); }
+  .artifact .ic.video { background: rgba(239,83,80,0.14);   color: var(--c-video); }
+  .artifact .ic.text  { background: rgba(251,191,36,0.14);  color: var(--c-tribal); }
+
+  .artifact .body { min-width: 0; }
   .artifact .name {
-    font-size: 11px; color: var(--ink);
+    font-size: 11.5px; color: var(--ink);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .artifact .meta { font-family: var(--mono); font-size: 9px; color: var(--ink-3); }
+  .artifact .submeta {
+    display: flex; gap: 6px; align-items: center; margin-top: 2px;
+    font-family: var(--mono); font-size: 9px; color: var(--ink-3);
+  }
+  .artifact .submeta .chip {
+    border: 1px solid var(--line); border-radius: 2px;
+    padding: 0 4px; color: var(--ink-2); letter-spacing: 0.04em;
+  }
+  .artifact .actions {
+    opacity: 0; transition: opacity 0.12s;
+    display: flex; gap: 4px;
+  }
+  .artifact:hover .actions { opacity: 1; }
+  .artifact .actions button {
+    background: transparent; border: 1px solid var(--line-2);
+    color: var(--ink-3); cursor: pointer;
+    width: 22px; height: 22px; border-radius: 3px;
+    font-family: var(--mono); font-size: 11px; line-height: 1;
+    transition: color 0.12s, border-color 0.12s, background 0.12s;
+  }
+  .artifact .actions button:hover {
+    color: var(--c-video); border-color: var(--c-video); background: rgba(239,83,80,0.08);
+  }
+
+  /* Clear-all + list footer */
+  .list-actions {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line);
+    font-family: var(--mono); font-size: 9.5px; color: var(--ink-3);
+  }
+  .list-actions a {
+    color: var(--ink-3); text-decoration: none; cursor: pointer;
+    border-bottom: 1px dashed var(--line-2); padding-bottom: 1px;
+  }
+  .list-actions a:hover { color: var(--c-video); border-color: var(--c-video); }
+
+  /* Better empty state for ingest */
+  .empty-ingest {
+    text-align: center; padding: 18px 12px; color: var(--ink-3);
+    font-size: 11px; line-height: 1.4;
+    border: 1px dashed var(--line); border-radius: 4px;
+    background: var(--bg-2);
+  }
+  .empty-ingest .tip {
+    display: block; margin-top: 6px; font-family: var(--mono); font-size: 9.5px;
+    color: var(--ink-3); letter-spacing: 0.02em;
+  }
+
+  /* Status pill in section headers */
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--mono); font-size: 9px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 2px 7px; border-radius: 10px;
+    border: 1px solid var(--line-2); color: var(--ink-3);
+    background: var(--bg-2);
+  }
+  .status-pill .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ink-3); box-shadow: 0 0 0 0 currentColor;
+  }
+  .status-pill.is-live { color: var(--acc); border-color: var(--acc-dim); }
+  .status-pill.is-live .dot { background: var(--acc); animation: pulse 2s infinite; }
+  .status-pill.is-stub { color: var(--c-tribal); border-color: rgba(251,191,36,0.4); }
+  .status-pill.is-stub .dot { background: var(--c-tribal); }
+  .status-pill.is-off  { color: var(--c-video); border-color: rgba(239,83,80,0.4); }
+  .status-pill.is-off  .dot { background: var(--c-video); }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(0,229,160,0.4); }
+    70%  { box-shadow: 0 0 0 6px rgba(0,229,160,0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,229,160,0); }
+  }
+
+  /* Live-eval toggle */
+  .live-toggle {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--ink-2); cursor: pointer;
+    padding: 4px 8px; border: 1px solid var(--line);
+    border-radius: 3px; background: var(--bg-2);
+    margin-right: 8px; user-select: none;
+  }
+  .live-toggle:hover { border-color: var(--line-2); color: var(--ink); }
+  .live-toggle input { accent-color: var(--acc); cursor: pointer; }
 
   /* ── Graph canvas ────────────────────── */
   #cy { width: 100%; height: 100%; background: var(--bg); }
@@ -625,26 +760,37 @@
 
       <!-- LEFT: ingest + node detail -->
       <section class="left" id="brain-left">
-        <div class="panel-h"><span class="num">01</span>INGEST <span class="right-meta" id="artifact-count">0 artifacts</span></div>
+        <div class="panel-h">
+          <span class="num">01</span>INGEST
+          <span class="right-meta">
+            <span class="status-pill is-stub" id="brain-status" title="LLM backend status">
+              <span class="dot"></span><span class="lbl">stub</span>
+            </span>
+            <span id="artifact-count" style="margin-left: 8px;">0 artifacts</span>
+          </span>
+        </div>
 
         <div class="section">
-          <h3>Training material</h3>
-          <label class="drop" id="pdf-drop">
+          <h3>Training material <span class="count">drop / click / paste</span></h3>
+          <label class="drop" id="pdf-drop" data-kind="pdf">
             <div class="ico">PDF</div>
-            <p>Drop SOP / manual</p>
-            <p class="small">creates Document node</p>
-            <input type="file" id="pdf-input" accept=".pdf" />
+            <p>Drop SOP, manual, or work instruction</p>
+            <p class="small">becomes a Document node attached to the procedure</p>
+            <span class="accept">.pdf</span>
+            <input type="file" id="pdf-input" accept=".pdf,application/pdf" multiple />
           </label>
-          <label class="drop" id="csv-drop">
+          <label class="drop" id="csv-drop" data-kind="csv">
             <div class="ico">CSV</div>
-            <p>Drop tolerance / spec data</p>
-            <p class="small">creates DataTable node</p>
-            <input type="file" id="csv-input" accept=".csv" />
+            <p>Drop tolerances, torque tables, error rates</p>
+            <p class="small">becomes a DataTable node Tier-1 rules can read</p>
+            <span class="accept">.csv .tsv</span>
+            <input type="file" id="csv-input" accept=".csv,.tsv,text/csv" multiple />
           </label>
-          <label class="drop" id="video-drop">
-            <div class="ico">▶</div>
-            <p>Drop procedure video</p>
-            <p class="small">opens manual-tag workflow</p>
+          <label class="drop" id="video-drop" data-kind="video">
+            <div class="ico">VID</div>
+            <p>Drop a procedure recording</p>
+            <p class="small">opens the manual-tag workflow → VideoSegment nodes</p>
+            <span class="accept">.mp4 .mov .webm</span>
             <input type="file" id="video-input" accept="video/*" />
           </label>
 
@@ -656,7 +802,14 @@
         <div class="section">
           <h3>Ingested <span class="count" id="ingested-count">0</span></h3>
           <div class="artifact-list" id="artifact-list">
-            <div class="empty" style="padding: 20px 0;">Nothing ingested yet</div>
+            <div class="empty-ingest">
+              Nothing ingested yet.
+              <span class="tip">drop files above, or click <b>Seed sample artifacts</b></span>
+            </div>
+          </div>
+          <div class="list-actions" id="list-actions" hidden>
+            <span id="list-summary"></span>
+            <a id="clear-all" title="Remove every ingested artifact">clear all</a>
           </div>
         </div>
       </section>
@@ -693,7 +846,9 @@
       <section class="right" id="brain-right">
         <div class="chat-h">
           <span class="ti"><span class="num">02</span>BRAIN</span>
-          <span class="seam">LLM: stub</span>
+          <span class="status-pill is-stub" id="brain-status-chat" title="LLM backend status">
+            <span class="dot"></span><span class="lbl">LLM: stub</span>
+          </span>
         </div>
         <div class="chat-body" id="chat-body">
           <div class="chat-empty">
@@ -771,6 +926,13 @@
           <button class="btn btn-secondary" id="ev-gen-btn" style="margin-top: 10px;">
             Generate simulated session
           </button>
+          <button class="btn btn-secondary" id="ev-from-clips-btn" style="margin-top: 6px;" title="Build a session from labeled VideoSegment artifacts (uploaded videos + index CSV)">
+            Import session from uploaded clips
+          </button>
+          <a id="sample-index-link" href="/lab/sample-video-index.csv" download="sample-video-index.csv"
+             style="display:block;margin-top:8px;font-family:var(--mono);font-size:9.5px;color:var(--ink-3);text-decoration:none;border-bottom:1px dashed var(--line-2);width:max-content;">
+            Download sample video-index CSV
+          </a>
         </div>
 
         <div class="section">
@@ -792,6 +954,11 @@
           <div class="cards" id="strategy-cards"></div>
         </div>
         <div class="run-bar">
+          <label class="live-toggle" title="Route runs through /api/eval (real LLM if ANTHROPIC_API_KEY is set, backend stub otherwise)">
+            <input type="checkbox" id="live-eval-toggle" />
+            <span>Use backend LLM</span>
+            <span class="status-pill is-stub" id="eval-status"><span class="dot"></span><span class="lbl">stub</span></span>
+          </label>
           <button class="btn" id="run-btn" disabled>Run evaluation</button>
           <button class="btn btn-secondary" id="run-all-btn" disabled>Run all 4 for ablation</button>
         </div>
@@ -1423,12 +1590,49 @@ function detailFieldsHTML(n, raw) {
   if (raw.source)      fields.push(['source', `<span style="color:var(--c-tribal)">${raw.source}</span>`]);
   if (raw.fileName)    fields.push(['file', `<span class="mono">${raw.fileName}</span>`]);
   if (raw.fileSize)    fields.push(['size', `<span class="mono">${(raw.fileSize/1024).toFixed(1)} KB</span>`]);
+  if (raw.pageCount)   fields.push(['pages', `<span class="mono">${raw.pageCount}${raw.truncated ? ' (truncated)' : ''}</span>`]);
+  if (raw.rowCount != null) fields.push(['rows', `<span class="mono">${raw.rowCount}${raw.truncated ? ' (truncated)' : ''}</span>`]);
+  if (raw.parseStatus && raw.parseStatus !== 'ready') {
+    const color = raw.parseStatus === 'error' ? 'var(--err)' : 'var(--warn)';
+    fields.push(['parse', `<span class="mono" style="color:${color}">${raw.parseStatus}${raw.parseError ? ': ' + raw.parseError : ''}</span>`]);
+  }
   if (raw.timestampStart !== undefined) fields.push(['range', `<span class="mono">${formatTs(raw.timestampStart)} → ${formatTs(raw.timestampEnd)}</span>`]);
-  if (fields.length === 0) return '';
-  return `<div class="nd-section">
+
+  const propsHTML = fields.length > 0 ? `<div class="nd-section">
     <h4>Properties</h4>
     ${fields.map(([k, v]) => `<div class="field"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}
-  </div>`;
+  </div>` : '';
+
+  return propsHTML + artifactPreviewHTML(n, raw);
+}
+
+/** Extra section for ingested artifacts: PDF text excerpt or CSV row preview. */
+function artifactPreviewHTML(n, raw) {
+  if (n.type === 'Document' && raw.extractedText) {
+    const excerpt = escapeHtml(raw.extractedText.slice(0, 1200));
+    const more = raw.extractedText.length > 1200 ? ` … (${(raw.extractedText.length - 1200).toLocaleString()} more chars)` : '';
+    return `<div class="nd-section">
+      <h4>Extracted text <span style="color:var(--ink-3);float:right;font-family:var(--mono);font-weight:400;">used for retrieval</span></h4>
+      <pre style="white-space:pre-wrap;font-family:var(--mono);font-size:10px;line-height:1.45;color:var(--ink-2);max-height:240px;overflow-y:auto;background:var(--bg-2);border:1px solid var(--line);padding:10px;border-radius:3px;">${excerpt}${more}</pre>
+    </div>`;
+  }
+  if (n.type === 'DataTable' && Array.isArray(raw.rows) && raw.rows.length > 0) {
+    const headers = raw.headers || Object.keys(raw.rows[0]);
+    const preview = raw.rows.slice(0, 12);
+    const hdr = headers.map(h => `<th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:9.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.04em;">${escapeHtml(h)}</th>`).join('');
+    const body = preview.map(r => `<tr>${headers.map(h => `<td style="padding:3px 8px;font-family:var(--mono);font-size:10px;color:var(--ink);border-bottom:1px solid rgba(255,255,255,0.03);">${escapeHtml(String(r[h] ?? ''))}</td>`).join('')}</tr>`).join('');
+    const moreRows = raw.rows.length > preview.length ? `<div style="font-family:var(--mono);font-size:9.5px;color:var(--ink-3);margin-top:6px;">+ ${(raw.rows.length - preview.length).toLocaleString()} more rows</div>` : '';
+    return `<div class="nd-section">
+      <h4>Table preview <span style="color:var(--ink-3);float:right;font-family:var(--mono);font-weight:400;">${headers.length} cols × ${raw.rowCount ?? raw.rows.length} rows</span></h4>
+      <div style="overflow-x:auto;background:var(--bg-2);border:1px solid var(--line);border-radius:3px;">
+        <table style="border-collapse:collapse;width:100%;">
+          <thead><tr>${hdr}</tr></thead>
+          <tbody>${body}</tbody>
+        </table>
+      </div>${moreRows}
+    </div>`;
+  }
+  return '';
 }
 
 function relatedNodes(id) {
@@ -1521,24 +1725,29 @@ async function askQuestion(q) {
   const retrieved = retrieveRelevantNodes(q);
 
   // 2. GENERATION — backend first, stub fallback. This is the seam from
-  //    the handoff doc; the backend at /api/brain/chat is now real.
+  //    the handoff doc; the backend at /api/brain/chat is now real and also
+  //    accepts the client's ingested artifacts so they participate in retrieval.
   let answer, citations, stubbed = false;
   try {
     const r = await fetch(`${PLATFORM_API}/api/brain/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: q })
+      body: JSON.stringify({
+        query: q,
+        artifacts: clientArtifactsForBackend()
+      })
     });
     if (!r.ok) throw new Error(`status ${r.status}`);
     const data = await r.json();
+    if (window.applyStubbedFromResponse) window.applyStubbedFromResponse(data);
     answer = data.answer;
     stubbed = !!data.stubbed;
-    // Prefer backend citations (resolved against the canonical graph)
     citations = (data.retrieved || []).slice(0, 5).map(n => ({
       id: n.id, type: n.type, label: n.label, raw: n.raw
     }));
   } catch (err) {
     console.warn('Brain backend unreachable, using local stub.', err);
+    if (window.applyStubbedFromResponse) window.applyStubbedFromResponse({ stubbed: true });
     answer = await stubbedLLMCall(q, retrieved);
     stubbed = true;
     citations = retrieved.slice(0, 5);
@@ -1556,6 +1765,29 @@ const PLATFORM_API = (() => {
   } catch {}
   return 'http://localhost:3001';
 })();
+
+/** Compact representation of ingested artifacts to send with chat requests.
+ *  We truncate extracted text per-artifact so payloads stay reasonable. */
+function clientArtifactsForBackend() {
+  const arts = state.brain.artifacts || [];
+  return arts.map(a => ({
+    id: a.id,
+    type: a.type,
+    label: a.label,
+    raw: {
+      fileName: a.fileName,
+      attachedTo: a.attachedTo,
+      pageCount: a.pageCount,
+      rowCount: a.rowCount,
+      headers: a.headers,
+      // Cap per-artifact text the backend sees so the request stays small
+      extractedText: typeof a.extractedText === 'string'
+        ? a.extractedText.slice(0, 4000)
+        : undefined,
+      source: a.source
+    }
+  }));
+}
 
 function retrieveRelevantNodes(query) {
   const q = query.toLowerCase();
@@ -1632,45 +1864,371 @@ async function stubbedLLMCall(query, retrieved) {
 /* ════════════════════════════════════════════════════════════════════════════
    INGEST — file upload becomes a graph node
    ════════════════════════════════════════════════════════════════════════════ */
-function ingestPDF(file) {
-  const a = {
-    id: `doc:${slug(file.name)}`,
-    type: 'Document',
-    label: file.name,
-    fileName: file.name,
-    fileSize: file.size,
-    attachedTo: 'proc:pinion-guide'
+
+const MAX_FILE_BYTES = 50 * 1024 * 1024;  // 50 MB hard cap (browser memory)
+const MAX_PDF_PAGES = 40;                  // cap text extraction for huge SOPs
+const MAX_TEXT_CHARS = 60_000;             // ~15K tokens; enough for retrieval
+const STORAGE_KEY = 'brain.artifacts.v1';
+
+async function ingestPDF(file) {
+  if (!validateFile(file, ['pdf'])) return;
+  const id = `doc:${slug(file.name)}-${Date.now().toString(36)}`;
+  const artifact = {
+    id, type: 'Document',
+    label: file.name, fileName: file.name, fileSize: file.size,
+    addedAt: Date.now(),
+    attachedTo: 'proc:pinion-guide',
+    extractedText: '',
+    pageCount: 0,
+    parseStatus: 'parsing'
   };
-  addArtifact(a);
-  toast(`Ingested ${file.name} as Document node`);
+  addArtifact(artifact);
+  toast(`Ingesting ${file.name}…`);
+  try {
+    const { text, pages, truncated } = await parsePDF(file);
+    artifact.extractedText = text;
+    artifact.pageCount = pages;
+    artifact.truncated = !!truncated;
+    artifact.parseStatus = 'ready';
+    onArtifactChanged();
+    toast(`Parsed ${file.name} — ${pages} page${pages===1?'':'s'}, ${text.length.toLocaleString()} chars`);
+  } catch (e) {
+    console.warn('PDF parse failed', e);
+    artifact.parseStatus = 'error';
+    artifact.parseError = String(e && e.message || e);
+    onArtifactChanged();
+    toast(`Failed to parse ${file.name}: ${artifact.parseError}`);
+  }
 }
 
-function ingestCSV(file) {
-  const a = {
-    id: `data:${slug(file.name)}`,
-    type: 'DataTable',
-    label: file.name,
-    fileName: file.name,
-    fileSize: file.size,
-    attachedTo: 'proc:pinion-guide'
+async function parsePDF(file) {
+  await ensurePdfJs();
+  const buf = await file.arrayBuffer();
+  const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
+  const total = pdf.numPages;
+  const pages = Math.min(total, MAX_PDF_PAGES);
+  const parts = [];
+  let chars = 0;
+  for (let p = 1; p <= pages; p++) {
+    const page = await pdf.getPage(p);
+    const tc = await page.getTextContent();
+    const txt = tc.items.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
+    parts.push(`[page ${p}] ${txt}`);
+    chars += txt.length;
+    if (chars >= MAX_TEXT_CHARS) break;
+  }
+  let text = parts.join('\n\n');
+  let truncated = total > MAX_PDF_PAGES || text.length > MAX_TEXT_CHARS;
+  if (text.length > MAX_TEXT_CHARS) text = text.slice(0, MAX_TEXT_CHARS) + ' … [truncated]';
+  return { text, pages: total, truncated };
+}
+
+function ensurePdfJs() {
+  if (window.pdfjsLib) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('pdf.js failed to load')), 10000);
+    window.addEventListener('pdfjs-ready', () => { clearTimeout(timer); resolve(); }, { once: true });
+  });
+}
+
+async function ingestCSV(file) {
+  if (!validateFile(file, ['csv', 'tsv'])) return;
+  const id = `data:${slug(file.name)}-${Date.now().toString(36)}`;
+  const artifact = {
+    id, type: 'DataTable',
+    label: file.name, fileName: file.name, fileSize: file.size,
+    addedAt: Date.now(),
+    attachedTo: 'proc:pinion-guide',
+    headers: [], rows: [], rowCount: 0,
+    parseStatus: 'parsing'
   };
-  addArtifact(a);
-  toast(`Ingested ${file.name} as DataTable node`);
+  addArtifact(artifact);
+  toast(`Ingesting ${file.name}…`);
+  try {
+    const raw = await file.text();
+    const sep = file.name.toLowerCase().endsWith('.tsv') ? '\t' : ',';
+    const { headers, rows } = parseDelimited(raw, sep);
+    artifact.headers = headers;
+    artifact.rows = rows.slice(0, 500);
+    artifact.rowCount = rows.length;
+    artifact.truncated = rows.length > 500;
+    artifact.parseStatus = 'ready';
+    artifact.extractedText = buildCsvSummary(headers, artifact.rows);
+    onArtifactChanged();
+    toast(`Parsed ${file.name} — ${headers.length} cols × ${rows.length} rows`);
+
+    // Detect "video index" CSVs and auto-create labeled VideoSegment artifacts.
+    if (isVideoIndex(headers)) {
+      const made = ingestVideoIndex(artifact);
+      if (made > 0) toast(`Recognized as video index — created ${made} labeled clip segment${made===1?'':'s'}`);
+    }
+  } catch (e) {
+    console.warn('CSV parse failed', e);
+    artifact.parseStatus = 'error';
+    artifact.parseError = String(e && e.message || e);
+    onArtifactChanged();
+    toast(`Failed to parse ${file.name}: ${artifact.parseError}`);
+  }
+}
+
+/** A CSV is a "video index" if it has at least: video_file, step_id, label.
+ *  Optional columns we read: error_type, start_s, end_s, notes. */
+function isVideoIndex(headers) {
+  const lc = headers.map(h => h.toLowerCase().trim());
+  return lc.includes('video_file') && lc.includes('step_id') && lc.includes('label');
+}
+
+/** For each row of a video-index CSV: create a VideoSegment artifact attached
+ *  to the right step, with the labeled error_type. Linkage to an uploaded
+ *  video file is by filename match; if no file is found, the segment still
+ *  exists (you can attach the video later). */
+function ingestVideoIndex(csvArtifact) {
+  const rows = csvArtifact.rows || [];
+  let made = 0;
+  // Lookup of uploaded videos by filename (set when user drops a .mp4 etc.)
+  const videoMap = state.brain.videoFiles || (state.brain.videoFiles = {});
+  for (const row of rows) {
+    const file = String(row.video_file ?? row.VIDEO_FILE ?? '').trim();
+    const stepId = String(row.step_id ?? row.STEP_ID ?? '').trim();
+    const labelRaw = String(row.label ?? row.LABEL ?? '').trim().toLowerCase();
+    if (!file || !stepId) continue;
+    if (!['correct', 'incorrect', 'ambiguous'].includes(labelRaw)) continue;
+    const startS = Number(row.start_s ?? row.START_S ?? 0) || 0;
+    const endS = Number(row.end_s ?? row.END_S ?? Math.max(startS + 5, 5));
+    const errorType = (String(row.error_type ?? row.ERROR_TYPE ?? '').trim().toUpperCase() || undefined);
+    const notes = String(row.notes ?? row.NOTES ?? '').trim();
+    const id = `vid:${slug(file)}-${stepId}-${made}`;
+    const linked = videoMap[file];
+    const segment = {
+      id,
+      type: 'VideoSegment',
+      label: `${file} → ${stepId} (${labelRaw})`,
+      fileName: file,
+      videoUrl: linked ? linked.url : null,
+      videoLinked: !!linked,
+      timestampStart: startS,
+      timestampEnd: endS,
+      isCorrectExecution: labelRaw === 'correct',
+      errorType: errorType || undefined,
+      notes: notes || undefined,
+      attachedTo: stepId,
+      addedAt: Date.now(),
+      sourceIndex: csvArtifact.id
+    };
+    state.brain.artifacts.push(segment);
+    made++;
+  }
+  if (made > 0) onArtifactChanged();
+  return made;
+}
+
+function parseDelimited(raw, sep) {
+  // Minimal RFC-4180-ish parser: handles "quoted, fields" and "" escapes.
+  const rows = [];
+  let cur = [], cell = '', i = 0, inQuote = false;
+  while (i < raw.length) {
+    const c = raw[i];
+    if (inQuote) {
+      if (c === '"' && raw[i+1] === '"') { cell += '"'; i += 2; continue; }
+      if (c === '"') { inQuote = false; i++; continue; }
+      cell += c; i++; continue;
+    }
+    if (c === '"') { inQuote = true; i++; continue; }
+    if (c === sep) { cur.push(cell); cell = ''; i++; continue; }
+    if (c === '\r') { i++; continue; }
+    if (c === '\n') { cur.push(cell); rows.push(cur); cur = []; cell = ''; i++; continue; }
+    cell += c; i++;
+  }
+  if (cell.length || cur.length) { cur.push(cell); rows.push(cur); }
+  const nonEmpty = rows.filter(r => r.some(x => x.trim().length > 0));
+  if (nonEmpty.length === 0) return { headers: [], rows: [] };
+  const headers = nonEmpty[0].map(h => h.trim());
+  const data = nonEmpty.slice(1).map(r => {
+    const o = {};
+    headers.forEach((h, idx) => { o[h] = (r[idx] ?? '').trim(); });
+    return o;
+  });
+  return { headers, rows: data };
+}
+
+function buildCsvSummary(headers, rows) {
+  const head = `columns: ${headers.join(', ')}`;
+  const sample = rows.slice(0, 10).map(r =>
+    headers.map(h => `${h}=${r[h] ?? ''}`).join(' | ')
+  ).join('\n');
+  return `${head}\nrows (first ${Math.min(rows.length, 10)}):\n${sample}`;
 }
 
 function ingestVideo(file) {
-  // Video doesn't become a single node — it becomes the source for VideoSegment nodes
-  // created via the tagging workflow.
+  if (!file.type.startsWith('video/')) {
+    toast(`${file.name} doesn't look like a video file`);
+    return;
+  }
+  if (file.size > MAX_FILE_BYTES) {
+    toast(`${file.name} is too large (${formatBytes(file.size)}). Trim before uploading.`);
+    return;
+  }
+  const url = URL.createObjectURL(file);
   state.brain.videoFile = file;
-  state.brain.videoUrl = URL.createObjectURL(file);
-  openVideoPlayer(state.brain.videoUrl, file.name);
-  toast(`Video loaded — tag time ranges to create segment nodes`);
+  state.brain.videoUrl = url;
+
+  // Remember this video by filename so any video-index CSV can link to it.
+  state.brain.videoFiles = state.brain.videoFiles || {};
+  state.brain.videoFiles[file.name] = { url, size: file.size, addedAt: Date.now() };
+
+  // Back-fill any pre-existing VideoSegment artifacts that referenced this file.
+  let linked = 0;
+  for (const a of state.brain.artifacts) {
+    if (a.type === 'VideoSegment' && !a.videoLinked && a.fileName === file.name) {
+      a.videoUrl = url;
+      a.videoLinked = true;
+      linked++;
+    }
+  }
+  if (linked > 0) {
+    onArtifactChanged();
+    toast(`${file.name} loaded — linked to ${linked} indexed clip${linked===1?'':'s'}`);
+  } else {
+    toast(`Video loaded — tag time ranges in the player, or drop a video-index CSV`);
+  }
+  openVideoPlayer(url, file.name);
+}
+
+function validateFile(file, allowedExts) {
+  if (!file) return false;
+  if (file.size > MAX_FILE_BYTES) {
+    toast(`${file.name} is too large (${formatBytes(file.size)}). 50MB max.`);
+    return false;
+  }
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  if (allowedExts && !allowedExts.includes(ext)) {
+    toast(`${file.name}: expected ${allowedExts.map(e => '.'+e).join(' or ')}`);
+    return false;
+  }
+  return true;
+}
+
+// Sniff file extension → which drop zone owns it
+function kindForFile(file) {
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  if (ext === 'pdf') return 'pdf';
+  if (ext === 'csv' || ext === 'tsv') return 'csv';
+  if (file.type.startsWith('video/') || ['mp4','mov','webm','m4v'].includes(ext)) return 'video';
+  return null;
+}
+
+function ingestByKind(file, kind) {
+  if (kind === 'pdf') return ingestPDF(file);
+  if (kind === 'csv') return ingestCSV(file);
+  if (kind === 'video') return ingestVideo(file);
+  toast(`${file.name}: unsupported file type`);
+}
+
+function ingestMany(files, expectedKind) {
+  const list = Array.from(files || []);
+  if (list.length === 0) return;
+  for (const f of list) {
+    const k = expectedKind || kindForFile(f) || expectedKind;
+    if (!k) {
+      toast(`${f.name}: drop into the matching zone (PDF / CSV / Video)`);
+      continue;
+    }
+    ingestByKind(f, k);
+  }
 }
 
 function addArtifact(a) {
   state.brain.artifacts.push(a);
+  onArtifactChanged();
+}
+
+function removeArtifact(id) {
+  const idx = state.brain.artifacts.findIndex(a => a.id === id);
+  if (idx === -1) return;
+  const [removed] = state.brain.artifacts.splice(idx, 1);
+  onArtifactChanged();
+  toast(`Removed ${removed.label}`);
+}
+
+function clearAllArtifacts() {
+  if (state.brain.artifacts.length === 0) return;
+  if (!confirm(`Remove all ${state.brain.artifacts.length} ingested artifact(s)?`)) return;
+  state.brain.artifacts = [];
+  onArtifactChanged();
+  toast('Cleared ingested artifacts');
+}
+
+/** Single funnel for all artifact-list mutations: re-render, rebuild graph,
+ *  and persist to localStorage so refresh keeps your work. */
+function onArtifactChanged() {
   renderArtifactList();
   rebuildGraph();
+  persistArtifacts();
+}
+
+function persistArtifacts() {
+  try {
+    const safe = state.brain.artifacts.map(a => {
+      // strip blob URLs / non-serializable bits; keep extracted text/rows
+      const { ...rest } = a;
+      return rest;
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
+  } catch (e) {
+    console.warn('persist failed', e);
+  }
+}
+
+function restoreArtifacts() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) return false;
+    // Anything stuck in 'parsing' from a crashed previous tab is unrecoverable
+    // (the original File is gone). Mark as error so the user knows to re-upload.
+    for (const a of parsed) {
+      if (a.parseStatus === 'parsing') {
+        a.parseStatus = 'error';
+        a.parseError = 'previous tab closed before parse finished';
+      }
+    }
+    state.brain.artifacts = parsed;
+    return true;
+  } catch (e) {
+    console.warn('restore failed', e);
+    return false;
+  }
+}
+
+function formatBytes(n) {
+  if (!n && n !== 0) return '';
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function escapeHTML(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function relativeTime(ts) {
+  if (!ts) return '';
+  const diff = Math.round((Date.now() - ts) / 1000);
+  if (diff < 5) return 'just now';
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.round(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.round(diff/3600)}h ago`;
+  return `${Math.round(diff/86400)}d ago`;
+}
+
+function extLabel(a) {
+  if (a.type === 'VideoSegment') return 'CLIP';
+  const n = a.fileName || a.label || '';
+  const e = (n.split('.').pop() || '').toUpperCase();
+  return e.length <= 5 ? e : a.type === 'Document' ? 'PDF' : a.type === 'DataTable' ? 'CSV' : 'FILE';
 }
 
 function renderArtifactList() {
@@ -1679,25 +2237,50 @@ function renderArtifactList() {
   document.getElementById('artifact-count').textContent = `${arts.length} artifact${arts.length===1?'':'s'}`;
   document.getElementById('ingested-count').textContent = arts.length;
   document.getElementById('ev-artifacts').textContent = arts.length;
+  const actionsBar = document.getElementById('list-actions');
   if (arts.length === 0) {
-    list.innerHTML = '<div class="empty" style="padding: 20px 0;">Nothing ingested yet</div>';
+    list.innerHTML = `<div class="empty-ingest">
+      Nothing ingested yet.
+      <span class="tip">drop files above, or click <b>Seed sample artifacts</b></span>
+    </div>`;
+    if (actionsBar) actionsBar.hidden = true;
     return;
+  }
+  if (actionsBar) {
+    actionsBar.hidden = false;
+    const totalBytes = arts.reduce((sum, a) => sum + (a.fileSize || 0), 0);
+    document.getElementById('list-summary').textContent =
+      totalBytes > 0 ? `${arts.length} item${arts.length===1?'':'s'} · ${formatBytes(totalBytes)}` : `${arts.length} item${arts.length===1?'':'s'}`;
   }
   list.innerHTML = arts.map(a => {
     const icClass = a.type === 'Document' ? 'pdf' : a.type === 'DataTable' ? 'csv' : a.type === 'VideoSegment' ? 'video' : 'text';
-    const ic = a.type === 'Document' ? 'pdf' : a.type === 'DataTable' ? 'csv' : a.type === 'VideoSegment' ? '▶' : 'txt';
-    const meta = a.fileSize ? `${(a.fileSize/1024).toFixed(0)}KB` : (a.timestampEnd !== undefined ? `${formatTs(a.timestampStart)}-${formatTs(a.timestampEnd)}` : '');
-    return `<div class="artifact" data-id="${a.id}">
-      <div class="ic ${icClass}">${ic}</div>
-      <div class="name">${escapeHtml(a.label)}</div>
-      <div class="meta">${meta}</div>
+    const ic = extLabel(a);
+    const sizeMeta = a.fileSize ? formatBytes(a.fileSize) : '';
+    const tsMeta = a.timestampEnd !== undefined ? `${formatTs(a.timestampStart)}–${formatTs(a.timestampEnd)}` : relativeTime(a.addedAt);
+    return `<div class="artifact" data-id="${a.id}" title="Click to focus on the graph">
+      <div class="ic ${icClass}">${escapeHtml(ic)}</div>
+      <div class="body">
+        <div class="name">${escapeHtml(a.label)}</div>
+        <div class="submeta">
+          <span class="chip">${a.type}</span>
+          ${sizeMeta ? `<span>${sizeMeta}</span>` : ''}
+          ${tsMeta ? `<span>· ${tsMeta}</span>` : ''}
+        </div>
+      </div>
+      <div class="actions">
+        <button data-act="remove" data-id="${a.id}" title="Remove">✕</button>
+      </div>
     </div>`;
   }).join('');
   list.querySelectorAll('.artifact').forEach(el => {
-    el.onclick = () => {
+    el.onclick = (e) => {
+      if (e.target.closest('button[data-act]')) return;
       const node = state.graph.getElementById(el.dataset.id);
       if (node && !node.empty()) { selectNode(node.data()); state.graph.center(node); state.graph.zoom(1.2); }
     };
+  });
+  list.querySelectorAll('button[data-act="remove"]').forEach(btn => {
+    btn.onclick = (e) => { e.stopPropagation(); removeArtifact(btn.dataset.id); };
   });
 }
 
@@ -1882,9 +2465,12 @@ function seedSampleArtifacts() {
     { id: 'tribal:marco-shim', type: 'TribalKnowledge', label: 'Marco: shim selection by ambient temperature', source: 'Marco R., 22yr tenure', attachedTo: 'step:07' },
     { id: 'tribal:antonio-press', type: 'TribalKnowledge', label: 'Antonio: feel for proper press seating', source: 'Antonio P., quality lead', attachedTo: 'step:05' }
   ];
-  for (const s of samples) state.brain.artifacts.push(s);
-  renderArtifactList();
-  rebuildGraph();
+  const now = Date.now();
+  for (const [i, s] of samples.entries()) {
+    s.addedAt = now - (samples.length - i) * 1000;
+    state.brain.artifacts.push(s);
+  }
+  onArtifactChanged();
   toast(`Seeded ${samples.length} sample artifacts`);
 }
 
@@ -1975,7 +2561,7 @@ function renderEvalSession() {
 
 // When true, runEvaluation will POST to /api/eval against the live backend
 // (real LLM if ANTHROPIC_API_KEY is set there, otherwise the backend's own
-// stub). When false (default), uses the in-browser simulation.
+// stub). Flipped by the "Use backend LLM" checkbox in the Evaluate run bar.
 window.USE_BACKEND_EVAL = false;
 
 async function runEvaluation(annotations, hwId, stratId) {
@@ -1993,11 +2579,16 @@ async function runEvaluation(annotations, hwId, stratId) {
             phase: a.phase,
             stepId: a.keystepId,
             label: a.label === 'incorrect' ? 'incorrect' : 'correct',
-            errorType: a.errorType
+            errorType: a.errorType,
+            rationale: a.note || a.rationale || undefined
           }))
         })
       });
-      if (r.ok) return await r.json();
+      if (r.ok) {
+        const data = await r.json();
+        if (window.applyStubbedFromResponse) window.applyStubbedFromResponse(data);
+        return data;
+      }
       console.warn('Eval backend returned', r.status, '— falling back to sim');
     } catch (err) {
       console.warn('Eval backend unreachable, using local sim.', err);
@@ -2157,12 +2748,19 @@ function renderRuns() {
         <div style="margin-top:10px;font-family:var(--mono);font-size:9px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.08em;">Anomaly events</div>
         ${r.events.filter(e => e.label === 'incorrect').slice(0, 16).map(e => {
           const et = e.errorType ? ERROR_TAXONOMY[e.errorType]?.label || e.errorType : '';
-          return `<div class="event-row">
+          const outClass = e.outcome === 'caught' ? 'caught'
+                          : e.outcome === 'miss' || e.outcome === 'missed' ? 'miss'
+                          : (e.outcome === 'false_positive' || e.outcome === 'false_pos') ? 'fp' : '';
+          const r1 = `<div class="event-row">
             <span class="ev-ts">${formatTs(e.ts)}</span>
             <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.phase}${et?' · <span style="color:var(--c-advice)">'+et+'</span>':''}${e.note?' — '+e.note:''}</span>
-            <span class="ev-out ${e.outcome === 'caught'?'caught':e.outcome === 'miss'?'miss':e.outcome === 'false_positive'?'fp':''}">${e.outcome}</span>
-            <span class="ev-tk">${e.inputTokens}t</span>
+            <span class="ev-out ${outClass}">${e.outcome}</span>
+            <span class="ev-tk">${e.inputTokens||0}t</span>
           </div>`;
+          const r2 = e.rationale
+            ? `<div style="grid-column:1/-1;font-size:9.5px;color:var(--ink-3);padding:2px 0 6px 70px;font-family:var(--mono);line-height:1.55;border-bottom:1px solid var(--line-1);margin-bottom:2px;">↳ ${escapeHTML(String(e.rationale))}</div>`
+            : '';
+          return r1 + r2;
         }).join('')}
       </div>
     </div>`;
@@ -2276,20 +2874,156 @@ document.querySelectorAll('.mode-toggle button').forEach(btn => {
   btn.onclick = () => switchMode(btn.dataset.mode);
 });
 
-// Wire ingest drop zones
-function wireDrop(zoneId, inputId, handler, accept) {
+// Wire ingest drop zones — multi-file, drag-active visual, smart routing
+function wireDrop(zoneId, inputId, kind) {
   const zone = document.getElementById(zoneId);
   const input = document.getElementById(inputId);
-  input.onchange = e => { if (e.target.files[0]) handler(e.target.files[0]); };
-  zone.ondragover = e => { e.preventDefault(); zone.style.borderColor = 'var(--acc)'; };
-  zone.ondragleave = () => { zone.style.borderColor = ''; };
-  zone.ondrop = e => { e.preventDefault(); zone.style.borderColor = ''; if (e.dataTransfer.files[0]) handler(e.dataTransfer.files[0]); };
+  input.onchange = e => {
+    ingestMany(e.target.files, kind);
+    input.value = ''; // allow re-dropping the same file
+  };
+  zone.addEventListener('dragenter', e => {
+    e.preventDefault(); e.stopPropagation();
+    zone.classList.add('is-active');
+  });
+  zone.addEventListener('dragover', e => {
+    e.preventDefault(); e.stopPropagation();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    zone.classList.add('is-active');
+  });
+  zone.addEventListener('dragleave', e => {
+    e.preventDefault(); e.stopPropagation();
+    zone.classList.remove('is-active');
+  });
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); e.stopPropagation();
+    zone.classList.remove('is-active');
+    ingestMany(e.dataTransfer.files, kind);
+  });
 }
-wireDrop('pdf-drop', 'pdf-input', ingestPDF);
-wireDrop('csv-drop', 'csv-input', ingestCSV);
-wireDrop('video-drop', 'video-input', ingestVideo);
+wireDrop('pdf-drop',   'pdf-input',   'pdf');
+wireDrop('csv-drop',   'csv-input',   'csv');
+wireDrop('video-drop', 'video-input', 'video');
+
+// Global drag overlay — drag anywhere on the left panel and all zones light up.
+// Auto-pulse the zone that matches the file extension if we can sniff it.
+(() => {
+  const leftPanel = document.getElementById('brain-left');
+  if (!leftPanel) return;
+  let counter = 0;
+  const setActive = (on, kind) => {
+    leftPanel.classList.toggle('is-dropping', !!on);
+    document.querySelectorAll('.drop').forEach(z => {
+      const matches = on && (!kind || z.dataset.kind === kind);
+      z.classList.toggle('is-active', !!matches);
+    });
+  };
+  window.addEventListener('dragenter', e => {
+    if (!e.dataTransfer || !Array.from(e.dataTransfer.types || []).includes('Files')) return;
+    counter++;
+    const item = e.dataTransfer.items && e.dataTransfer.items[0];
+    const kind = item ? (item.type.startsWith('video/') ? 'video'
+                       : item.type === 'application/pdf' ? 'pdf'
+                       : item.type === 'text/csv' ? 'csv' : null) : null;
+    setActive(true, kind);
+  });
+  window.addEventListener('dragleave', () => {
+    counter = Math.max(0, counter - 1);
+    if (counter === 0) setActive(false);
+  });
+  window.addEventListener('drop', e => {
+    counter = 0; setActive(false);
+    // If the drop happened outside any zone, route by file kind so the user
+    // doesn't have to aim precisely.
+    if (e.target.closest('.drop')) return;
+    if (!e.dataTransfer || !e.dataTransfer.files.length) return;
+    if (!leftPanel.contains(e.target)) return;
+    e.preventDefault();
+    ingestMany(e.dataTransfer.files); // sniff
+  });
+  // Prevent the browser from navigating to dropped files outside zones
+  window.addEventListener('dragover', e => {
+    if (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')) {
+      e.preventDefault();
+    }
+  });
+})();
+
+// Paste-to-ingest (Cmd/Ctrl+V with a file in the clipboard)
+window.addEventListener('paste', e => {
+  const files = Array.from(e.clipboardData?.files || []);
+  if (files.length === 0) return;
+  e.preventDefault();
+  ingestMany(files);
+});
 
 document.getElementById('seed-btn').onclick = seedSampleArtifacts;
+document.getElementById('clear-all').onclick = clearAllArtifacts;
+
+// "Use backend LLM" checkbox in Evaluate run bar
+const liveToggle = document.getElementById('live-eval-toggle');
+if (liveToggle) {
+  liveToggle.onchange = () => { window.USE_BACKEND_EVAL = liveToggle.checked; };
+}
+
+/* ── LLM status pill: single source of truth ───────────────────────────────
+   Updates from /health on boot, and self-corrects from any chat/eval response
+   that returns a `stubbed` field. Click a pill to force-refresh. */
+function setLLMStatus(mode) {
+  // mode: 'live' | 'stub' | 'off' | 'loading'
+  const cls = mode === 'live' ? 'is-live' : mode === 'stub' ? 'is-stub' : mode === 'off' ? 'is-off' : 'is-stub';
+  const brainLabel = mode === 'live' ? 'LLM: live'
+                    : mode === 'stub' ? 'LLM: stub'
+                    : mode === 'off' ? 'LLM: offline'
+                    : 'LLM: …';
+  const evalLabel = mode === 'live' ? 'live' : mode === 'stub' ? 'stub' : mode === 'off' ? 'offline' : '…';
+  document.querySelectorAll('#brain-status,#brain-status-chat,#eval-status').forEach(p => {
+    p.classList.remove('is-live', 'is-stub', 'is-off');
+    p.classList.add(cls);
+    const lbl = p.querySelector('.lbl');
+    if (lbl) lbl.textContent = (p.id === 'eval-status') ? evalLabel : brainLabel;
+  });
+  window.__llmMode = mode;
+  if (liveToggle) {
+    if (mode === 'off') {
+      liveToggle.disabled = true;
+      liveToggle.title = 'Backend unreachable — runs will use the in-browser simulator.';
+    } else {
+      liveToggle.disabled = false;
+      liveToggle.title = mode === 'live'
+        ? 'Backend has a live LLM. Toggle to route runs through real Anthropic calls.'
+        : 'Backend reachable but in STUB mode (no ANTHROPIC_API_KEY). Toggle to route runs through it anyway.';
+    }
+  }
+}
+
+async function refreshLLMStatus() {
+  try {
+    const r = await fetch(`${PLATFORM_API}/health`, { cache: 'no-store' });
+    if (!r.ok) throw new Error(r.status);
+    const data = await r.json();
+    setLLMStatus(data.stubMode ? 'stub' : 'live');
+  } catch {
+    setLLMStatus('off');
+  }
+}
+
+// Self-correct from any backend response that includes `stubbed`.
+// Called by askQuestion and runEvaluation after each call.
+window.applyStubbedFromResponse = (resp) => {
+  if (!resp || typeof resp.stubbed !== 'boolean') return;
+  setLLMStatus(resp.stubbed ? 'stub' : 'live');
+};
+
+// Click any pill to force-refresh
+document.querySelectorAll('#brain-status,#brain-status-chat,#eval-status').forEach(p => {
+  p.style.cursor = 'pointer';
+  p.title = (p.title || '') + ' — click to refresh';
+  p.onclick = () => refreshLLMStatus();
+});
+
+// Initial check
+refreshLLMStatus();
 
 // Canvas overlay buttons
 document.querySelectorAll('.ov-btn').forEach(btn => {
@@ -2315,6 +3049,26 @@ document.getElementById('tag-save').onclick = saveTagAsSegment;
 
 // Eval mode wiring
 document.getElementById('ev-gen-btn').onclick = generateEvalSession;
+document.getElementById('ev-from-clips-btn').onclick = () => {
+  const segments = (state.brain.artifacts || []).filter(a => a.type === 'VideoSegment');
+  if (segments.length === 0) {
+    toast('No VideoSegment artifacts yet. Drop a video-index CSV (and your videos) in Brain mode first.');
+    return;
+  }
+  // Build session events in clip order, preserving the labeled error_type.
+  const session = segments.map((seg, i) => ({
+    timestamp: i * 30,
+    phase: ((state.brain && (PINION_GUIDE_PROCEDURE.keysteps.find(k => k.id === seg.attachedTo) || {})).label) || seg.attachedTo,
+    keystepId: seg.attachedTo,
+    label: seg.isCorrectExecution ? 'correct' : 'incorrect',
+    errorType: seg.errorType || null,
+    note: seg.notes || seg.label || '',
+    sourceClip: seg.fileName
+  }));
+  state.eval.session = session;
+  renderEvalSession();
+  toast(`Loaded ${session.length} event${session.length===1?'':'s'} from uploaded clips`);
+};
 document.getElementById('run-btn').onclick = async () => {
   if (!state.eval.session) return;
   const btn = document.getElementById('run-btn');
@@ -2343,11 +3097,16 @@ document.getElementById('run-all-btn').onclick = async () => {
    INITIAL RENDER
    ════════════════════════════════════════════════════════════════════════════ */
 window.addEventListener('load', () => {
+  // Rehydrate any artifacts from a previous session before first paint.
+  const restored = restoreArtifacts();
+
   // Render eval-mode UI immediately — does not depend on Cytoscape
   renderHardwareCards();
   renderStrategyCards();
   renderArtifactList();
   wireChat();
+
+  if (restored) toast(`Restored ${state.brain.artifacts.length} artifact${state.brain.artifacts.length===1?'':'s'} from last session`);
 
   // Graph init depends on Cytoscape
   if (typeof cytoscape === 'undefined') {

@@ -36,6 +36,12 @@ export function flattenProcedure(p: ProcedureSpec): GraphNode[] {
 }
 
 const TYPE_BIAS: Record<string, number> = {
+  // Ingested files get a small bump — they're specific user-supplied evidence.
+  Document: 1.4,
+  DataTable: 1.4,
+  VideoSegment: 1.3,
+  TribalKnowledge: 1.3,
+  // Canonical procedure
   ExpertAdvice: 1.5,
   Instruction: 1.2,
   KeyStep: 1.1,
@@ -44,30 +50,53 @@ const TYPE_BIAS: Record<string, number> = {
   ProceduralActivity: 0.5,
 };
 
+export interface ScoredNode {
+  node: GraphNode;
+  score: number;
+}
+
+/** Score arbitrary nodes against a query. Reusable for both the canonical
+ *  graph and client-supplied artifact lists. */
+export function scoreNodes(nodes: GraphNode[], query: string): ScoredNode[] {
+  const terms = query
+    .toLowerCase()
+    .split(/[^\w]+/)
+    .filter((s) => s.length > 2);
+  if (terms.length === 0) {
+    return nodes.map((n) => ({ node: n, score: 0 }));
+  }
+  return nodes
+    .map<ScoredNode>((n) => {
+      const blob = `${n.label} ${safeStringify(n.raw)}`.toLowerCase();
+      let score = 0;
+      for (const t of terms) {
+        const hits = blob.split(t).length - 1;
+        if (hits > 0) score += hits;
+      }
+      score *= TYPE_BIAS[n.type] ?? 1.0;
+      return { node: n, score };
+    })
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score);
+}
+
+function safeStringify(v: unknown): string {
+  try {
+    return JSON.stringify(v) ?? "";
+  } catch {
+    return "";
+  }
+}
+
 export function retrieveRelevantNodes(
   procedure: ProcedureSpec,
   query: string,
   k = 6,
 ): GraphNode[] {
   const nodes = flattenProcedure(procedure);
-  const terms = query
-    .toLowerCase()
-    .split(/[^\w]+/)
-    .filter((s) => s.length > 2);
-  if (terms.length === 0) return nodes.slice(0, k);
-  const scored = nodes.map((n) => {
-    const blob = `${n.label} ${JSON.stringify(n.raw)}`.toLowerCase();
-    let score = 0;
-    for (const t of terms) {
-      const hits = blob.split(t).length - 1;
-      if (hits > 0) score += hits;
-    }
-    score *= TYPE_BIAS[n.type] ?? 1.0;
-    return { n, score };
-  });
-  return scored
-    .filter((s) => s.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, k)
-    .map((s) => s.n);
+  const scored = scoreNodes(nodes, query);
+  if (scored.length === 0) {
+    return nodes.slice(0, k); // fallback when query is empty / no matches
+  }
+  return scored.slice(0, k).map((s) => s.node);
 }

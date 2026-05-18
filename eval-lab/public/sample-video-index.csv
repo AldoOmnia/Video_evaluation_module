@@ -1,0 +1,8 @@
+video_file,step_id,label,error_type,start_s,end_s,notes
+correct_torque.mp4,step:09,correct,,0,28,"Marco correct execution — 3 passes opposing corners"
+single_pass_torque.mp4,step:09,incorrect,OUT_OF_SPEC,0,18,"Single-pass tightening — preload will drift"
+chamfer_outboard.mp4,step:03,incorrect,ORIENTATION,0,15,"Guide bearing cup chamfered edge facing outboard (should be inboard)"
+missing_lube.mp4,step:02,incorrect,OMISSION,0,12,"Worker skipped grease application entirely"
+wrong_shim.mp4,step:07,incorrect,SUBSTITUTION,0,22,"Loaded shim from adjacent bin — SKU mismatch vs traveler"
+skipped_gauge.mp4,step:05,incorrect,UNVERIFIED,0,20,"Press depth never measured before advancing"
+correct_press.mp4,step:04,correct,,0,32,"Clean 2s ramp + 1s hold, force in band"

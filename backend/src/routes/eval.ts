@@ -14,6 +14,7 @@ import { z } from "zod";
 
 import { specs } from "../services/specs.js";
 import { llmCall } from "../services/anthropic.js";
+import { stubMode } from "../config.js";
 import {
   buildPrompt,
   type AgentContext,
@@ -67,34 +68,90 @@ evalRouter.post("/", async (req, res, next) => {
         const ctx: AgentContext = {
           currentStep: step,
           recentEvents: scored.slice(-8),
-          detections: {},
+          detections: deriveDetections(ev),
         };
         const prompt = buildPrompt(strat, specs.procedure, ctx);
+        // Hard structured-output directive. Any prose breaks scoring, so the
+        // model must emit only one JSON object and nothing else.
+        const userMsg = `${prompt.user}
+
+CONTEXT FOR THIS SEGMENT
+  step: ${step.id} — ${step.label} (risk: ${step.risk})
+  acceptance: ${step.acceptance}
+  high-priority errors here: ${step.errorProfile.high_priority.join(", ") || "—"}
+  worker notes: ${ev.rationale ?? "(none)"}
+
+YOUR TASK
+Decide whether this segment shows a procedural error.
+"detected" is true if and only if you would flag this to the worker.
+"errorCode" must be one of the taxonomy codes, or null if no error.
+
+RESPONSE FORMAT — ABSOLUTE
+Respond with exactly one JSON object and nothing else. No prose before.
+No prose after. No code fences. No markdown.
+Schema:
+{"detected": true|false, "errorCode": "OMISSION|INSERTION|ORDER|INCOMPLETE|SUBSTITUTION|ORIENTATION|OMITTED_OBJECT|EXTRA_OBJECT|OUT_OF_SPEC|UNVERIFIED|BORDERLINE|INTENT_MISMATCH|PHANTOM_PROGRESS|UNREPORTED_PROGRESS|STATE_REPAIR|CV_UNCERTAIN|STATE_AMBIGUOUS|OEM_UNAVAILABLE|OUT_OF_DISTRIBUTION"|null, "diagnosis": "one short sentence ≤140 chars stating what is wrong", "fix": "one short corrective action ≤140 chars"}
+`;
         const r = await llmCall({
           system: buildAgentSystemPrompt(specs.procedure, hw, specs.taxonomy),
-          user: prompt.user,
-          maxTokens: 200,
+          user: userMsg,
+          maxTokens: 220,
         });
         totalIn += r.inputTokens;
         totalOut += r.outputTokens;
         latencies.push(r.latencyMs);
-        // Compress to display + score against ground truth
-        const display = fitToDisplay(r.text, hw);
-        const caught = mentionsErrorCode(display.lines.join(" "), ev.errorType);
+        const verdict = parseVerdict(r.text);
+        const truth = ev.errorType ?? null;
+        // Scoring rules:
+        //  - detected ∧ truth-anomaly  → "caught" (credit the catch; code match is a separate quality metric)
+        //  - detected ∧ no truth        → "false_pos"
+        //  - ¬detected ∧ truth-anomaly  → "missed"
+        const outcome: "caught" | "missed" | "false_pos" =
+          verdict.detected && truth
+            ? "caught"
+            : verdict.detected && !truth
+              ? "false_pos"
+              : "missed";
+        const codeMatch =
+          truth && verdict.errorCode
+            ? verdict.errorCode === truth
+              ? "exact"
+              : sameGroup(verdict.errorCode, truth)
+                ? "same-group"
+                : "different"
+            : null;
+        const lineForDisplay = verdict.diagnosis || r.text;
+        const display = fitToDisplay(lineForDisplay, hw);
         scored.push({
           ...ev,
-          outcome: caught ? "caught" : "missed",
+          outcome,
+          priority: ev.priority ?? priorityFor(step, ev.errorType),
           inputTokens: r.inputTokens,
           outputTokens: r.outputTokens,
           latencyMs: r.latencyMs,
-          rationale: display.lines.join(" ").trim(),
+          rationale: [
+            verdict.diagnosis ? `diagnosis: ${verdict.diagnosis}` : "",
+            verdict.fix ? `fix: ${verdict.fix}` : "",
+            verdict.errorCode
+              ? `code: ${verdict.errorCode}${codeMatch && codeMatch !== "exact" ? ` (truth ${truth}, ${codeMatch})` : ""}`
+              : truth
+                ? `code: — (truth ${truth})`
+                : "",
+            `lens: "${display.lines.filter(Boolean).join(" / ")}"`,
+          ]
+            .filter(Boolean)
+            .join(" | "),
         });
       } else {
         const sim = simulateOutcome(eff, strat.fp_rate, ev, step);
         totalIn += sim.inputTokens;
         totalOut += sim.outputTokens;
         latencies.push(sim.latencyMs);
-        scored.push({ ...ev, ...sim });
+        scored.push({
+          ...ev,
+          priority: ev.priority ?? priorityFor(step, ev.errorType),
+          ...sim,
+        });
       }
     }
 
@@ -109,7 +166,8 @@ evalRouter.post("/", async (req, res, next) => {
       events: scored,
       metrics,
     };
-    res.json(result);
+    // attach a stubbed flag so the UI can self-correct its LLM pill
+    res.json({ ...result, stubbed: stubMode || !body.liveLLM });
   } catch (e) {
     next(e);
   }
@@ -159,6 +217,119 @@ function priorityFor(step: KeyStep, code?: ErrorCode): Priority {
 function mentionsErrorCode(text: string, code?: ErrorCode): boolean {
   if (!code) return false;
   return text.toUpperCase().includes(code);
+}
+
+function sameGroup(a: ErrorCode, b: ErrorCode): boolean {
+  return specs.taxonomy.errors[a]?.group === specs.taxonomy.errors[b]?.group;
+}
+
+interface AgentVerdict {
+  detected: boolean;
+  errorCode: ErrorCode | null;
+  diagnosis: string;
+  fix: string;
+}
+
+/** Robust extraction of {detected, errorCode, diagnosis, fix} from the LLM.
+ *  Tries every JSON object in the text and picks the best candidate (one with
+ *  a valid errorCode + diagnosis). Falls back to a code-mention heuristic. */
+function parseVerdict(text: string): AgentVerdict {
+  const stripped = text
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .trim();
+
+  const candidates = extractJsonObjects(stripped);
+  // Score candidates: prefer ones with a diagnosis AND a valid errorCode.
+  let best: AgentVerdict | null = null;
+  let bestScore = -1;
+  for (const obj of candidates) {
+    const ecRaw = typeof obj.errorCode === "string" ? obj.errorCode.toUpperCase() : null;
+    const ec =
+      ecRaw && (ERROR_CODES as readonly string[]).includes(ecRaw) ? (ecRaw as ErrorCode) : null;
+    const diag = String(obj.diagnosis ?? "").slice(0, 200);
+    const fix = String(obj.fix ?? "").slice(0, 200);
+    const detected = !!obj.detected || !!ec;
+    const score = (diag ? 2 : 0) + (ec ? 2 : 0) + (fix ? 1 : 0) + (detected ? 1 : 0);
+    if (score > bestScore) {
+      bestScore = score;
+      best = { detected, errorCode: ec, diagnosis: diag, fix };
+    }
+  }
+  if (best && bestScore > 0) return best;
+
+  // Heuristic fallback: if the text mentions a code, treat as detected.
+  const found = (ERROR_CODES as readonly string[]).find((c) => stripped.toUpperCase().includes(c));
+  return {
+    detected: !!found,
+    errorCode: (found as ErrorCode | undefined) ?? null,
+    diagnosis: stripped.slice(0, 200),
+    fix: "",
+  };
+}
+
+/** Find every plausible JSON object in `s`, in order, ignoring braces inside
+ *  strings. Brace-balanced scan; tolerant of leading prose and concatenation. */
+function extractJsonObjects(s: string): Array<Record<string, unknown>> {
+  const out: Array<Record<string, unknown>> = [];
+  let i = 0;
+  while (i < s.length) {
+    if (s[i] !== "{") {
+      i++;
+      continue;
+    }
+    let depth = 0;
+    let inStr = false;
+    let esc = false;
+    let end = -1;
+    for (let j = i; j < s.length; j++) {
+      const ch = s[j];
+      if (esc) {
+        esc = false;
+        continue;
+      }
+      if (ch === "\\") {
+        esc = true;
+        continue;
+      }
+      if (ch === '"') {
+        inStr = !inStr;
+        continue;
+      }
+      if (inStr) continue;
+      if (ch === "{") depth++;
+      else if (ch === "}") {
+        depth--;
+        if (depth === 0) {
+          end = j;
+          break;
+        }
+      }
+    }
+    if (end === -1) break;
+    try {
+      const parsed = JSON.parse(s.slice(i, end + 1));
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        out.push(parsed as Record<string, unknown>);
+      }
+    } catch {
+      /* ignore — keep scanning */
+    }
+    i = end + 1;
+  }
+  return out;
+}
+
+/** Derive minimal CV-like detections from a labeled event so the prompt has
+ *  something concrete to ground on, without requiring an actual CV pipeline. */
+function deriveDetections(ev: { stepId?: string }): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!ev.stepId) return out;
+  const req = specs.procedure.stepRequirements[ev.stepId];
+  if (!req) return out;
+  for (const t of req.tools) out[t] = 0.9;
+  for (const p of req.parts) out[p] = 0.88;
+  return out;
 }
 
 function computeMetrics(
