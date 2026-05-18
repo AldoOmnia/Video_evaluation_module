@@ -984,7 +984,7 @@
     <span class="sep">│</span>
     <span id="footer-mode">brain mode</span>
     <span class="sep">│</span>
-    <span>llm: <span style="color:var(--warn);">stub</span> · graph: <span style="color:var(--ink-2);">in-memory</span></span>
+    <span>llm: <span id="footer-llm" style="color:var(--warn);">…</span> · graph: <span style="color:var(--ink-2);">in-memory</span></span>
     <span style="margin-left:auto;">Pilot · Comer Industries · Pinion Guide Station</span>
   </footer>
 
@@ -2982,6 +2982,20 @@ function setLLMStatus(mode) {
     p.classList.add(cls);
     const lbl = p.querySelector('.lbl');
     if (lbl) lbl.textContent = (p.id === 'eval-status') ? evalLabel : brainLabel;
+  });
+  // Footer text-only span
+  const footerEl = document.getElementById('footer-llm');
+  if (footerEl) {
+    footerEl.textContent = evalLabel;
+    footerEl.style.color = mode === 'live'
+      ? 'var(--ok, #4caf50)'
+      : mode === 'off'
+        ? 'var(--err, #d23)'
+        : 'var(--warn, #d80)';
+  }
+  // Secondary chat seam (panel sub-header)
+  document.querySelectorAll('.chat-h .seam').forEach(s => {
+    if (/^LLM:\s/i.test(s.textContent || '')) s.textContent = brainLabel;
   });
   window.__llmMode = mode;
   if (liveToggle) {
