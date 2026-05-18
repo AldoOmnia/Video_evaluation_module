@@ -1,15 +1,44 @@
-# Comer · Rokid Platform
+# Brain · Eval Lab — Platform
 
-**Brain · Eval Lab** — the procedural-knowledge graph + agent-evaluation
-platform behind the Aequilibrium / OmniaClaw pilot at Comer Industries
-(station PG-04, Pinion Guide Assembly).
+The procedural-knowledge graph + agent-evaluation platform behind the
+Aequilibrium / OmniaClaw smart-glasses program.
 
 This repo extracts the data model, prompt assembly, display constraints,
 and rule engine from the single-file `brain-eval-lab.html` scaffold into a
-shared library that both the **web eval lab** and the **Rokid Android
-APK** (`comer-rokid-demo/glasses-app`) consume.
+shared library. It's designed so the **web eval lab** and a **paired
+device APK** consume identical specs over identical endpoint contracts —
+independent of which client, which procedure, or which glasses hardware.
+
+> No APK is currently wired to this platform. A separate Rokid test APK
+> (kept in a sibling repo) will be paired with this platform's
+> `platform-comer` branch for the Comer pilot. The existing
+> `comer-rokid-demo` Kotlin app is **not** the test target and is not
+> touched by anything in this repo.
 
 > Background: see [`CURSOR-HANDOFF.md`](./CURSOR-HANDOFF.md).
+
+---
+
+## Branch model — one branch per client
+
+`main` is the generic template. Each client lives on its own long-lived
+branch with that client's procedure YAML, CSV data, branding, and any
+client-specific endpoint additions:
+
+| Branch | Client / pilot | Procedure | Paired APK |
+|---|---|---|---|
+| `main` | — (generic template) | none | none |
+| `platform-comer` | Comer Industries (Tier-1 automotive) | Pinion Guide Assembly (PG-04) | separate Rokid test APK (TBD) |
+| `platform-<client>` | future pilots | their procedure YAML | their APK |
+
+Why branches instead of folders or separate repos:
+- Each pilot ships at its own cadence and never blocks another.
+- The shared platform code stays one diff away (`git merge main`).
+- Per-client data, secrets, and tuning never leak across pilots.
+
+When kicking off a new client, branch from `main`, drop in a new YAML
+under `shared/procedure-spec/`, and update the `procedure` import in
+`backend/src/services/specs.ts` to point at it.
 
 ---
 
@@ -112,27 +141,28 @@ Mirrors `CURSOR-HANDOFF.md` §"What's wired" / "What's stubbed", updated:
 
 ---
 
-## How this connects to the Rokid APK
+## How this connects to a paired APK
 
-The existing [`comer-rokid-demo`](../comer-rokid-demo) glasses-app POSTs
-to `/query` with `{ transcript, image_base64? }` and renders the response
-as four lines on the lens. This platform's backend ships an exact-shape
-`/query` implementation, so the APK can point at this server without code
-changes:
+The backend exposes a stable contract that any glasses APK can consume —
+see [`apk-bridge/endpoint-contracts.yaml`](./apk-bridge/endpoint-contracts.yaml)
+for the machine-readable spec.
 
-```properties
-# comer-rokid-demo/glasses-app/local.properties
-comer.backend.url=http://<host>:3001
-```
+In short:
 
-To bundle the procedure on-device:
+1. The APK POSTs voice / vision input to `/query` and receives a 4-line
+   lens-fitted response (shape: `{ line1, line2, line3, line4, isAction,
+   rawAnswer }`). The platform handles retrieval, LLM call, and display
+   fitting server-side.
+2. Optionally, the APK bundles the procedure on-device via
+   `npm run gen:apk` (Kotlin codegen). With `APK_PROJECT_ROOT` set to the
+   target APK's source root, the script emits Kotlin data classes that
+   mirror the YAML. **No existing APK in this repo or its siblings is the
+   default target** — point `APK_PROJECT_ROOT` at the new test APK when
+   it's ready.
+3. Optionally, the APK posts back telemetry as `SessionEvent[]` to
+   `/api/eval` for offline scoring.
 
-```bash
-APK_PROJECT_ROOT=/abs/path/to/glasses-app/app/src/main/java/com/omnia/comer/spec \
-  npm run gen:apk
-```
-
-Full migration walkthrough: [`apk-bridge/README.md`](./apk-bridge/README.md).
+Contract details: [`apk-bridge/README.md`](./apk-bridge/README.md).
 
 ---
 

@@ -49,21 +49,19 @@
 └──────┬───────────────────────────────────────────────────────────────────┘
        │
        │  codegen (scripts/generate-kotlin-specs.ts)
-       │
+       │  APK_PROJECT_ROOT=<paired test APK source root>
        ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
-│  comer-rokid-demo/glasses-app/  (Kotlin/Compose, Rokid CXR-S SDK)        │
+│  <paired test APK>   (Kotlin/Compose, lives in a separate repo)          │
 │                                                                          │
-│   com/omnia/comer/spec/PinionGuideProcedure.kt   ← generated            │
-│   com/omnia/comer/spec/HardwareProfile.kt        ← generated            │
-│   com/omnia/comer/spec/ContextStrategy.kt        ← generated            │
-│   com/omnia/comer/spec/Taxonomy.kt               ← generated            │
+│   spec/PinionGuideProcedure.kt   ← generated (one per client/branch)     │
+│   spec/HardwareProfile.kt        ← generated                             │
+│   spec/ContextStrategy.kt        ← generated                             │
+│   spec/Taxonomy.kt               ← generated                             │
 │                                                                          │
-│   MainActivity.kt       → voice (KEYCODE_DPAD_CENTER) + vision           │
-│                          (KEYCODE_VOLUME_UP)                             │
-│   BackendClient.kt      → POST /query  (4-line lens response)           │
-│   VoiceEngine.kt        → STT                                            │
-│   CameraCapture.kt      → JPEG → base64                                  │
+│   MainActivity / BackendClient → POST /query  (4-line lens response)    │
+│                                                                          │
+│   Note: no specific APK is currently the test target. Pair when ready.  │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 

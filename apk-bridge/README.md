@@ -1,17 +1,22 @@
 # APK Bridge
 
-How the Rokid Android app (`comer-rokid-demo/glasses-app`) and any future
-device build consume the platform's shared specs and backend.
+Contract surface between this platform and any paired glasses APK.
 
-The contract is intentionally narrow: the APK never depends on TypeScript
-source. It depends on two things only:
+The contract is intentionally narrow: the APK depends on **two things only**:
 
-1. **Generated Kotlin data classes** from the shared YAML specs, dropped in
-   `glasses-app/app/src/main/java/com/omnia/comer/spec/`.
-2. **HTTP endpoints** the backend already exposes (Section 3 below).
+1. **Generated Kotlin data classes** from the shared YAML specs, dropped
+   into the APK source tree (path is configurable, default
+   `com/omnia/glasses/spec/`).
+2. **HTTP endpoints** the platform's backend exposes (see Section 3).
 
 That keeps the device build small and lets the Brain/Eval lab evolve
 without forcing APK releases.
+
+> No specific APK is currently the test target for this platform. The
+> Comer pilot will pair this platform's `platform-comer` branch with a
+> dedicated Rokid test APK in a separate repo. The existing
+> `comer-rokid-demo` Kotlin app is **not** touched by this platform and
+> should not be used as the integration target.
 
 ---
 
@@ -19,54 +24,58 @@ without forcing APK releases.
 
 ### Option A (recommended): codegen at platform build time
 
-`scripts/generate-kotlin-specs.ts` reads `/shared/**/*.yaml`, validates with
-the same Zod schemas the backend uses, and emits Kotlin data classes:
+`scripts/generate-kotlin-specs.ts` reads `/shared/**/*.yaml`, validates
+with the same Zod schemas the backend uses, and emits Kotlin data
+classes:
 
 ```
-glasses-app/app/src/main/java/com/omnia/comer/spec/
-  ProcedureSpec.kt   // sealed/data classes mirroring shared/types/procedure.ts
+<APK source root>/<package path>/spec/
+  ProcedureSpec.kt        // mirrors shared/types/procedure.ts
   Taxonomy.kt
   HardwareProfile.kt
   ContextStrategy.kt
-  PinionGuideProcedure.kt   // const val INSTANCE = ProcedureSpec(...)
+  PinionGuideProcedure.kt // const-style object with the loaded YAML data
 ```
 
 Bundled at compile time → zero network/IO at boot, zero schema drift.
 
-Run:
+Run with the APK's source root passed in:
 
 ```bash
-npm run gen:apk
+APK_PROJECT_ROOT=/abs/path/to/<test-apk>/app/src/main/java/com/omnia/glasses/spec \
+  npm run gen:apk
 ```
 
-This writes the files into the sibling `comer-rokid-demo` repo at the path
-configured by the `APK_PROJECT_ROOT` env var (default
-`~/comer-rokid-demo/glasses-app/app/src/main/java/com/omnia/comer/spec`).
+If `APK_PROJECT_ROOT` is unset or doesn't exist, the script logs a
+warning and exits cleanly — so it's safe to run in CI even when no APK
+is paired.
 
 ### Option B: runtime fetch
 
-For dev / hot-reload of the procedure on real hardware:
+For hot-reload of the procedure on real hardware:
 
 ```kotlin
 val client = SpecClient(BuildConfig.PLATFORM_URL)
-val procedure: ProcedureSpec = client.fetchProcedure()  // GET /api/spec/procedure
+val procedure = client.fetchProcedure()  // GET /api/spec/procedure
 ```
 
 Cache to local files; fall back to last-known-good if offline.
 
 ---
 
-## 2. Backend endpoint contracts (stable for the APK)
+## 2. Backend endpoint contracts (stable for any paired APK)
 
-| Method | Path                  | Used by                          | Notes |
-|--------|-----------------------|----------------------------------|-------|
-| POST   | `/query`              | Rokid APK voice / vision flow    | Identical shape to legacy `comer-rokid-demo` backend — drop-in compatible. |
-| GET    | `/api/spec/procedure` | Optional runtime spec refresh    | Returns full `ProcedureSpec` JSON. |
-| GET    | `/api/spec/hardware`  | Provisioning / on-device tuning  | Returns hardware profiles; APK picks `rokid_ai` by default. |
-| POST   | `/api/brain/chat`     | Web Brain Explorer (not the APK directly) | Same brain, web only — APK uses `/query` which composes brain + display. |
-| POST   | `/api/eval`           | Offline batch evaluation         | The APK can emit telemetry as `SessionEvent[]` and POST here for retro scoring. |
+| Method | Path                  | Purpose | Used by |
+|--------|-----------------------|---------|---------|
+| POST   | `/query`              | Voice / vision query → 4-line lens response | Test APK |
+| GET    | `/api/spec/procedure` | Runtime spec fetch | Test APK (optional) |
+| GET    | `/api/spec/hardware`  | Hardware profiles list | Test APK (optional) |
+| POST   | `/api/brain/chat`     | Web Brain Explorer chat | Eval Lab UI |
+| POST   | `/api/eval`           | Score a batch of `SessionEvent`s | Eval Lab + APK telemetry upload |
 
-### `/query` request (unchanged from current APK)
+Machine-readable: [`endpoint-contracts.yaml`](./endpoint-contracts.yaml).
+
+### `/query` request
 
 ```json
 {
@@ -76,7 +85,7 @@ Cache to local files; fall back to last-known-good if offline.
 }
 ```
 
-### `/query` response (unchanged shape)
+### `/query` response — always 4 lines
 
 ```json
 {
@@ -85,44 +94,50 @@ Cache to local files; fall back to last-known-good if offline.
   "line3": "3-pass opposing",
   "line4": "corner sequence.",
   "isAction": false,
-  "rawAnswer": "Torque pinion nut to 210–240 Nm in a 3-pass opposing-corner sequence (Comer QE-PG-04). [[advice:09]]"
+  "rawAnswer": "Torque pinion nut to 210–240 Nm in a 3-pass opposing-corner sequence."
 }
 ```
 
 The 4-line shape is enforced server-side by
-`shared/display-constraints/rokid.ts` so even if the LLM returns long
-prose the lens always renders cleanly.
+`shared/display-constraints/rokid.ts` (per-line + total char budgets come
+from the hardware profile YAML), so the lens always renders cleanly
+regardless of what the LLM returns.
 
 ---
 
 ## 3. Telemetry → eval (closing the loop)
 
-Once the APK is in the field, it should emit one `SessionEvent` per:
+Once the test APK is in the field, it should emit one `SessionEvent` per:
 
 - FSM transition (`stepId`, `label: "correct"`)
 - Tier-1 rule firing (`label: "incorrect"`, `errorType`, `priority`)
 - Tier-2 LLM verdict (`outcome`, `inputTokens`, `outputTokens`, `latencyMs`)
 
-Schema: `shared/types/events.ts`.
+Schema: [`shared/types/events.ts`](../shared/types/events.ts).
 
 Buffer locally, batch upload to `POST /api/eval` with `liveLLM: false`
 (re-score offline). The result is a `RunResult` JSON identical to the
-eval-lab simulation — so a single dashboard can show "simulated A4 catch
-rate" alongside "actual rokid_ai A4 catch rate on shift 2026-05-17."
+eval-lab simulation — so one dashboard can compare "simulated A4 catch
+rate" alongside "actual A4 catch rate on shift 2026-05-17."
 
 ---
 
-## 4. Migration steps for `comer-rokid-demo/glasses-app`
+## 4. Pairing a new test APK with the platform
 
-1. Point `comer.backend.url` in `local.properties` at this platform's
-   backend (default `http://<host>:3001`). The legacy `/query` endpoint is
-   the same shape — no code changes required to ship a new APK.
-2. (Optional) Add a one-line build step in `glasses-app/build.gradle.kts`
-   that runs `npm --prefix ../../Video_evaluation_module run gen:apk`
-   before `compileDebugKotlin`. This guarantees the bundled spec is always
-   in sync with the YAML.
-3. (Optional) Wire the FSM in `shared/fsm/proceduralMemory.ts` to Kotlin
-   via the same codegen — or hand-port it (it's ~120 lines of pure logic).
+The platform makes **no assumptions** about the APK's package, build
+system, or framework. Any client that can speak HTTP and render four
+lines of text can pair.
 
-See `comer-rokid-demo/comer-rokid-demo-SPEC.md` for the existing field
-layout. The migration is additive — nothing in the existing flow breaks.
+To bring up a new APK:
+
+1. Spin up the platform: `npm run dev` (defaults to port 3001).
+2. Point the APK's backend URL at `http://<host>:3001`.
+3. (Optional) Run `npm run gen:apk` with `APK_PROJECT_ROOT` pointed at
+   the APK's source tree so the procedure is bundled on-device.
+4. (Optional) Wire the FSM in `shared/fsm/proceduralMemory.ts` to Kotlin
+   via the same codegen pattern — or hand-port it (it's ~120 lines of
+   pure logic).
+
+When pairing with a different client's branch (e.g. `platform-comer`),
+check out that branch first — the procedure YAML, CSVs, and any
+client-specific endpoints live there.
