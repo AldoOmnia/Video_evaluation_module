@@ -36,9 +36,14 @@ app.use("/query", queryRouter); // Rokid APK compatibility
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(HERE, "..", "..");
 app.use("/lab", express.static(join(REPO_ROOT, "eval-lab", "public")));
-app.get("/lab/", (_req, res) =>
-  res.sendFile(join(REPO_ROOT, "brain-eval-lab.html")),
-);
+app.get("/lab/", (_req, res) => {
+  // Force the browser to revalidate on every load so dev-iteration changes
+  // to brain-eval-lab.html show up after a normal refresh.
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.set("Pragma", "no-cache");
+  res.set("Expires", "0");
+  res.sendFile(join(REPO_ROOT, "brain-eval-lab.html"));
+});
 
 app.use(
   (
