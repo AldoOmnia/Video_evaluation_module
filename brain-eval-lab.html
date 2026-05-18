@@ -8,6 +8,16 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
+<script type="module">
+  // Configure pdf.js (loaded as a module above). We attach to window so the
+  // non-module ingest code can use it without bundler plumbing.
+  import * as pdfjs from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs";
+  pdfjs.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";
+  window.pdfjsLib = pdfjs;
+  window.dispatchEvent(new Event("pdfjs-ready"));
+</script>
 <style>
   :root {
     --bg: #0a0d0c;
@@ -311,6 +321,17 @@
     70%  { box-shadow: 0 0 0 6px rgba(0,229,160,0); }
     100% { box-shadow: 0 0 0 0 rgba(0,229,160,0); }
   }
+
+  /* Live-eval toggle */
+  .live-toggle {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--ink-2); cursor: pointer;
+    padding: 4px 8px; border: 1px solid var(--line);
+    border-radius: 3px; background: var(--bg-2);
+    margin-right: 8px; user-select: none;
+  }
+  .live-toggle:hover { border-color: var(--line-2); color: var(--ink); }
+  .live-toggle input { accent-color: var(--acc); cursor: pointer; }
 
   /* ── Graph canvas ────────────────────── */
   #cy { width: 100%; height: 100%; background: var(--bg); }
@@ -926,6 +947,11 @@
           <div class="cards" id="strategy-cards"></div>
         </div>
         <div class="run-bar">
+          <label class="live-toggle" title="Route runs through /api/eval (real LLM if ANTHROPIC_API_KEY is set, backend stub otherwise)">
+            <input type="checkbox" id="live-eval-toggle" />
+            <span>Use backend LLM</span>
+            <span class="status-pill is-stub" id="eval-status"><span class="dot"></span><span class="lbl">stub</span></span>
+          </label>
           <button class="btn" id="run-btn" disabled>Run evaluation</button>
           <button class="btn btn-secondary" id="run-all-btn" disabled>Run all 4 for ablation</button>
         </div>
@@ -1557,12 +1583,49 @@ function detailFieldsHTML(n, raw) {
   if (raw.source)      fields.push(['source', `<span style="color:var(--c-tribal)">${raw.source}</span>`]);
   if (raw.fileName)    fields.push(['file', `<span class="mono">${raw.fileName}</span>`]);
   if (raw.fileSize)    fields.push(['size', `<span class="mono">${(raw.fileSize/1024).toFixed(1)} KB</span>`]);
+  if (raw.pageCount)   fields.push(['pages', `<span class="mono">${raw.pageCount}${raw.truncated ? ' (truncated)' : ''}</span>`]);
+  if (raw.rowCount != null) fields.push(['rows', `<span class="mono">${raw.rowCount}${raw.truncated ? ' (truncated)' : ''}</span>`]);
+  if (raw.parseStatus && raw.parseStatus !== 'ready') {
+    const color = raw.parseStatus === 'error' ? 'var(--err)' : 'var(--warn)';
+    fields.push(['parse', `<span class="mono" style="color:${color}">${raw.parseStatus}${raw.parseError ? ': ' + raw.parseError : ''}</span>`]);
+  }
   if (raw.timestampStart !== undefined) fields.push(['range', `<span class="mono">${formatTs(raw.timestampStart)} → ${formatTs(raw.timestampEnd)}</span>`]);
-  if (fields.length === 0) return '';
-  return `<div class="nd-section">
+
+  const propsHTML = fields.length > 0 ? `<div class="nd-section">
     <h4>Properties</h4>
     ${fields.map(([k, v]) => `<div class="field"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}
-  </div>`;
+  </div>` : '';
+
+  return propsHTML + artifactPreviewHTML(n, raw);
+}
+
+/** Extra section for ingested artifacts: PDF text excerpt or CSV row preview. */
+function artifactPreviewHTML(n, raw) {
+  if (n.type === 'Document' && raw.extractedText) {
+    const excerpt = escapeHtml(raw.extractedText.slice(0, 1200));
+    const more = raw.extractedText.length > 1200 ? ` … (${(raw.extractedText.length - 1200).toLocaleString()} more chars)` : '';
+    return `<div class="nd-section">
+      <h4>Extracted text <span style="color:var(--ink-3);float:right;font-family:var(--mono);font-weight:400;">used for retrieval</span></h4>
+      <pre style="white-space:pre-wrap;font-family:var(--mono);font-size:10px;line-height:1.45;color:var(--ink-2);max-height:240px;overflow-y:auto;background:var(--bg-2);border:1px solid var(--line);padding:10px;border-radius:3px;">${excerpt}${more}</pre>
+    </div>`;
+  }
+  if (n.type === 'DataTable' && Array.isArray(raw.rows) && raw.rows.length > 0) {
+    const headers = raw.headers || Object.keys(raw.rows[0]);
+    const preview = raw.rows.slice(0, 12);
+    const hdr = headers.map(h => `<th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:9.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.04em;">${escapeHtml(h)}</th>`).join('');
+    const body = preview.map(r => `<tr>${headers.map(h => `<td style="padding:3px 8px;font-family:var(--mono);font-size:10px;color:var(--ink);border-bottom:1px solid rgba(255,255,255,0.03);">${escapeHtml(String(r[h] ?? ''))}</td>`).join('')}</tr>`).join('');
+    const moreRows = raw.rows.length > preview.length ? `<div style="font-family:var(--mono);font-size:9.5px;color:var(--ink-3);margin-top:6px;">+ ${(raw.rows.length - preview.length).toLocaleString()} more rows</div>` : '';
+    return `<div class="nd-section">
+      <h4>Table preview <span style="color:var(--ink-3);float:right;font-family:var(--mono);font-weight:400;">${headers.length} cols × ${raw.rowCount ?? raw.rows.length} rows</span></h4>
+      <div style="overflow-x:auto;background:var(--bg-2);border:1px solid var(--line);border-radius:3px;">
+        <table style="border-collapse:collapse;width:100%;">
+          <thead><tr>${hdr}</tr></thead>
+          <tbody>${body}</tbody>
+        </table>
+      </div>${moreRows}
+    </div>`;
+  }
+  return '';
 }
 
 function relatedNodes(id) {
@@ -1655,19 +1718,22 @@ async function askQuestion(q) {
   const retrieved = retrieveRelevantNodes(q);
 
   // 2. GENERATION — backend first, stub fallback. This is the seam from
-  //    the handoff doc; the backend at /api/brain/chat is now real.
+  //    the handoff doc; the backend at /api/brain/chat is now real and also
+  //    accepts the client's ingested artifacts so they participate in retrieval.
   let answer, citations, stubbed = false;
   try {
     const r = await fetch(`${PLATFORM_API}/api/brain/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: q })
+      body: JSON.stringify({
+        query: q,
+        artifacts: clientArtifactsForBackend()
+      })
     });
     if (!r.ok) throw new Error(`status ${r.status}`);
     const data = await r.json();
     answer = data.answer;
     stubbed = !!data.stubbed;
-    // Prefer backend citations (resolved against the canonical graph)
     citations = (data.retrieved || []).slice(0, 5).map(n => ({
       id: n.id, type: n.type, label: n.label, raw: n.raw
     }));
@@ -1690,6 +1756,29 @@ const PLATFORM_API = (() => {
   } catch {}
   return 'http://localhost:3001';
 })();
+
+/** Compact representation of ingested artifacts to send with chat requests.
+ *  We truncate extracted text per-artifact so payloads stay reasonable. */
+function clientArtifactsForBackend() {
+  const arts = state.brain.artifacts || [];
+  return arts.map(a => ({
+    id: a.id,
+    type: a.type,
+    label: a.label,
+    raw: {
+      fileName: a.fileName,
+      attachedTo: a.attachedTo,
+      pageCount: a.pageCount,
+      rowCount: a.rowCount,
+      headers: a.headers,
+      // Cap per-artifact text the backend sees so the request stays small
+      extractedText: typeof a.extractedText === 'string'
+        ? a.extractedText.slice(0, 4000)
+        : undefined,
+      source: a.source
+    }
+  }));
+}
 
 function retrieveRelevantNodes(query) {
   const q = query.toLowerCase();
@@ -1767,34 +1856,142 @@ async function stubbedLLMCall(query, retrieved) {
    INGEST — file upload becomes a graph node
    ════════════════════════════════════════════════════════════════════════════ */
 
-const MAX_FILE_BYTES = 50 * 1024 * 1024; // 50 MB hard cap (browser memory)
+const MAX_FILE_BYTES = 50 * 1024 * 1024;  // 50 MB hard cap (browser memory)
+const MAX_PDF_PAGES = 40;                  // cap text extraction for huge SOPs
+const MAX_TEXT_CHARS = 60_000;             // ~15K tokens; enough for retrieval
+const STORAGE_KEY = 'brain.artifacts.v1';
 
-function ingestPDF(file) {
+async function ingestPDF(file) {
   if (!validateFile(file, ['pdf'])) return;
-  addArtifact({
-    id: `doc:${slug(file.name)}-${Date.now().toString(36)}`,
-    type: 'Document',
-    label: file.name,
-    fileName: file.name,
-    fileSize: file.size,
+  const id = `doc:${slug(file.name)}-${Date.now().toString(36)}`;
+  const artifact = {
+    id, type: 'Document',
+    label: file.name, fileName: file.name, fileSize: file.size,
     addedAt: Date.now(),
-    attachedTo: 'proc:pinion-guide'
-  });
-  toast(`Ingested ${file.name} as Document node`);
+    attachedTo: 'proc:pinion-guide',
+    extractedText: '',
+    pageCount: 0,
+    parseStatus: 'parsing'
+  };
+  addArtifact(artifact);
+  toast(`Ingesting ${file.name}…`);
+  try {
+    const { text, pages, truncated } = await parsePDF(file);
+    artifact.extractedText = text;
+    artifact.pageCount = pages;
+    artifact.truncated = !!truncated;
+    artifact.parseStatus = 'ready';
+    onArtifactChanged();
+    toast(`Parsed ${file.name} — ${pages} page${pages===1?'':'s'}, ${text.length.toLocaleString()} chars`);
+  } catch (e) {
+    console.warn('PDF parse failed', e);
+    artifact.parseStatus = 'error';
+    artifact.parseError = String(e && e.message || e);
+    onArtifactChanged();
+    toast(`Failed to parse ${file.name}: ${artifact.parseError}`);
+  }
 }
 
-function ingestCSV(file) {
-  if (!validateFile(file, ['csv', 'tsv'])) return;
-  addArtifact({
-    id: `data:${slug(file.name)}-${Date.now().toString(36)}`,
-    type: 'DataTable',
-    label: file.name,
-    fileName: file.name,
-    fileSize: file.size,
-    addedAt: Date.now(),
-    attachedTo: 'proc:pinion-guide'
+async function parsePDF(file) {
+  await ensurePdfJs();
+  const buf = await file.arrayBuffer();
+  const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
+  const total = pdf.numPages;
+  const pages = Math.min(total, MAX_PDF_PAGES);
+  const parts = [];
+  let chars = 0;
+  for (let p = 1; p <= pages; p++) {
+    const page = await pdf.getPage(p);
+    const tc = await page.getTextContent();
+    const txt = tc.items.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
+    parts.push(`[page ${p}] ${txt}`);
+    chars += txt.length;
+    if (chars >= MAX_TEXT_CHARS) break;
+  }
+  let text = parts.join('\n\n');
+  let truncated = total > MAX_PDF_PAGES || text.length > MAX_TEXT_CHARS;
+  if (text.length > MAX_TEXT_CHARS) text = text.slice(0, MAX_TEXT_CHARS) + ' … [truncated]';
+  return { text, pages: total, truncated };
+}
+
+function ensurePdfJs() {
+  if (window.pdfjsLib) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('pdf.js failed to load')), 10000);
+    window.addEventListener('pdfjs-ready', () => { clearTimeout(timer); resolve(); }, { once: true });
   });
-  toast(`Ingested ${file.name} as DataTable node`);
+}
+
+async function ingestCSV(file) {
+  if (!validateFile(file, ['csv', 'tsv'])) return;
+  const id = `data:${slug(file.name)}-${Date.now().toString(36)}`;
+  const artifact = {
+    id, type: 'DataTable',
+    label: file.name, fileName: file.name, fileSize: file.size,
+    addedAt: Date.now(),
+    attachedTo: 'proc:pinion-guide',
+    headers: [], rows: [], rowCount: 0,
+    parseStatus: 'parsing'
+  };
+  addArtifact(artifact);
+  toast(`Ingesting ${file.name}…`);
+  try {
+    const raw = await file.text();
+    const sep = file.name.toLowerCase().endsWith('.tsv') ? '\t' : ',';
+    const { headers, rows } = parseDelimited(raw, sep);
+    artifact.headers = headers;
+    artifact.rows = rows.slice(0, 500);              // keep memory reasonable
+    artifact.rowCount = rows.length;
+    artifact.truncated = rows.length > 500;
+    artifact.parseStatus = 'ready';
+    // Build a compact searchable summary so retrieval can find this table.
+    artifact.extractedText = buildCsvSummary(headers, artifact.rows);
+    onArtifactChanged();
+    toast(`Parsed ${file.name} — ${headers.length} cols × ${rows.length} rows`);
+  } catch (e) {
+    console.warn('CSV parse failed', e);
+    artifact.parseStatus = 'error';
+    artifact.parseError = String(e && e.message || e);
+    onArtifactChanged();
+    toast(`Failed to parse ${file.name}: ${artifact.parseError}`);
+  }
+}
+
+function parseDelimited(raw, sep) {
+  // Minimal RFC-4180-ish parser: handles "quoted, fields" and "" escapes.
+  const rows = [];
+  let cur = [], cell = '', i = 0, inQuote = false;
+  while (i < raw.length) {
+    const c = raw[i];
+    if (inQuote) {
+      if (c === '"' && raw[i+1] === '"') { cell += '"'; i += 2; continue; }
+      if (c === '"') { inQuote = false; i++; continue; }
+      cell += c; i++; continue;
+    }
+    if (c === '"') { inQuote = true; i++; continue; }
+    if (c === sep) { cur.push(cell); cell = ''; i++; continue; }
+    if (c === '\r') { i++; continue; }
+    if (c === '\n') { cur.push(cell); rows.push(cur); cur = []; cell = ''; i++; continue; }
+    cell += c; i++;
+  }
+  if (cell.length || cur.length) { cur.push(cell); rows.push(cur); }
+  const nonEmpty = rows.filter(r => r.some(x => x.trim().length > 0));
+  if (nonEmpty.length === 0) return { headers: [], rows: [] };
+  const headers = nonEmpty[0].map(h => h.trim());
+  const data = nonEmpty.slice(1).map(r => {
+    const o = {};
+    headers.forEach((h, idx) => { o[h] = (r[idx] ?? '').trim(); });
+    return o;
+  });
+  return { headers, rows: data };
+}
+
+function buildCsvSummary(headers, rows) {
+  const head = `columns: ${headers.join(', ')}`;
+  const sample = rows.slice(0, 10).map(r =>
+    headers.map(h => `${h}=${r[h] ?? ''}`).join(' | ')
+  ).join('\n');
+  return `${head}\nrows (first ${Math.min(rows.length, 10)}):\n${sample}`;
 }
 
 function ingestVideo(file) {
@@ -1857,16 +2054,14 @@ function ingestMany(files, expectedKind) {
 
 function addArtifact(a) {
   state.brain.artifacts.push(a);
-  renderArtifactList();
-  rebuildGraph();
+  onArtifactChanged();
 }
 
 function removeArtifact(id) {
   const idx = state.brain.artifacts.findIndex(a => a.id === id);
   if (idx === -1) return;
   const [removed] = state.brain.artifacts.splice(idx, 1);
-  renderArtifactList();
-  rebuildGraph();
+  onArtifactChanged();
   toast(`Removed ${removed.label}`);
 }
 
@@ -1874,9 +2069,51 @@ function clearAllArtifacts() {
   if (state.brain.artifacts.length === 0) return;
   if (!confirm(`Remove all ${state.brain.artifacts.length} ingested artifact(s)?`)) return;
   state.brain.artifacts = [];
+  onArtifactChanged();
+  toast('Cleared ingested artifacts');
+}
+
+/** Single funnel for all artifact-list mutations: re-render, rebuild graph,
+ *  and persist to localStorage so refresh keeps your work. */
+function onArtifactChanged() {
   renderArtifactList();
   rebuildGraph();
-  toast('Cleared ingested artifacts');
+  persistArtifacts();
+}
+
+function persistArtifacts() {
+  try {
+    const safe = state.brain.artifacts.map(a => {
+      // strip blob URLs / non-serializable bits; keep extracted text/rows
+      const { ...rest } = a;
+      return rest;
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
+  } catch (e) {
+    console.warn('persist failed', e);
+  }
+}
+
+function restoreArtifacts() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) return false;
+    // Anything stuck in 'parsing' from a crashed previous tab is unrecoverable
+    // (the original File is gone). Mark as error so the user knows to re-upload.
+    for (const a of parsed) {
+      if (a.parseStatus === 'parsing') {
+        a.parseStatus = 'error';
+        a.parseError = 'previous tab closed before parse finished';
+      }
+    }
+    state.brain.artifacts = parsed;
+    return true;
+  } catch (e) {
+    console.warn('restore failed', e);
+    return false;
+  }
 }
 
 function formatBytes(n) {
@@ -2142,8 +2379,7 @@ function seedSampleArtifacts() {
     s.addedAt = now - (samples.length - i) * 1000;
     state.brain.artifacts.push(s);
   }
-  renderArtifactList();
-  rebuildGraph();
+  onArtifactChanged();
   toast(`Seeded ${samples.length} sample artifacts`);
 }
 
@@ -2234,7 +2470,7 @@ function renderEvalSession() {
 
 // When true, runEvaluation will POST to /api/eval against the live backend
 // (real LLM if ANTHROPIC_API_KEY is set there, otherwise the backend's own
-// stub). When false (default), uses the in-browser simulation.
+// stub). Flipped by the "Use backend LLM" checkbox in the Evaluate run bar.
 window.USE_BACKEND_EVAL = false;
 
 async function runEvaluation(annotations, hwId, stratId) {
@@ -2621,28 +2857,42 @@ window.addEventListener('paste', e => {
 document.getElementById('seed-btn').onclick = seedSampleArtifacts;
 document.getElementById('clear-all').onclick = clearAllArtifacts;
 
+// "Use backend LLM" checkbox in Evaluate run bar
+const liveToggle = document.getElementById('live-eval-toggle');
+if (liveToggle) {
+  liveToggle.onchange = () => { window.USE_BACKEND_EVAL = liveToggle.checked; };
+}
+
 // Boot-time backend status check → flip the status pills
 (async () => {
-  const pills = [
+  const labelPills = [
     document.getElementById('brain-status'),
-    document.getElementById('brain-status-chat')
+    document.getElementById('brain-status-chat'),
+    document.getElementById('eval-status')
   ].filter(Boolean);
-  const set = (cls, label) => {
-    pills.forEach(p => {
+  const set = (cls, brainLabel, evalLabel) => {
+    labelPills.forEach(p => {
       p.classList.remove('is-live', 'is-stub', 'is-off');
       p.classList.add(cls);
       const lbl = p.querySelector('.lbl');
-      if (lbl) lbl.textContent = label;
+      if (!lbl) return;
+      lbl.textContent = p.id === 'eval-status' ? evalLabel : brainLabel;
     });
   };
   try {
     const r = await fetch(`${PLATFORM_API}/health`, { cache: 'no-store' });
     if (!r.ok) throw new Error(r.status);
     const data = await r.json();
-    if (data.stubMode) set('is-stub', 'LLM: stub');
-    else set('is-live', 'LLM: live');
+    if (data.stubMode) {
+      set('is-stub', 'LLM: stub', 'stub');
+      if (liveToggle) liveToggle.title = 'Backend reachable but in STUB mode (no ANTHROPIC_API_KEY). Toggle to route runs through it anyway.';
+    } else {
+      set('is-live', 'LLM: live', 'live');
+      if (liveToggle) liveToggle.title = 'Backend has a live LLM. Toggle to route runs through real Anthropic calls.';
+    }
   } catch {
-    set('is-off', 'LLM: offline');
+    set('is-off', 'LLM: offline', 'offline');
+    if (liveToggle) { liveToggle.disabled = true; liveToggle.title = 'Backend unreachable — runs will use the in-browser simulator.'; }
   }
 })();
 
@@ -2698,11 +2948,16 @@ document.getElementById('run-all-btn').onclick = async () => {
    INITIAL RENDER
    ════════════════════════════════════════════════════════════════════════════ */
 window.addEventListener('load', () => {
+  // Rehydrate any artifacts from a previous session before first paint.
+  const restored = restoreArtifacts();
+
   // Render eval-mode UI immediately — does not depend on Cytoscape
   renderHardwareCards();
   renderStrategyCards();
   renderArtifactList();
   wireChat();
+
+  if (restored) toast(`Restored ${state.brain.artifacts.length} artifact${state.brain.artifacts.length===1?'':'s'} from last session`);
 
   // Graph init depends on Cytoscape
   if (typeof cytoscape === 'undefined') {

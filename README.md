@@ -123,14 +123,18 @@ Mirrors `CURSOR-HANDOFF.md` §"What's wired" / "What's stubbed", updated:
 - Backend `/api/brain/chat`, `/api/eval`, `/api/spec/*`, and Rokid-compatible `/query`
 - Anthropic SDK integration (claude-sonnet-4-6 default; opus / haiku selectable)
 - Deterministic stub mode (boots without an API key)
+- **PDF ingest** parses text via pdf.js (up to 40 pages / 60K chars per file)
+- **CSV ingest** parses headers + rows (RFC-4180-ish, up to 500 rows kept in memory)
+- **Client artifacts flow to the backend chat** — uploaded files participate in retrieval scoring alongside the canonical procedure graph
+- **localStorage persistence** — every ingested artifact survives refresh
+- **Live status pills** in both Brain and Evaluate headers reflect backend state (live / stub / offline) via a `/health` ping on boot
+- **"Use backend LLM" checkbox** in the Evaluate run bar routes runs through `/api/eval` instead of the in-browser sim
 - Kotlin codegen from YAML for the APK (`npm run gen:apk`)
 - Cross-spec referential-integrity checker (no dangling error-code or part references)
 
 ### Stubbed (clearly marked seams)
-- `runEvaluation` defaults to in-browser simulation; `USE_BACKEND_EVAL=true` opts into real `/api/eval`
 - Eval-side LLM scoring is a regex check on whether the response mentions the ground-truth error code — good enough to demonstrate ranking, not a final scorer
-- PDF/CSV ingest creates Document/DataTable graph nodes but doesn't parse content
-- Persistence is in-memory in the browser; backend is stateless
+- Without `ANTHROPIC_API_KEY` the backend returns deterministic stub answers (clearly tagged in the UI by an amber `LLM: stub` pill)
 - OEM database is mocked via fake `oemSignal` in the FSM input — no Plex/Tulip integration
 
 ### Deferred (per handoff scope)
@@ -171,9 +175,9 @@ Contract details: [`apk-bridge/README.md`](./apk-bridge/README.md).
 | Priority | Status | Notes |
 |----------|--------|-------|
 | 1. Extract shared spec | DONE | YAML + Zod, single source of truth |
-| 2. Real LLM in Brain chat | DONE | `/api/brain/chat`, Anthropic-ready |
-| 3. Real Anthropic in eval | DONE | `/api/eval?liveLLM=true`; scorer needs hardening |
-| 4. Persistence | PENDING | In-memory only; Supabase deferred per handoff |
+| 2. Real LLM in Brain chat | DONE | `/api/brain/chat`, Anthropic-ready, artifact-aware retrieval |
+| 3. Real Anthropic in eval | DONE | `/api/eval?liveLLM=true`; toggle in Evaluate run bar; scorer needs hardening |
+| 4. Persistence | DONE (Phase 1) | localStorage for ingested artifacts; Supabase deferred per handoff |
 | 5. Video annotation pipeline | SCAFFOLDED | Empty `/annotation-pipeline` dir |
 | 6. OEM integration | DEFERRED | FSM accepts `oemSignal`; no MSSQL bridge yet |
 | 7. Display-constraint simulator | DONE | `shared/display-constraints/rokid.ts` + `scoreDisplay` |
