@@ -926,6 +926,13 @@
           <button class="btn btn-secondary" id="ev-gen-btn" style="margin-top: 10px;">
             Generate simulated session
           </button>
+          <button class="btn btn-secondary" id="ev-from-clips-btn" style="margin-top: 6px;" title="Build a session from labeled VideoSegment artifacts (uploaded videos + index CSV)">
+            Import session from uploaded clips
+          </button>
+          <a id="sample-index-link" href="/lab/sample-video-index.csv" download="sample-video-index.csv"
+             style="display:block;margin-top:8px;font-family:var(--mono);font-size:9.5px;color:var(--ink-3);text-decoration:none;border-bottom:1px dashed var(--line-2);width:max-content;">
+            Download sample video-index CSV
+          </a>
         </div>
 
         <div class="section">
@@ -1732,6 +1739,7 @@ async function askQuestion(q) {
     });
     if (!r.ok) throw new Error(`status ${r.status}`);
     const data = await r.json();
+    if (window.applyStubbedFromResponse) window.applyStubbedFromResponse(data);
     answer = data.answer;
     stubbed = !!data.stubbed;
     citations = (data.retrieved || []).slice(0, 5).map(n => ({
@@ -1739,6 +1747,7 @@ async function askQuestion(q) {
     }));
   } catch (err) {
     console.warn('Brain backend unreachable, using local stub.', err);
+    if (window.applyStubbedFromResponse) window.applyStubbedFromResponse({ stubbed: true });
     answer = await stubbedLLMCall(q, retrieved);
     stubbed = true;
     citations = retrieved.slice(0, 5);
@@ -1940,14 +1949,19 @@ async function ingestCSV(file) {
     const sep = file.name.toLowerCase().endsWith('.tsv') ? '\t' : ',';
     const { headers, rows } = parseDelimited(raw, sep);
     artifact.headers = headers;
-    artifact.rows = rows.slice(0, 500);              // keep memory reasonable
+    artifact.rows = rows.slice(0, 500);
     artifact.rowCount = rows.length;
     artifact.truncated = rows.length > 500;
     artifact.parseStatus = 'ready';
-    // Build a compact searchable summary so retrieval can find this table.
     artifact.extractedText = buildCsvSummary(headers, artifact.rows);
     onArtifactChanged();
     toast(`Parsed ${file.name} — ${headers.length} cols × ${rows.length} rows`);
+
+    // Detect "video index" CSVs and auto-create labeled VideoSegment artifacts.
+    if (isVideoIndex(headers)) {
+      const made = ingestVideoIndex(artifact);
+      if (made > 0) toast(`Recognized as video index — created ${made} labeled clip segment${made===1?'':'s'}`);
+    }
   } catch (e) {
     console.warn('CSV parse failed', e);
     artifact.parseStatus = 'error';
@@ -1955,6 +1969,57 @@ async function ingestCSV(file) {
     onArtifactChanged();
     toast(`Failed to parse ${file.name}: ${artifact.parseError}`);
   }
+}
+
+/** A CSV is a "video index" if it has at least: video_file, step_id, label.
+ *  Optional columns we read: error_type, start_s, end_s, notes. */
+function isVideoIndex(headers) {
+  const lc = headers.map(h => h.toLowerCase().trim());
+  return lc.includes('video_file') && lc.includes('step_id') && lc.includes('label');
+}
+
+/** For each row of a video-index CSV: create a VideoSegment artifact attached
+ *  to the right step, with the labeled error_type. Linkage to an uploaded
+ *  video file is by filename match; if no file is found, the segment still
+ *  exists (you can attach the video later). */
+function ingestVideoIndex(csvArtifact) {
+  const rows = csvArtifact.rows || [];
+  let made = 0;
+  // Lookup of uploaded videos by filename (set when user drops a .mp4 etc.)
+  const videoMap = state.brain.videoFiles || (state.brain.videoFiles = {});
+  for (const row of rows) {
+    const file = String(row.video_file ?? row.VIDEO_FILE ?? '').trim();
+    const stepId = String(row.step_id ?? row.STEP_ID ?? '').trim();
+    const labelRaw = String(row.label ?? row.LABEL ?? '').trim().toLowerCase();
+    if (!file || !stepId) continue;
+    if (!['correct', 'incorrect', 'ambiguous'].includes(labelRaw)) continue;
+    const startS = Number(row.start_s ?? row.START_S ?? 0) || 0;
+    const endS = Number(row.end_s ?? row.END_S ?? Math.max(startS + 5, 5));
+    const errorType = (String(row.error_type ?? row.ERROR_TYPE ?? '').trim().toUpperCase() || undefined);
+    const notes = String(row.notes ?? row.NOTES ?? '').trim();
+    const id = `vid:${slug(file)}-${stepId}-${made}`;
+    const linked = videoMap[file];
+    const segment = {
+      id,
+      type: 'VideoSegment',
+      label: `${file} → ${stepId} (${labelRaw})`,
+      fileName: file,
+      videoUrl: linked ? linked.url : null,
+      videoLinked: !!linked,
+      timestampStart: startS,
+      timestampEnd: endS,
+      isCorrectExecution: labelRaw === 'correct',
+      errorType: errorType || undefined,
+      notes: notes || undefined,
+      attachedTo: stepId,
+      addedAt: Date.now(),
+      sourceIndex: csvArtifact.id
+    };
+    state.brain.artifacts.push(segment);
+    made++;
+  }
+  if (made > 0) onArtifactChanged();
+  return made;
 }
 
 function parseDelimited(raw, sep) {
@@ -2003,10 +2068,30 @@ function ingestVideo(file) {
     toast(`${file.name} is too large (${formatBytes(file.size)}). Trim before uploading.`);
     return;
   }
+  const url = URL.createObjectURL(file);
   state.brain.videoFile = file;
-  state.brain.videoUrl = URL.createObjectURL(file);
-  openVideoPlayer(state.brain.videoUrl, file.name);
-  toast(`Video loaded — tag time ranges to create segment nodes`);
+  state.brain.videoUrl = url;
+
+  // Remember this video by filename so any video-index CSV can link to it.
+  state.brain.videoFiles = state.brain.videoFiles || {};
+  state.brain.videoFiles[file.name] = { url, size: file.size, addedAt: Date.now() };
+
+  // Back-fill any pre-existing VideoSegment artifacts that referenced this file.
+  let linked = 0;
+  for (const a of state.brain.artifacts) {
+    if (a.type === 'VideoSegment' && !a.videoLinked && a.fileName === file.name) {
+      a.videoUrl = url;
+      a.videoLinked = true;
+      linked++;
+    }
+  }
+  if (linked > 0) {
+    onArtifactChanged();
+    toast(`${file.name} loaded — linked to ${linked} indexed clip${linked===1?'':'s'}`);
+  } else {
+    toast(`Video loaded — tag time ranges in the player, or drop a video-index CSV`);
+  }
+  openVideoPlayer(url, file.name);
 }
 
 function validateFile(file, allowedExts) {
@@ -2121,6 +2206,12 @@ function formatBytes(n) {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function escapeHTML(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function relativeTime(ts) {
@@ -2488,11 +2579,16 @@ async function runEvaluation(annotations, hwId, stratId) {
             phase: a.phase,
             stepId: a.keystepId,
             label: a.label === 'incorrect' ? 'incorrect' : 'correct',
-            errorType: a.errorType
+            errorType: a.errorType,
+            rationale: a.note || a.rationale || undefined
           }))
         })
       });
-      if (r.ok) return await r.json();
+      if (r.ok) {
+        const data = await r.json();
+        if (window.applyStubbedFromResponse) window.applyStubbedFromResponse(data);
+        return data;
+      }
       console.warn('Eval backend returned', r.status, '— falling back to sim');
     } catch (err) {
       console.warn('Eval backend unreachable, using local sim.', err);
@@ -2652,12 +2748,19 @@ function renderRuns() {
         <div style="margin-top:10px;font-family:var(--mono);font-size:9px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.08em;">Anomaly events</div>
         ${r.events.filter(e => e.label === 'incorrect').slice(0, 16).map(e => {
           const et = e.errorType ? ERROR_TAXONOMY[e.errorType]?.label || e.errorType : '';
-          return `<div class="event-row">
+          const outClass = e.outcome === 'caught' ? 'caught'
+                          : e.outcome === 'miss' || e.outcome === 'missed' ? 'miss'
+                          : (e.outcome === 'false_positive' || e.outcome === 'false_pos') ? 'fp' : '';
+          const r1 = `<div class="event-row">
             <span class="ev-ts">${formatTs(e.ts)}</span>
             <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.phase}${et?' · <span style="color:var(--c-advice)">'+et+'</span>':''}${e.note?' — '+e.note:''}</span>
-            <span class="ev-out ${e.outcome === 'caught'?'caught':e.outcome === 'miss'?'miss':e.outcome === 'false_positive'?'fp':''}">${e.outcome}</span>
-            <span class="ev-tk">${e.inputTokens}t</span>
+            <span class="ev-out ${outClass}">${e.outcome}</span>
+            <span class="ev-tk">${e.inputTokens||0}t</span>
           </div>`;
+          const r2 = e.rationale
+            ? `<div style="grid-column:1/-1;font-size:9.5px;color:var(--ink-3);padding:2px 0 6px 70px;font-family:var(--mono);line-height:1.55;border-bottom:1px solid var(--line-1);margin-bottom:2px;">↳ ${escapeHTML(String(e.rationale))}</div>`
+            : '';
+          return r1 + r2;
         }).join('')}
       </div>
     </div>`;
@@ -2863,38 +2966,64 @@ if (liveToggle) {
   liveToggle.onchange = () => { window.USE_BACKEND_EVAL = liveToggle.checked; };
 }
 
-// Boot-time backend status check → flip the status pills
-(async () => {
-  const labelPills = [
-    document.getElementById('brain-status'),
-    document.getElementById('brain-status-chat'),
-    document.getElementById('eval-status')
-  ].filter(Boolean);
-  const set = (cls, brainLabel, evalLabel) => {
-    labelPills.forEach(p => {
-      p.classList.remove('is-live', 'is-stub', 'is-off');
-      p.classList.add(cls);
-      const lbl = p.querySelector('.lbl');
-      if (!lbl) return;
-      lbl.textContent = p.id === 'eval-status' ? evalLabel : brainLabel;
-    });
-  };
+/* ── LLM status pill: single source of truth ───────────────────────────────
+   Updates from /health on boot, and self-corrects from any chat/eval response
+   that returns a `stubbed` field. Click a pill to force-refresh. */
+function setLLMStatus(mode) {
+  // mode: 'live' | 'stub' | 'off' | 'loading'
+  const cls = mode === 'live' ? 'is-live' : mode === 'stub' ? 'is-stub' : mode === 'off' ? 'is-off' : 'is-stub';
+  const brainLabel = mode === 'live' ? 'LLM: live'
+                    : mode === 'stub' ? 'LLM: stub'
+                    : mode === 'off' ? 'LLM: offline'
+                    : 'LLM: …';
+  const evalLabel = mode === 'live' ? 'live' : mode === 'stub' ? 'stub' : mode === 'off' ? 'offline' : '…';
+  document.querySelectorAll('#brain-status,#brain-status-chat,#eval-status').forEach(p => {
+    p.classList.remove('is-live', 'is-stub', 'is-off');
+    p.classList.add(cls);
+    const lbl = p.querySelector('.lbl');
+    if (lbl) lbl.textContent = (p.id === 'eval-status') ? evalLabel : brainLabel;
+  });
+  window.__llmMode = mode;
+  if (liveToggle) {
+    if (mode === 'off') {
+      liveToggle.disabled = true;
+      liveToggle.title = 'Backend unreachable — runs will use the in-browser simulator.';
+    } else {
+      liveToggle.disabled = false;
+      liveToggle.title = mode === 'live'
+        ? 'Backend has a live LLM. Toggle to route runs through real Anthropic calls.'
+        : 'Backend reachable but in STUB mode (no ANTHROPIC_API_KEY). Toggle to route runs through it anyway.';
+    }
+  }
+}
+
+async function refreshLLMStatus() {
   try {
     const r = await fetch(`${PLATFORM_API}/health`, { cache: 'no-store' });
     if (!r.ok) throw new Error(r.status);
     const data = await r.json();
-    if (data.stubMode) {
-      set('is-stub', 'LLM: stub', 'stub');
-      if (liveToggle) liveToggle.title = 'Backend reachable but in STUB mode (no ANTHROPIC_API_KEY). Toggle to route runs through it anyway.';
-    } else {
-      set('is-live', 'LLM: live', 'live');
-      if (liveToggle) liveToggle.title = 'Backend has a live LLM. Toggle to route runs through real Anthropic calls.';
-    }
+    setLLMStatus(data.stubMode ? 'stub' : 'live');
   } catch {
-    set('is-off', 'LLM: offline', 'offline');
-    if (liveToggle) { liveToggle.disabled = true; liveToggle.title = 'Backend unreachable — runs will use the in-browser simulator.'; }
+    setLLMStatus('off');
   }
-})();
+}
+
+// Self-correct from any backend response that includes `stubbed`.
+// Called by askQuestion and runEvaluation after each call.
+window.applyStubbedFromResponse = (resp) => {
+  if (!resp || typeof resp.stubbed !== 'boolean') return;
+  setLLMStatus(resp.stubbed ? 'stub' : 'live');
+};
+
+// Click any pill to force-refresh
+document.querySelectorAll('#brain-status,#brain-status-chat,#eval-status').forEach(p => {
+  p.style.cursor = 'pointer';
+  p.title = (p.title || '') + ' — click to refresh';
+  p.onclick = () => refreshLLMStatus();
+});
+
+// Initial check
+refreshLLMStatus();
 
 // Canvas overlay buttons
 document.querySelectorAll('.ov-btn').forEach(btn => {
@@ -2920,6 +3049,26 @@ document.getElementById('tag-save').onclick = saveTagAsSegment;
 
 // Eval mode wiring
 document.getElementById('ev-gen-btn').onclick = generateEvalSession;
+document.getElementById('ev-from-clips-btn').onclick = () => {
+  const segments = (state.brain.artifacts || []).filter(a => a.type === 'VideoSegment');
+  if (segments.length === 0) {
+    toast('No VideoSegment artifacts yet. Drop a video-index CSV (and your videos) in Brain mode first.');
+    return;
+  }
+  // Build session events in clip order, preserving the labeled error_type.
+  const session = segments.map((seg, i) => ({
+    timestamp: i * 30,
+    phase: ((state.brain && (PINION_GUIDE_PROCEDURE.keysteps.find(k => k.id === seg.attachedTo) || {})).label) || seg.attachedTo,
+    keystepId: seg.attachedTo,
+    label: seg.isCorrectExecution ? 'correct' : 'incorrect',
+    errorType: seg.errorType || null,
+    note: seg.notes || seg.label || '',
+    sourceClip: seg.fileName
+  }));
+  state.eval.session = session;
+  renderEvalSession();
+  toast(`Loaded ${session.length} event${session.length===1?'':'s'} from uploaded clips`);
+};
 document.getElementById('run-btn').onclick = async () => {
   if (!state.eval.session) return;
   const btn = document.getElementById('run-btn');
