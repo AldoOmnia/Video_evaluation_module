@@ -1,0 +1,40 @@
+# Context strategies — EmBARDiment-paper-derived
+# A1-A4 enumerate prompt-context shapes for the Tier-2 LLM
+# Calibration values are directional, not absolute (see CURSOR-HANDOFF §"What's stubbed")
+
+strategies:
+  baseline:
+    id: baseline
+    name: A1 — Baseline
+    desc: "No context. User query only. EmBARDiment baseline."
+    layers: [4]                       # only Tier-2 LLM
+    avg_input_tokens: 250
+    catch_rate_ideal: 0.15
+    fp_rate: 0.02
+
+  full_context:
+    id: full_context
+    name: A2 — Full Context
+    desc: "All CV + full procedure + history. Expected to fail per paper §6.1."
+    layers: [1, 2, 4]                 # CV + FSM + LLM, skip rules
+    avg_input_tokens: 12000
+    catch_rate_ideal: 0.55
+    fp_rate: 0.18
+
+  scoped_episodic:
+    id: scoped_episodic
+    name: A3 — Scoped Episodic
+    desc: "Current step + 30-60s of attention/action events. Cleared on transition."
+    layers: [1, 2, 4]                 # scoped to current step
+    avg_input_tokens: 1800
+    catch_rate_ideal: 0.85
+    fp_rate: 0.05
+
+  tiered_proactive:
+    id: tiered_proactive
+    name: A4 — Tiered Proactive
+    desc: "Tier-1 rules every 2-5s, Tier-2 LLM only on anomaly. Production target."
+    layers: [1, 2, 3, 4, 5]           # full 5-layer agent loop
+    avg_input_tokens: 1400
+    catch_rate_ideal: 0.92
+    fp_rate: 0.03

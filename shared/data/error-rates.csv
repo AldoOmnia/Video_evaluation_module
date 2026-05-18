@@ -1,0 +1,7 @@
+step_id,step_label,historical_rate_per_1000,top_error_code,notes
+step:01,Inspect Pinion Shaft,0.4,UNVERIFIED,"Worker skip when shift is behind"
+step:03,Position Guide Bearing,3.1,ORIENTATION,"Single most common defect at this station"
+step:05,Verify Press Depth,1.8,UNVERIFIED,"Gauge skipped 1-in-500"
+step:07,Load Shim Pack,2.7,SUBSTITUTION,"Wrong-SKU substitution from adjacent bin"
+step:09,Torque Pinion Nut,1.1,OUT_OF_SPEC,"Drift on aging wrench, recalibrate weekly"
+step:10,Measure Rotational Torque,0.9,UNVERIFIED,

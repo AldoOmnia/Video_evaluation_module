@@ -1,0 +1,6 @@
+step_id,measurement,units,min,max,critical
+step:01,runout,mm,0,0.015,1
+step:04,press_force,kN,8,12,1
+step:05,seat_gap,mm,0,0.005,1
+step:09,torque,Nm,210,240,1
+step:10,rotational_torque,in-lb,12,18,1

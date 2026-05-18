@@ -1,0 +1,107 @@
+# Hardware profiles — smart glasses only, enterprise scope
+# Used by Eval Lab strategy sims and Rokid APK display-constraint module
+
+profiles:
+  rokid_ai:
+    id: rokid_ai
+    name: Rokid AI Glasses
+    desc: "Current Comer pilot. Mono RGB camera + voice + display. No eye tracking."
+    signals:
+      eye_gaze: false
+      camera: true
+      display: true
+      hand_track: false
+      audio_in: true
+      audio_out: true
+    dwell_threshold_ms: 800
+    latency_budget_ms: 200
+    # Display geometry the on-device renderer must respect
+    display:
+      max_lines: 4
+      max_chars_per_line: 22
+      max_total_chars: 88
+      rich_formatting: false
+
+  snap_spectacles:
+    id: snap_spectacles
+    name: Snap Spectacles 5G
+    desc: "Dev kit. 4 cameras, hand tracking, stereo display."
+    signals:
+      eye_gaze: false
+      camera: true
+      display: true
+      hand_track: true
+      audio_in: true
+      audio_out: true
+    dwell_threshold_ms: 600
+    latency_budget_ms: 150
+
+  aria_gen2:
+    id: aria_gen2
+    name: Project Aria Gen 2
+    desc: "Research-only. Eye tracking + multi-cam. Data bootstrap ceiling, not deploy."
+    signals:
+      eye_gaze: true
+      camera: true
+      display: false
+      hand_track: true
+      audio_in: true
+      audio_out: true
+    dwell_threshold_ms: 100
+    latency_budget_ms: 0
+
+  even_g2:
+    id: even_g2
+    name: Even Realities G2
+    desc: "Privacy-first. No camera, no speaker. Collapses on enterprise tasks."
+    signals:
+      eye_gaze: false
+      camera: false
+      display: true
+      hand_track: false
+      audio_in: true
+      audio_out: false
+    dwell_threshold_ms: null
+    latency_budget_ms: 350
+
+  mentra_live:
+    id: mentra_live
+    name: Mentra Live
+    desc: "12MP camera, audio-first, no display. Open MentraOS SDK, cross-device."
+    signals:
+      eye_gaze: false
+      camera: true
+      display: false
+      hand_track: false
+      audio_in: true
+      audio_out: true
+    dwell_threshold_ms: 800
+    latency_budget_ms: 280
+
+  maverick_ai_pro:
+    id: maverick_ai_pro
+    name: Maverick AI Pro
+    desc: "First consumer ET. OLED + Alif edge AI. Ships Aug 2026."
+    signals:
+      eye_gaze: true
+      camera: true
+      display: true
+      hand_track: false
+      audio_in: true
+      audio_out: true
+    dwell_threshold_ms: 150
+    latency_budget_ms: 120
+
+  raven_glass:
+    id: raven_glass
+    name: Raven Glass
+    desc: "ET as primary input — hands-free by design. RavenOS Linux."
+    signals:
+      eye_gaze: true
+      camera: true
+      display: true
+      hand_track: false
+      audio_in: true
+      audio_out: true
+    dwell_threshold_ms: 120
+    latency_budget_ms: 150

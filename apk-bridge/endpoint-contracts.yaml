@@ -1,0 +1,76 @@
+# Machine-readable contract surface for the Rokid APK.
+# Source of truth for both backend route validation and any Kotlin codegen.
+
+endpoints:
+  - id: query
+    method: POST
+    path: /query
+    purpose: "Rokid APK voice / vision query. Drop-in compatible with legacy comer-rokid-demo backend."
+    request:
+      contentType: application/json
+      schema:
+        transcript: { type: string, required: true }
+        image_base64: { type: string, required: false }
+        image_media_type: { type: string, required: false, default: "image/jpeg" }
+    response:
+      contentType: application/json
+      schema:
+        line1: { type: string, maxLen: 22 }
+        line2: { type: string, maxLen: 22 }
+        line3: { type: string, maxLen: 22 }
+        line4: { type: string, maxLen: 22 }
+        isAction: { type: boolean }
+        rawAnswer: { type: string }
+    stability: stable
+
+  - id: spec-procedure
+    method: GET
+    path: /api/spec/procedure
+    purpose: "Optional runtime fetch of the procedure spec for hot-reload during dev."
+    response:
+      contentType: application/json
+      schemaRef: shared/types/procedure.ts#ProcedureSpec
+    stability: stable
+
+  - id: spec-hardware
+    method: GET
+    path: /api/spec/hardware
+    response:
+      contentType: application/json
+      schemaRef: shared/types/hardware.ts#HardwareProfiles
+    stability: stable
+
+  - id: eval-batch
+    method: POST
+    path: /api/eval
+    purpose: "Score a batch of SessionEvents (telemetry from field or simulated)."
+    request:
+      contentType: application/json
+      schema:
+        hardwareId: { type: string, required: true }
+        strategyId: { type: string, required: true }
+        events: { type: array, itemsRef: shared/types/events.ts#SessionEvent }
+        liveLLM: { type: boolean, required: false, default: false }
+    response:
+      contentType: application/json
+      schemaRef: shared/types/run.ts#RunResult
+    stability: stable
+
+  - id: brain-chat
+    method: POST
+    path: /api/brain/chat
+    purpose: "Web Brain Explorer chat. APK normally uses /query instead."
+    request:
+      schema:
+        query: { type: string, required: true, maxLen: 2000 }
+        model: { type: string, required: false }
+        k:     { type: integer, required: false }
+    response:
+      schema:
+        answer: { type: string }
+        citations: { type: array, items: string }
+        retrieved: { type: array }
+        tokens: { type: object }
+        latencyMs: { type: number }
+        stubbed: { type: boolean }
+    stability: stable

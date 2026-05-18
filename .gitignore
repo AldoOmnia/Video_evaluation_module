@@ -1,13 +1,34 @@
 .DS_Store
+
+# env / secrets
 .env
 .env.*
+!.env.example
+
+# build
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# deps
+node_modules/
+
+# python
 __pycache__/
 *.pyc
 .venv/
 venv/
-node_modules/
-dist/
-build/
+
+# editor
+.idea/
+.vscode/
+*.iml
 *.log
+
+# test
 .coverage
 .pytest_cache/
+
+# OS
+Thumbs.db

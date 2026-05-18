@@ -1,0 +1,55 @@
+# OmniaClaw error taxonomy — 5 groups × 19 codes
+# Mirrors omniaclaw-error-taxonomy.pdf one-page reference
+# Each KeyStep's errorProfile in procedure-spec/*.yaml declares which apply
+
+groups:
+  A:
+    label: Sequence
+    color: "#0284c7"
+    desc: When actions happen
+  B:
+    label: Execution
+    color: "#7c3aed"
+    desc: What happens in a step
+  C:
+    label: Specification
+    color: "#0891b2"
+    desc: Measurements & values
+  D:
+    label: Intent-vs-reality
+    color: "#c2410c"
+    desc: OEM-fusion exclusive
+  E:
+    label: System
+    color: "#525252"
+    desc: Perception limits
+
+errors:
+  # Group A — Sequence
+  OMISSION:            { group: A, label: Omission,            desc: "Required step not performed" }
+  INSERTION:           { group: A, label: Insertion,           desc: "Extra action outside the procedure" }
+  ORDER:               { group: A, label: Order,               desc: "Right steps, wrong sequence" }
+  INCOMPLETE:          { group: A, label: Incomplete,          desc: "Step entered but not fully done" }
+
+  # Group B — Execution
+  SUBSTITUTION:        { group: B, label: Substitution,        desc: "Right step, wrong object" }
+  ORIENTATION:         { group: B, label: Orientation,         desc: "Right object, wrong way around" }
+  OMITTED_OBJECT:      { group: B, label: Omitted object,      desc: "Required object not present" }
+  EXTRA_OBJECT:        { group: B, label: Extra object,        desc: "Forbidden object present" }
+
+  # Group C — Specification
+  OUT_OF_SPEC:         { group: C, label: Out of spec,         desc: "Measured value outside acceptance range" }
+  UNVERIFIED:          { group: C, label: Unverified,          desc: "Required measurement never taken" }
+  BORDERLINE:          { group: C, label: Borderline,          desc: "Within spec but near tolerance edge" }
+
+  # Group D — Intent-vs-reality (OEM-fusion exclusive)
+  INTENT_MISMATCH:     { group: D, label: Intent mismatch,     desc: "OEM says step N, CV observes M (≠N±1)" }
+  PHANTOM_PROGRESS:    { group: D, label: Phantom progress,    desc: "OEM advanced but CV sees no work" }
+  UNREPORTED_PROGRESS: { group: D, label: Unreported,          desc: "CV sees completion, OEM not updated" }
+  STATE_REPAIR:        { group: D, label: State repair,        desc: "Worker recognized own error and is fixing" }
+
+  # Group E — System / perception
+  CV_UNCERTAIN:        { group: E, label: CV uncertain,        desc: "CV confidence below threshold" }
+  STATE_AMBIGUOUS:     { group: E, label: State ambiguous,     desc: "Multiple FSM states equally plausible" }
+  OEM_UNAVAILABLE:     { group: E, label: OEM unavailable,     desc: "OEM signal stale or missing" }
+  OUT_OF_DISTRIBUTION: { group: E, label: OOD,                 desc: "CV detects unknown object class" }

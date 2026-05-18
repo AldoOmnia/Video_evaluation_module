@@ -1,0 +1,5 @@
+fastener_type,sku,torque_min_nm,torque_max_nm,sequence,notes
+pinion_lock_nut,CMR-P-4476,210,240,3-pass-opposing,"Comer Engineering Spec QE-PG-04"
+housing_bolt_m12,CMR-P-5102,85,95,2-pass-cross,"Standard differential housing"
+housing_bolt_m10,CMR-P-5103,55,65,2-pass-cross,
+flange_nut,CMR-P-5201,140,160,star-pattern,"Apply thread-locker"

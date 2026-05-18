@@ -1,0 +1,2363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Brain · Eval Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0d0c;
+    --bg-2: #111614;
+    --bg-3: #161c1a;
+    --bg-4: #1c2421;
+    --line: #1f2724;
+    --line-2: #2a3431;
+    --ink: #e8efe9;
+    --ink-2: #97a59e;
+    --ink-3: #5b6a64;
+    --acc: #00e5a0;
+    --acc-dim: #00b07b;
+    --warn: #f5a524;
+    --err: #ef5350;
+    --ok: #00e5a0;
+
+    /* Node type colors */
+    --c-procedure: #00e5a0;
+    --c-keystep:   #38bdf8;
+    --c-instruction: #94a3b8;
+    --c-advice:    #f5a524;
+    --c-tool:      #c084fc;
+    --c-part:      #60a5fa;
+    --c-video:     #ef5350;
+    --c-document:  #e8efe9;
+    --c-data:      #22d3ee;
+    --c-tribal:    #fbbf24;
+
+    --mono: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
+    --sans: 'Geist', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 13px;
+    line-height: 1.5;
+    overflow: hidden;
+  }
+  .app { display: grid; grid-template-rows: 48px 1fr 28px; height: 100vh; }
+
+  /* ── Header ─────────────────────────────── */
+  header.bar {
+    border-bottom: 1px solid var(--line);
+    background: var(--bg-2);
+    display: flex; align-items: center; padding: 0 16px; gap: 16px;
+  }
+  .brand { font-family: var(--mono); font-weight: 600; font-size: 13px; letter-spacing: -0.02em; }
+  .brand .dot { color: var(--acc); margin-right: 6px; }
+  .brand .v { font-weight: 400; color: var(--ink-3); margin-left: 8px; }
+
+  .mode-toggle {
+    display: flex; background: var(--bg); border: 1px solid var(--line-2);
+    border-radius: 3px; padding: 2px; margin-left: 12px;
+  }
+  .mode-toggle button {
+    background: transparent; border: none; color: var(--ink-3);
+    padding: 5px 14px; font-family: var(--mono); font-size: 11px;
+    cursor: pointer; border-radius: 2px;
+    text-transform: uppercase; letter-spacing: 0.08em; transition: all 0.12s;
+  }
+  .mode-toggle button.active {
+    background: rgba(0, 229, 160, 0.12); color: var(--acc);
+  }
+  .mode-toggle button:hover:not(.active) { color: var(--ink); }
+
+  .client-pill {
+    margin-left: 8px;
+    font-family: var(--mono); font-size: 10px;
+    color: var(--ink-2); background: var(--bg-3);
+    padding: 4px 10px; border: 1px solid var(--line-2);
+    border-radius: 2px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .client-pill .pill-label { color: var(--ink-3); margin-right: 6px; }
+
+  .header-status {
+    margin-left: auto; display: flex; align-items: center; gap: 16px;
+    font-family: var(--mono); font-size: 11px; color: var(--ink-3);
+  }
+  .pulse {
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--acc); box-shadow: 0 0 8px var(--acc); animation: pulse 1.6s infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+  /* ── Workspace base ──────────────────── */
+  main.workspace { position: relative; overflow: hidden; }
+  .mode-container { position: absolute; inset: 0; display: none; }
+  .mode-container.active { display: grid; }
+
+  /* ── Brain mode layout ─────────────── */
+  #brain-mode { grid-template-columns: 320px 1fr 380px; grid-template-rows: 1fr; }
+  #brain-mode.has-video { grid-template-rows: 1fr 220px; }
+  #brain-mode .left  { border-right: 1px solid var(--line); background: var(--bg); overflow-y: auto; grid-row: 1; }
+  #brain-mode .center { grid-row: 1; position: relative; background: var(--bg); border-right: 1px solid var(--line); }
+  #brain-mode .right { grid-row: 1; background: var(--bg); display: flex; flex-direction: column; }
+  #brain-mode .bottom {
+    grid-column: 1 / -1; grid-row: 2;
+    border-top: 1px solid var(--line); background: var(--bg-2);
+    display: none;
+  }
+  #brain-mode.has-video .bottom { display: grid; grid-template-columns: 340px 1fr 320px; }
+
+  /* ── Eval mode layout ────────────────── */
+  #eval-mode { grid-template-columns: 320px 1fr 380px; }
+  #eval-mode .panel { overflow-y: auto; background: var(--bg); }
+  #eval-mode .panel:nth-child(1), #eval-mode .panel:nth-child(2) { border-right: 1px solid var(--line); }
+  #eval-mode .panel:last-child { border-left: 1px solid var(--line); }
+
+  /* ── Panel header (shared) ────────── */
+  .panel-h {
+    font-family: var(--mono); font-size: 10px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--ink-3); padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--line); background: var(--bg-2);
+    position: sticky; top: 0; z-index: 2;
+  }
+  .panel-h .num { color: var(--acc); margin-right: 8px; }
+  .panel-h .right-meta { float: right; color: var(--ink-2); font-size: 9px; }
+
+  .section { padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .section h3 {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--ink-2); margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .section h3 .count {
+    font-family: var(--mono); font-size: 10px; color: var(--ink-3); font-weight: 400;
+    letter-spacing: 0; text-transform: none;
+  }
+
+  /* ── Buttons & drops ─────────────── */
+  .drop {
+    border: 1px dashed var(--line-2); border-radius: 4px; padding: 14px 12px;
+    text-align: center; cursor: pointer; transition: all 0.15s;
+    background: var(--bg-2); margin-bottom: 8px;
+  }
+  .drop:hover { border-color: var(--acc-dim); background: var(--bg-3); }
+  .drop .ico { font-family: var(--mono); color: var(--ink-3); font-size: 14px; margin-bottom: 4px; }
+  .drop p { font-size: 11px; color: var(--ink-2); }
+  .drop .small { font-family: var(--mono); font-size: 9px; color: var(--ink-3); margin-top: 2px; }
+  .drop input { display: none; }
+
+  .btn {
+    width: 100%; background: var(--acc); color: var(--bg);
+    border: none; padding: 10px 14px;
+    font-family: var(--mono); font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    cursor: pointer; border-radius: 3px; transition: all 0.15s;
+  }
+  .btn:hover:not(:disabled) { filter: brightness(1.1); box-shadow: 0 0 16px rgba(0,229,160,0.3); }
+  .btn:disabled { background: var(--bg-3); color: var(--ink-3); cursor: not-allowed; }
+  .btn-secondary {
+    background: transparent; color: var(--ink-2);
+    border: 1px solid var(--line-2);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    color: var(--ink); border-color: var(--ink-3); box-shadow: none; background: var(--bg-3);
+  }
+
+  /* ── Ingested artifact rows ────────────── */
+  .artifact-list { display: flex; flex-direction: column; gap: 4px; }
+  .artifact {
+    display: grid; grid-template-columns: 18px 1fr auto;
+    gap: 8px; padding: 7px 10px;
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: 3px; cursor: pointer; align-items: center;
+    transition: all 0.1s;
+  }
+  .artifact:hover { border-color: var(--line-2); }
+  .artifact .ic {
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
+    width: 18px; height: 18px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 2px;
+  }
+  .artifact .ic.pdf { background: rgba(232,239,233,0.1); color: var(--ink); }
+  .artifact .ic.csv { background: rgba(34,211,238,0.12); color: var(--c-data); }
+  .artifact .ic.video { background: rgba(239,83,80,0.12); color: var(--c-video); }
+  .artifact .ic.text { background: rgba(251,191,36,0.12); color: var(--c-tribal); }
+  .artifact .name {
+    font-size: 11px; color: var(--ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .artifact .meta { font-family: var(--mono); font-size: 9px; color: var(--ink-3); }
+
+  /* ── Graph canvas ────────────────────── */
+  #cy { width: 100%; height: 100%; background: var(--bg); }
+  .canvas-overlay {
+    position: absolute; top: 14px; left: 14px;
+    display: flex; gap: 6px; z-index: 5;
+  }
+  .ov-btn {
+    background: var(--bg-2); border: 1px solid var(--line-2); color: var(--ink-2);
+    padding: 5px 10px; font-family: var(--mono); font-size: 10px;
+    border-radius: 2px; cursor: pointer;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .ov-btn:hover { color: var(--ink); border-color: var(--ink-3); }
+  .ov-btn.active { color: var(--acc); border-color: var(--acc-dim); }
+
+  .canvas-legend {
+    position: absolute; bottom: 14px; left: 14px;
+    background: var(--bg-2); border: 1px solid var(--line-2);
+    padding: 10px 12px; border-radius: 3px; z-index: 5;
+    font-family: var(--mono); font-size: 9px;
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px 12px;
+  }
+  .canvas-legend .lg { display: flex; align-items: center; gap: 6px; color: var(--ink-2); }
+  .canvas-legend .lg .sw { width: 8px; height: 8px; border-radius: 50%; }
+
+  .canvas-stat {
+    position: absolute; bottom: 14px; right: 14px;
+    background: var(--bg-2); border: 1px solid var(--line-2);
+    padding: 8px 12px; border-radius: 3px; z-index: 5;
+    font-family: var(--mono); font-size: 10px; color: var(--ink-2);
+    display: flex; gap: 16px;
+  }
+  .canvas-stat span span { color: var(--ink); }
+
+  /* ── Node detail panel ────────────── */
+  .node-detail .nd-head {
+    padding: 14px 16px; border-bottom: 1px solid var(--line);
+    background: var(--bg-2);
+  }
+  .nd-type {
+    font-family: var(--mono); font-size: 9px;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    padding: 2px 6px; border-radius: 2px;
+    display: inline-block; margin-bottom: 6px;
+  }
+  .nd-label { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .nd-id { font-family: var(--mono); font-size: 10px; color: var(--ink-3); margin-top: 2px; }
+
+  .nd-section { padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .nd-section h4 {
+    font-family: var(--mono); font-size: 9px; color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;
+  }
+  .nd-section .field {
+    display: grid; grid-template-columns: 100px 1fr;
+    gap: 8px; padding: 4px 0;
+    font-size: 11px;
+  }
+  .nd-section .field .k { font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+  .nd-section .field .v { color: var(--ink); }
+  .nd-section .field .v.mono { font-family: var(--mono); font-size: 11px; }
+
+  .nd-related {
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .nd-rel-row {
+    display: grid; grid-template-columns: auto 1fr auto;
+    gap: 8px; padding: 6px 8px;
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 3px;
+    align-items: center; cursor: pointer;
+  }
+  .nd-rel-row:hover { border-color: var(--line-2); }
+  .nd-rel-row .rel-type {
+    font-family: var(--mono); font-size: 9px;
+    color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .nd-rel-row .rel-label { font-size: 11px; color: var(--ink); }
+  .nd-rel-row .rel-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* ── Chat panel ─────────────────── */
+  .chat-h {
+    padding: 14px 16px;
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .chat-h .ti {
+    font-family: var(--mono); font-size: 10px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--ink-3);
+  }
+  .chat-h .ti .num { color: var(--acc); margin-right: 8px; }
+  .chat-h .seam {
+    font-family: var(--mono); font-size: 9px;
+    color: var(--warn); letter-spacing: 0.04em;
+  }
+  .chat-body {
+    flex: 1; overflow-y: auto;
+    padding: 14px 16px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .chat-empty {
+    color: var(--ink-3); font-family: var(--mono); font-size: 11px;
+    padding: 20px 0; text-align: center; line-height: 1.7;
+  }
+  .chat-empty .suggest {
+    display: block; margin-top: 14px; cursor: pointer;
+    color: var(--ink-2); padding: 6px 10px;
+    border: 1px solid var(--line-2); border-radius: 2px;
+    background: var(--bg-2);
+    transition: all 0.12s;
+    text-align: left;
+  }
+  .chat-empty .suggest:hover { color: var(--ink); border-color: var(--ink-3); }
+  .chat-msg { display: flex; flex-direction: column; gap: 4px; }
+  .chat-msg.user .bubble {
+    align-self: flex-end; background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    color: var(--ink);
+  }
+  .chat-msg.brain .bubble {
+    align-self: flex-start; background: var(--bg-2);
+    border: 1px solid var(--line);
+    color: var(--ink);
+  }
+  .bubble {
+    padding: 8px 12px; border-radius: 3px;
+    max-width: 90%; font-size: 12px; line-height: 1.5;
+  }
+  .bubble .stub-tag {
+    display: inline-block;
+    font-family: var(--mono); font-size: 8px;
+    color: var(--warn); margin-right: 6px;
+    border: 1px solid var(--warn); padding: 0 4px;
+    border-radius: 2px;
+    vertical-align: middle;
+  }
+  .citations {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    margin-top: 6px;
+  }
+  .citation {
+    font-family: var(--mono); font-size: 9px;
+    background: var(--bg-3); border: 1px solid var(--line-2);
+    padding: 2px 6px; border-radius: 2px;
+    color: var(--ink-2);
+    cursor: pointer;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .citation:hover { color: var(--ink); border-color: var(--ink-3); }
+  .citation .cdot { width: 6px; height: 6px; border-radius: 50%; }
+
+  .chat-input-wrap {
+    padding: 12px 16px;
+    border-top: 1px solid var(--line);
+    background: var(--bg-2);
+    display: grid; grid-template-columns: 1fr auto; gap: 8px;
+  }
+  .chat-input {
+    background: var(--bg); border: 1px solid var(--line-2);
+    color: var(--ink); padding: 8px 12px;
+    font-family: var(--sans); font-size: 12px;
+    border-radius: 3px;
+    outline: none;
+  }
+  .chat-input:focus { border-color: var(--acc-dim); }
+  .chat-send {
+    background: var(--acc); border: none; color: var(--bg);
+    padding: 0 14px; border-radius: 3px; cursor: pointer;
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .chat-send:disabled { background: var(--bg-3); color: var(--ink-3); cursor: not-allowed; }
+
+  /* ── Video player ──────────────────── */
+  .vp-left { border-right: 1px solid var(--line); padding: 12px 14px; overflow-y: auto; }
+  .vp-left h4 {
+    font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .vp-left h4 .close-btn {
+    background: transparent; border: 1px solid var(--line-2);
+    color: var(--ink-3); cursor: pointer;
+    font-family: var(--mono); font-size: 9px;
+    padding: 2px 6px; border-radius: 2px;
+  }
+  .vp-left h4 .close-btn:hover { color: var(--ink); }
+  .vp-meta {
+    font-family: var(--mono); font-size: 10px;
+    color: var(--ink-2); padding: 6px 0;
+    display: grid; grid-template-columns: auto 1fr; gap: 8px;
+    line-height: 1.6;
+  }
+  .vp-meta .k { color: var(--ink-3); }
+
+  .vp-center {
+    display: flex; align-items: center; justify-content: center;
+    background: #000;
+    padding: 12px;
+  }
+  .vp-center video { max-height: 100%; max-width: 100%; }
+
+  .vp-right { padding: 12px 14px; overflow-y: auto; }
+  .vp-right h4 {
+    font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;
+  }
+  .tag-range {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    margin-bottom: 8px;
+  }
+  .tag-range button {
+    background: var(--bg-3); border: 1px solid var(--line-2);
+    color: var(--ink-2); padding: 6px 8px;
+    font-family: var(--mono); font-size: 10px;
+    border-radius: 2px; cursor: pointer;
+  }
+  .tag-range button:hover { color: var(--ink); border-color: var(--ink-3); }
+  .tag-range .stamp { color: var(--acc); margin-left: 4px; font-weight: 600; }
+
+  .keystep-select {
+    width: 100%; padding: 6px 8px; margin-bottom: 6px;
+    background: var(--bg-3); border: 1px solid var(--line-2);
+    color: var(--ink); font-family: var(--mono); font-size: 11px;
+    border-radius: 2px;
+    outline: none;
+  }
+  .keystep-select:focus { border-color: var(--acc-dim); }
+
+  .tag-saved {
+    display: flex; flex-direction: column; gap: 4px; margin-top: 10px;
+  }
+  .tag-row {
+    display: grid; grid-template-columns: auto 1fr auto;
+    gap: 6px; padding: 6px 8px;
+    background: var(--bg-3); border: 1px solid var(--line); border-radius: 2px;
+    font-family: var(--mono); font-size: 10px; align-items: center;
+  }
+  .tag-row .tag-tr { color: var(--c-video); }
+  .tag-row .tag-name { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tag-row .tag-time { color: var(--ink-3); }
+
+  /* ── EVAL MODE styles (carried from v0.3 then refined) ─────────── */
+  .timeline {
+    margin-top: 12px; max-height: 240px; overflow-y: auto;
+    border: 1px solid var(--line); background: var(--bg-2);
+  }
+  .timeline-row {
+    display: grid; grid-template-columns: 50px 14px 1fr; gap: 8px;
+    padding: 6px 10px; border-bottom: 1px solid var(--line);
+    font-family: var(--mono); font-size: 11px; align-items: center;
+  }
+  .timeline-row:last-child { border-bottom: none; }
+  .timeline-row .ts { color: var(--ink-3); }
+  .timeline-row .lbl-correct { color: var(--ok); }
+  .timeline-row .lbl-incorrect { color: var(--err); }
+  .timeline-row .phase { color: var(--ink-2); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .cards { display: flex; flex-direction: column; gap: 4px; }
+  .card {
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 3px;
+    padding: 7px 10px; cursor: pointer; transition: all 0.12s; position: relative;
+  }
+  .card:hover { border-color: var(--line-2); }
+  .card.selected {
+    border-color: var(--acc-dim);
+    background: linear-gradient(180deg, rgba(0,229,160,0.04), transparent);
+  }
+  .card.selected::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 2px; background: var(--acc);
+  }
+  .card-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 2px; gap: 8px;
+  }
+  .card-head .name { font-weight: 600; font-size: 11px; }
+  .card-head .id {
+    font-family: var(--mono); font-size: 9px; color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 0.08em; flex-shrink: 0;
+  }
+  .card .desc { font-size: 10px; color: var(--ink-2); line-height: 1.35; }
+  .card .specs { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+  .spec {
+    font-family: var(--mono); font-size: 8px; color: var(--ink-3);
+    background: var(--bg-3); padding: 1px 5px; border-radius: 2px;
+    border: 1px solid var(--line);
+    letter-spacing: 0.04em;
+  }
+  .spec.has { color: var(--acc-dim); border-color: rgba(0,229,160,0.2); }
+  .spec.no { color: var(--ink-3); text-decoration: line-through; opacity: 0.5; }
+
+  .meta-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+    background: var(--line); border: 1px solid var(--line); margin-top: 12px;
+  }
+  .meta-grid div { background: var(--bg-2); padding: 8px 10px; }
+  .meta-grid .k {
+    font-family: var(--mono); font-size: 9px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--ink-3); margin-bottom: 2px;
+  }
+  .meta-grid .v { font-family: var(--mono); font-size: 12px; color: var(--ink); }
+
+  .run-bar {
+    padding: 16px; background: var(--bg-2);
+    border-top: 1px solid var(--line); position: sticky; bottom: 0;
+  }
+  .run-bar .btn + .btn { margin-top: 6px; }
+
+  .runs-table { width: 100%; }
+  .run-row {
+    border-bottom: 1px solid var(--line); padding: 12px 16px;
+    display: grid; grid-template-columns: 1fr auto; gap: 4px; cursor: pointer;
+  }
+  .run-row:hover { background: var(--bg-2); }
+  .run-row .run-id {
+    font-family: var(--mono); color: var(--ink-3); font-size: 9px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .run-row .run-config { font-size: 12px; color: var(--ink); margin-top: 2px; }
+  .run-row .run-time { font-family: var(--mono); color: var(--ink-3); font-size: 10px; }
+  .run-metrics {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+    background: var(--line); margin-top: 8px;
+    border: 1px solid var(--line); grid-column: 1/-1;
+  }
+  .run-metrics .m { background: var(--bg-2); padding: 8px 10px; }
+  .run-metrics .m .k {
+    font-family: var(--mono); font-size: 9px; color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .run-metrics .m .v {
+    font-family: var(--mono); font-size: 14px; color: var(--ink);
+    margin-top: 2px; font-weight: 500;
+  }
+  .run-metrics .m .v.ok { color: var(--ok); }
+  .run-metrics .m .v.warn { color: var(--warn); }
+  .run-metrics .m .v.err { color: var(--err); }
+
+  .run-detail {
+    grid-column: 1/-1; margin-top: 10px; padding: 10px;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 3px;
+    font-family: var(--mono); font-size: 10px; color: var(--ink-2);
+    max-height: 240px; overflow-y: auto;
+  }
+  .event-row {
+    display: grid; grid-template-columns: 50px 1fr 70px 50px; gap: 8px;
+    padding: 4px 0; border-bottom: 1px dotted var(--line);
+  }
+  .event-row:last-child { border-bottom: none; }
+  .event-row .ev-ts { color: var(--ink-3); }
+  .event-row .ev-out.caught { color: var(--ok); }
+  .event-row .ev-out.miss { color: var(--err); }
+  .event-row .ev-out.fp { color: var(--warn); }
+  .event-row .ev-tk { color: var(--ink-3); text-align: right; }
+  .empty { padding: 40px 16px; text-align: center; color: var(--ink-3); font-family: var(--mono); font-size: 11px; }
+  .summary { padding: 16px; background: var(--bg-2); border-bottom: 1px solid var(--line); }
+  .summary h4 {
+    font-family: var(--mono); font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--ink-3); margin-bottom: 10px;
+  }
+  .bars { display: flex; flex-direction: column; gap: 8px; }
+  .bar-row {
+    display: grid; grid-template-columns: 100px 1fr 60px;
+    gap: 10px; align-items: center;
+    font-family: var(--mono); font-size: 10px;
+  }
+  .bar-row .bn { color: var(--ink-2); }
+  .bar-row .bv { color: var(--ink); text-align: right; }
+  .bar-track { height: 6px; background: var(--bg-3); border-radius: 1px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--acc); transition: width 0.4s; }
+  .bar-fill.warn { background: var(--warn); }
+
+  /* ── Footer ─────────────────── */
+  footer.bar-bottom {
+    border-top: 1px solid var(--line); background: var(--bg-2);
+    display: flex; align-items: center; padding: 0 16px; gap: 16px;
+    font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+  }
+  footer.bar-bottom .sep { color: var(--line-2); }
+
+  /* ── Toast ───────────────────────── */
+  .toast {
+    position: fixed; top: 60px; right: 16px;
+    background: var(--bg-3); border: 1px solid var(--acc-dim);
+    color: var(--ink); padding: 10px 14px; border-radius: 3px;
+    font-family: var(--mono); font-size: 11px; z-index: 100;
+    transform: translateX(110%); transition: transform 0.25s;
+  }
+  .toast.show { transform: translateX(0); }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 0; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--ink-3); }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="bar">
+    <div class="brand">
+      <span class="dot">●</span>BRAIN · EVAL LAB <span class="v">v0.5 — taxonomy-aware</span>
+    </div>
+    <div class="mode-toggle">
+      <button class="active" data-mode="brain">Brain</button>
+      <button data-mode="eval">Evaluate</button>
+    </div>
+    <span class="client-pill">
+      <span class="pill-label">client</span>Comer Industries
+    </span>
+    <div class="header-status">
+      <span><span class="pulse"></span> READY</span>
+      <span id="header-status-text">12 keysteps · pinion guide</span>
+    </div>
+  </header>
+
+  <main class="workspace">
+
+    <!-- ───────────────────────── BRAIN MODE ───────────────────────── -->
+    <div class="mode-container active" id="brain-mode">
+
+      <!-- LEFT: ingest + node detail -->
+      <section class="left" id="brain-left">
+        <div class="panel-h"><span class="num">01</span>INGEST <span class="right-meta" id="artifact-count">0 artifacts</span></div>
+
+        <div class="section">
+          <h3>Training material</h3>
+          <label class="drop" id="pdf-drop">
+            <div class="ico">PDF</div>
+            <p>Drop SOP / manual</p>
+            <p class="small">creates Document node</p>
+            <input type="file" id="pdf-input" accept=".pdf" />
+          </label>
+          <label class="drop" id="csv-drop">
+            <div class="ico">CSV</div>
+            <p>Drop tolerance / spec data</p>
+            <p class="small">creates DataTable node</p>
+            <input type="file" id="csv-input" accept=".csv" />
+          </label>
+          <label class="drop" id="video-drop">
+            <div class="ico">▶</div>
+            <p>Drop procedure video</p>
+            <p class="small">opens manual-tag workflow</p>
+            <input type="file" id="video-input" accept="video/*" />
+          </label>
+
+          <button class="btn btn-secondary" id="seed-btn" style="margin-top: 10px;">
+            Seed sample artifacts
+          </button>
+        </div>
+
+        <div class="section">
+          <h3>Ingested <span class="count" id="ingested-count">0</span></h3>
+          <div class="artifact-list" id="artifact-list">
+            <div class="empty" style="padding: 20px 0;">Nothing ingested yet</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CENTER: graph -->
+      <section class="center" id="brain-center">
+        <div class="canvas-overlay">
+          <button class="ov-btn active" data-layout="cose">Constellation</button>
+          <button class="ov-btn" data-layout="breadthfirst">Procedure flow</button>
+          <button class="ov-btn" data-action="fit">Fit</button>
+          <button class="ov-btn" data-action="reset">Reset selection</button>
+        </div>
+        <div id="cy"></div>
+        <div class="canvas-legend">
+          <div class="lg"><span class="sw" style="background: var(--c-procedure)"></span>Procedure</div>
+          <div class="lg"><span class="sw" style="background: var(--c-keystep)"></span>KeyStep</div>
+          <div class="lg"><span class="sw" style="background: var(--c-tool)"></span>Tool</div>
+          <div class="lg"><span class="sw" style="background: var(--c-part)"></span>Part</div>
+          <div class="lg"><span class="sw" style="background: var(--c-advice)"></span>Expert advice</div>
+          <div class="lg"><span class="sw" style="background: var(--c-instruction)"></span>Instruction</div>
+          <div class="lg"><span class="sw" style="background: var(--c-video)"></span>Video segment</div>
+          <div class="lg"><span class="sw" style="background: var(--c-document)"></span>Document</div>
+          <div class="lg"><span class="sw" style="background: var(--c-data)"></span>Data</div>
+          <div class="lg"><span class="sw" style="background: var(--c-tribal)"></span>Tribal</div>
+        </div>
+        <div class="canvas-stat">
+          <span>nodes <span id="stat-nodes">0</span></span>
+          <span>edges <span id="stat-edges">0</span></span>
+          <span>selection <span id="stat-selection">—</span></span>
+        </div>
+      </section>
+
+      <!-- RIGHT: node detail OR chat -->
+      <section class="right" id="brain-right">
+        <div class="chat-h">
+          <span class="ti"><span class="num">02</span>BRAIN</span>
+          <span class="seam">LLM: stub</span>
+        </div>
+        <div class="chat-body" id="chat-body">
+          <div class="chat-empty">
+            Click a graph node to inspect, or ask a question:
+            <span class="suggest" data-q="What's the torque spec on the pinion nut?">
+              What's the torque spec on the pinion nut?
+            </span>
+            <span class="suggest" data-q="How does Marco usually handle the shim selection?">
+              How does Marco usually handle the shim selection?
+            </span>
+            <span class="suggest" data-q="Show me video of someone doing step 7 correctly">
+              Show me video of step 7 done correctly
+            </span>
+            <span class="suggest" data-q="What goes wrong at the press depth verification?">
+              What goes wrong at press depth verification?
+            </span>
+          </div>
+        </div>
+        <div class="chat-input-wrap">
+          <input class="chat-input" id="chat-input" placeholder="Ask the brain anything…" />
+          <button class="chat-send" id="chat-send">Ask</button>
+        </div>
+      </section>
+
+      <!-- BOTTOM: video player (hidden unless tagging) -->
+      <section class="bottom" id="brain-video">
+        <div class="vp-left" id="vp-left">
+          <h4>
+            <span>Video tagging</span>
+            <button class="close-btn" id="vp-close">close</button>
+          </h4>
+          <div class="vp-meta">
+            <span class="k">source</span><span id="vp-filename">—</span>
+            <span class="k">duration</span><span id="vp-duration">—</span>
+            <span class="k">current</span><span id="vp-current">00:00</span>
+          </div>
+        </div>
+        <div class="vp-center">
+          <video id="vp-video" controls></video>
+        </div>
+        <div class="vp-right">
+          <h4>Tag range as keystep</h4>
+          <div class="tag-range">
+            <button id="tag-start">Set IN <span class="stamp" id="stamp-in">—</span></button>
+            <button id="tag-end">Set OUT <span class="stamp" id="stamp-out">—</span></button>
+          </div>
+          <select class="keystep-select" id="tag-keystep">
+            <option value="">Assign to keystep…</option>
+          </select>
+          <select class="keystep-select" id="tag-errortype" style="margin-top: 6px;">
+            <option value="">Error type (optional — if mistake clip)…</option>
+          </select>
+          <input class="chat-input" id="tag-name" placeholder="Segment name (optional)" style="margin-bottom: 6px; margin-top: 6px;" />
+          <button class="btn" id="tag-save">Save segment</button>
+          <div class="tag-saved" id="tag-saved-list"></div>
+        </div>
+      </section>
+
+    </div>
+
+
+    <!-- ───────────────────────── EVAL MODE ───────────────────────── -->
+    <div class="mode-container" id="eval-mode">
+
+      <section class="panel">
+        <div class="panel-h"><span class="num">01</span>SESSION</div>
+        <div class="section">
+          <h3>Procedure source</h3>
+          <div class="meta-grid">
+            <div><div class="k">activity</div><div class="v">Pinion Guide</div></div>
+            <div><div class="k">keysteps</div><div class="v" id="ev-keysteps">12</div></div>
+            <div><div class="k">artifacts</div><div class="v" id="ev-artifacts">—</div></div>
+            <div><div class="k">source</div><div class="v">Brain</div></div>
+          </div>
+          <button class="btn btn-secondary" id="ev-gen-btn" style="margin-top: 10px;">
+            Generate simulated session
+          </button>
+        </div>
+
+        <div class="section">
+          <h3>Event timeline</h3>
+          <div class="timeline" id="ev-timeline">
+            <div class="empty">No session generated</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-h"><span class="num">02</span>CONFIGURATION</div>
+        <div class="section">
+          <h3>Smart glasses profile</h3>
+          <div class="cards" id="hardware-cards"></div>
+        </div>
+        <div class="section">
+          <h3>Context strategy</h3>
+          <div class="cards" id="strategy-cards"></div>
+        </div>
+        <div class="run-bar">
+          <button class="btn" id="run-btn" disabled>Run evaluation</button>
+          <button class="btn btn-secondary" id="run-all-btn" disabled>Run all 4 for ablation</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-h"><span class="num">03</span>RESULTS</div>
+        <div class="summary" id="summary" style="display:none;">
+          <h4>Cross-run comparison</h4>
+          <div class="bars" id="summary-bars"></div>
+        </div>
+        <div class="runs-table" id="runs-list">
+          <div class="empty">Run an evaluation to see results</div>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <footer class="bar-bottom">
+    <span>Aequilibrium, Inc.</span>
+    <span class="sep">│</span>
+    <span id="footer-mode">brain mode</span>
+    <span class="sep">│</span>
+    <span>llm: <span style="color:var(--warn);">stub</span> · graph: <span style="color:var(--ink-2);">in-memory</span></span>
+    <span style="margin-left:auto;">Pilot · Comer Industries · Pinion Guide Station</span>
+  </footer>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════════
+   PINION GUIDE PROCEDURE — Comer-style seed data
+   Real Tier-1 automotive content for the pinion guide station. 12 KeyStep
+   nodes, each with instructions, expert advice, tools and parts.
+   This is the schema-shaped knowledge graph. In production, it lives in
+   Neo4j; here it's an in-memory object graph.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+const PINION_GUIDE_PROCEDURE = {
+  proceduralActivity: {
+    id: 'proc:pinion-guide',
+    label: 'Pinion Guide Assembly',
+    description: 'Pre-assembly of pinion shaft with guide bearing for differential housing.',
+    cycleMin: 38,
+    stationId: 'PG-04'
+  },
+  keysteps: [
+    { id: 'step:01', order: 1, label: 'Inspect Pinion Shaft', description: 'Visual + runout check.', risk: 'low',
+      acceptance: 'No surface defects; runout ≤ 0.015mm',
+      errorProfile: {
+        high_priority: ['UNVERIFIED'],
+        medium_priority: ['OMITTED_OBJECT'],
+        low_priority: ['INSERTION'],
+        not_applicable: ['ORIENTATION', 'SUBSTITUTION', 'OUT_OF_SPEC']
+      }
+    },
+    { id: 'step:02', order: 2, label: 'Apply Lubricant', description: 'Bearing assembly grease, even coat.', risk: 'low',
+      acceptance: 'Full coverage on both bearing surfaces',
+      errorProfile: {
+        high_priority: ['OMISSION', 'OMITTED_OBJECT'],
+        medium_priority: ['SUBSTITUTION'],
+        not_applicable: ['ORIENTATION', 'OUT_OF_SPEC', 'BORDERLINE']
+      }
+    },
+    { id: 'step:03', order: 3, label: 'Position Guide Bearing', description: 'Orient guide bearing cone.', risk: 'high',
+      acceptance: 'Chamfered edge faces inboard',
+      errorProfile: {
+        high_priority: ['ORIENTATION', 'SUBSTITUTION'],
+        medium_priority: ['INTENT_MISMATCH', 'EXTRA_OBJECT'],
+        low_priority: ['INSERTION'],
+        not_applicable: ['OUT_OF_SPEC', 'BORDERLINE']
+      }
+    },
+    { id: 'step:04', order: 4, label: 'Press Pinion into Guide', description: 'Hydraulic press, controlled force.', risk: 'med',
+      acceptance: 'Press force 8-12 kN; no audible binding',
+      errorProfile: {
+        high_priority: ['OUT_OF_SPEC', 'INCOMPLETE'],
+        medium_priority: ['EXTRA_OBJECT'],
+        low_priority: ['INSERTION'],
+        not_applicable: ['ORIENTATION']
+      }
+    },
+    { id: 'step:05', order: 5, label: 'Verify Press Depth', description: 'Depth gauge check at flange.', risk: 'high',
+      acceptance: 'Gauge reads 0.000-0.005mm; restart if above',
+      errorProfile: {
+        high_priority: ['UNVERIFIED', 'OMITTED_OBJECT', 'OUT_OF_SPEC'],
+        medium_priority: ['BORDERLINE', 'PHANTOM_PROGRESS'],
+        not_applicable: ['ORIENTATION']
+      }
+    },
+    { id: 'step:06', order: 6, label: 'Install Crush Sleeve', description: 'Between bearings, oriented.', risk: 'med',
+      acceptance: 'Notched end facing rear bearing',
+      errorProfile: {
+        high_priority: ['ORIENTATION', 'SUBSTITUTION'],
+        medium_priority: ['ORDER'],
+        not_applicable: ['OUT_OF_SPEC']
+      }
+    },
+    { id: 'step:07', order: 7, label: 'Load Shim Pack', description: 'Per traveler-specified thickness.', risk: 'high',
+      acceptance: 'Thickness matches SKU on traveler',
+      errorProfile: {
+        high_priority: ['SUBSTITUTION', 'OMITTED_OBJECT', 'INTENT_MISMATCH'],
+        medium_priority: ['UNVERIFIED', 'PHANTOM_PROGRESS'],
+        low_priority: ['INSERTION'],
+        not_applicable: ['ORIENTATION']
+      }
+    },
+    { id: 'step:08', order: 8, label: 'Apply Pinion Nut', description: 'Hand-tight initial seating.', risk: 'low',
+      acceptance: 'Fully seated, no cross-thread',
+      errorProfile: {
+        high_priority: ['SUBSTITUTION'],
+        medium_priority: ['INCOMPLETE'],
+        low_priority: ['EXTRA_OBJECT'],
+        not_applicable: ['OUT_OF_SPEC', 'ORIENTATION']
+      }
+    },
+    { id: 'step:09', order: 9, label: 'Torque Pinion Nut', description: 'To spec, opposing corner sequence.', risk: 'high',
+      acceptance: '210-240 Nm, 3-pass sequence',
+      errorProfile: {
+        high_priority: ['OUT_OF_SPEC', 'UNVERIFIED', 'INCOMPLETE'],
+        medium_priority: ['INSERTION', 'BORDERLINE'],
+        not_applicable: ['ORIENTATION', 'SUBSTITUTION']
+      }
+    },
+    { id: 'step:10', order: 10, label: 'Measure Rotational Torque', description: 'Preload check via torque wrench.', risk: 'med',
+      acceptance: '12-18 in-lbs for new bearings',
+      errorProfile: {
+        high_priority: ['UNVERIFIED', 'OUT_OF_SPEC'],
+        medium_priority: ['BORDERLINE', 'UNREPORTED_PROGRESS'],
+        not_applicable: ['ORIENTATION', 'SUBSTITUTION']
+      }
+    },
+    { id: 'step:11', order: 11, label: 'Mount in Housing', description: 'Insert pre-assembled pinion into differential.', risk: 'low',
+      acceptance: 'Seated flush; no gap at flange',
+      errorProfile: {
+        high_priority: ['ORIENTATION'],
+        medium_priority: ['INCOMPLETE'],
+        not_applicable: ['OUT_OF_SPEC', 'BORDERLINE']
+      }
+    },
+    { id: 'step:12', order: 12, label: 'Final Inspection & Tag', description: 'Sign-off, attach traveler.', risk: 'low',
+      acceptance: 'All checks signed, traveler attached',
+      errorProfile: {
+        high_priority: ['UNVERIFIED', 'UNREPORTED_PROGRESS'],
+        medium_priority: ['OMISSION'],
+        not_applicable: ['ORIENTATION', 'OUT_OF_SPEC', 'SUBSTITUTION']
+      }
+    }
+  ],
+  instructions: [
+    { id: 'instr:01', label: 'Inspect with bright LED, rotate shaft 360°', forStep: 'step:01' },
+    { id: 'instr:02', label: 'Apply grease to inner race only', forStep: 'step:02' },
+    { id: 'instr:03', label: 'Orient cup with chamfered edge inboard', forStep: 'step:03' },
+    { id: 'instr:04', label: 'Engage press in 2-second ramp, hold 1s', forStep: 'step:04' },
+    { id: 'instr:05', label: 'Zero gauge against flange edge first', forStep: 'step:05' },
+    { id: 'instr:06', label: 'Notched end of sleeve faces rear', forStep: 'step:06' },
+    { id: 'instr:07', label: 'Verify shim SKU matches traveler before fitting', forStep: 'step:07' },
+    { id: 'instr:08', label: 'Hand-seat nut clockwise, no tools', forStep: 'step:08' },
+    { id: 'instr:09', label: 'Three-pass opposing-corner torque sequence', forStep: 'step:09' },
+    { id: 'instr:10', label: 'Rotate shaft 5 turns before measuring', forStep: 'step:10' },
+    { id: 'instr:11', label: 'Align splines before insertion', forStep: 'step:11' }
+  ],
+  expertAdvice: [
+    { id: 'advice:01', label: 'Reject shaft if any surface pitting visible — even small ones cause bearing failure', forStep: 'step:01', source: 'Marco R., 22yr tenure' },
+    { id: 'advice:03', label: 'If you see ANY scoring on cup mating surface, reject — chamfer-down failure mode is silent', forStep: 'step:03', source: 'Antonio P., quality lead' },
+    { id: 'advice:05', label: 'If gauge reads above 0.005mm, restart — cup is not fully seated and will fail at 40 hours', forStep: 'step:05', source: 'Marco R.' },
+    { id: 'advice:07', label: 'Shim thickness must match SKU on traveler exactly — do NOT eyeball or substitute', forStep: 'step:07', source: 'Shop floor standard' },
+    { id: 'advice:09', label: 'Three passes minimum on torque sequence — single-pass causes preload drift', forStep: 'step:09', source: 'Comer Engineering Spec QE-PG-04' },
+    { id: 'advice:10', label: 'Bearings need 5 rotations before measuring — first read is always low', forStep: 'step:10', source: 'Marco R.' }
+  ],
+  tools: [
+    { id: 'tool:torque-wrench-250', label: 'Torque Wrench 50-250 Nm', sku: 'CMR-T-3401' },
+    { id: 'tool:torque-wrench-rot', label: 'Rotational Torque Gauge', sku: 'CMR-T-3402' },
+    { id: 'tool:depth-gauge', label: 'Digital Depth Gauge ±0.001mm', sku: 'CMR-T-3408' },
+    { id: 'tool:hydraulic-press', label: 'Hydraulic Press, 15 kN', sku: 'CMR-T-3501' },
+    { id: 'tool:grease-applicator', label: 'Bearing Grease Applicator', sku: 'CMR-T-3211' }
+  ],
+  parts: [
+    { id: 'part:pinion-shaft', label: 'Pinion Shaft', sku: 'CMR-P-4471' },
+    { id: 'part:guide-bearing', label: 'Guide Bearing Cone', sku: 'CMR-P-4472' },
+    { id: 'part:bearing-cup', label: 'Bearing Cup', sku: 'CMR-P-4473' },
+    { id: 'part:crush-sleeve', label: 'Crush Sleeve', sku: 'CMR-P-4474' },
+    { id: 'part:shim-pack', label: 'Shim Pack (variable)', sku: 'CMR-P-4475-*' },
+    { id: 'part:pinion-nut', label: 'Pinion Lock Nut', sku: 'CMR-P-4476' },
+    { id: 'part:diff-housing', label: 'Differential Housing', sku: 'CMR-P-5101' }
+  ],
+  // Which tools/parts are needed at each step
+  stepRequirements: {
+    'step:01': { tools: ['tool:depth-gauge'], parts: ['part:pinion-shaft'] },
+    'step:02': { tools: ['tool:grease-applicator'], parts: ['part:pinion-shaft', 'part:guide-bearing'] },
+    'step:03': { tools: [], parts: ['part:guide-bearing', 'part:bearing-cup'] },
+    'step:04': { tools: ['tool:hydraulic-press'], parts: ['part:pinion-shaft', 'part:guide-bearing'] },
+    'step:05': { tools: ['tool:depth-gauge'], parts: ['part:pinion-shaft'] },
+    'step:06': { tools: [], parts: ['part:crush-sleeve'] },
+    'step:07': { tools: ['tool:depth-gauge'], parts: ['part:shim-pack'] },
+    'step:08': { tools: [], parts: ['part:pinion-nut'] },
+    'step:09': { tools: ['tool:torque-wrench-250'], parts: ['part:pinion-nut'] },
+    'step:10': { tools: ['tool:torque-wrench-rot'], parts: ['part:pinion-shaft'] },
+    'step:11': { tools: [], parts: ['part:diff-housing'] },
+    'step:12': { tools: [], parts: [] }
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════════════════
+   HARDWARE PROFILES — smart glasses only, enterprise scope
+   ════════════════════════════════════════════════════════════════════════════ */
+const HARDWARE_PROFILES = {
+  rokid_ai: {
+    id: 'rokid_ai', name: 'Rokid AI Glasses',
+    desc: 'Current Comer pilot. Mono RGB camera + voice + display. No eye tracking.',
+    signals: { eye_gaze: false, camera: true, display: true, hand_track: false, audio_in: true, audio_out: true },
+    dwell_threshold_ms: 800, latency_budget_ms: 200
+  },
+  snap_spectacles: {
+    id: 'snap_spectacles', name: 'Snap Spectacles 5G',
+    desc: 'Dev kit. 4 cameras, hand tracking, stereo display.',
+    signals: { eye_gaze: false, camera: true, display: true, hand_track: true, audio_in: true, audio_out: true },
+    dwell_threshold_ms: 600, latency_budget_ms: 150
+  },
+  aria_gen2: {
+    id: 'aria_gen2', name: 'Project Aria Gen 2',
+    desc: 'Research-only. Eye tracking + multi-cam. Data bootstrap ceiling, not deploy.',
+    signals: { eye_gaze: true, camera: true, display: false, hand_track: true, audio_in: true, audio_out: true },
+    dwell_threshold_ms: 100, latency_budget_ms: 0
+  },
+  even_g2: {
+    id: 'even_g2', name: 'Even Realities G2',
+    desc: 'Privacy-first. No camera, no speaker. Collapses on enterprise tasks.',
+    signals: { eye_gaze: false, camera: false, display: true, hand_track: false, audio_in: true, audio_out: false },
+    dwell_threshold_ms: null, latency_budget_ms: 350
+  },
+  mentra_live: {
+    id: 'mentra_live', name: 'Mentra Live',
+    desc: '12MP camera, audio-first, no display. Open MentraOS SDK, cross-device.',
+    signals: { eye_gaze: false, camera: true, display: false, hand_track: false, audio_in: true, audio_out: true },
+    dwell_threshold_ms: 800, latency_budget_ms: 280
+  },
+  maverick_ai_pro: {
+    id: 'maverick_ai_pro', name: 'Maverick AI Pro',
+    desc: 'First consumer ET. OLED + Alif edge AI. Ships Aug 2026.',
+    signals: { eye_gaze: true, camera: true, display: true, hand_track: false, audio_in: true, audio_out: true },
+    dwell_threshold_ms: 150, latency_budget_ms: 120
+  },
+  raven_glass: {
+    id: 'raven_glass', name: 'Raven Glass',
+    desc: 'ET as primary input — hands-free by design. RavenOS Linux.',
+    signals: { eye_gaze: true, camera: true, display: true, hand_track: false, audio_in: true, audio_out: true },
+    dwell_threshold_ms: 120, latency_budget_ms: 150
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CONTEXT STRATEGIES — same as v0.3 (EmBARDiment-derived)
+   ════════════════════════════════════════════════════════════════════════════ */
+const CONTEXT_STRATEGIES = {
+  baseline: {
+    id: 'baseline', name: 'A1 — Baseline',
+    desc: 'No context. User query only. EmBARDiment baseline.',
+    avg_input_tokens: 250, catch_rate_ideal: 0.15, fp_rate: 0.02
+  },
+  full_context: {
+    id: 'full_context', name: 'A2 — Full Context',
+    desc: 'All CV + full procedure + history. Expected to fail per paper §6.1.',
+    avg_input_tokens: 12000, catch_rate_ideal: 0.55, fp_rate: 0.18
+  },
+  scoped_episodic: {
+    id: 'scoped_episodic', name: 'A3 — Scoped Episodic',
+    desc: 'Current step + 30-60s of attention/action events. Cleared on transition.',
+    avg_input_tokens: 1800, catch_rate_ideal: 0.85, fp_rate: 0.05
+  },
+  tiered_proactive: {
+    id: 'tiered_proactive', name: 'A4 — Tiered Proactive',
+    desc: 'Tier-1 rules every 2-5s, Tier-2 LLM only on anomaly. Production target.',
+    avg_input_tokens: 1400, catch_rate_ideal: 0.92, fp_rate: 0.03
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════════════════
+   ERROR TAXONOMY — 5 groups, ~20 codes
+   Mirrors the one-page reference PDF. Each error has a group, severity-default,
+   and a brief definition. Procedure spec's errorProfile per KeyStep declares
+   which apply where.
+   ════════════════════════════════════════════════════════════════════════════ */
+const ERROR_TAXONOMY = {
+  // Group A — Sequence errors
+  OMISSION:           { group: 'A', label: 'Omission',           desc: 'Required step not performed' },
+  INSERTION:          { group: 'A', label: 'Insertion',          desc: 'Extra action outside the procedure' },
+  ORDER:              { group: 'A', label: 'Order',              desc: 'Right steps, wrong sequence' },
+  INCOMPLETE:         { group: 'A', label: 'Incomplete',         desc: 'Step entered but not fully done' },
+  // Group B — Execution errors
+  SUBSTITUTION:       { group: 'B', label: 'Substitution',       desc: 'Right step, wrong object' },
+  ORIENTATION:        { group: 'B', label: 'Orientation',        desc: 'Right object, wrong way around' },
+  OMITTED_OBJECT:     { group: 'B', label: 'Omitted object',     desc: 'Required object not present' },
+  EXTRA_OBJECT:       { group: 'B', label: 'Extra object',       desc: 'Forbidden object present' },
+  // Group C — Specification errors
+  OUT_OF_SPEC:        { group: 'C', label: 'Out of spec',        desc: 'Measured value outside acceptance range' },
+  UNVERIFIED:         { group: 'C', label: 'Unverified',         desc: 'Required measurement never taken' },
+  BORDERLINE:         { group: 'C', label: 'Borderline',         desc: 'Within spec but near tolerance edge' },
+  // Group D — Intent-vs-reality errors (OEM-fusion exclusive)
+  INTENT_MISMATCH:    { group: 'D', label: 'Intent mismatch',    desc: 'OEM says step N, CV observes M (≠N±1)' },
+  PHANTOM_PROGRESS:   { group: 'D', label: 'Phantom progress',   desc: 'OEM advanced but CV sees no work' },
+  UNREPORTED_PROGRESS:{ group: 'D', label: 'Unreported',         desc: 'CV sees completion, OEM not updated' },
+  STATE_REPAIR:       { group: 'D', label: 'State repair',       desc: 'Worker recognized own error and is fixing' },
+  // Group E — System / perception errors
+  CV_UNCERTAIN:       { group: 'E', label: 'CV uncertain',       desc: 'CV confidence below threshold' },
+  STATE_AMBIGUOUS:    { group: 'E', label: 'State ambiguous',    desc: 'Multiple FSM states equally plausible' },
+  OEM_UNAVAILABLE:    { group: 'E', label: 'OEM unavailable',    desc: 'OEM signal stale or missing' },
+  OUT_OF_DISTRIBUTION:{ group: 'E', label: 'OOD',                desc: 'CV detects unknown object class' }
+};
+
+const ERROR_GROUPS = {
+  A: { label: 'Sequence',         color: '#0284c7', desc: 'When actions happen' },
+  B: { label: 'Execution',        color: '#7c3aed', desc: 'What happens in a step' },
+  C: { label: 'Specification',    color: '#0891b2', desc: 'Measurements & values' },
+  D: { label: 'Intent-vs-reality',color: '#c2410c', desc: 'OEM-fusion exclusive' },
+  E: { label: 'System',           color: '#525252', desc: 'Perception limits' }
+};
+
+/* ════════════════════════════════════════════════════════════════════════════
+   APPLICATION STATE
+   ════════════════════════════════════════════════════════════════════════════ */
+const state = {
+  mode: 'brain',
+  brain: {
+    artifacts: [],        // Document, DataTable, VideoSegment nodes from ingest
+    videoFile: null,
+    videoUrl: null,
+    tagRangeIn: null,
+    tagRangeOut: null,
+    selectedNode: null
+  },
+  eval: {
+    session: null,
+    hardware: 'rokid_ai',
+    strategy: 'tiered_proactive',
+    runs: []
+  },
+  graph: null    // Cytoscape instance
+};
+
+/* ════════════════════════════════════════════════════════════════════════════
+   GRAPH CONSTRUCTION — convert procedure data + artifacts into Cytoscape elements
+   ════════════════════════════════════════════════════════════════════════════ */
+function buildGraphElements() {
+  const elements = [];
+  const proc = PINION_GUIDE_PROCEDURE;
+
+  // Top-level procedure node
+  elements.push({
+    data: { id: proc.proceduralActivity.id, label: proc.proceduralActivity.label, type: 'ProceduralActivity', size: 60 }
+  });
+
+  // KeyStep nodes + PART_OF edges
+  for (const s of proc.keysteps) {
+    elements.push({ data: { id: s.id, label: `${s.order}. ${s.label}`, type: 'KeyStep', risk: s.risk, size: 38, raw: s } });
+    elements.push({ data: { id: `e:po:${s.id}`, source: proc.proceduralActivity.id, target: s.id, type: 'PART_OF' } });
+  }
+
+  // PRECEDES edges between keysteps
+  for (let i = 0; i < proc.keysteps.length - 1; i++) {
+    elements.push({
+      data: { id: `e:pr:${proc.keysteps[i].id}`, source: proc.keysteps[i].id, target: proc.keysteps[i+1].id, type: 'PRECEDES' }
+    });
+  }
+
+  // Instructions
+  for (const x of proc.instructions) {
+    elements.push({ data: { id: x.id, label: x.label, type: 'Instruction', size: 18, raw: x } });
+    elements.push({ data: { id: `e:if:${x.id}`, source: x.forStep, target: x.id, type: 'INSTRUCTION_FOR' } });
+  }
+  // Expert advice
+  for (const x of proc.expertAdvice) {
+    elements.push({ data: { id: x.id, label: x.label.slice(0, 36) + (x.label.length > 36 ? '…' : ''), type: 'ExpertAdvice', size: 22, raw: x } });
+    elements.push({ data: { id: `e:ad:${x.id}`, source: x.forStep, target: x.id, type: 'ADVISES_ON' } });
+  }
+  // Tools
+  for (const x of proc.tools) {
+    elements.push({ data: { id: x.id, label: x.label, type: 'Tool', size: 22, raw: x } });
+  }
+  // Parts
+  for (const x of proc.parts) {
+    elements.push({ data: { id: x.id, label: x.label, type: 'Part', size: 22, raw: x } });
+  }
+  // Step requirements → Tool / Part edges
+  for (const [stepId, req] of Object.entries(proc.stepRequirements)) {
+    for (const toolId of (req.tools || [])) {
+      elements.push({ data: { id: `e:rt:${stepId}:${toolId}`, source: stepId, target: toolId, type: 'REQUIRES' } });
+    }
+    for (const partId of (req.parts || [])) {
+      elements.push({ data: { id: `e:rp:${stepId}:${partId}`, source: stepId, target: partId, type: 'REQUIRES' } });
+    }
+  }
+
+  // Ingested artifacts (Document, DataTable, VideoSegment, Tribal)
+  for (const a of state.brain.artifacts) {
+    elements.push({ data: { id: a.id, label: a.label, type: a.type, size: 20, raw: a } });
+    if (a.attachedTo) {
+      const edgeType = a.type === 'VideoSegment' ? 'DEMONSTRATES'
+                     : a.type === 'Document'    ? 'DOCUMENTS'
+                     : a.type === 'DataTable'   ? 'SPECIFIES'
+                     : 'REFERRED_IN';
+      elements.push({ data: { id: `e:${a.id}:${a.attachedTo}`, source: a.attachedTo, target: a.id, type: edgeType } });
+    }
+  }
+
+  return elements;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CYTOSCAPE STYLE
+   ════════════════════════════════════════════════════════════════════════════ */
+const cyStyle = [
+  {
+    selector: 'node',
+    style: {
+      'background-color': '#1f2724',
+      'border-width': 1,
+      'border-color': '#2a3431',
+      'label': 'data(label)',
+      'color': '#97a59e',
+      'font-family': 'Geist, system-ui, sans-serif',
+      'font-size': 9,
+      'text-valign': 'bottom',
+      'text-halign': 'center',
+      'text-margin-y': 6,
+      'text-max-width': 90,
+      'text-wrap': 'wrap',
+      'width': 'data(size)', 'height': 'data(size)',
+      'transition-property': 'background-color, border-color, border-width, opacity',
+      'transition-duration': '180ms'
+    }
+  },
+  { selector: 'node[type="ProceduralActivity"]', style: { 'background-color': '#00e5a0', 'border-color': '#00b07b', 'border-width': 2, 'color': '#e8efe9', 'font-size': 12, 'font-weight': 600 } },
+  { selector: 'node[type="KeyStep"]',            style: { 'background-color': '#38bdf8', 'border-color': '#0284c7', 'shape': 'round-rectangle', 'color': '#e8efe9', 'font-size': 10, 'font-weight': 500 } },
+  { selector: 'node[type="KeyStep"][risk="high"]', style: { 'border-color': '#ef5350', 'border-width': 2 } },
+  { selector: 'node[type="Instruction"]',  style: { 'background-color': '#475569', 'border-color': '#64748b', 'shape': 'round-rectangle' } },
+  { selector: 'node[type="ExpertAdvice"]', style: { 'background-color': '#f5a524', 'border-color': '#d97706', 'shape': 'hexagon' } },
+  { selector: 'node[type="Tool"]',         style: { 'background-color': '#c084fc', 'border-color': '#9333ea', 'shape': 'triangle' } },
+  { selector: 'node[type="Part"]',         style: { 'background-color': '#60a5fa', 'border-color': '#2563eb', 'shape': 'ellipse' } },
+  { selector: 'node[type="VideoSegment"]', style: { 'background-color': '#ef5350', 'border-color': '#b91c1c', 'shape': 'round-rectangle' } },
+  { selector: 'node[type="Document"]',     style: { 'background-color': '#e8efe9', 'border-color': '#97a59e', 'shape': 'round-rectangle', 'color': '#0a0d0c' } },
+  { selector: 'node[type="DataTable"]',    style: { 'background-color': '#22d3ee', 'border-color': '#0891b2', 'shape': 'round-rectangle' } },
+  { selector: 'node[type="TribalKnowledge"]', style: { 'background-color': '#fbbf24', 'border-color': '#d97706', 'shape': 'hexagon' } },
+  {
+    selector: 'edge',
+    style: {
+      'width': 1,
+      'line-color': '#2a3431',
+      'curve-style': 'bezier',
+      'target-arrow-shape': 'none',
+      'opacity': 0.6
+    }
+  },
+  { selector: 'edge[type="PRECEDES"]',         style: { 'line-color': '#38bdf8', 'target-arrow-shape': 'triangle', 'target-arrow-color': '#38bdf8', 'opacity': 0.7 } },
+  { selector: 'edge[type="REQUIRES"]',         style: { 'line-color': '#475569' } },
+  { selector: 'edge[type="ADVISES_ON"]',       style: { 'line-color': '#f5a524', 'line-style': 'dashed' } },
+  { selector: 'edge[type="INSTRUCTION_FOR"]',  style: { 'line-color': '#475569' } },
+  { selector: 'edge[type="DEMONSTRATES"]',     style: { 'line-color': '#ef5350' } },
+  { selector: 'edge[type="DOCUMENTS"]',        style: { 'line-color': '#e8efe9' } },
+  { selector: 'edge[type="SPECIFIES"]',        style: { 'line-color': '#22d3ee' } },
+  { selector: ':selected', style: { 'border-color': '#00e5a0', 'border-width': 3 } },
+  { selector: '.dimmed', style: { 'opacity': 0.15 } },
+  { selector: '.highlighted', style: { 'border-color': '#00e5a0', 'border-width': 3 } }
+];
+
+/* ════════════════════════════════════════════════════════════════════════════
+   GRAPH INIT
+   ════════════════════════════════════════════════════════════════════════════ */
+function initGraph() {
+  const elements = buildGraphElements();
+  state.graph = cytoscape({
+    container: document.getElementById('cy'),
+    elements,
+    style: cyStyle,
+    layout: layoutConfig('cose'),
+    wheelSensitivity: 0.25,
+    minZoom: 0.2,
+    maxZoom: 2.5
+  });
+
+  state.graph.on('tap', 'node', evt => selectNode(evt.target.data()));
+  state.graph.on('tap', e => { if (e.target === state.graph) clearSelection(); });
+
+  updateGraphStats();
+}
+
+function layoutConfig(name) {
+  if (name === 'breadthfirst') {
+    // Built-in hierarchical layout — works as procedure flow without dagre extension
+    return {
+      name: 'breadthfirst',
+      directed: true,
+      roots: ['proc:pinion-guide'],
+      padding: 30,
+      spacingFactor: 1.2,
+      animate: true,
+      animationDuration: 400,
+      grid: false
+    };
+  }
+  // 'cose' is built into Cytoscape core — always available, no extension needed
+  return {
+    name: 'cose',
+    idealEdgeLength: 80,
+    nodeOverlap: 20,
+    refresh: 20,
+    fit: true,
+    padding: 40,
+    randomize: false,
+    componentSpacing: 100,
+    nodeRepulsion: 400000,
+    edgeElasticity: 100,
+    nestingFactor: 5,
+    gravity: 80,
+    numIter: 1000,
+    initialTemp: 200,
+    coolingFactor: 0.95,
+    minTemp: 1.0,
+    animate: true,
+    animationDuration: 500
+  };
+}
+
+function relayout(name) {
+  try {
+    state.graph.layout(layoutConfig(name)).run();
+  } catch (e) {
+    console.warn('Layout failed, falling back to cose:', e);
+    state.graph.layout({ name: 'cose', animate: true }).run();
+  }
+}
+
+function updateGraphStats() {
+  if (!state.graph) return;
+  document.getElementById('stat-nodes').textContent = state.graph.nodes().length;
+  document.getElementById('stat-edges').textContent = state.graph.edges().length;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   NODE SELECTION + DETAIL PANEL
+   ════════════════════════════════════════════════════════════════════════════ */
+function selectNode(data) {
+  state.brain.selectedNode = data;
+  document.getElementById('stat-selection').textContent = data.label || data.id;
+  renderRightPanel();
+
+  // If video segment, open the video player
+  if (data.type === 'VideoSegment' && data.raw && data.raw.videoUrl) {
+    openVideoPlayer(data.raw.videoUrl, data.raw.fileName, data.raw);
+  }
+}
+
+function clearSelection() {
+  state.brain.selectedNode = null;
+  document.getElementById('stat-selection').textContent = '—';
+  renderRightPanel();
+}
+
+function renderRightPanel() {
+  const right = document.getElementById('brain-right');
+  if (!state.brain.selectedNode) {
+    // Show chat
+    right.innerHTML = `
+      <div class="chat-h">
+        <span class="ti"><span class="num">02</span>BRAIN</span>
+        <span class="seam">LLM: stub</span>
+      </div>
+      <div class="chat-body" id="chat-body">${chatBodyHTML()}</div>
+      <div class="chat-input-wrap">
+        <input class="chat-input" id="chat-input" placeholder="Ask the brain anything…" />
+        <button class="chat-send" id="chat-send">Ask</button>
+      </div>`;
+    wireChat();
+    return;
+  }
+  // Show node detail
+  const n = state.brain.selectedNode;
+  const raw = n.raw || {};
+  const cMap = nodeColor(n.type);
+  let related = relatedNodes(n.id);
+  right.innerHTML = `
+    <div class="node-detail" style="overflow-y: auto;">
+      <div class="nd-head">
+        <span class="nd-type" style="color:${cMap}; border:1px solid ${cMap}; opacity:0.9;">${n.type}</span>
+        <div class="nd-label">${n.label}</div>
+        <div class="nd-id">${n.id}</div>
+      </div>
+
+      ${detailFieldsHTML(n, raw)}
+
+      <div class="nd-section">
+        <h4>Connected nodes <span style="color:var(--ink-3);float:right;">${related.length}</span></h4>
+        <div class="nd-related">
+          ${related.map(r => `
+            <div class="nd-rel-row" data-target="${r.id}">
+              <span class="rel-dot" style="background:${nodeColor(r.type)}"></span>
+              <span><span class="rel-type">${r.relType}</span> <span class="rel-label">${r.label}</span></span>
+              <span class="rel-type">${r.type}</span>
+            </div>`).join('') || '<div style="font-family:var(--mono);font-size:10px;color:var(--ink-3);">No connected nodes</div>'}
+        </div>
+      </div>
+
+      <div class="nd-section" style="border-bottom:none;">
+        <button class="btn btn-secondary" id="back-to-chat">Back to chat</button>
+      </div>
+    </div>`;
+
+  document.querySelectorAll('.nd-rel-row').forEach(row => {
+    row.onclick = () => {
+      const target = row.dataset.target;
+      const node = state.graph.getElementById(target);
+      if (node) { selectNode(node.data()); state.graph.center(node); }
+    };
+  });
+  document.getElementById('back-to-chat').onclick = clearSelection;
+}
+
+function detailFieldsHTML(n, raw) {
+  const fields = [];
+  if (raw.description) fields.push(['description', raw.description]);
+  if (raw.sku)         fields.push(['sku', `<span class="mono">${raw.sku}</span>`]);
+  if (raw.order)       fields.push(['order', `<span class="mono">${raw.order}</span>`]);
+  if (raw.risk)        fields.push(['risk', `<span style="color:${raw.risk==='high'?'var(--err)':raw.risk==='med'?'var(--warn)':'var(--ok)'};font-family:var(--mono);font-size:10px;text-transform:uppercase">${raw.risk}</span>`]);
+  if (raw.acceptance)  fields.push(['acceptance', raw.acceptance]);
+  if (raw.source)      fields.push(['source', `<span style="color:var(--c-tribal)">${raw.source}</span>`]);
+  if (raw.fileName)    fields.push(['file', `<span class="mono">${raw.fileName}</span>`]);
+  if (raw.fileSize)    fields.push(['size', `<span class="mono">${(raw.fileSize/1024).toFixed(1)} KB</span>`]);
+  if (raw.timestampStart !== undefined) fields.push(['range', `<span class="mono">${formatTs(raw.timestampStart)} → ${formatTs(raw.timestampEnd)}</span>`]);
+  if (fields.length === 0) return '';
+  return `<div class="nd-section">
+    <h4>Properties</h4>
+    ${fields.map(([k, v]) => `<div class="field"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}
+  </div>`;
+}
+
+function relatedNodes(id) {
+  if (!state.graph) return [];
+  const node = state.graph.getElementById(id);
+  if (!node || node.empty()) return [];
+  const out = [];
+  node.connectedEdges().forEach(e => {
+    const ed = e.data();
+    const otherId = ed.source === id ? ed.target : ed.source;
+    const other = state.graph.getElementById(otherId).data();
+    out.push({ id: otherId, label: other.label, type: other.type, relType: ed.type });
+  });
+  return out;
+}
+
+function nodeColor(type) {
+  const map = {
+    'ProceduralActivity': 'var(--c-procedure)',
+    'KeyStep': 'var(--c-keystep)',
+    'Instruction': 'var(--c-instruction)',
+    'ExpertAdvice': 'var(--c-advice)',
+    'Tool': 'var(--c-tool)',
+    'Part': 'var(--c-part)',
+    'VideoSegment': 'var(--c-video)',
+    'Document': 'var(--c-document)',
+    'DataTable': 'var(--c-data)',
+    'TribalKnowledge': 'var(--c-tribal)'
+  };
+  return map[type] || 'var(--ink-2)';
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CHAT — stubbed LLM with real retrieval seam
+   ════════════════════════════════════════════════════════════════════════════ */
+let chatHistory = [];
+
+function chatBodyHTML() {
+  if (chatHistory.length === 0) {
+    return `<div class="chat-empty">
+      Click a graph node to inspect, or ask a question:
+      <span class="suggest" data-q="What's the torque spec on the pinion nut?">What's the torque spec on the pinion nut?</span>
+      <span class="suggest" data-q="How does Marco usually handle shim selection?">How does Marco usually handle shim selection?</span>
+      <span class="suggest" data-q="Show me video of step 7 done correctly">Show me video of step 7 done correctly</span>
+      <span class="suggest" data-q="What goes wrong at press depth verification?">What goes wrong at press depth verification?</span>
+    </div>`;
+  }
+  return chatHistory.map(m => {
+    if (m.role === 'user') return `<div class="chat-msg user"><div class="bubble">${escapeHtml(m.content)}</div></div>`;
+    const citationsHTML = (m.citations || []).map(c => `
+      <span class="citation" data-id="${c.id}">
+        <span class="cdot" style="background:${nodeColor(c.type)}"></span>
+        ${escapeHtml(c.label.slice(0, 36))}
+      </span>`).join('');
+    return `<div class="chat-msg brain">
+      <div class="bubble">
+        <span class="stub-tag">STUB</span>${escapeHtml(m.content)}
+        ${citationsHTML ? `<div class="citations">${citationsHTML}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function wireChat() {
+  document.querySelectorAll('.suggest').forEach(el => {
+    el.onclick = () => askQuestion(el.dataset.q);
+  });
+  const input = document.getElementById('chat-input');
+  const send = document.getElementById('chat-send');
+  if (input) {
+    input.onkeydown = e => { if (e.key === 'Enter') { askQuestion(input.value); input.value = ''; } };
+  }
+  if (send) {
+    send.onclick = () => { if (input.value) { askQuestion(input.value); input.value = ''; } };
+  }
+  // Citation click → select node
+  document.querySelectorAll('.citation').forEach(c => {
+    c.onclick = () => {
+      const node = state.graph.getElementById(c.dataset.id);
+      if (node && !node.empty()) { selectNode(node.data()); state.graph.center(node); }
+    };
+  });
+}
+
+async function askQuestion(q) {
+  if (!q || !q.trim()) return;
+  chatHistory.push({ role: 'user', content: q });
+
+  // 1. RETRIEVAL — real (works against the actual graph)
+  const retrieved = retrieveRelevantNodes(q);
+
+  // 2. GENERATION — backend first, stub fallback. This is the seam from
+  //    the handoff doc; the backend at /api/brain/chat is now real.
+  let answer, citations, stubbed = false;
+  try {
+    const r = await fetch(`${PLATFORM_API}/api/brain/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: q })
+    });
+    if (!r.ok) throw new Error(`status ${r.status}`);
+    const data = await r.json();
+    answer = data.answer;
+    stubbed = !!data.stubbed;
+    // Prefer backend citations (resolved against the canonical graph)
+    citations = (data.retrieved || []).slice(0, 5).map(n => ({
+      id: n.id, type: n.type, label: n.label, raw: n.raw
+    }));
+  } catch (err) {
+    console.warn('Brain backend unreachable, using local stub.', err);
+    answer = await stubbedLLMCall(q, retrieved);
+    stubbed = true;
+    citations = retrieved.slice(0, 5);
+  }
+
+  chatHistory.push({ role: 'brain', content: answer, citations, stubbed });
+  renderRightPanel();
+}
+
+// Backend base URL — same origin when served from `/lab/`, else localhost.
+const PLATFORM_API = (() => {
+  try {
+    const o = window.location.origin;
+    if (o && o.startsWith('http') && !o.startsWith('file:')) return o;
+  } catch {}
+  return 'http://localhost:3001';
+})();
+
+function retrieveRelevantNodes(query) {
+  const q = query.toLowerCase();
+  const tokens = q.split(/\W+/).filter(t => t.length > 2);
+  if (!state.graph) return [];
+  const scored = [];
+  state.graph.nodes().forEach(n => {
+    const d = n.data();
+    const text = ((d.label || '') + ' ' + JSON.stringify(d.raw || {})).toLowerCase();
+    let score = 0;
+    for (const t of tokens) if (text.includes(t)) score += 1;
+    // Boost expert advice for "how do you / how does someone" patterns
+    if (/how (does|do|to)|who (handles|knows|does)/.test(q) && d.type === 'ExpertAdvice') score *= 1.5;
+    // Boost video for "show me" / "demo" patterns
+    if (/show|video|demo|watch/.test(q) && d.type === 'VideoSegment') score *= 1.5;
+    // Boost data tables for "spec" / "tolerance" patterns
+    if (/spec|tolerance|number|torque|range/.test(q) && (d.type === 'DataTable' || d.type === 'Instruction')) score *= 1.4;
+    if (score > 0) scored.push({ id: d.id, label: d.label, type: d.type, raw: d.raw, score });
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, 8);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   ↓↓↓ REAL LLM HOOK — wire this in Cursor ↓↓↓
+
+   async function realLLMCall(query, retrievedNodes) {
+     const context = retrievedNodes.map(n => ({
+       id: n.id, type: n.type, label: n.label, properties: n.raw
+     }));
+     const r = await fetch('/api/brain/chat', {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({
+         model: 'claude-opus-4-7',
+         system: buildBrainSystemPrompt(state.brain),
+         messages: [{ role: 'user', content: query }],
+         context,
+         max_tokens: 400
+       })
+     });
+     const data = await r.json();
+     return data.answer;
+   }
+
+   The retrieval step above is REAL — it queries the actual graph state.
+   Only the generation step is stubbed. When swapping in real LLM, the
+   retrieval data flows in unchanged.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+async function stubbedLLMCall(query, retrieved) {
+  await sleep(280 + Math.random() * 320);
+  if (retrieved.length === 0) {
+    return "I don't have relevant knowledge for that question yet. Try asking about the pinion guide procedure, expert advice on specific steps, or seed sample artifacts first.";
+  }
+  const top = retrieved[0];
+  const typeFrame = {
+    'ExpertAdvice':  `Based on captured expert knowledge: "${top.raw?.label}" — sourced from ${top.raw?.source || 'shop floor knowledge'}.`,
+    'Instruction':   `The instruction at this step is: "${top.raw?.label}".`,
+    'KeyStep':       `That maps to KeyStep ${top.raw?.order}: ${top.raw?.label}. Acceptance criteria: ${top.raw?.acceptance || 'see procedure spec'}.`,
+    'Tool':          `The relevant tool is ${top.raw?.label} (SKU ${top.raw?.sku}).`,
+    'Part':          `The relevant part is ${top.raw?.label} (SKU ${top.raw?.sku}).`,
+    'VideoSegment':  `Surfaced video segment: ${top.raw?.label}. ${top.raw?.timestampStart !== undefined ? `Range ${formatTs(top.raw.timestampStart)}–${formatTs(top.raw.timestampEnd)}.` : ''}`,
+    'Document':      `Relevant document: ${top.raw?.label}.`,
+    'DataTable':     `Spec data: ${top.raw?.label}.`,
+    'ProceduralActivity': `That refers to the ${top.raw?.label} procedure (${PINION_GUIDE_PROCEDURE.keysteps.length} keysteps).`
+  };
+  const intro = typeFrame[top.type] || `Closest match: ${top.label}.`;
+  const others = retrieved.slice(1, 3).map(r => r.label).filter(Boolean);
+  const tail = others.length ? ` Also relevant: ${others.join('; ')}.` : '';
+  return intro + tail + ' (Click any citation below to inspect.)';
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   INGEST — file upload becomes a graph node
+   ════════════════════════════════════════════════════════════════════════════ */
+function ingestPDF(file) {
+  const a = {
+    id: `doc:${slug(file.name)}`,
+    type: 'Document',
+    label: file.name,
+    fileName: file.name,
+    fileSize: file.size,
+    attachedTo: 'proc:pinion-guide'
+  };
+  addArtifact(a);
+  toast(`Ingested ${file.name} as Document node`);
+}
+
+function ingestCSV(file) {
+  const a = {
+    id: `data:${slug(file.name)}`,
+    type: 'DataTable',
+    label: file.name,
+    fileName: file.name,
+    fileSize: file.size,
+    attachedTo: 'proc:pinion-guide'
+  };
+  addArtifact(a);
+  toast(`Ingested ${file.name} as DataTable node`);
+}
+
+function ingestVideo(file) {
+  // Video doesn't become a single node — it becomes the source for VideoSegment nodes
+  // created via the tagging workflow.
+  state.brain.videoFile = file;
+  state.brain.videoUrl = URL.createObjectURL(file);
+  openVideoPlayer(state.brain.videoUrl, file.name);
+  toast(`Video loaded — tag time ranges to create segment nodes`);
+}
+
+function addArtifact(a) {
+  state.brain.artifacts.push(a);
+  renderArtifactList();
+  rebuildGraph();
+}
+
+function renderArtifactList() {
+  const list = document.getElementById('artifact-list');
+  const arts = state.brain.artifacts;
+  document.getElementById('artifact-count').textContent = `${arts.length} artifact${arts.length===1?'':'s'}`;
+  document.getElementById('ingested-count').textContent = arts.length;
+  document.getElementById('ev-artifacts').textContent = arts.length;
+  if (arts.length === 0) {
+    list.innerHTML = '<div class="empty" style="padding: 20px 0;">Nothing ingested yet</div>';
+    return;
+  }
+  list.innerHTML = arts.map(a => {
+    const icClass = a.type === 'Document' ? 'pdf' : a.type === 'DataTable' ? 'csv' : a.type === 'VideoSegment' ? 'video' : 'text';
+    const ic = a.type === 'Document' ? 'pdf' : a.type === 'DataTable' ? 'csv' : a.type === 'VideoSegment' ? '▶' : 'txt';
+    const meta = a.fileSize ? `${(a.fileSize/1024).toFixed(0)}KB` : (a.timestampEnd !== undefined ? `${formatTs(a.timestampStart)}-${formatTs(a.timestampEnd)}` : '');
+    return `<div class="artifact" data-id="${a.id}">
+      <div class="ic ${icClass}">${ic}</div>
+      <div class="name">${escapeHtml(a.label)}</div>
+      <div class="meta">${meta}</div>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.artifact').forEach(el => {
+    el.onclick = () => {
+      const node = state.graph.getElementById(el.dataset.id);
+      if (node && !node.empty()) { selectNode(node.data()); state.graph.center(node); state.graph.zoom(1.2); }
+    };
+  });
+}
+
+function rebuildGraph() {
+  if (!state.graph) return;
+  // Remove all existing artifact nodes + edges, re-add them
+  state.graph.elements().filter(el => {
+    const t = el.data('type');
+    return t === 'Document' || t === 'DataTable' || t === 'VideoSegment' || t === 'TribalKnowledge';
+  }).remove();
+  state.graph.elements().filter(el =>
+    ['DEMONSTRATES', 'DOCUMENTS', 'SPECIFIES', 'REFERRED_IN'].includes(el.data('type'))
+  ).remove();
+  // Re-add artifacts
+  for (const a of state.brain.artifacts) {
+    state.graph.add({ data: { id: a.id, label: a.label, type: a.type, size: 20, raw: a } });
+    if (a.attachedTo) {
+      const edgeType = a.type === 'VideoSegment' ? 'DEMONSTRATES'
+                     : a.type === 'Document'    ? 'DOCUMENTS'
+                     : a.type === 'DataTable'   ? 'SPECIFIES'
+                     : 'REFERRED_IN';
+      state.graph.add({ data: { id: `e:${a.id}:${a.attachedTo}`, source: a.attachedTo, target: a.id, type: edgeType } });
+    }
+  }
+  updateGraphStats();
+  relayout('cose');
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   VIDEO PLAYER + MANUAL TAGGING
+   ════════════════════════════════════════════════════════════════════════════ */
+function openVideoPlayer(url, filename, segment) {
+  document.getElementById('brain-mode').classList.add('has-video');
+  const video = document.getElementById('vp-video');
+  video.src = url;
+  document.getElementById('vp-filename').textContent = filename || '—';
+
+  video.onloadedmetadata = () => {
+    document.getElementById('vp-duration').textContent = formatTs(video.duration);
+    if (segment) {
+      video.currentTime = segment.timestampStart || 0;
+      video.play();
+    }
+  };
+  video.ontimeupdate = () => {
+    document.getElementById('vp-current').textContent = formatTs(video.currentTime);
+    if (segment && video.currentTime >= segment.timestampEnd) video.pause();
+  };
+
+  // Populate keystep dropdown
+  const sel = document.getElementById('tag-keystep');
+  sel.innerHTML = '<option value="">Assign to keystep…</option>' +
+    PINION_GUIDE_PROCEDURE.keysteps.map(k =>
+      `<option value="${k.id}">${k.order}. ${k.label}</option>`
+    ).join('');
+
+  // Wire error-type dropdown to filter based on selected keystep's profile
+  sel.onchange = () => populateErrorTypeOptions(sel.value);
+  populateErrorTypeOptions('');
+
+  renderSavedTags();
+}
+
+function populateErrorTypeOptions(keystepId) {
+  const etSel = document.getElementById('tag-errortype');
+  if (!etSel) return;
+  let options = '<option value="">Error type (optional — if mistake clip)…</option>';
+  if (!keystepId) {
+    // Show all error types
+    options += Object.entries(ERROR_TAXONOMY).map(([code, def]) =>
+      `<option value="${code}">${def.label} (${def.group})</option>`).join('');
+  } else {
+    const ks = PINION_GUIDE_PROCEDURE.keysteps.find(k => k.id === keystepId);
+    const profile = ks?.errorProfile || {};
+    const hi = profile.high_priority || [];
+    const md = profile.medium_priority || [];
+    const lo = profile.low_priority || [];
+    if (hi.length > 0) {
+      options += '<optgroup label="High priority">' +
+        hi.map(code => `<option value="${code}">${ERROR_TAXONOMY[code]?.label || code}</option>`).join('') +
+        '</optgroup>';
+    }
+    if (md.length > 0) {
+      options += '<optgroup label="Medium priority">' +
+        md.map(code => `<option value="${code}">${ERROR_TAXONOMY[code]?.label || code}</option>`).join('') +
+        '</optgroup>';
+    }
+    if (lo.length > 0) {
+      options += '<optgroup label="Low priority">' +
+        lo.map(code => `<option value="${code}">${ERROR_TAXONOMY[code]?.label || code}</option>`).join('') +
+        '</optgroup>';
+    }
+  }
+  etSel.innerHTML = options;
+}
+
+function closeVideoPlayer() {
+  document.getElementById('brain-mode').classList.remove('has-video');
+  const video = document.getElementById('vp-video');
+  video.pause();
+  state.brain.tagRangeIn = null;
+  state.brain.tagRangeOut = null;
+  document.getElementById('stamp-in').textContent = '—';
+  document.getElementById('stamp-out').textContent = '—';
+}
+
+function tagInPoint() {
+  const v = document.getElementById('vp-video');
+  state.brain.tagRangeIn = v.currentTime;
+  document.getElementById('stamp-in').textContent = formatTs(v.currentTime);
+}
+function tagOutPoint() {
+  const v = document.getElementById('vp-video');
+  state.brain.tagRangeOut = v.currentTime;
+  document.getElementById('stamp-out').textContent = formatTs(v.currentTime);
+}
+
+function saveTagAsSegment() {
+  const keystep = document.getElementById('tag-keystep').value;
+  const errorType = document.getElementById('tag-errortype')?.value || null;
+  const name = document.getElementById('tag-name').value.trim();
+  const tin = state.brain.tagRangeIn;
+  const tout = state.brain.tagRangeOut;
+  if (!keystep) { toast('Pick a keystep first'); return; }
+  if (tin === null || tout === null) { toast('Set IN and OUT points first'); return; }
+  if (tout <= tin) { toast('OUT must be after IN'); return; }
+
+  const ks = PINION_GUIDE_PROCEDURE.keysteps.find(k => k.id === keystep);
+  const etLabel = errorType ? ERROR_TAXONOMY[errorType]?.label : null;
+  const segment = {
+    id: `vid:${slug(state.brain.videoFile?.name || 'video')}-${Date.now()}`,
+    type: 'VideoSegment',
+    label: name || (errorType ? `${ks.label} · ${etLabel}` : `${ks.label} (clip)`),
+    fileName: state.brain.videoFile?.name || 'video',
+    videoUrl: state.brain.videoUrl,
+    timestampStart: tin,
+    timestampEnd: tout,
+    errorType,
+    isCorrectExecution: !errorType,
+    attachedTo: keystep
+  };
+  addArtifact(segment);
+  state.brain.tagRangeIn = null;
+  state.brain.tagRangeOut = null;
+  document.getElementById('stamp-in').textContent = '—';
+  document.getElementById('stamp-out').textContent = '—';
+  document.getElementById('tag-name').value = '';
+  if (document.getElementById('tag-errortype')) document.getElementById('tag-errortype').value = '';
+  renderSavedTags();
+  toast(errorType ? `Tagged ${etLabel} clip for ${ks.label}` : `Tagged correct-execution clip for ${ks.label}`);
+}
+
+function renderSavedTags() {
+  const list = document.getElementById('tag-saved-list');
+  const tags = state.brain.artifacts.filter(a => a.type === 'VideoSegment');
+  list.innerHTML = tags.map(t => {
+    const ks = PINION_GUIDE_PROCEDURE.keysteps.find(k => k.id === t.attachedTo);
+    return `<div class="tag-row" data-id="${t.id}">
+      <span class="tag-tr">●</span>
+      <span class="tag-name">${escapeHtml(t.label)}</span>
+      <span class="tag-time">${formatTs(t.timestampStart)}-${formatTs(t.timestampEnd)}</span>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.tag-row').forEach(el => {
+    el.onclick = () => {
+      const node = state.graph.getElementById(el.dataset.id);
+      if (node && !node.empty()) selectNode(node.data());
+    };
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SEED SAMPLE ARTIFACTS — for instant-demo "what would this look like populated"
+   ════════════════════════════════════════════════════════════════════════════ */
+function seedSampleArtifacts() {
+  const samples = [
+    { id: 'doc:sop-rev3', type: 'Document', label: 'Pinion Guide SOP Rev 3.2.pdf', fileName: 'pinion_guide_sop_rev3.2.pdf', fileSize: 487000, attachedTo: 'proc:pinion-guide' },
+    { id: 'doc:safety-card', type: 'Document', label: 'Press Safety Card.pdf', fileName: 'press_safety.pdf', fileSize: 124000, attachedTo: 'step:04' },
+    { id: 'data:tolerances', type: 'DataTable', label: 'Pinion Tolerance Spec.csv', fileName: 'tolerances.csv', fileSize: 8200, attachedTo: 'step:05' },
+    { id: 'data:torque-table', type: 'DataTable', label: 'Torque Sequence Table.csv', fileName: 'torque_seq.csv', fileSize: 4100, attachedTo: 'step:09' },
+    { id: 'data:shim-sku', type: 'DataTable', label: 'Shim SKU Lookup.csv', fileName: 'shim_sku.csv', fileSize: 12600, attachedTo: 'step:07' },
+    { id: 'tribal:marco-shim', type: 'TribalKnowledge', label: 'Marco: shim selection by ambient temperature', source: 'Marco R., 22yr tenure', attachedTo: 'step:07' },
+    { id: 'tribal:antonio-press', type: 'TribalKnowledge', label: 'Antonio: feel for proper press seating', source: 'Antonio P., quality lead', attachedTo: 'step:05' }
+  ];
+  for (const s of samples) state.brain.artifacts.push(s);
+  renderArtifactList();
+  rebuildGraph();
+  toast(`Seeded ${samples.length} sample artifacts`);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   EVAL MODE — adapted from v0.3, now reads procedure from Brain
+   ════════════════════════════════════════════════════════════════════════════ */
+function generateEvalSession() {
+  const events = [];
+  let t = 0;
+  for (const ks of PINION_GUIDE_PROCEDURE.keysteps) {
+    const dur = 100 + Math.random() * 140;
+    const num = 1 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < num; i++) {
+      const ts = t + Math.random() * dur;
+      const isAnomaly = ks.risk === 'high' && Math.random() < 0.55;
+      let errorType = null;
+      let note = '';
+      if (isAnomaly) {
+        // Draw a specific error from this step's errorProfile, weighted toward high_priority
+        const profile = ks.errorProfile || {};
+        const pool = Math.random() < 0.7
+          ? (profile.high_priority || [])
+          : (profile.medium_priority || profile.high_priority || []);
+        if (pool.length > 0) {
+          errorType = pool[Math.floor(Math.random() * pool.length)];
+          note = ERROR_TAXONOMY[errorType]?.label
+            ? `${ERROR_TAXONOMY[errorType].label}: ${sampleErrorNote(ks.id, errorType)}`
+            : sampleErrorNote(ks.id);
+        } else {
+          errorType = 'INCOMPLETE';
+          note = sampleErrorNote(ks.id);
+        }
+      }
+      events.push({
+        timestamp: ts,
+        phase: ks.label,
+        phaseIndex: ks.order - 1,
+        keystepId: ks.id,
+        label: isAnomaly ? 'incorrect' : 'correct',
+        errorType,
+        note
+      });
+    }
+    t += dur;
+  }
+  events.sort((a, b) => a.timestamp - b.timestamp);
+  state.eval.session = events;
+  renderEvalSession();
+}
+
+function sampleErrorNote(stepId, errorType) {
+  // Specific notes per (step, errorType) where we have them
+  const notes = {
+    'step:03|ORIENTATION': 'Chamfered edge facing outboard',
+    'step:03|SUBSTITUTION': 'Wrong bearing cone (CMR-P-4472 expected)',
+    'step:05|OUT_OF_SPEC': 'Depth gauge reads 0.008mm — restart required',
+    'step:05|UNVERIFIED': 'Step closed without depth-gauge reading',
+    'step:05|OMITTED_OBJECT': 'Depth gauge not present at step entry',
+    'step:07|SUBSTITUTION': 'Shim thickness 0.024 loaded, spec is 0.028',
+    'step:07|OMITTED_OBJECT': 'Depth gauge missing for shim verification',
+    'step:07|INTENT_MISMATCH': 'OEM marked Shim but CV shows torque setup',
+    'step:09|OUT_OF_SPEC': 'Final torque 195 Nm, spec 210-240 Nm',
+    'step:09|UNVERIFIED': 'Torque value not logged',
+    'step:09|INCOMPLETE': 'Sequence stopped after 2 of 3 passes'
+  };
+  return notes[`${stepId}|${errorType}`] || (
+    PINION_GUIDE_PROCEDURE.expertAdvice.find(a => a.forStep === stepId)?.label?.split('—')[0]?.trim()
+    || 'Anomaly at high-risk step'
+  );
+}
+
+function renderEvalSession() {
+  const events = state.eval.session;
+  const timeline = document.getElementById('ev-timeline');
+  if (!events || events.length === 0) {
+    timeline.innerHTML = '<div class="empty">No session generated</div>';
+    return;
+  }
+  timeline.innerHTML = events.slice(0, 80).map(ev => `
+    <div class="timeline-row">
+      <span class="ts">${formatTs(ev.timestamp)}</span>
+      <span class="lbl-${ev.label}">${ev.label === 'correct' ? '◉' : '◎'}</span>
+      <span class="phase">${ev.phase}</span>
+    </div>`).join('');
+  document.getElementById('run-btn').disabled = false;
+  document.getElementById('run-all-btn').disabled = false;
+}
+
+// When true, runEvaluation will POST to /api/eval against the live backend
+// (real LLM if ANTHROPIC_API_KEY is set there, otherwise the backend's own
+// stub). When false (default), uses the in-browser simulation.
+window.USE_BACKEND_EVAL = false;
+
+async function runEvaluation(annotations, hwId, stratId) {
+  if (window.USE_BACKEND_EVAL) {
+    try {
+      const r = await fetch(`${PLATFORM_API}/api/eval`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hardwareId: hwId,
+          strategyId: stratId,
+          liveLLM: true,
+          events: annotations.map(a => ({
+            ts: a.timestamp,
+            phase: a.phase,
+            stepId: a.keystepId,
+            label: a.label === 'incorrect' ? 'incorrect' : 'correct',
+            errorType: a.errorType
+          }))
+        })
+      });
+      if (r.ok) return await r.json();
+      console.warn('Eval backend returned', r.status, '— falling back to sim');
+    } catch (err) {
+      console.warn('Eval backend unreachable, using local sim.', err);
+    }
+  }
+
+  const hw = HARDWARE_PROFILES[hwId];
+  const st = CONTEXT_STRATEGIES[stratId];
+  const eyeBoost = hw.signals.eye_gaze ? 1.0 : 0.85;
+  const camPen = hw.signals.camera ? 1.0 : 0.25;
+  const outPen = (hw.signals.display || hw.signals.audio_out) ? 1.0 : 0.5;
+
+  // Lookup map: keystep -> errorProfile
+  const profileByStep = Object.fromEntries(
+    PINION_GUIDE_PROCEDURE.keysteps.map(k => [k.id, k.errorProfile || {}])
+  );
+  const priorityOf = (stepId, errorType) => {
+    const p = profileByStep[stepId] || {};
+    if ((p.high_priority || []).includes(errorType)) return 'high';
+    if ((p.medium_priority || []).includes(errorType)) return 'medium';
+    if ((p.low_priority || []).includes(errorType)) return 'low';
+    return 'unspecified';
+  };
+
+  // Per-type and per-priority accumulators
+  const byType = {};         // { ERROR_CODE: { seen, caught, missed } }
+  const byPriority = { high: { seen: 0, caught: 0 }, medium: { seen: 0, caught: 0 }, low: { seen: 0, caught: 0 }, unspecified: { seen: 0, caught: 0 } };
+  const byGroup = { A: { seen: 0, caught: 0 }, B: { seen: 0, caught: 0 }, C: { seen: 0, caught: 0 }, D: { seen: 0, caught: 0 }, E: { seen: 0, caught: 0 } };
+
+  const events = [];
+  let tIn = 0, tOut = 0, caught = 0, missed = 0, fp = 0, lat = 0;
+  for (const a of annotations) {
+    const isAnom = a.label === 'incorrect';
+    let inT, outT, latency, outcome;
+    if (stratId === 'tiered_proactive' && !isAnom) {
+      inT = 0; outT = 0; latency = 8 + Math.random() * 12; outcome = 'silent';
+    } else if (isAnom) {
+      inT = st.avg_input_tokens + (Math.random() * 200 - 100);
+      outT = 80 + Math.random() * 60;
+      latency = hw.latency_budget_ms + (st.avg_input_tokens / 30);
+      const eff = st.catch_rate_ideal * eyeBoost * camPen * outPen;
+      outcome = Math.random() < eff ? 'caught' : 'miss';
+    } else {
+      if (Math.random() < st.fp_rate) {
+        inT = st.avg_input_tokens; outT = 80; latency = hw.latency_budget_ms; outcome = 'false_positive';
+      } else {
+        inT = stratId === 'baseline' ? 0 : Math.floor(st.avg_input_tokens * 0.3);
+        outT = 0; latency = 5; outcome = 'silent';
+      }
+    }
+    if (outcome === 'caught') caught++;
+    else if (outcome === 'miss') missed++;
+    else if (outcome === 'false_positive') fp++;
+    tIn += inT; tOut += outT; lat += latency;
+
+    // Decompose by error type when this was a real anomaly
+    if (isAnom && a.errorType) {
+      const et = a.errorType;
+      const grp = ERROR_TAXONOMY[et]?.group || 'A';
+      const prio = priorityOf(a.keystepId, et);
+      if (!byType[et]) byType[et] = { seen: 0, caught: 0, missed: 0 };
+      byType[et].seen++;
+      byGroup[grp].seen++;
+      byPriority[prio].seen++;
+      if (outcome === 'caught') {
+        byType[et].caught++;
+        byGroup[grp].caught++;
+        byPriority[prio].caught++;
+      } else {
+        byType[et].missed++;
+      }
+    }
+
+    events.push({
+      ts: a.timestamp, phase: a.phase, label: a.label, note: a.note,
+      errorType: a.errorType, outcome,
+      inputTokens: Math.round(inT), latency: Math.round(latency)
+    });
+    if (events.length % 8 === 0) await sleep(0);
+  }
+  const total = annotations.filter(a => a.label === 'incorrect').length;
+  return {
+    id: 'r' + Date.now() + '-' + Math.random().toString(36).slice(2, 5),
+    hardware: hw, strategy: st,
+    timestamp: new Date().toISOString(), events,
+    metrics: {
+      anomalies: total, caught, missed, false_pos: fp,
+      catch_rate: total > 0 ? caught / total : 0,
+      total_input_tokens: Math.round(tIn),
+      avg_latency_ms: Math.round(lat / annotations.length),
+      byType, byGroup, byPriority,
+      // Headline = high-priority catch rate
+      high_priority_catch_rate: byPriority.high.seen > 0 ? byPriority.high.caught / byPriority.high.seen : 0,
+      medium_priority_catch_rate: byPriority.medium.seen > 0 ? byPriority.medium.caught / byPriority.medium.seen : 0
+    }
+  };
+}
+
+function renderHardwareCards() {
+  const el = document.getElementById('hardware-cards');
+  el.innerHTML = Object.entries(HARDWARE_PROFILES).map(([k, hw]) => `
+    <div class="card${state.eval.hardware === k ? ' selected' : ''}" data-id="${k}">
+      <div class="card-head">
+        <span class="name">${hw.name}</span>
+      </div>
+      <div class="desc">${hw.desc}</div>
+      <div class="specs">
+        <span class="spec ${hw.signals.eye_gaze ? 'has' : 'no'}">eye-track</span>
+        <span class="spec ${hw.signals.camera ? 'has' : 'no'}">camera</span>
+        <span class="spec ${hw.signals.display ? 'has' : 'no'}">display</span>
+        <span class="spec">${hw.latency_budget_ms || 'cloud'}ms</span>
+      </div>
+    </div>`).join('');
+  el.querySelectorAll('.card').forEach(c => c.onclick = () => { state.eval.hardware = c.dataset.id; renderHardwareCards(); });
+}
+
+function renderStrategyCards() {
+  const el = document.getElementById('strategy-cards');
+  el.innerHTML = Object.entries(CONTEXT_STRATEGIES).map(([k, st]) => `
+    <div class="card${state.eval.strategy === k ? ' selected' : ''}" data-id="${k}">
+      <div class="card-head">
+        <span class="name">${st.name}</span>
+        <span class="id">~${st.avg_input_tokens.toLocaleString()} tk</span>
+      </div>
+      <div class="desc">${st.desc}</div>
+    </div>`).join('');
+  el.querySelectorAll('.card').forEach(c => c.onclick = () => { state.eval.strategy = c.dataset.id; renderStrategyCards(); });
+}
+
+function renderRuns() {
+  const el = document.getElementById('runs-list');
+  if (state.eval.runs.length === 0) {
+    el.innerHTML = '<div class="empty">Run an evaluation to see results</div>';
+    document.getElementById('summary').style.display = 'none';
+    return;
+  }
+  el.innerHTML = state.eval.runs.slice().reverse().map(r => {
+    const m = r.metrics;
+    const hi = (m.high_priority_catch_rate * 100).toFixed(0);
+    const hiCls = m.high_priority_catch_rate >= 0.85 ? 'ok' : m.high_priority_catch_rate >= 0.6 ? 'warn' : 'err';
+    const md = (m.medium_priority_catch_rate * 100).toFixed(0);
+    return `<div class="run-row" data-id="${r.id}" onclick="toggleRunDetail('${r.id}')">
+      <div>
+        <div class="run-id">${r.id}</div>
+        <div class="run-config">${r.hardware.name} · ${r.strategy.name}</div>
+      </div>
+      <div class="run-time">${new Date(r.timestamp).toLocaleTimeString()}</div>
+      <div class="run-metrics">
+        <div class="m"><div class="k">High-pri catch</div><div class="v ${hiCls}">${hi}%</div></div>
+        <div class="m"><div class="k">Med-pri catch</div><div class="v">${md}%</div></div>
+        <div class="m"><div class="k">FP</div><div class="v ${m.false_pos > 2 ? 'warn' : ''}">${m.false_pos}</div></div>
+        <div class="m"><div class="k">Tokens</div><div class="v">${(m.total_input_tokens/1000).toFixed(1)}k</div></div>
+      </div>
+      <div class="run-detail" id="detail-${r.id}" style="display:none;">
+        ${renderGroupBreakdown(m.byGroup)}
+        ${renderErrorTypeBreakdown(m.byType)}
+        <div style="margin-top:10px;font-family:var(--mono);font-size:9px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.08em;">Anomaly events</div>
+        ${r.events.filter(e => e.label === 'incorrect').slice(0, 16).map(e => {
+          const et = e.errorType ? ERROR_TAXONOMY[e.errorType]?.label || e.errorType : '';
+          return `<div class="event-row">
+            <span class="ev-ts">${formatTs(e.ts)}</span>
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.phase}${et?' · <span style="color:var(--c-advice)">'+et+'</span>':''}${e.note?' — '+e.note:''}</span>
+            <span class="ev-out ${e.outcome === 'caught'?'caught':e.outcome === 'miss'?'miss':e.outcome === 'false_positive'?'fp':''}">${e.outcome}</span>
+            <span class="ev-tk">${e.inputTokens}t</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+  renderSummary();
+}
+
+function renderGroupBreakdown(byGroup) {
+  if (!byGroup) return '';
+  const rows = Object.entries(ERROR_GROUPS).map(([gid, g]) => {
+    const b = byGroup[gid] || { seen: 0, caught: 0 };
+    if (b.seen === 0) return '';
+    const pct = (b.caught / b.seen * 100).toFixed(0);
+    const cls = b.caught === b.seen ? 'ok' : b.caught >= b.seen * 0.6 ? 'warn' : 'err';
+    return `<div style="display:grid;grid-template-columns:14px 1fr 50px 60px;gap:8px;align-items:center;padding:3px 0;">
+      <span style="width:10px;height:10px;border-radius:50%;background:${g.color}"></span>
+      <span style="font-size:10px;color:var(--ink-2)">${gid}. ${g.label}</span>
+      <span style="font-family:var(--mono);font-size:9px;color:var(--ink-3)">${b.caught}/${b.seen}</span>
+      <span class="ev-out ${cls === 'ok' ? 'caught' : cls === 'err' ? 'miss' : 'fp'}" style="text-align:right;font-family:var(--mono);font-size:10px;">${pct}%</span>
+    </div>`;
+  }).filter(Boolean).join('');
+  if (!rows) return '';
+  return `<div style="margin-bottom:10px;">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Catch rate by error group</div>
+    ${rows}
+  </div>`;
+}
+
+function renderErrorTypeBreakdown(byType) {
+  if (!byType || Object.keys(byType).length === 0) return '';
+  const sorted = Object.entries(byType)
+    .map(([et, b]) => ({ et, ...b, rate: b.seen > 0 ? b.caught / b.seen : 0 }))
+    .sort((a, b) => b.seen - a.seen);
+  const rows = sorted.slice(0, 10).map(({ et, seen, caught, rate }) => {
+    const grp = ERROR_TAXONOMY[et]?.group || 'A';
+    const color = ERROR_GROUPS[grp]?.color || '#525252';
+    const label = ERROR_TAXONOMY[et]?.label || et;
+    const pct = (rate * 100).toFixed(0);
+    const cls = rate >= 0.85 ? 'caught' : rate >= 0.6 ? 'fp' : 'miss';
+    return `<div style="display:grid;grid-template-columns:14px 1fr 50px 60px;gap:8px;align-items:center;padding:2px 0;">
+      <span style="width:8px;height:8px;border-radius:2px;background:${color}"></span>
+      <span style="font-size:10px;color:var(--ink-2)">${label}</span>
+      <span style="font-family:var(--mono);font-size:9px;color:var(--ink-3)">${caught}/${seen}</span>
+      <span class="ev-out ${cls}" style="text-align:right;font-family:var(--mono);font-size:10px;">${pct}%</span>
+    </div>`;
+  }).join('');
+  return `<div style="margin-bottom:10px;">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">By error type</div>
+    ${rows}
+  </div>`;
+}
+
+function renderSummary() {
+  if (state.eval.runs.length < 2) {
+    document.getElementById('summary').style.display = 'none'; return;
+  }
+  document.getElementById('summary').style.display = 'block';
+  const recent = state.eval.runs.slice(-4);
+  const maxTk = Math.max(...recent.map(r => r.metrics.total_input_tokens), 1);
+  document.getElementById('summary-bars').innerHTML = recent.map(r => {
+    const m = r.metrics;
+    const tp = (m.total_input_tokens / maxTk) * 100;
+    return `<div class="bar-row">
+      <span class="bn">${r.strategy.id.replace('_', ' ').slice(0, 14)}</span>
+      <div class="bar-track"><div class="bar-fill ${tp > 70 ? 'warn' : ''}" style="width:${tp}%"></div></div>
+      <span class="bv">${(m.total_input_tokens/1000).toFixed(1)}k</span>
+    </div>
+    <div class="bar-row">
+      <span class="bn" style="color:var(--ink-3);">↳ catch</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${m.catch_rate*100}%"></div></div>
+      <span class="bv">${(m.catch_rate*100).toFixed(0)}%</span>
+    </div>`;
+  }).join('');
+}
+
+function toggleRunDetail(id) {
+  const el = document.getElementById('detail-' + id);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+window.toggleRunDetail = toggleRunDetail;
+
+/* ════════════════════════════════════════════════════════════════════════════
+   UTILITIES + WIRING
+   ════════════════════════════════════════════════════════════════════════════ */
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function slug(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40); }
+function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function formatTs(s) {
+  if (s === undefined || s === null || isNaN(s)) return '—';
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+}
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function switchMode(mode) {
+  state.mode = mode;
+  document.querySelectorAll('.mode-toggle button').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  document.querySelectorAll('.mode-container').forEach(c => c.classList.toggle('active', c.id === `${mode}-mode`));
+  document.getElementById('footer-mode').textContent = `${mode} mode`;
+  if (mode === 'brain' && state.graph) setTimeout(() => state.graph.resize(), 50);
+}
+
+// Wire mode toggle
+document.querySelectorAll('.mode-toggle button').forEach(btn => {
+  btn.onclick = () => switchMode(btn.dataset.mode);
+});
+
+// Wire ingest drop zones
+function wireDrop(zoneId, inputId, handler, accept) {
+  const zone = document.getElementById(zoneId);
+  const input = document.getElementById(inputId);
+  input.onchange = e => { if (e.target.files[0]) handler(e.target.files[0]); };
+  zone.ondragover = e => { e.preventDefault(); zone.style.borderColor = 'var(--acc)'; };
+  zone.ondragleave = () => { zone.style.borderColor = ''; };
+  zone.ondrop = e => { e.preventDefault(); zone.style.borderColor = ''; if (e.dataTransfer.files[0]) handler(e.dataTransfer.files[0]); };
+}
+wireDrop('pdf-drop', 'pdf-input', ingestPDF);
+wireDrop('csv-drop', 'csv-input', ingestCSV);
+wireDrop('video-drop', 'video-input', ingestVideo);
+
+document.getElementById('seed-btn').onclick = seedSampleArtifacts;
+
+// Canvas overlay buttons
+document.querySelectorAll('.ov-btn').forEach(btn => {
+  btn.onclick = () => {
+    if (btn.dataset.layout) {
+      document.querySelectorAll('[data-layout]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      relayout(btn.dataset.layout);
+    } else if (btn.dataset.action === 'fit') {
+      state.graph.fit(null, 40);
+    } else if (btn.dataset.action === 'reset') {
+      clearSelection();
+      state.graph.elements().removeClass('dimmed highlighted');
+    }
+  };
+});
+
+// Video player wiring
+document.getElementById('vp-close').onclick = closeVideoPlayer;
+document.getElementById('tag-start').onclick = tagInPoint;
+document.getElementById('tag-end').onclick = tagOutPoint;
+document.getElementById('tag-save').onclick = saveTagAsSegment;
+
+// Eval mode wiring
+document.getElementById('ev-gen-btn').onclick = generateEvalSession;
+document.getElementById('run-btn').onclick = async () => {
+  if (!state.eval.session) return;
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true; btn.textContent = 'Running…';
+  const run = await runEvaluation(state.eval.session, state.eval.hardware, state.eval.strategy);
+  state.eval.runs.push(run);
+  renderRuns();
+  btn.disabled = false; btn.textContent = 'Run evaluation';
+  toast(`${run.strategy.name}: ${(run.metrics.catch_rate*100).toFixed(0)}% catch rate`);
+};
+document.getElementById('run-all-btn').onclick = async () => {
+  if (!state.eval.session) return;
+  const btn = document.getElementById('run-all-btn');
+  btn.disabled = true;
+  for (const sid of Object.keys(CONTEXT_STRATEGIES)) {
+    btn.textContent = `Running ${sid}…`;
+    const run = await runEvaluation(state.eval.session, state.eval.hardware, sid);
+    state.eval.runs.push(run);
+    renderRuns();
+  }
+  btn.disabled = false; btn.textContent = 'Run all 4 for ablation';
+  toast('Ablation complete · 4 strategies');
+};
+
+/* ════════════════════════════════════════════════════════════════════════════
+   INITIAL RENDER
+   ════════════════════════════════════════════════════════════════════════════ */
+window.addEventListener('load', () => {
+  // Render eval-mode UI immediately — does not depend on Cytoscape
+  renderHardwareCards();
+  renderStrategyCards();
+  renderArtifactList();
+  wireChat();
+
+  // Graph init depends on Cytoscape
+  if (typeof cytoscape === 'undefined') {
+    document.getElementById('cy').innerHTML =
+      '<div style="padding:40px;color:var(--err);font-family:var(--mono);font-size:11px;text-align:center;">' +
+      'Cytoscape failed to load from CDN. Brain mode unavailable, but Evaluate mode works — switch to it via the toggle.</div>';
+    return;
+  }
+  setTimeout(() => initGraph(), 100);
+});
+</script>
+</body>
+</html>

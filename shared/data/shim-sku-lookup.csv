@@ -1,0 +1,7 @@
+sku,thickness_mm,color_band,for_application
+CMR-P-4475-A,0.50,red,"Light preload"
+CMR-P-4475-B,0.65,orange,"Standard"
+CMR-P-4475-C,0.80,yellow,"Standard +"
+CMR-P-4475-D,0.95,green,"Heavy preload"
+CMR-P-4475-E,1.10,blue,"Heavy preload +"
+CMR-P-4475-F,1.25,violet,"Special order"

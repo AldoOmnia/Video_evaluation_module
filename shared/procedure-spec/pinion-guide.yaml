@@ -1,0 +1,225 @@
+# Pinion Guide Assembly — procedure spec
+# Source of truth for: Brain Explorer, Eval Lab, Rokid APK
+# Station: PG-04 (Comer Industries, Tier-1 automotive)
+# Schema: see shared/types/procedure.ts (Zod validator)
+
+proceduralActivity:
+  id: proc:pinion-guide
+  label: Pinion Guide Assembly
+  description: >-
+    Pre-assembly of pinion shaft with guide bearing for differential housing.
+  cycleMin: 38
+  stationId: PG-04
+
+keysteps:
+  - id: step:01
+    order: 1
+    label: Inspect Pinion Shaft
+    description: Visual + runout check.
+    risk: low
+    acceptance: "No surface defects; runout ≤ 0.015mm"
+    errorProfile:
+      high_priority: [UNVERIFIED]
+      medium_priority: [OMITTED_OBJECT]
+      low_priority: [INSERTION]
+      not_applicable: [ORIENTATION, SUBSTITUTION, OUT_OF_SPEC]
+
+  - id: step:02
+    order: 2
+    label: Apply Lubricant
+    description: Bearing assembly grease, even coat.
+    risk: low
+    acceptance: "Full coverage on both bearing surfaces"
+    errorProfile:
+      high_priority: [OMISSION, OMITTED_OBJECT]
+      medium_priority: [SUBSTITUTION]
+      not_applicable: [ORIENTATION, OUT_OF_SPEC, BORDERLINE]
+
+  - id: step:03
+    order: 3
+    label: Position Guide Bearing
+    description: Orient guide bearing cone.
+    risk: high
+    acceptance: "Chamfered edge faces inboard"
+    errorProfile:
+      high_priority: [ORIENTATION, SUBSTITUTION]
+      medium_priority: [INTENT_MISMATCH, EXTRA_OBJECT]
+      low_priority: [INSERTION]
+      not_applicable: [OUT_OF_SPEC, BORDERLINE]
+
+  - id: step:04
+    order: 4
+    label: Press Pinion into Guide
+    description: Hydraulic press, controlled force.
+    risk: med
+    acceptance: "Press force 8-12 kN; no audible binding"
+    errorProfile:
+      high_priority: [OUT_OF_SPEC, INCOMPLETE]
+      medium_priority: [EXTRA_OBJECT]
+      low_priority: [INSERTION]
+      not_applicable: [ORIENTATION]
+
+  - id: step:05
+    order: 5
+    label: Verify Press Depth
+    description: Depth gauge check at flange.
+    risk: high
+    acceptance: "Gauge reads 0.000-0.005mm; restart if above"
+    errorProfile:
+      high_priority: [UNVERIFIED, OMITTED_OBJECT, OUT_OF_SPEC]
+      medium_priority: [BORDERLINE, PHANTOM_PROGRESS]
+      not_applicable: [ORIENTATION]
+
+  - id: step:06
+    order: 6
+    label: Install Crush Sleeve
+    description: Between bearings, oriented.
+    risk: med
+    acceptance: "Notched end facing rear bearing"
+    errorProfile:
+      high_priority: [ORIENTATION, SUBSTITUTION]
+      medium_priority: [ORDER]
+      not_applicable: [OUT_OF_SPEC]
+
+  - id: step:07
+    order: 7
+    label: Load Shim Pack
+    description: Per traveler-specified thickness.
+    risk: high
+    acceptance: "Thickness matches SKU on traveler"
+    dataReferences:
+      - data/shim-sku-lookup.csv
+    visualReferences:
+      - assets/step07-shim-pack.png
+    errorProfile:
+      high_priority: [SUBSTITUTION, OMITTED_OBJECT, INTENT_MISMATCH]
+      medium_priority: [UNVERIFIED, PHANTOM_PROGRESS]
+      low_priority: [INSERTION]
+      not_applicable: [ORIENTATION]
+
+  - id: step:08
+    order: 8
+    label: Apply Pinion Nut
+    description: Hand-tight initial seating.
+    risk: low
+    acceptance: "Fully seated, no cross-thread"
+    errorProfile:
+      high_priority: [SUBSTITUTION]
+      medium_priority: [INCOMPLETE]
+      low_priority: [EXTRA_OBJECT]
+      not_applicable: [OUT_OF_SPEC, ORIENTATION]
+
+  - id: step:09
+    order: 9
+    label: Torque Pinion Nut
+    description: To spec, opposing corner sequence.
+    risk: high
+    acceptance: "210-240 Nm, 3-pass sequence"
+    dataReferences:
+      - data/torque-table.csv
+    errorProfile:
+      high_priority: [OUT_OF_SPEC, UNVERIFIED, INCOMPLETE]
+      medium_priority: [INSERTION, BORDERLINE]
+      not_applicable: [ORIENTATION, SUBSTITUTION]
+
+  - id: step:10
+    order: 10
+    label: Measure Rotational Torque
+    description: Preload check via torque wrench.
+    risk: med
+    acceptance: "12-18 in-lbs for new bearings"
+    errorProfile:
+      high_priority: [UNVERIFIED, OUT_OF_SPEC]
+      medium_priority: [BORDERLINE, UNREPORTED_PROGRESS]
+      not_applicable: [ORIENTATION, SUBSTITUTION]
+
+  - id: step:11
+    order: 11
+    label: Mount in Housing
+    description: Insert pre-assembled pinion into differential.
+    risk: low
+    acceptance: "Seated flush; no gap at flange"
+    errorProfile:
+      high_priority: [ORIENTATION]
+      medium_priority: [INCOMPLETE]
+      not_applicable: [OUT_OF_SPEC, BORDERLINE]
+
+  - id: step:12
+    order: 12
+    label: Final Inspection & Tag
+    description: Sign-off, attach traveler.
+    risk: low
+    acceptance: "All checks signed, traveler attached"
+    errorProfile:
+      high_priority: [UNVERIFIED, UNREPORTED_PROGRESS]
+      medium_priority: [OMISSION]
+      not_applicable: [ORIENTATION, OUT_OF_SPEC, SUBSTITUTION]
+
+instructions:
+  - { id: instr:01, label: "Inspect with bright LED, rotate shaft 360°",        forStep: step:01 }
+  - { id: instr:02, label: "Apply grease to inner race only",                   forStep: step:02 }
+  - { id: instr:03, label: "Orient cup with chamfered edge inboard",            forStep: step:03 }
+  - { id: instr:04, label: "Engage press in 2-second ramp, hold 1s",            forStep: step:04 }
+  - { id: instr:05, label: "Zero gauge against flange edge first",              forStep: step:05 }
+  - { id: instr:06, label: "Notched end of sleeve faces rear",                  forStep: step:06 }
+  - { id: instr:07, label: "Verify shim SKU matches traveler before fitting",   forStep: step:07 }
+  - { id: instr:08, label: "Hand-seat nut clockwise, no tools",                 forStep: step:08 }
+  - { id: instr:09, label: "Three-pass opposing-corner torque sequence",        forStep: step:09 }
+  - { id: instr:10, label: "Rotate shaft 5 turns before measuring",             forStep: step:10 }
+  - { id: instr:11, label: "Align splines before insertion",                    forStep: step:11 }
+
+expertAdvice:
+  - id: advice:01
+    label: "Reject shaft if any surface pitting visible — even small ones cause bearing failure"
+    forStep: step:01
+    source: "Marco R., 22yr tenure"
+  - id: advice:03
+    label: "If you see ANY scoring on cup mating surface, reject — chamfer-down failure mode is silent"
+    forStep: step:03
+    source: "Antonio P., quality lead"
+  - id: advice:05
+    label: "If gauge reads above 0.005mm, restart — cup is not fully seated and will fail at 40 hours"
+    forStep: step:05
+    source: "Marco R."
+  - id: advice:07
+    label: "Shim thickness must match SKU on traveler exactly — do NOT eyeball or substitute"
+    forStep: step:07
+    source: "Shop floor standard"
+  - id: advice:09
+    label: "Three passes minimum on torque sequence — single-pass causes preload drift"
+    forStep: step:09
+    source: "Comer Engineering Spec QE-PG-04"
+  - id: advice:10
+    label: "Bearings need 5 rotations before measuring — first read is always low"
+    forStep: step:10
+    source: "Marco R."
+
+tools:
+  - { id: tool:torque-wrench-250, label: "Torque Wrench 50-250 Nm",       sku: CMR-T-3401 }
+  - { id: tool:torque-wrench-rot, label: "Rotational Torque Gauge",       sku: CMR-T-3402 }
+  - { id: tool:depth-gauge,       label: "Digital Depth Gauge ±0.001mm",  sku: CMR-T-3408 }
+  - { id: tool:hydraulic-press,   label: "Hydraulic Press, 15 kN",        sku: CMR-T-3501 }
+  - { id: tool:grease-applicator, label: "Bearing Grease Applicator",     sku: CMR-T-3211 }
+
+parts:
+  - { id: part:pinion-shaft,  label: "Pinion Shaft",            sku: CMR-P-4471 }
+  - { id: part:guide-bearing, label: "Guide Bearing Cone",      sku: CMR-P-4472 }
+  - { id: part:bearing-cup,   label: "Bearing Cup",             sku: CMR-P-4473 }
+  - { id: part:crush-sleeve,  label: "Crush Sleeve",            sku: CMR-P-4474 }
+  - { id: part:shim-pack,     label: "Shim Pack (variable)",    sku: "CMR-P-4475-*" }
+  - { id: part:pinion-nut,    label: "Pinion Lock Nut",         sku: CMR-P-4476 }
+  - { id: part:diff-housing,  label: "Differential Housing",    sku: CMR-P-5101 }
+
+stepRequirements:
+  step:01: { tools: [tool:depth-gauge],       parts: [part:pinion-shaft] }
+  step:02: { tools: [tool:grease-applicator], parts: [part:pinion-shaft, part:guide-bearing] }
+  step:03: { tools: [],                       parts: [part:guide-bearing, part:bearing-cup] }
+  step:04: { tools: [tool:hydraulic-press],   parts: [part:pinion-shaft, part:guide-bearing] }
+  step:05: { tools: [tool:depth-gauge],       parts: [part:pinion-shaft] }
+  step:06: { tools: [],                       parts: [part:crush-sleeve] }
+  step:07: { tools: [tool:depth-gauge],       parts: [part:shim-pack] }
+  step:08: { tools: [],                       parts: [part:pinion-nut] }
+  step:09: { tools: [tool:torque-wrench-250], parts: [part:pinion-nut] }
+  step:10: { tools: [tool:torque-wrench-rot], parts: [part:pinion-shaft] }
+  step:11: { tools: [],                       parts: [part:diff-housing] }
+  step:12: { tools: [],                       parts: [] }
