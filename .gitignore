@@ -32,3 +32,9 @@ venv/
 
 # OS
 Thumbs.db
+
+# Source asset dropoffs at the repo root — canonical copies live under
+# eval-lab/public/assets/. Keeping the root files out of git prevents
+# duplicate-asset confusion and a 600KB+ White.png blob in history.
+/White.png
+/Comer-industries_placeholder-logo.png

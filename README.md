@@ -1,7 +1,7 @@
 # Brain · Eval Lab — Platform
 
 The procedural-knowledge graph + agent-evaluation platform behind the
-Aequilibrium / OmniaClaw smart-glasses program.
+Omnia smart-glasses program.
 
 **Reference material lives in [`docs/`](./docs):**
 

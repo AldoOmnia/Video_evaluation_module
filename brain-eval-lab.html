@@ -98,9 +98,42 @@
   .client-pill .pill-label { color: var(--ink-3); margin-right: 6px; }
 
   .header-status {
-    margin-left: auto; display: flex; align-items: center; gap: 16px;
+    margin-left: auto; display: flex; align-items: center; gap: 12px;
     font-family: var(--mono); font-size: 11px; color: var(--ink-3);
   }
+
+  .header-user-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 9px;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    border-radius: 2px;
+    font-family: var(--mono); font-size: 10px;
+    color: var(--ink-2);
+    text-transform: lowercase; letter-spacing: 0.04em;
+  }
+  .header-user-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--acc);
+    box-shadow: 0 0 6px rgba(0, 229, 160, 0.7);
+  }
+  .header-signout {
+    background: transparent;
+    border: 1px solid var(--line-2);
+    color: var(--ink-2);
+    padding: 4px 12px;
+    border-radius: 2px;
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+  }
+  .header-signout:hover {
+    border-color: var(--acc);
+    color: var(--acc);
+    background: rgba(0, 229, 160, 0.06);
+  }
+  .header-signout:active { transform: translateY(1px); }
   .pulse {
     display: inline-block; width: 6px; height: 6px; border-radius: 50%;
     background: var(--acc); box-shadow: 0 0 8px var(--acc); animation: pulse 1.6s infinite;
@@ -1209,6 +1242,14 @@
     <div class="header-status">
       <span><span class="pulse"></span> READY</span>
       <span id="header-status-text">12 keysteps · pinion guide</span>
+      <span class="header-user-chip" id="header-user-chip" title="Signed in user">
+        <span class="header-user-dot"></span>
+        <span id="header-user">—</span>
+      </span>
+      <button id="header-signout" class="header-signout" type="button"
+              title="End your session and return to the login screen">
+        Sign out
+      </button>
     </div>
   </header>
 
@@ -1462,19 +1503,12 @@
   </main>
 
   <footer class="bar-bottom">
-    <span>Aequilibrium, Inc.</span>
+    <span>Omnia</span>
     <span class="sep">│</span>
     <span id="footer-mode">brain mode</span>
     <span class="sep">│</span>
     <span>llm: <span id="footer-llm" style="color:var(--warn);">…</span> · graph: <span style="color:var(--ink-2);">in-memory</span></span>
     <span style="margin-left:auto;">Pilot · Comer Industries · Pinion Guide Station</span>
-    <span class="sep">│</span>
-    <span id="footer-user" style="color:var(--ink-3);">—</span>
-    <button id="footer-signout" type="button"
-            style="margin-left:8px; background:transparent; border:1px solid var(--line-2); color:var(--ink-2); padding:2px 8px; border-radius:3px; font-family:var(--mono); font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer;"
-            title="End your session and return to the login screen">
-      Sign out
-    </button>
   </footer>
 
 </div>
@@ -3973,11 +4007,14 @@ document.getElementById('run-all-btn').onclick = async () => {
    to clear the localStorage session and bounce back to /login.
    ════════════════════════════════════════════════════════════════════════════ */
 function wireSignOut() {
-  const userEl = document.getElementById('footer-user');
-  const btn = document.getElementById('footer-signout');
+  const userEl = document.getElementById('header-user');
+  const chipEl = document.getElementById('header-user-chip');
+  const btn = document.getElementById('header-signout');
   const session = window.__omniaSession;
   if (userEl && session?.user?.username) {
-    userEl.textContent = `signed in as ${session.user.username}`;
+    userEl.textContent = session.user.username;
+  } else if (chipEl) {
+    chipEl.style.display = 'none';
   }
   if (btn) {
     btn.onclick = () => {

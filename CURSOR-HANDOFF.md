@@ -1,6 +1,6 @@
 # Brain · Eval Lab — Cursor Handoff
 
-**Project:** Aequilibrium, Inc. / OmniaClaw for Comer Industries pilot
+**Project:** Omnia for Comer Industries pilot
 **Pilot scope:** Pinion Guide Assembly station (PG-04), Tier-1 automotive
 **Current file:** `brain-eval-lab.html` (single-file scaffold, ~2,300 lines)
 **Status:** v0.5 — taxonomy-aware, ready for Cursor extraction

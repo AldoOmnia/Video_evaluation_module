@@ -48,10 +48,12 @@
 
     /* ── Dotted background ────────────────────────────────────────────────
        Two soft radial-gradient dot grids drifting in opposite directions.
-       Pure CSS, no JS, no images — keeps the page lightweight while still
-       feeling alive on a long load screen. */
+       Pure CSS, no images — keeps the page lightweight while still feeling
+       alive on a long load screen. A cursor-tracked spotlight (.cursor-glow)
+       sits on top and is positioned via the --mx / --my custom properties
+       written by the mousemove listener at the bottom of the file. */
     .bg {
-      position: fixed; inset: 0; z-index: -1;
+      position: fixed; inset: 0; z-index: -2;
       background:
         radial-gradient(circle at top left, rgba(0,229,160,0.06), transparent 55%),
         radial-gradient(circle at bottom right, rgba(0,150,255,0.05), transparent 55%),
@@ -78,6 +80,26 @@
       from { transform: translate3d(0,0,0); }
       to   { transform: translate3d(-112px,56px,0); }
     }
+
+    /* ── Cursor-follow spotlight ───────────────────────────────────────
+       A soft white/teal halo that tracks the pointer and reveals the
+       dot pattern more vividly underneath it. Starts hidden (mouse out
+       of window) and fades in via .is-active. */
+    .cursor-glow {
+      position: fixed; inset: 0; z-index: -1;
+      pointer-events: none;
+      background: radial-gradient(
+        420px circle at var(--mx, 50%) var(--my, 50%),
+        rgba(255,255,255,0.10) 0%,
+        rgba(0,229,160,0.08) 25%,
+        rgba(0,229,160,0.03) 45%,
+        rgba(0,0,0,0)        70%
+      );
+      opacity: 0;
+      transition: opacity 320ms ease;
+      mix-blend-mode: screen;
+    }
+    .cursor-glow.is-active { opacity: 1; }
 
     /* Subtle scan-line overlay so the dotted bg feels like a display, not
        a print pattern. Helps the enterprise / industrial vibe. */
@@ -136,14 +158,40 @@
 
     /* ── Login card ──────────────────────────────────────────────────── */
     .card {
+      position: relative;
       width: 100%;
       background: var(--bg-2);
       border: 1px solid var(--line-2);
       border-radius: 12px;
       padding: 22px 24px 20px;
+      /* The two-layer shadow does the lift; --glow-intensity is bumped
+         by the JS proximity tracker (0..1) when the cursor is near. */
+      --glow-intensity: 0;
       box-shadow:
         0 1px 0 rgba(255,255,255,0.03) inset,
-        0 20px 60px rgba(0,0,0,0.55);
+        0 20px 60px rgba(0,0,0,0.55),
+        0 0 calc(40px * var(--glow-intensity)) calc(2px * var(--glow-intensity)) rgba(255,255,255,calc(0.18 * var(--glow-intensity))),
+        0 0 calc(80px * var(--glow-intensity)) calc(6px * var(--glow-intensity)) rgba(0,229,160,calc(0.12 * var(--glow-intensity)));
+      transition: box-shadow 220ms ease, transform 220ms ease, border-color 220ms ease;
+    }
+    .card::before {
+      /* Inner halo that brightens where the cursor sits over the card.
+         --cx / --cy are 0..100% relative to the card and written by JS. */
+      content: '';
+      position: absolute; inset: 0;
+      border-radius: 12px;
+      background: radial-gradient(
+        300px circle at var(--cx, 50%) var(--cy, 50%),
+        rgba(255,255,255,calc(0.06 * var(--glow-intensity))),
+        rgba(255,255,255,0) 60%
+      );
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 220ms ease;
+    }
+    .card.is-hot {
+      border-color: rgba(255,255,255,0.18);
+      transform: translateY(-1px);
     }
     .card h1 {
       font-size: 18px; font-weight: 600;
@@ -317,6 +365,7 @@
 </head>
 <body>
   <div class="bg" aria-hidden="true"></div>
+  <div class="cursor-glow" id="cursor-glow" aria-hidden="true"></div>
   <div class="scanlines" aria-hidden="true"></div>
 
   <main class="stage">
@@ -372,6 +421,53 @@
   </main>
 
   <script>
+    /* ── Cursor-tracked spotlight + card glow ────────────────────────
+       Writes --mx / --my on the body (page coords) and --cx / --cy on
+       the card (card-local coords, 0..100%). --glow-intensity on the
+       card fades in/out based on cursor distance to the card center,
+       so the white shadow "breathes" as the cursor approaches. The
+       whole thing is rAF-throttled so it stays cheap.              */
+    (() => {
+      const body = document.body;
+      const glow = document.getElementById('cursor-glow');
+      const card = document.querySelector('.card');
+      if (!card || !glow) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      let mx = window.innerWidth / 2;
+      let my = window.innerHeight / 2;
+      let queued = false;
+
+      const tick = () => {
+        queued = false;
+        body.style.setProperty('--mx', mx + 'px');
+        body.style.setProperty('--my', my + 'px');
+        const r = card.getBoundingClientRect();
+        const cx = ((mx - r.left) / r.width) * 100;
+        const cy = ((my - r.top) / r.height) * 100;
+        card.style.setProperty('--cx', cx + '%');
+        card.style.setProperty('--cy', cy + '%');
+        // Proximity from card center, normalised 0..1 (1 = on the card).
+        const dx = mx - (r.left + r.width / 2);
+        const dy = my - (r.top + r.height / 2);
+        const dist = Math.hypot(dx, dy);
+        const maxDist = Math.max(r.width, r.height) * 1.5;
+        const intensity = Math.max(0, Math.min(1, 1 - dist / maxDist));
+        card.style.setProperty('--glow-intensity', intensity.toFixed(3));
+        card.classList.toggle('is-hot', intensity > 0.55);
+      };
+
+      window.addEventListener('mousemove', (e) => {
+        mx = e.clientX; my = e.clientY;
+        glow.classList.add('is-active');
+        if (!queued) { queued = true; requestAnimationFrame(tick); }
+      });
+      window.addEventListener('mouseleave', () => glow.classList.remove('is-active'));
+      window.addEventListener('mouseenter', () => glow.classList.add('is-active'));
+      window.addEventListener('resize', () => { if (!queued) { queued = true; requestAnimationFrame(tick); } });
+      tick();
+    })();
+
     (() => {
       const form = document.getElementById('login-form');
       const userEl = document.getElementById('username');
