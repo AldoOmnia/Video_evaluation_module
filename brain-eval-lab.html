@@ -1620,6 +1620,8 @@
     if (!session || session.tenant !== 'comer' || !session.expiresAt || session.expiresAt < Date.now()) {
       localStorage.removeItem('omnia.session');
       window.location.replace('/login');
+    } else if (localStorage.getItem('omnia.introSeen') !== '1') {
+      window.location.replace('/welcome/');
     } else {
       window.__omniaSession = session;
     }

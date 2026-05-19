@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Comer Industries · Platform overview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #050505;
+      --bg-2: #0d0d0d;
+      --bg-3: #141414;
+      --ink-1: #f5f5f5;
+      --ink-2: #a3a3a3;
+      --ink-3: #6b6b6b;
+      --line: #1f1f1f;
+      --line-2: #2a2a2a;
+      --primary: #00E5A0;
+      --primary-dim: #00996B;
+      --primary-glow: rgba(0,229,160,0.45);
+      --ok: #4ade80;
+      --warn: #f59e0b;
+      --err: #ef4444;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+      --acc: #00E5A0;
+      --c-keystep: #60a5fa;
+      --c-advice: #f472b6;
+      --c-document: #a78bfa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--ink-1);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.5;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .bg {
+      position: fixed; inset: 0; z-index: -2;
+      background:
+        radial-gradient(circle at top left, rgba(0,229,160,0.06), transparent 55%),
+        radial-gradient(circle at bottom right, rgba(0,150,255,0.05), transparent 55%),
+        var(--bg);
+    }
+    .bg::before, .bg::after {
+      content: ''; position: absolute; inset: -50%;
+      background-image: radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px);
+      background-size: 22px 22px;
+      animation: drift-slow 60s linear infinite;
+      opacity: 0.9;
+    }
+    .bg::after {
+      background-image: radial-gradient(rgba(0,229,160,0.10) 1.4px, transparent 1.4px);
+      background-size: 56px 56px;
+      animation: drift-fast 40s linear infinite reverse;
+      opacity: 0.55;
+    }
+    @keyframes drift-slow {
+      from { transform: translate3d(0,0,0); }
+      to   { transform: translate3d(-44px,-44px,0); }
+    }
+    @keyframes drift-fast {
+      from { transform: translate3d(0,0,0); }
+      to   { transform: translate3d(-112px,56px,0); }
+    }
+    .cursor-glow {
+      position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background: radial-gradient(
+        420px circle at var(--mx, 50%) var(--my, 50%),
+        rgba(255,255,255,0.10) 0%,
+        rgba(0,229,160,0.08) 25%,
+        rgba(0,229,160,0.03) 45%,
+        rgba(0,0,0,0) 70%
+      );
+      opacity: 0;
+      transition: opacity 320ms ease;
+      mix-blend-mode: screen;
+    }
+    .cursor-glow.is-active { opacity: 1; }
+    .scanlines {
+      position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background: repeating-linear-gradient(
+        180deg,
+        rgba(255,255,255,0) 0px,
+        rgba(255,255,255,0) 3px,
+        rgba(255,255,255,0.012) 3px,
+        rgba(255,255,255,0.012) 4px
+      );
+    }
+
+    .stage {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      padding: 24px 20px 18px;
+    }
+    .content {
+      width: 100%;
+      max-width: 920px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .hero-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .hero-brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .hero-brand img {
+      width: 48px; height: 48px;
+      object-fit: contain;
+    }
+    .hero-brand .k {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+    }
+    .hero-brand h1 {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .llm-pill {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 5px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--line-2);
+      color: var(--ink-3);
+    }
+    .llm-pill.is-live { color: var(--ok); border-color: rgba(74,222,128,0.4); }
+    .llm-pill.is-stub { color: var(--warn); border-color: rgba(245,158,11,0.4); }
+
+    /* ── Glow cards (login-style) ─────────────────────────────────── */
+    .glow-card {
+      position: relative;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: 12px;
+      padding: 18px 20px 16px;
+      --glow-intensity: 0;
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.03) inset,
+        0 20px 60px rgba(0,0,0,0.55),
+        0 0 calc(40px * var(--glow-intensity)) calc(2px * var(--glow-intensity)) rgba(255,255,255,calc(0.18 * var(--glow-intensity))),
+        0 0 calc(80px * var(--glow-intensity)) calc(6px * var(--glow-intensity)) rgba(0,229,160,calc(0.12 * var(--glow-intensity)));
+      transition: box-shadow 220ms ease, transform 220ms ease, border-color 220ms ease;
+    }
+    .glow-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      border-radius: 12px;
+      background: radial-gradient(
+        280px circle at var(--cx, 50%) var(--cy, 50%),
+        rgba(255,255,255,calc(0.06 * var(--glow-intensity))),
+        rgba(255,255,255,0) 60%
+      );
+      pointer-events: none;
+    }
+    .glow-card.is-hot {
+      border-color: rgba(255,255,255,0.18);
+      transform: translateY(-1px);
+    }
+    .hero-card .lead {
+      color: var(--ink-2);
+      font-size: 13.5px;
+      margin-top: 6px;
+      max-width: 52em;
+    }
+    .hero-card .meta {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      margin-top: 10px;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 780px) {
+      .features { grid-template-columns: 1fr; }
+    }
+    .feature-card h2 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .feature-card .tag {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+    .feature-card p {
+      font-size: 12px;
+      color: var(--ink-2);
+      line-height: 1.45;
+      margin-bottom: 12px;
+    }
+
+    /* ── Mini platform UI chrome ──────────────────────────────────── */
+    .ui-frame {
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--bg);
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,0.5) inset,
+        0 8px 24px rgba(0,0,0,0.45);
+    }
+    .ui-frame-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background: var(--bg-2);
+      border-bottom: 1px solid var(--line);
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+    }
+    .ui-frame-bar .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--line-2);
+    }
+    .ui-frame-bar .dot.on { background: var(--primary); box-shadow: 0 0 6px var(--primary-glow); }
+    .ui-frame-body { padding: 0; }
+
+    /* Brain mode miniature */
+    .mini-brain {
+      display: grid;
+      grid-template-columns: 72px 1fr 118px;
+      min-height: 168px;
+      font-family: var(--mono);
+      font-size: 7px;
+    }
+    .mini-brain .col {
+      border-right: 1px solid var(--line);
+      padding: 6px;
+    }
+    .mini-brain .col:last-child { border-right: none; }
+    .mini-ph {
+      color: var(--ink-3);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .mini-ph .n { color: var(--acc); margin-right: 4px; }
+    .mini-drop {
+      border: 1px dashed var(--line-2);
+      border-radius: 3px;
+      padding: 6px 4px;
+      text-align: center;
+      color: var(--ink-3);
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+    .mini-graph {
+      position: relative;
+      background: #080808;
+      min-height: 156px;
+    }
+    .mini-graph svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .mini-graph .node {
+      position: absolute;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .mini-chat-h {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 6px;
+      color: var(--ink-3);
+    }
+    .mini-live {
+      color: var(--ok);
+      font-size: 6px;
+    }
+    .mini-brain-card {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: 3px;
+      padding: 5px;
+    }
+    .mini-k {
+      font-size: 6px;
+      color: #4ade80;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .fov-mini {
+      position: relative;
+      aspect-ratio: 1;
+      background: #000;
+      border: 1px solid #222;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .fov-mini .ac {
+      position: absolute;
+      left: 5%; bottom: 5%;
+      width: 88%;
+      padding: 4px 5px;
+      background: rgba(0,0,0,0.88);
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .fov-mini .ac-label  { color: #00996B; font-size: 5px; }
+    .fov-mini .ac-value  { color: #fff; font-size: 9px; font-weight: 500; line-height: 1.1; }
+    .fov-mini .ac-action { color: #00E5A0; font-size: 6px; }
+    .fov-mini .ac-source { color: #888; font-size: 5px; }
+    .fov-corner {
+      position: absolute;
+      width: 6px; height: 6px;
+      border-color: rgba(0,229,160,0.35);
+      border-style: solid;
+    }
+    .fov-tl { top: 3px; left: 3px; border-width: 1px 0 0 1px; }
+    .fov-br { bottom: 3px; right: 3px; border-width: 0 1px 1px 0; }
+
+    /* Eval mode miniature */
+    .mini-eval {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      min-height: 168px;
+      font-family: var(--mono);
+      font-size: 7px;
+    }
+    .mini-eval .col {
+      border-right: 1px solid var(--line);
+      padding: 6px;
+    }
+    .mini-eval .col:last-child { border-right: none; }
+    .mini-tl-row {
+      display: grid;
+      grid-template-columns: 22px 8px 1fr;
+      gap: 3px;
+      padding: 3px 0;
+      border-bottom: 1px solid var(--line);
+      align-items: center;
+    }
+    .mini-tl-row:last-child { border-bottom: none; }
+    .mini-tl-row .bad { color: var(--err); }
+    .mini-tl-row .ok { color: var(--ok); }
+    .mini-btn {
+      display: block;
+      width: 100%;
+      margin-top: 4px;
+      padding: 4px;
+      border-radius: 2px;
+      border: 1px solid var(--line-2);
+      background: var(--bg-3);
+      color: var(--ink-2);
+      font-size: 6px;
+      text-align: center;
+    }
+    .mini-btn.live {
+      border-color: var(--primary-dim);
+      color: var(--primary);
+      background: rgba(0,229,160,0.08);
+    }
+    .mini-chips { display: flex; flex-wrap: wrap; gap: 3px; margin: 6px 0; }
+    .mini-chip {
+      font-size: 6px;
+      padding: 2px 5px;
+      border-radius: 2px;
+      border: 1px solid var(--line-2);
+    }
+    .mini-chip.caught { color: var(--ok); background: rgba(74,222,128,0.08); }
+    .mini-chip.miss { color: var(--err); background: rgba(239,68,68,0.08); }
+    .mini-ao {
+      margin-top: 6px;
+      padding: 5px;
+      border: 1px solid var(--line-2);
+      border-radius: 3px;
+      background: var(--bg-2);
+    }
+    .mini-ao .code {
+      display: inline-block;
+      font-size: 6px;
+      padding: 1px 4px;
+      border: 1px solid rgba(245,158,11,0.4);
+      color: var(--warn);
+      border-radius: 2px;
+      margin-bottom: 4px;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding-top: 4px;
+    }
+    .btn-enter {
+      border: 0;
+      padding: 12px 28px;
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #06120c;
+      background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dim) 100%);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 160ms ease, box-shadow 220ms ease;
+      box-shadow: 0 4px 14px rgba(0,229,160,0.18);
+    }
+    .btn-enter:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 28px 4px var(--primary-glow), 0 6px 20px rgba(0,229,160,0.25);
+    }
+    .btn-skip {
+      background: transparent;
+      border: none;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      cursor: pointer;
+      padding: 8px 12px;
+    }
+    .btn-skip:hover { color: var(--ink-2); }
+
+    .powered {
+      align-self: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding-top: 12px;
+    }
+    .powered .pb-k {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+    }
+    .powered img { height: 18px; opacity: 0.85; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .bg::before, .bg::after { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <div class="cursor-glow" id="cursor-glow" aria-hidden="true"></div>
+  <div class="scanlines" aria-hidden="true"></div>
+
+  <main class="stage">
+    <div class="content">
+      <div class="hero-top">
+        <div class="hero-brand">
+          <img src="/lab/assets/comer-logo.png" alt="Comer Industries" />
+          <div>
+            <div class="k">Comer Industries · Rockford</div>
+            <h1>Pinion Guide pilot platform</h1>
+          </div>
+        </div>
+        <span class="llm-pill" id="llm-pill">LLM · …</span>
+      </div>
+
+      <section class="glow-card hero-card" data-glow>
+        <p class="lead">
+          Built with Omnia for Comer Industries — test procedural knowledge and smart-glasses answers
+          before they reach the line. Grounded in <strong>PG-04 Pinion Guide Assembly</strong> (12 keysteps).
+        </p>
+        <p class="meta">Same specs and <code>/query</code> contract as the Rokid test app</p>
+      </section>
+
+      <div class="features">
+        <article class="glow-card feature-card" data-glow>
+          <div class="tag">01 · Brain</div>
+          <h2>Knowledge graph + glasses preview</h2>
+          <p>Ingest SOPs, expert notes, and video — ask questions and see the exact 4-line AnswerCard workers get on Rokid.</p>
+          <div class="ui-frame">
+            <div class="ui-frame-bar">
+              <span class="dot on"></span><span class="dot"></span><span class="dot"></span>
+              <span>brain-eval-lab · Brain mode</span>
+            </div>
+            <div class="ui-frame-body">
+              <div class="mini-brain">
+                <div class="col">
+                  <div class="mini-ph"><span class="n">01</span>Ingest</div>
+                  <div class="mini-drop">PDF · SOP</div>
+                  <div class="mini-drop">CSV · torque</div>
+                </div>
+                <div class="col mini-graph">
+                  <div class="mini-ph"><span class="n">·</span>Procedure graph</div>
+                  <svg viewBox="0 0 200 120" preserveAspectRatio="none" aria-hidden="true">
+                    <line x1="40" y1="30" x2="90" y2="55" stroke="#2a2a2a" stroke-width="1"/>
+                    <line x1="90" y1="55" x2="150" y2="40" stroke="#2a2a2a" stroke-width="1"/>
+                    <line x1="90" y1="55" x2="70" y2="90" stroke="#2a2a2a" stroke-width="1"/>
+                    <line x1="150" y1="40" x2="160" y2="85" stroke="#2a2a2a" stroke-width="1"/>
+                  </svg>
+                  <span class="node" style="left:20%;top:25%;background:var(--c-keystep)"></span>
+                  <span class="node" style="left:45%;top:46%;background:var(--c-keystep)"></span>
+                  <span class="node" style="left:75%;top:33%;background:var(--c-advice)"></span>
+                  <span class="node" style="left:35%;top:75%;background:var(--c-document)"></span>
+                  <span class="node" style="left:80%;top:71%;background:var(--c-keystep)"></span>
+                </div>
+                <div class="col">
+                  <div class="mini-chat-h">
+                    <span><span class="n">02</span> Brain</span>
+                    <span class="mini-live">live</span>
+                  </div>
+                  <div class="mini-brain-card">
+                    <div class="mini-k">On glasses</div>
+                    <div class="fov-mini">
+                      <span class="fov-corner fov-tl"></span>
+                      <span class="fov-corner fov-br"></span>
+                      <div class="ac">
+                        <span class="ac-label">TORQUE PINION NUT</span>
+                        <span class="ac-value">See Step 09</span>
+                        <span class="ac-action">3-pass sequence</span>
+                        <span class="ac-source">S09 · step:09</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="glow-card feature-card" data-glow>
+          <div class="tag">02 · Eval</div>
+          <h2>Agent sessions + taxonomy</h2>
+          <p>Replay labeled procedure events; judge catches and misses against the Pinion Guide error taxonomy (SIM or LIVE Claude).</p>
+          <div class="ui-frame">
+            <div class="ui-frame-bar">
+              <span class="dot on"></span><span class="dot on"></span><span class="dot"></span>
+              <span>brain-eval-lab · Eval mode</span>
+            </div>
+            <div class="ui-frame-body">
+              <div class="mini-eval">
+                <div class="col">
+                  <div class="mini-ph"><span class="n">01</span>Session</div>
+                  <div class="mini-tl-row"><span>0:42</span><span class="bad">✗</span><span>Press depth OOR</span></div>
+                  <div class="mini-tl-row"><span>1:18</span><span class="bad">✗</span><span>Shim skip</span></div>
+                  <div class="mini-tl-row"><span>2:05</span><span class="ok">✓</span><span>Torque sequence</span></div>
+                </div>
+                <div class="col">
+                  <div class="mini-ph"><span class="n">02</span>Config</div>
+                  <span class="mini-btn">Run · SIM</span>
+                  <span class="mini-btn live">Run · LIVE LLM</span>
+                </div>
+                <div class="col">
+                  <div class="mini-ph"><span class="n">03</span>Results</div>
+                  <div class="mini-chips">
+                    <span class="mini-chip caught">caught</span>
+                    <span class="mini-chip miss">missed</span>
+                  </div>
+                  <div class="mini-ao">
+                    <span class="code">B04 · torque</span>
+                    <div class="fov-mini" style="aspect-ratio:1.4">
+                      <div class="ac">
+                        <span class="ac-label">TORQUE SEQUENCE</span>
+                        <span class="ac-value">3-pass req.</span>
+                        <span class="ac-action">Re-torque now</span>
+                        <span class="ac-source">S09 · advice</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn-enter" id="btn-enter">Enter platform</button>
+        <button type="button" class="btn-skip" id="btn-skip">Skip intro</button>
+      </div>
+    </div>
+
+    <footer class="powered">
+      <div class="pb-k">Powered by</div>
+      <img src="/lab/assets/omnia-white.png" alt="Omnia" />
+    </footer>
+  </main>
+
+  <script>
+    function hasSession() {
+      try {
+        const s = JSON.parse(localStorage.getItem('omnia.session') || 'null');
+        return s && s.tenant === 'comer' && s.expiresAt > Date.now();
+      } catch { return false; }
+    }
+    if (!hasSession()) {
+      window.location.replace('/login');
+    }
+
+    function enterLab() {
+      localStorage.setItem('omnia.introSeen', '1');
+      window.location.replace('/lab/');
+    }
+    document.getElementById('btn-enter').onclick = enterLab;
+    document.getElementById('btn-skip').onclick = enterLab;
+
+    (async () => {
+      const pill = document.getElementById('llm-pill');
+      try {
+        const r = await fetch('/health', { cache: 'no-store' });
+        const d = await r.json();
+        if (d.stubMode) {
+          pill.textContent = 'LLM · stub';
+          pill.classList.add('is-stub');
+        } else {
+          pill.textContent = 'LLM · live';
+          pill.classList.add('is-live');
+        }
+      } catch {
+        pill.textContent = 'LLM · offline';
+      }
+    })();
+
+    (() => {
+      const glow = document.getElementById('cursor-glow');
+      const cards = [...document.querySelectorAll('[data-glow]')];
+      if (!glow || !cards.length) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      let mx = innerWidth / 2, my = innerHeight / 2;
+      let queued = false;
+
+      const tick = () => {
+        queued = false;
+        document.body.style.setProperty('--mx', mx + 'px');
+        document.body.style.setProperty('--my', my + 'px');
+        cards.forEach((card) => {
+          const r = card.getBoundingClientRect();
+          card.style.setProperty('--cx', ((mx - r.left) / r.width) * 100 + '%');
+          card.style.setProperty('--cy', ((my - r.top) / r.height) * 100 + '%');
+          const dx = mx - (r.left + r.width / 2);
+          const dy = my - (r.top + r.height / 2);
+          const dist = Math.hypot(dx, dy);
+          const maxDist = Math.max(r.width, r.height) * 1.2;
+          const intensity = Math.max(0, Math.min(1, 1 - dist / maxDist));
+          card.style.setProperty('--glow-intensity', intensity.toFixed(3));
+          card.classList.toggle('is-hot', intensity > 0.5);
+        });
+      };
+
+      window.addEventListener('mousemove', (e) => {
+        mx = e.clientX; my = e.clientY;
+        glow.classList.add('is-active');
+        if (!queued) { queued = true; requestAnimationFrame(tick); }
+      });
+      window.addEventListener('mouseleave', () => glow.classList.remove('is-active'));
+      window.addEventListener('mouseenter', () => glow.classList.add('is-active'));
+      tick();
+    })();
+  </script>
+</body>
+</html>

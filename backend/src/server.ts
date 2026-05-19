@@ -8,7 +8,7 @@ import { evalRouter } from "./routes/eval.js";
 import { specRouter } from "./routes/spec.js";
 import { queryRouter } from "./routes/query.js";
 import { authRouter } from "./routes/auth.js";
-import { EVAL_LAB_PUBLIC, LAB_HTML, LOGIN_HTML } from "./paths.js";
+import { EVAL_LAB_PUBLIC, LAB_HTML, LOGIN_HTML, WELCOME_HTML } from "./paths.js";
 
 const app = express();
 
@@ -59,10 +59,15 @@ app.use("/lab", express.static(EVAL_LAB_PUBLIC));
 
 // Root + /login both serve the tenant-specific login page. Auth is
 // completed client-side against /api/auth/login; on success the SPA
-// stores a session blob in localStorage and forwards to /lab/.
+// stores a session blob in localStorage and forwards to /welcome/ then /lab/.
 app.get(["/", "/login", "/login/"], (_req, res) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
   res.sendFile(LOGIN_HTML);
+});
+
+app.get(["/welcome", "/welcome/"], (_req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.sendFile(WELCOME_HTML);
 });
 
 app.get("/lab/", (_req, res) => {

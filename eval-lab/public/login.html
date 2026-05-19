@@ -475,11 +475,19 @@
       const errEl = document.getElementById('error-msg');
       const btn = document.getElementById('btn-login');
 
+      function afterAuthRedirect() {
+        if (localStorage.getItem('omnia.introSeen') === '1') {
+          window.location.replace('/lab/');
+        } else {
+          window.location.replace('/welcome/');
+        }
+      }
+
       // If a previous session is still valid, skip the login screen.
       try {
         const session = JSON.parse(localStorage.getItem('omnia.session') || 'null');
         if (session && session.tenant === 'comer' && session.expiresAt > Date.now()) {
-          window.location.replace('/lab/');
+          afterAuthRedirect();
           return;
         }
       } catch {}
@@ -523,7 +531,7 @@
               expiresAt: Date.now() + (data.ttlSec ?? 60 * 60 * 8) * 1000,
             }),
           );
-          window.location.replace('/lab/');
+          afterAuthRedirect();
         } catch (err) {
           errEl.textContent = err.message || 'Sign-in failed';
           setLoading(false);
