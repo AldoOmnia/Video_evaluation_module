@@ -10,11 +10,7 @@
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
-    "paths": {
-      "@shared/*": ["shared/*"]
-    }
+    "forceConsistentCasingInFileNames": true
   },
   "include": ["shared/**/*.ts", "scripts/**/*.ts"],
   "exclude": ["node_modules", "**/dist", "**/build"]
