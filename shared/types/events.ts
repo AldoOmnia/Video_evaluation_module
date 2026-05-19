@@ -20,6 +20,14 @@ export const OutcomeSchema = z.enum(["caught", "missed", "false_pos", "n/a"]);
  * predicted next action, and the corrective glasses message — so the UI
  * (and the Rokid lens) can render it directly without parsing free-form text.
  */
+export const FourRoleLensSchema = z.object({
+  label: z.string().default(""),
+  value: z.string().default(""),
+  action: z.string().default(""),
+  source: z.string().default(""),
+});
+export type FourRoleLens = z.infer<typeof FourRoleLensSchema>;
+
 export const AgentOutputSchema = z.object({
   detected: z.boolean(),
   errorCode: ErrorCodeSchema.nullable(),
@@ -32,7 +40,10 @@ export const AgentOutputSchema = z.object({
   currentStep: z.string().optional(),
   /** Next planned action the agent expects after correction. */
   nextAction: z.string().optional(),
-  /** What the worker sees on the glasses — 4 short lines, ≤ ~22 chars each. */
+  /** Role-tagged 4-line AnswerCard rendered on the worker's lens.
+   *  Mirrors comer-rokid-demo/.../ui/AnswerCard.kt 1:1. */
+  lens: FourRoleLensSchema.default({ label: "", value: "", action: "", source: "" }),
+  /** Legacy flat 4-line projection of lens, kept for back-compat consumers. */
   glassesMessage: z.array(z.string()).default([]),
 });
 export type AgentOutput = z.infer<typeof AgentOutputSchema>;

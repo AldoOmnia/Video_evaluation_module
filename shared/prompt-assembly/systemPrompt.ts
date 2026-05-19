@@ -40,11 +40,18 @@ export function buildAgentSystemPrompt(
   taxonomy: Taxonomy,
 ): string {
   const dc = hardware.display;
-  const lineBudget = dc ? dc.max_lines : 4;
-  const charBudget = dc ? dc.max_chars_per_line : 22;
-  const displayLine = dc
-    ? `You also emit a corrective message rendered on ${hardware.name}: up to ${dc.max_lines} lines × ${dc.max_chars_per_line} chars per line (total ≤ ${dc.max_total_chars}). No markdown, no emojis, no quotes around the line content. ALL CAPS on the first line is acceptable for emphasis.`
-    : `Corrective messages are rendered on ${hardware.name}; keep them tight.`;
+  const fr = dc?.four_role_budget ?? {
+    label_chars: 32,
+    value_chars: 16,
+    action_chars: 28,
+    source_chars: 32,
+  };
+  const lensSpec = `4-line AnswerCard rendered bottom-left on ${hardware.name}. Each line is a DIFFERENT visual role:
+  line1 LABEL  — small dim-teal mono, ≤ ${fr.label_chars} chars, ALL CAPS, names the issue (e.g. "WRONG ORIENTATION", "UNVERIFIED STEP")
+  line2 VALUE  — large white mono, ≤ ${fr.value_chars} chars, the single most important fact at a glance (e.g. "Chamfer OUTBOARD", "Gauge 0.008 mm", "Reading missing")
+  line3 ACTION — teal mono, ≤ ${fr.action_chars} chars, one imperative corrective sentence (e.g. "Flip 180° • re-press", "Take depth reading now")
+  line4 SOURCE — small gray mono, ≤ ${fr.source_chars} chars, context: next step or evidence (e.g. "S04 next · pri:HIGH", "OEM marker absent")
+No markdown, no emojis, no surrounding quotes. Keep each line a single short fragment — the on-device Compose text view will clip overflow.`;
 
   // Compact, Comer-specific taxonomy reference so the LLM grounds in the
   // right detection mechanism + example, not a generic mistake taxonomy.
@@ -76,9 +83,10 @@ export function buildAgentSystemPrompt(
     "  completedSequence  → step labels already covered (proves the model of progress)",
     "  currentStep        → the step the worker is now performing",
     "  nextAction         → what should happen next per the procedure",
-    "  glassesMessage     → ALL CAPS imperative first line; remaining lines concrete",
-    "                      and parsable at a glance. Each line ≤ " + charBudget + " chars;",
-    "                      at most " + lineBudget + " lines total. Plain text only.",
+    "  glassesMessage     → 4-role AnswerCard for the worker's lens. See LENS spec below.",
+    "",
+    "LENS — what the worker actually sees on glass",
+    lensSpec,
     "",
     "EVIDENCE DISCIPLINE — when NOT to flag an error",
     "  Set detected:false (and errorCode:null) UNLESS the worker note OR the",
@@ -105,9 +113,16 @@ export function buildAgentSystemPrompt(
   "completedSequence": ["step:NN Label", ...],
   "currentStep": "step:NN Label",
   "nextAction": "step:NN Label — short description",
-  "glassesMessage": ["LINE 1", "line 2", "line 3", "line 4"]
+  "glassesMessage": {
+    "label":  "ALL-CAPS ISSUE NAME",
+    "value":  "Most important fact",
+    "action": "One-sentence imperative",
+    "source": "Next step or evidence"
+  }
 }`,
     "",
-    displayLine,
+    "Notes:",
+    "  - glassesMessage MUST be the role-tagged object above. Do not return a flat array of lines.",
+    "  - When detected:false set label to 'STEP OK', value to the current step name, action to 'Continue procedure', source to the next step name.",
   ].join("\n");
 }

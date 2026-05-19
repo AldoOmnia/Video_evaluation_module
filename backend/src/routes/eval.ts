@@ -22,8 +22,17 @@ import {
 import {
   buildAgentSystemPrompt,
 } from "../../../shared/prompt-assembly/systemPrompt.js";
-import { fitToDisplay } from "../../../shared/display-constraints/rokid.js";
-import { SessionEventSchema, type SessionEvent, type AgentOutput } from "../../../shared/types/events.js";
+import {
+  fitToDisplay,
+  fitFourRole,
+  coerceFourRole,
+} from "../../../shared/display-constraints/rokid.js";
+import {
+  SessionEventSchema,
+  type SessionEvent,
+  type AgentOutput,
+  type FourRoleLens,
+} from "../../../shared/types/events.js";
 import type { ErrorCode, Priority } from "../../../shared/types/taxonomy.js";
 import { ERROR_CODES } from "../../../shared/types/taxonomy.js";
 import type { RunMetrics, RunResult } from "../../../shared/types/run.js";
@@ -99,33 +108,43 @@ subsequent lines short and concrete. ABSOLUTELY no prose outside the JSON.
         totalOut += r.outputTokens;
         latencies.push(r.latencyMs);
         const verdict = parseVerdict(r.text);
-        // Enforce the lens display budget. We *always* word-wrap through
-        // fitToDisplay so the worker never sees a mid-word truncation, even
-        // if the LLM ignored the per-line cap. If the LLM emitted multiple
-        // lines, we preserve the line breaks the model intended only when
-        // each line fits; otherwise we concat and reflow.
-        const maxChars = hw.display?.max_chars_per_line ?? 22;
-        const maxLines = hw.display?.max_lines ?? 4;
-        let glassesMessage: string[];
-        const llmLines = verdict.glassesMessage ?? [];
-        const allLinesFit =
-          llmLines.length > 0 &&
-          llmLines.length <= maxLines &&
-          llmLines.every((l) => l.length <= maxChars);
-        if (allLinesFit) {
-          glassesMessage = llmLines.slice(0, maxLines);
-        } else {
-          // Reflow: join with single spaces (preserving paragraph intent) and
-          // hand off to the canonical word-wrapper.
-          const reflowSrc =
-            llmLines.length > 0
-              ? llmLines.join(" ")
-              : verdict.fix || verdict.diagnosis || r.text;
-          const fitted = fitToDisplay(reflowSrc, hw);
-          glassesMessage = fitted.lines.filter((l) => l.length > 0);
-          // Pad to maxLines so the lens preview always renders the full budget.
-          while (glassesMessage.length < maxLines) glassesMessage.push("");
+        // Coerce whatever shape the LLM returned (role object / array of
+        // lines / a single string) into the canonical 4 role strings, then
+        // word-wrap each role to its individual char budget. This mirrors
+        // comer-rokid-demo/.../ui/AnswerCard.kt 1:1.
+        const rawRoles = coerceFourRole(
+          verdict.lensRaw,
+          verdict.fix || verdict.diagnosis || r.text,
+        );
+        // Fallbacks so the lens always renders something sensible:
+        if (!rawRoles.label) {
+          rawRoles.label = verdict.detected
+            ? verdict.errorCode || "ANOMALY"
+            : "STEP OK";
         }
+        if (!rawRoles.value) {
+          rawRoles.value = verdict.detected
+            ? (verdict.diagnosis ?? "").split(/[—.;:]/)[0] ?? ""
+            : step.label;
+        }
+        if (!rawRoles.action) {
+          rawRoles.action = verdict.detected
+            ? verdict.fix ?? ""
+            : "Continue procedure";
+        }
+        if (!rawRoles.source) {
+          rawRoles.source = nextStep
+            ? `${nextStep.id} next`
+            : "end of procedure";
+        }
+        const lensFit = fitFourRole(rawRoles, hw);
+        const lens: FourRoleLens = {
+          label: lensFit.label,
+          value: lensFit.value,
+          action: lensFit.action,
+          source: lensFit.source,
+        };
+        const glassesMessage = lensFit.lines.slice();
 
         const truth = ev.errorType ?? null;
         const outcome: "caught" | "missed" | "false_pos" =
@@ -159,6 +178,7 @@ subsequent lines short and concrete. ABSOLUTELY no prose outside the JSON.
           nextAction:
             verdict.nextAction ||
             (nextStep ? `${nextStep.id} ${nextStep.label}` : "(end of procedure)"),
+          lens,
           glassesMessage,
         };
 
@@ -287,6 +307,8 @@ interface AgentVerdict {
   currentStep: string;
   nextAction: string;
   glassesMessage: string[];
+  /** Whatever shape the LLM produced for the lens — coerced downstream. */
+  lensRaw: unknown;
 }
 
 /** Robust extraction of the full contextual verdict from the LLM. Tries every
@@ -311,7 +333,10 @@ function parseVerdict(text: string): AgentVerdict {
     const completedSequence = toStringArray(obj.completedSequence).slice(0, 24);
     const currentStep = String(obj.currentStep ?? "").slice(0, 120);
     const nextAction = String(obj.nextAction ?? "").slice(0, 200);
+    const lensRaw = obj.glassesMessage ?? obj.lens ?? null;
     const glassesMessage = toStringArray(obj.glassesMessage).slice(0, 6);
+    const hasLensObj =
+      lensRaw && typeof lensRaw === "object" && !Array.isArray(lensRaw);
     const score =
       (diag ? 2 : 0) +
       (ec ? 2 : 0) +
@@ -320,7 +345,8 @@ function parseVerdict(text: string): AgentVerdict {
       (completedSequence.length > 0 ? 1 : 0) +
       (currentStep ? 1 : 0) +
       (nextAction ? 1 : 0) +
-      (glassesMessage.length > 0 ? 2 : 0);
+      (glassesMessage.length > 0 ? 2 : 0) +
+      (hasLensObj ? 2 : 0);
     if (score > bestScore) {
       bestScore = score;
       best = {
@@ -332,6 +358,7 @@ function parseVerdict(text: string): AgentVerdict {
         currentStep,
         nextAction,
         glassesMessage,
+        lensRaw,
       };
     }
   }
@@ -348,6 +375,7 @@ function parseVerdict(text: string): AgentVerdict {
     currentStep: "",
     nextAction: "",
     glassesMessage: [],
+    lensRaw: null,
   };
 }
 

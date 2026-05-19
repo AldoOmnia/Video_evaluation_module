@@ -15,12 +15,21 @@ profiles:
       audio_out: true
     dwell_threshold_ms: 800
     latency_budget_ms: 200
-    # Display geometry the on-device renderer must respect
+    # Display geometry the on-device renderer must respect.
+    # Mirrors comer-rokid-demo/glasses-app/ui/AnswerCard.kt: bottom-left
+    # 85%-width card with 4 lines at distinct font sizes (10/22/14/10 sp).
+    # max_chars_per_line is the smallest-line cap (line2 at 22sp); the other
+    # roles fit considerably more chars and are encoded in four_role_budget.
     display:
       max_lines: 4
-      max_chars_per_line: 22
-      max_total_chars: 88
+      max_chars_per_line: 16   # value line (line2, 22sp white) — smallest budget
+      max_total_chars: 110     # ~32+16+28+32
       rich_formatting: false
+      four_role_budget:
+        label_chars: 32        # line1 — small dim-teal label, 10sp
+        value_chars: 16        # line2 — large white headline, 22sp
+        action_chars: 28       # line3 — teal corrective action, 14sp
+        source_chars: 32       # line4 — small gray context/next, 10sp
 
   snap_spectacles:
     id: snap_spectacles
