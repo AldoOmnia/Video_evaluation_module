@@ -9,6 +9,7 @@ import { brainChatRouter } from "./routes/brainChat.js";
 import { evalRouter } from "./routes/eval.js";
 import { specRouter } from "./routes/spec.js";
 import { queryRouter } from "./routes/query.js";
+import { authRouter } from "./routes/auth.js";
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.get("/health", (_req, res) => {
 app.use("/api/spec", specRouter);
 app.use("/api/brain/chat", brainChatRouter);
 app.use("/api/eval", evalRouter);
+app.use("/api/auth", authRouter);
 app.use("/query", queryRouter); // Rokid APK compatibility
 
 // Serve the eval lab HTML directly so a single `npm run dev:backend` is
@@ -36,6 +38,15 @@ app.use("/query", queryRouter); // Rokid APK compatibility
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(HERE, "..", "..");
 app.use("/lab", express.static(join(REPO_ROOT, "eval-lab", "public")));
+
+// Root + /login both serve the tenant-specific login page. Auth is
+// completed client-side against /api/auth/login; on success the SPA
+// stores a session blob in localStorage and forwards to /lab/.
+app.get(["/", "/login", "/login/"], (_req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.sendFile(join(REPO_ROOT, "eval-lab", "public", "login.html"));
+});
+
 app.get("/lab/", (_req, res) => {
   // Force the browser to revalidate on every load so dev-iteration changes
   // to brain-eval-lab.html show up after a normal refresh.

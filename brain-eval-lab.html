@@ -1468,6 +1468,13 @@
     <span class="sep">│</span>
     <span>llm: <span id="footer-llm" style="color:var(--warn);">…</span> · graph: <span style="color:var(--ink-2);">in-memory</span></span>
     <span style="margin-left:auto;">Pilot · Comer Industries · Pinion Guide Station</span>
+    <span class="sep">│</span>
+    <span id="footer-user" style="color:var(--ink-3);">—</span>
+    <button id="footer-signout" type="button"
+            style="margin-left:8px; background:transparent; border:1px solid var(--line-2); color:var(--ink-2); padding:2px 8px; border-radius:3px; font-family:var(--mono); font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer;"
+            title="End your session and return to the login screen">
+      Sign out
+    </button>
   </footer>
 
 </div>
@@ -1475,6 +1482,28 @@
 <div class="toast" id="toast"></div>
 
 <script>
+/* ════════════════════════════════════════════════════════════════════════════
+   AUTH GATE
+   The lab is a tenant-scoped tool. If no valid session is present in
+   localStorage we bounce back to /login. The session blob is written
+   by login.html on successful /api/auth/login. This is a client-side
+   gate only — it is NOT a substitute for real server-side auth.
+   ════════════════════════════════════════════════════════════════════════════ */
+(() => {
+  try {
+    const raw = localStorage.getItem('omnia.session');
+    const session = raw ? JSON.parse(raw) : null;
+    if (!session || session.tenant !== 'comer' || !session.expiresAt || session.expiresAt < Date.now()) {
+      localStorage.removeItem('omnia.session');
+      window.location.replace('/login');
+    } else {
+      window.__omniaSession = session;
+    }
+  } catch {
+    window.location.replace('/login');
+  }
+})();
+
 /* ════════════════════════════════════════════════════════════════════════════
    PINION GUIDE PROCEDURE — Comer-style seed data
    Real Tier-1 automotive content for the pinion guide station. 12 KeyStep
@@ -3939,6 +3968,26 @@ document.getElementById('run-all-btn').onclick = async () => {
 };
 
 /* ════════════════════════════════════════════════════════════════════════════
+   SESSION FOOTER + SIGN-OUT
+   Shows the logged-in user on the bottom bar and wires the Sign out button
+   to clear the localStorage session and bounce back to /login.
+   ════════════════════════════════════════════════════════════════════════════ */
+function wireSignOut() {
+  const userEl = document.getElementById('footer-user');
+  const btn = document.getElementById('footer-signout');
+  const session = window.__omniaSession;
+  if (userEl && session?.user?.username) {
+    userEl.textContent = `signed in as ${session.user.username}`;
+  }
+  if (btn) {
+    btn.onclick = () => {
+      localStorage.removeItem('omnia.session');
+      window.location.replace('/login');
+    };
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
    INITIAL RENDER
    ════════════════════════════════════════════════════════════════════════════ */
 window.addEventListener('load', () => {
@@ -3950,6 +3999,7 @@ window.addEventListener('load', () => {
   renderStrategyCards();
   renderArtifactList();
   wireChat();
+  wireSignOut();
 
   if (restored) toast(`Restored ${state.brain.artifacts.length} artifact${state.brain.artifacts.length===1?'':'s'} from last session`);
 
