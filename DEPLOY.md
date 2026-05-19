@@ -170,6 +170,20 @@ spikes / config rollouts stay isolated.
 
 ---
 
+## Monitor deploys from Cursor (Render MCP)
+
+To check deploy status, logs, and metrics without leaving the editor, wire
+Render's MCP server into Cursor. See [`docs/render-mcp-setup.md`](./docs/render-mcp-setup.md).
+
+Quick version:
+
+1. Create an API key at https://dashboard.render.com/u/settings?add-api-key
+2. Run `./scripts/setup-render-mcp.sh` and paste the key
+3. Restart MCP in Cursor → Settings → MCP
+4. In chat: `Set my Render workspace to <your workspace>` then `List deploys for comer-platform`
+
+---
+
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
