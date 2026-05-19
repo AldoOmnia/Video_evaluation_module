@@ -146,11 +146,13 @@
     .tour-step-label strong { color: var(--primary); font-weight: 500; }
     .tour-dots { display: flex; gap: 5px; }
     .tour-dots span {
-      width: 6px; height: 6px;
+      width: 8px; height: 8px;
       border-radius: 50%;
       background: var(--line-2);
+      cursor: pointer;
       transition: background 280ms ease, transform 280ms ease, box-shadow 280ms ease;
     }
+    .tour-dots span:hover { background: var(--ink-3); }
     .tour-dots span.is-active {
       background: var(--primary);
       box-shadow: 0 0 6px var(--primary-glow);
@@ -236,21 +238,18 @@
     }
     .glow-card.is-hot { border-color: rgba(255,255,255,0.18); }
 
-    .card-split {
-      display: grid;
-      grid-template-columns: minmax(180px, 32%) 1fr;
-      gap: 14px;
-      height: 100%;
-      align-items: stretch;
-    }
-    .card-copy {
+    .card-stack {
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      min-width: 0;
+      height: 100%;
+      min-height: 0;
+      gap: 10px;
+    }
+    .card-copy {
+      flex-shrink: 0;
     }
     .card-preview {
-      min-width: 0;
+      flex: 1;
       min-height: 0;
       display: flex;
       flex-direction: column;
@@ -259,15 +258,9 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
-      max-width: 520px;
-      margin: 0 auto;
-      height: auto;
-      align-self: center;
-      position: relative;
-      top: 50%;
-      transform: translateY(-50%);
+      height: 100%;
     }
-    .intro-step { display: flex; align-items: center; justify-content: center; }
+    .tour-step.intro-step { display: flex; align-items: center; }
 
     .step-tag {
       font-family: var(--mono);
@@ -326,20 +319,39 @@
 
     .mini-brain {
       display: grid;
-      grid-template-columns: 72px 1fr 118px;
+      grid-template-columns: minmax(64px, 15%) 1fr minmax(96px, 24%);
       height: 100%;
-      min-height: 128px;
-      max-height: 152px;
+      min-height: 0;
       font-family: var(--mono);
-      font-size: 7px;
+      font-size: clamp(6px, 0.65vw, 8px);
     }
-    .mini-brain .col { border-right: 1px solid var(--line); padding: 6px; }
-    .mini-brain .col:last-child { border-right: none; }
-    .mini-brain .col:last-child .fov-mini {
-      aspect-ratio: 1.1;
-      max-height: 78px;
+    .mini-brain .col {
+      border-right: 1px solid var(--line);
+      padding: 6px 8px;
+      min-height: 0;
+      overflow: hidden;
     }
-    .mini-eval .fov-mini { max-height: 56px; aspect-ratio: 1.25; }
+    .mini-brain .col:last-child {
+      border-right: none;
+      display: flex;
+      flex-direction: column;
+    }
+    .mini-brain-card {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: 4px;
+      padding: 6px;
+    }
+    .mini-brain .fov-mini {
+      flex: 1;
+      min-height: 48px;
+      aspect-ratio: unset;
+      max-height: none;
+    }
     .mini-ph {
       color: var(--ink-3);
       letter-spacing: 0.1em;
@@ -350,11 +362,12 @@
     .mini-drop {
       border: 1px dashed var(--line-2);
       border-radius: 3px;
-      padding: 8px 5px;
+      padding: 5px 4px;
       text-align: center;
       color: var(--ink-3);
-      margin-bottom: 5px;
-      line-height: 1.35;
+      margin-bottom: 4px;
+      line-height: 1.3;
+      font-size: 0.95em;
     }
     .mini-graph {
       position: relative;
@@ -376,12 +389,6 @@
       color: var(--ink-3);
     }
     .mini-live { color: var(--ok); font-size: 7px; }
-    .mini-brain-card {
-      background: var(--bg-2);
-      border: 1px solid var(--line-2);
-      border-radius: 4px;
-      padding: 6px;
-    }
     .mini-k {
       font-size: 7px;
       color: #4ade80;
@@ -391,11 +398,14 @@
     }
     .fov-mini {
       position: relative;
-      aspect-ratio: 1;
       background: #000;
       border: 1px solid #222;
       border-radius: 4px;
       overflow: hidden;
+    }
+    .mini-eval .fov-mini {
+      min-height: 44px;
+      flex-shrink: 0;
     }
     .fov-mini .ac {
       position: absolute;
@@ -407,10 +417,10 @@
       flex-direction: column;
       gap: 2px;
     }
-    .fov-mini .ac-label  { color: #00996B; font-size: 6px; }
-    .fov-mini .ac-value  { color: #fff; font-size: 11px; font-weight: 500; line-height: 1.1; }
-    .fov-mini .ac-action { color: #00E5A0; font-size: 7px; }
-    .fov-mini .ac-source { color: #888; font-size: 6px; }
+    .fov-mini .ac-label  { color: #00996B; font-size: 0.85em; }
+    .fov-mini .ac-value  { color: #fff; font-size: 1.35em; font-weight: 500; line-height: 1.1; }
+    .fov-mini .ac-action { color: #00E5A0; font-size: 0.95em; }
+    .fov-mini .ac-source { color: #888; font-size: 0.85em; }
     .fov-corner {
       position: absolute;
       width: 8px; height: 8px;
@@ -424,12 +434,16 @@
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
       height: 100%;
-      min-height: 128px;
-      max-height: 152px;
+      min-height: 0;
       font-family: var(--mono);
-      font-size: 7px;
+      font-size: clamp(6px, 0.65vw, 8px);
     }
-    .mini-eval .col { border-right: 1px solid var(--line); padding: 6px; }
+    .mini-eval .col {
+      border-right: 1px solid var(--line);
+      padding: 6px 8px;
+      min-height: 0;
+      overflow: hidden;
+    }
     .mini-eval .col:last-child { border-right: none; }
     .mini-tl-row {
       display: grid;
@@ -469,11 +483,15 @@
     .mini-chip.caught { color: var(--ok); background: rgba(74,222,128,0.08); }
     .mini-chip.miss { color: var(--err); background: rgba(239,68,68,0.08); }
     .mini-ao {
-      margin-top: 8px;
-      padding: 6px;
+      margin-top: 4px;
+      padding: 5px;
       border: 1px solid var(--line-2);
       border-radius: 4px;
       background: var(--bg-2);
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
     }
     .mini-ao .code {
       display: inline-block;
@@ -545,17 +563,15 @@
 
     @media (max-width: 720px) {
       .stage { padding: 8px 14px 6px; }
-      .card-split { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-      .card-copy { justify-content: flex-start; }
-      .glow-card.card-intro { top: 0; transform: none; margin-top: 8px; }
-      .mini-brain, .mini-eval { max-height: 140px; }
+      .mini-brain { grid-template-columns: 56px 1fr 88px; }
     }
 
     @media (max-height: 640px) {
       .hero-brand img { width: 28px; height: 28px; }
       .hero-brand h1 { font-size: 13px; }
-      .mini-brain, .mini-eval { min-height: 110px; max-height: 120px; }
       .glow-card { padding: 10px 12px; }
+      .card-stack { gap: 6px; }
+      .step-title { font-size: 14px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -580,7 +596,7 @@
       </div>
       <div class="top-bar-right">
         <div class="tour-step-label" id="tour-label">Overview</div>
-        <div class="tour-dots" id="tour-dots" aria-hidden="true">
+        <div class="tour-dots" id="tour-dots" role="tablist" aria-label="Tour steps">
           <span data-i="0"></span>
           <span data-i="1"></span>
           <span data-i="2"></span>
@@ -608,7 +624,7 @@
 
       <!-- Step 1: Brain only -->
       <article class="tour-step" data-step="brain">
-        <div class="glow-card card-split" data-glow>
+        <div class="glow-card card-stack" data-glow>
           <div class="card-copy">
             <div class="step-tag">01 · Brain mode</div>
             <h2 class="step-title">Knowledge graph + glasses preview</h2>
@@ -672,7 +688,7 @@
 
       <!-- Step 2: Eval only -->
       <article class="tour-step" data-step="eval">
-        <div class="glow-card card-split" data-glow>
+        <div class="glow-card card-stack" data-glow>
           <div class="card-copy">
             <div class="step-tag">02 · Eval mode</div>
             <h2 class="step-title">Agent sessions + error taxonomy</h2>
@@ -708,7 +724,7 @@
                   </div>
                   <div class="mini-ao">
                     <span class="code">B04 · torque</span>
-                    <div class="fov-mini" style="aspect-ratio:1.35">
+                    <div class="fov-mini">
                       <div class="ac">
                         <span class="ac-label">TORQUE SEQUENCE</span>
                         <span class="ac-value">3-pass req.</span>
@@ -825,6 +841,19 @@
 
     btnNext.addEventListener('click', advanceNow);
     btnSkip.addEventListener('click', enterLab);
+
+    dots.forEach((dot, idx) => {
+      dot.setAttribute('role', 'button');
+      dot.setAttribute('tabindex', '0');
+      dot.setAttribute('aria-label', `Go to step ${idx + 1}`);
+      dot.addEventListener('click', () => goToStep(idx));
+      dot.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          goToStep(idx);
+        }
+      });
+    });
 
     document.getElementById('tour').addEventListener('mouseenter', () => { paused = true; });
     document.getElementById('tour').addEventListener('mouseleave', () => {
