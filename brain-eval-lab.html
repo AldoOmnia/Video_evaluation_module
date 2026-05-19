@@ -326,12 +326,32 @@
   .live-toggle {
     display: inline-flex; align-items: center; gap: 8px;
     font-size: 11px; color: var(--ink-2); cursor: pointer;
-    padding: 4px 8px; border: 1px solid var(--line);
-    border-radius: 3px; background: var(--bg-2);
+    padding: 6px 10px; border: 1px solid var(--line);
+    border-radius: 4px; background: var(--bg-2);
     margin-right: 8px; user-select: none;
+    transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
   }
   .live-toggle:hover { border-color: var(--line-2); color: var(--ink); }
-  .live-toggle input { accent-color: var(--acc); cursor: pointer; }
+  .live-toggle.armed {
+    border-color: #4ade80;
+    background: rgba(74,222,128,0.08);
+    box-shadow: 0 0 0 1px rgba(74,222,128,0.25);
+    color: var(--ink);
+  }
+  .live-toggle.armed .live-toggle-hint {
+    color: #4ade80;
+    content: 'ARMED · runs will hit real LLM';
+  }
+  .live-toggle input {
+    accent-color: var(--acc); cursor: pointer;
+    width: 14px; height: 14px;
+  }
+  .live-toggle-hint {
+    font-family: var(--mono); font-size: 9.5px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--warn, #d80);
+    padding-left: 8px; border-left: 1px solid var(--line-2);
+  }
 
   /* ── Graph canvas ────────────────────── */
   #cy { width: 100%; height: 100%; background: var(--bg); }
@@ -1243,10 +1263,11 @@
           <div class="cards" id="strategy-cards"></div>
         </div>
         <div class="run-bar">
-          <label class="live-toggle" title="Route runs through /api/eval (real LLM if ANTHROPIC_API_KEY is set, backend stub otherwise)">
+          <label class="live-toggle" id="live-toggle-wrap" title="Route runs through /api/eval (real LLM if ANTHROPIC_API_KEY is set, backend stub otherwise)">
             <input type="checkbox" id="live-eval-toggle" />
             <span>Use backend LLM</span>
             <span class="status-pill is-stub" id="eval-status"><span class="dot"></span><span class="lbl">stub</span></span>
+            <span class="live-toggle-hint" id="live-toggle-hint">required for Full-view glasses verdicts</span>
           </label>
           <button class="btn" id="run-btn" disabled>Run evaluation</button>
           <button class="btn btn-secondary" id="run-all-btn" disabled>Run all 4 for ablation</button>
@@ -2980,8 +3001,14 @@ function renderEvalSession() {
 window.USE_BACKEND_EVAL = false;
 
 async function runEvaluation(annotations, hwId, stratId) {
-  if (window.USE_BACKEND_EVAL) {
+  // Read the toggle state DIRECTLY from the DOM so we don't depend on the
+  // onchange handler having already fired. Fall back to window.USE_BACKEND_EVAL
+  // for programmatic callers.
+  const toggleEl = document.getElementById('live-eval-toggle');
+  const useBackend = toggleEl ? toggleEl.checked : !!window.USE_BACKEND_EVAL;
+  if (useBackend) {
     try {
+      toast('Calling backend LLM — this can take a few seconds per anomaly…');
       const r = await fetch(`${PLATFORM_API}/api/eval`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -3002,12 +3029,18 @@ async function runEvaluation(annotations, hwId, stratId) {
       if (r.ok) {
         const data = await r.json();
         if (window.applyStubbedFromResponse) window.applyStubbedFromResponse(data);
+        const withAo = (data.events || []).filter(e => e.agentOutput).length;
+        toast(`Backend OK · ${withAo} contextual verdict${withAo===1?'':'s'} returned`);
         return data;
       }
       console.warn('Eval backend returned', r.status, '— falling back to sim');
+      toast(`Backend returned ${r.status} — falling back to in-browser sim (no Full view)`);
     } catch (err) {
       console.warn('Eval backend unreachable, using local sim.', err);
+      toast('Backend unreachable — using in-browser sim (no Full view)');
     }
+  } else {
+    toast('Backend toggle is OFF — running in-browser sim (no Full view button)');
   }
 
   const hw = HARDWARE_PROFILES[hwId];
@@ -3077,10 +3110,22 @@ async function runEvaluation(annotations, hwId, stratId) {
       }
     }
 
+    // Build a short rationale even for the sim path so the row stays
+    // clickable. No real LLM ran here, so we tell the user that explicitly.
+    let simRationale;
+    if (a.label === 'incorrect' && a.errorType) {
+      const et = ERROR_TAXONOMY[a.errorType];
+      simRationale = `sim · ${a.errorType}${et?.label ? ' — '+et.label : ''}` +
+        ` · outcome=${outcome}` +
+        (a.note ? ` · ${a.note}` : '') +
+        ` · enable "Use backend LLM" + Run again for a real contextual verdict`;
+    }
     events.push({
       ts: a.timestamp, phase: a.phase, label: a.label, note: a.note,
+      stepId: a.keystepId,
       errorType: a.errorType, outcome,
-      inputTokens: Math.round(inT), latency: Math.round(latency)
+      inputTokens: Math.round(inT), latency: Math.round(latency),
+      rationale: simRationale
     });
     if (events.length % 8 === 0) await sleep(0);
   }
@@ -3432,8 +3477,22 @@ document.getElementById('clear-all').onclick = clearAllArtifacts;
 
 // "Use backend LLM" checkbox in Evaluate run bar
 const liveToggle = document.getElementById('live-eval-toggle');
+const liveToggleWrap = document.getElementById('live-toggle-wrap');
+const liveToggleHint = document.getElementById('live-toggle-hint');
+function paintLiveToggle() {
+  if (!liveToggle) return;
+  const on = liveToggle.checked;
+  window.USE_BACKEND_EVAL = on;
+  if (liveToggleWrap) liveToggleWrap.classList.toggle('armed', on);
+  if (liveToggleHint) {
+    liveToggleHint.textContent = on
+      ? 'ARMED · runs will hit real LLM'
+      : 'required for Full-view glasses verdicts';
+  }
+}
 if (liveToggle) {
-  liveToggle.onchange = () => { window.USE_BACKEND_EVAL = liveToggle.checked; };
+  liveToggle.onchange = paintLiveToggle;
+  paintLiveToggle();
 }
 
 /* ── LLM status pill: single source of truth ───────────────────────────────
