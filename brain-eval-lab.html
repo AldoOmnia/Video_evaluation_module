@@ -802,6 +802,166 @@
     overflow: hidden;
   }
   .agent-out .ao-gline:empty::before { content: " "; }
+  .agent-out .ao-full-btn {
+    margin-left: auto; align-self: flex-start;
+    background: var(--bg-3, #0a0a0a);
+    border: 1px solid var(--line-2);
+    color: var(--ink-1);
+    padding: 5px 10px 5px 8px;
+    border-radius: 4px;
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: all 120ms ease;
+  }
+  .agent-out .ao-full-btn:hover {
+    background: var(--c-advice, #c2410c);
+    border-color: var(--c-advice, #c2410c);
+    color: #fff;
+  }
+  .agent-out .ao-full-icon {
+    width: 12px; height: 12px; display: inline-block;
+    background:
+      linear-gradient(currentColor, currentColor) top left / 5px 1.5px no-repeat,
+      linear-gradient(currentColor, currentColor) top left / 1.5px 5px no-repeat,
+      linear-gradient(currentColor, currentColor) top right / 5px 1.5px no-repeat,
+      linear-gradient(currentColor, currentColor) top right / 1.5px 5px no-repeat,
+      linear-gradient(currentColor, currentColor) bottom left / 5px 1.5px no-repeat,
+      linear-gradient(currentColor, currentColor) bottom left / 1.5px 5px no-repeat,
+      linear-gradient(currentColor, currentColor) bottom right / 5px 1.5px no-repeat,
+      linear-gradient(currentColor, currentColor) bottom right / 1.5px 5px no-repeat;
+  }
+
+  /* ── Full-view modal — worker-eye-view at presentation size ───────────── */
+  .ao-modal-backdrop {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.82);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 32px;
+    animation: ao-fade 140ms ease-out;
+  }
+  @keyframes ao-fade { from { opacity: 0; } to { opacity: 1; } }
+  .ao-modal {
+    position: relative;
+    width: min(1180px, 100%);
+    max-height: calc(100vh - 64px);
+    overflow: auto;
+    background: var(--bg-1, #0d0d0d);
+    border: 1px solid var(--line-2);
+    border-left: 4px solid var(--c-advice, #c2410c);
+    border-radius: 8px;
+    padding: 28px 32px 32px;
+    color: var(--ink-1);
+    font-family: var(--sans, system-ui);
+    box-shadow: 0 12px 64px rgba(0,0,0,0.55);
+  }
+  .ao-modal-close {
+    position: absolute; top: 14px; right: 16px;
+    background: transparent; border: none; cursor: pointer;
+    color: var(--ink-2); font-size: 22px; line-height: 1;
+    padding: 4px 8px; border-radius: 4px;
+  }
+  .ao-modal-close:hover { background: var(--bg-2); color: var(--ink-1); }
+  .ao-modal-header {
+    display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .ao-modal-chip {
+    font-family: var(--mono); font-size: 13px; font-weight: 700;
+    padding: 5px 12px; border-radius: 14px;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    white-space: nowrap; align-self: flex-start;
+  }
+  .ao-modal-sub {
+    font-family: var(--mono); font-size: 10.5px;
+    color: var(--ink-3); letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .ao-modal-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.9fr);
+    gap: 28px;
+  }
+  @media (max-width: 880px) {
+    .ao-modal-grid { grid-template-columns: 1fr; }
+  }
+  .ao-modal-section { margin-bottom: 18px; }
+  .ao-modal-section:last-child { margin-bottom: 0; }
+  .ao-modal-label {
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--ink-3); margin-bottom: 8px;
+  }
+  .ao-modal-body {
+    font-size: 14px; line-height: 1.6; color: var(--ink-1);
+  }
+  .ao-modal-body-lg {
+    font-size: 17px; line-height: 1.55;
+  }
+  .ao-modal-fix {
+    background: var(--bg-2);
+    border-left: 3px solid var(--ok, #4ade80);
+    padding: 12px 16px; border-radius: 4px;
+  }
+  .ao-modal-proc {
+    background: var(--bg-2);
+    border: 1px dashed var(--line-2);
+    border-radius: 5px;
+    padding: 12px 16px;
+    display: grid; gap: 8px;
+    font-size: 13.5px;
+  }
+  .ao-modal-proc > div {
+    display: flex; align-items: baseline; gap: 14px;
+    line-height: 1.5;
+  }
+  .ao-modal-k {
+    display: inline-block;
+    min-width: 110px; flex-shrink: 0;
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .ao-modal-right {
+    display: flex; flex-direction: column; gap: 12px;
+    align-items: center; justify-content: flex-start;
+    padding: 6px 0;
+  }
+  .ao-modal-lens-shell {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .ao-modal-lens {
+    padding: 28px 32px;
+    background:
+      radial-gradient(ellipse at center, rgba(74,222,128,0.18), rgba(74,222,128,0.02) 70%),
+      #050a06;
+    border: 1px solid rgba(74,222,128,0.55);
+    border-radius: 12px;
+    box-shadow:
+      inset 0 0 32px rgba(74,222,128,0.14),
+      0 0 28px rgba(74,222,128,0.12);
+    font-family: var(--mono);
+    color: #80f5ad;
+    text-shadow:
+      0 0 8px rgba(74,222,128,0.75),
+      0 0 18px rgba(74,222,128,0.35);
+    font-size: 26px; line-height: 1.45;
+    letter-spacing: 0.06em;
+  }
+  .ao-modal-gline {
+    display: block;
+    width: var(--lens-w, 22ch);
+    white-space: pre;
+    overflow: hidden;
+  }
+  .ao-modal-gline:empty::before { content: " "; }
+  .ao-modal-lens-caption {
+    font-family: var(--mono); font-size: 10.5px;
+    color: var(--ink-3); letter-spacing: 0.1em; text-transform: uppercase;
+    text-align: center;
+  }
   .empty { padding: 40px 16px; text-align: center; color: var(--ink-3); font-family: var(--mono); font-size: 11px; }
   .summary { padding: 16px; background: var(--bg-2); border-bottom: 1px solid var(--line); }
   .summary h4 {
@@ -2327,26 +2487,37 @@ function escapeHTML(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+/* Cache the most recently rendered agent outputs so the full-view modal can
+   look them up by event id without re-deriving from DOM. */
+window.__agentOutputCache = window.__agentOutputCache || {};
+
 /* Render the structured per-event agent verdict in the run-detail panel.
    Layout follows the Ti-Prego "contextual output" pattern:
      1. Taxonomy classification chip (errorCode · group)
      2. Diagnosis line — what was wrong
      3. Procedural understanding — completed sequence → current → next
      4. Glasses preview — the literal lines the worker sees on the lens
-*/
-function renderAgentOutput(ao, hw) {
+   `eid` is an optional event id used by the full-view modal lookup. */
+function renderAgentOutput(ao, hw, eid) {
   if (!ao) return '';
+  if (eid) {
+    window.__agentOutputCache[eid] = { ao, hw };
+  }
   const grpLabel = ao.errorGroup ? (ERROR_GROUPS[ao.errorGroup]?.label || ao.errorGroup) : '';
   const grpColor = ao.errorGroup ? (ERROR_GROUPS[ao.errorGroup]?.color || '#525252') : '#525252';
-  const ecLabel = ao.errorCode ? (ERROR_TAXONOMY[ao.errorCode]?.label || ao.errorCode) : '(no error)';
   const completed = (ao.completedSequence || []).join(' → ') || '(start of run)';
   const cur = ao.currentStep || '—';
   const next = ao.nextAction || '—';
   const lines = ao.glassesMessage || [];
   const lensW = (hw && hw.display && hw.display.max_chars_per_line) || 22;
   const lensH = (hw && hw.display && hw.display.max_lines) || 4;
-  // Pad lines so the preview always shows the full budget the agent had.
   const padded = lines.slice(0, lensH).concat(Array(Math.max(0, lensH - lines.length)).fill(''));
+
+  const fullBtn = eid
+    ? `<button class="ao-full-btn" title="Open the worker's-eye-view in full size" onclick="event.stopPropagation();openAgentOutputModal('${eid}')">
+         <span class="ao-full-icon"></span> Full view
+       </button>`
+    : '';
 
   return `<div class="agent-out">
     <div class="ao-row">
@@ -2354,6 +2525,7 @@ function renderAgentOutput(ao, hw) {
         ${ao.errorCode || '—'}${ao.errorGroup ? ` · ${ao.errorGroup} ${escapeHTML(grpLabel)}` : ''}
       </span>
       <span class="ao-diag">${escapeHTML(ao.diagnosis || '')}</span>
+      ${fullBtn}
     </div>
     ${ao.fix ? `<div class="ao-fix"><span class="ao-k">FIX</span>${escapeHTML(ao.fix)}</div>` : ''}
     <div class="ao-proc">
@@ -2369,6 +2541,77 @@ function renderAgentOutput(ao, hw) {
     </div>
   </div>`;
 }
+
+/* ── Full-view modal — what the worker sees, at presentation size ─────── */
+function openAgentOutputModal(eid) {
+  const entry = window.__agentOutputCache && window.__agentOutputCache[eid];
+  if (!entry) return;
+  const { ao, hw } = entry;
+  const grpLabel = ao.errorGroup ? (ERROR_GROUPS[ao.errorGroup]?.label || ao.errorGroup) : '';
+  const grpColor = ao.errorGroup ? (ERROR_GROUPS[ao.errorGroup]?.color || '#525252') : '#525252';
+  const completed = (ao.completedSequence || []).join('  →  ') || '(start of run)';
+  const cur = ao.currentStep || '—';
+  const next = ao.nextAction || '—';
+  const lines = ao.glassesMessage || [];
+  const lensW = (hw && hw.display && hw.display.max_chars_per_line) || 22;
+  const lensH = (hw && hw.display && hw.display.max_lines) || 4;
+  const padded = lines.slice(0, lensH).concat(Array(Math.max(0, lensH - lines.length)).fill(''));
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'ao-modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="ao-modal" role="dialog" aria-modal="true">
+      <button class="ao-modal-close" title="Close (Esc)">✕</button>
+      <div class="ao-modal-header">
+        <span class="ao-modal-chip" style="background:${grpColor}22;border:1px solid ${grpColor}66;color:${grpColor};">
+          ${ao.errorCode || '—'}${ao.errorGroup ? ` · GROUP ${ao.errorGroup} — ${escapeHTML(grpLabel.toUpperCase())}` : ''}
+        </span>
+        <span class="ao-modal-sub">Agent verdict · Comer Pinion Guide v1 · ${escapeHTML(hw && hw.name || 'Rokid AI Glasses')}</span>
+      </div>
+      <div class="ao-modal-grid">
+        <div class="ao-modal-left">
+          <div class="ao-modal-section">
+            <div class="ao-modal-label">DIAGNOSIS — what is wrong</div>
+            <div class="ao-modal-body ao-modal-body-lg">${escapeHTML(ao.diagnosis || '—')}</div>
+          </div>
+          ${ao.fix ? `<div class="ao-modal-section">
+            <div class="ao-modal-label">CORRECTIVE ACTION</div>
+            <div class="ao-modal-body ao-modal-body-lg ao-modal-fix">${escapeHTML(ao.fix)}</div>
+          </div>` : ''}
+          <div class="ao-modal-section">
+            <div class="ao-modal-label">PROCEDURAL UNDERSTANDING</div>
+            <div class="ao-modal-proc">
+              <div><span class="ao-modal-k">COMPLETED</span><span>${escapeHTML(completed)}</span></div>
+              <div><span class="ao-modal-k">CURRENT</span><span>${escapeHTML(cur)}</span></div>
+              <div><span class="ao-modal-k">NEXT</span><span>${escapeHTML(next)}</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="ao-modal-right">
+          <div class="ao-modal-label" style="text-align:center;color:#4ade80;">
+            AI AGENT MESSAGE ON GLASSES
+          </div>
+          <div class="ao-modal-lens-shell">
+            <div class="ao-modal-lens" style="--lens-w:${lensW}ch;--lens-h:${lensH};">
+              ${padded.map(l => `<div class="ao-modal-gline">${escapeHTML(l)}</div>`).join('')}
+            </div>
+            <div class="ao-modal-lens-caption">${lensW} chars × ${lensH} lines · what the worker sees in their field of view</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  document.body.appendChild(backdrop);
+  const close = () => {
+    document.removeEventListener('keydown', onKey);
+    backdrop.remove();
+  };
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+  backdrop.querySelector('.ao-modal-close').onclick = close;
+}
+window.openAgentOutputModal = openAgentOutputModal;
 
 function relativeTime(ts) {
   if (!ts) return '';
@@ -2922,7 +3165,7 @@ function renderRuns() {
           // the new contextual format. Subsequent ones stay collapsed.
           const isOpen = idx === 0 && hasDetail;
           const body = e.agentOutput
-            ? renderAgentOutput(e.agentOutput, r.hardware)
+            ? renderAgentOutput(e.agentOutput, r.hardware, eid)
             : (e.rationale
                 ? `<div class="agent-out agent-out-plain">↳ ${escapeHTML(String(e.rationale))}</div>`
                 : '');
