@@ -693,13 +693,29 @@
     max-height: 240px; overflow-y: auto;
   }
   .event-row {
-    display: grid; grid-template-columns: 14px 50px 1fr 70px 50px; gap: 8px;
+    display: grid;
+    grid-template-columns: 14px 50px 1fr 70px 50px auto;
+    gap: 8px;
     padding: 6px 6px; border-bottom: 1px dotted var(--line);
     align-items: center; font-size: 11px;
   }
   .event-row .ev-phase {
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
+  .event-row .ev-full-btn {
+    background: var(--c-advice, #c2410c);
+    color: #fff; border: none;
+    padding: 4px 9px 4px 7px; border-radius: 4px;
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    cursor: pointer; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 5px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
+    transition: filter 120ms ease, transform 80ms ease;
+  }
+  .event-row .ev-full-btn:hover { filter: brightness(1.15); }
+  .event-row .ev-full-btn:active { transform: translateY(1px); }
+  .event-row .ev-full-placeholder { width: 1px; }
   .event-row-expandable {
     cursor: pointer; border-radius: 3px;
     transition: background-color 120ms ease;
@@ -3161,6 +3177,11 @@ function renderRuns() {
                           : (e.outcome === 'false_positive' || e.outcome === 'false_pos') ? 'fp' : '';
           const eid = `${r.id}-ev${idx}`;
           const hasDetail = !!(e.agentOutput || e.rationale);
+          const hasAgent = !!e.agentOutput;
+          // Cache the agent output now (before any HTML body is built) so the
+          // Full view button on the row header can launch the modal even when
+          // the per-event detail body is collapsed.
+          if (hasAgent) window.__agentOutputCache[eid] = { ao: e.agentOutput, hw: r.hardware };
           // Auto-open the first anomaly event so the user immediately sees
           // the new contextual format. Subsequent ones stay collapsed.
           const isOpen = idx === 0 && hasDetail;
@@ -3169,12 +3190,18 @@ function renderRuns() {
             : (e.rationale
                 ? `<div class="agent-out agent-out-plain">↳ ${escapeHTML(String(e.rationale))}</div>`
                 : '');
+          const fullViewBtn = hasAgent
+            ? `<button class="ev-full-btn" title="Open the worker's-eye full-size view of this verdict" onclick="event.stopPropagation();openAgentOutputModal('${eid}')">
+                 <span class="ao-full-icon"></span> Full view
+               </button>`
+            : '<span class="ev-full-placeholder"></span>';
           return `<div class="event-row event-row-expandable ${isOpen ? 'is-open' : ''}" data-eid="${eid}" onclick="toggleEventDetail(event,'${eid}')">
             <span class="ev-chev">${hasDetail ? (isOpen ? '▾' : '▸') : ' '}</span>
             <span class="ev-ts">${formatTs(e.ts)}</span>
             <span class="ev-phase">${e.phase}${et?' · <span style="color:var(--c-advice)">'+et+'</span>':''}${e.note?' — '+e.note:''}</span>
             <span class="ev-out ${outClass}">${e.outcome}</span>
             <span class="ev-tk">${e.inputTokens||0}t</span>
+            ${fullViewBtn}
           </div>
           ${hasDetail ? `<div class="event-detail" id="${eid}-body" style="display:${isOpen ? 'block' : 'none'};">${body}</div>` : ''}`;
         }).join('')}
