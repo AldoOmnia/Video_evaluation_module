@@ -693,63 +693,107 @@
     max-height: 240px; overflow-y: auto;
   }
   .event-row {
-    display: grid; grid-template-columns: 50px 1fr 70px 50px; gap: 8px;
-    padding: 4px 0; border-bottom: 1px dotted var(--line);
+    display: grid; grid-template-columns: 14px 50px 1fr 70px 50px; gap: 8px;
+    padding: 6px 6px; border-bottom: 1px dotted var(--line);
+    align-items: center; font-size: 11px;
+  }
+  .event-row .ev-phase {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .event-row-expandable {
+    cursor: pointer; border-radius: 3px;
+    transition: background-color 120ms ease;
+  }
+  .event-row-expandable:hover { background: var(--bg-2); }
+  .event-row-expandable.is-open {
+    background: var(--bg-2);
+    border-bottom-color: transparent;
+  }
+  .event-row .ev-chev {
+    color: var(--ink-2); font-size: 10px; text-align: center;
+    user-select: none;
   }
   .event-row:last-child { border-bottom: none; }
-  .event-row .ev-ts { color: var(--ink-3); }
+  .event-row .ev-ts { color: var(--ink-3); font-family: var(--mono); font-size: 10px; }
   .event-row .ev-out.caught { color: var(--ok); }
   .event-row .ev-out.miss { color: var(--err); }
   .event-row .ev-out.fp { color: var(--warn); }
-  .event-row .ev-tk { color: var(--ink-3); text-align: right; }
+  .event-row .ev-tk { color: var(--ink-3); text-align: right; font-family: var(--mono); font-size: 10px; }
+  .event-detail {
+    padding: 0 6px 12px 6px;
+    border-bottom: 1px dotted var(--line);
+    background: var(--bg-2);
+  }
+  .event-detail:last-child { border-bottom: none; }
   /* ── Agent contextual output (per anomaly event) ──────────────────────── */
   .agent-out {
-    grid-column: 1 / -1;
-    margin: 4px 0 10px 70px;
-    padding: 10px 12px;
+    margin: 6px 0 10px 22px;
+    padding: 14px 16px;
     background: var(--bg-2);
     border: 1px solid var(--line-2);
-    border-left: 2px solid var(--c-advice, #c2410c);
+    border-left: 3px solid var(--c-advice, #c2410c);
     border-radius: 4px;
-    font-family: var(--mono);
-    font-size: 10px;
-    line-height: 1.55;
-    color: var(--ink-2);
-    display: flex; flex-direction: column; gap: 6px;
+    font-family: var(--sans, system-ui);
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ink-1);
+    display: flex; flex-direction: column; gap: 10px;
   }
-  .agent-out .ao-row { display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+  .agent-out.agent-out-plain {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--ink-2); padding: 8px 12px;
+  }
+  .agent-out .ao-row { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
   .agent-out .ao-chip {
-    font-size: 9.5px; padding: 2px 7px; border-radius: 10px;
-    text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+    font-family: var(--mono);
+    font-size: 11px; padding: 3px 9px; border-radius: 11px;
+    text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
     white-space: nowrap;
   }
-  .agent-out .ao-diag { color: var(--ink-1); font-size: 10.5px; flex: 1 1 240px; }
-  .agent-out .ao-fix {
-    background: var(--bg-3, #0a0a0a); padding: 4px 8px; border-radius: 3px;
-    font-size: 10px; color: var(--ink-1);
+  .agent-out .ao-diag {
+    color: var(--ink-1); font-size: 13px; flex: 1 1 240px;
+    line-height: 1.55;
   }
-  .agent-out .ao-proc { display: grid; gap: 2px; }
-  .agent-out .ao-proc > div { color: var(--ink-2); }
+  .agent-out .ao-fix {
+    background: var(--bg-3, #0a0a0a); padding: 8px 12px; border-radius: 4px;
+    font-size: 12.5px; color: var(--ink-1);
+    border-left: 2px solid var(--ok, #4ade80);
+  }
+  .agent-out .ao-proc {
+    display: grid; gap: 6px; padding: 8px 12px;
+    background: var(--bg-3, #0a0a0a); border-radius: 4px;
+    border: 1px dashed var(--line-2);
+  }
+  .agent-out .ao-proc > div {
+    color: var(--ink-2); font-size: 12px; line-height: 1.5;
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .agent-out .ao-proc > div > :not(.ao-k) {
+    color: var(--ink-1);
+  }
   .agent-out .ao-k {
-    display: inline-block; min-width: 80px;
-    font-size: 8.5px; letter-spacing: 0.12em; text-transform: uppercase;
-    color: var(--ink-3); margin-right: 8px;
+    display: inline-block; min-width: 90px; flex-shrink: 0;
+    font-family: var(--mono);
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-3);
   }
   .agent-out .ao-k-lens {
-    color: #4ade80; letter-spacing: 0.15em; font-weight: 600; margin-bottom: 4px;
+    display: block; min-width: 0;
+    color: #4ade80; letter-spacing: 0.18em; font-weight: 700;
+    margin-bottom: 8px; font-size: 11px;
   }
   .agent-out .ao-glasses-wrap { margin-top: 4px; }
   .agent-out .ao-glasses {
     width: max-content; max-width: 100%;
-    padding: 10px 12px;
-    background: radial-gradient(ellipse at center, rgba(74,222,128,0.10), rgba(74,222,128,0.02) 70%), #050a06;
-    border: 1px solid rgba(74,222,128,0.35);
-    border-radius: 6px;
-    box-shadow: inset 0 0 12px rgba(74,222,128,0.08);
+    padding: 14px 18px;
+    background: radial-gradient(ellipse at center, rgba(74,222,128,0.12), rgba(74,222,128,0.02) 70%), #050a06;
+    border: 1px solid rgba(74,222,128,0.45);
+    border-radius: 8px;
+    box-shadow: inset 0 0 18px rgba(74,222,128,0.10), 0 0 12px rgba(74,222,128,0.06);
     font-family: var(--mono);
-    color: #6ef0a0; text-shadow: 0 0 6px rgba(74,222,128,0.45);
-    font-size: 11px; line-height: 1.5;
-    letter-spacing: 0.03em;
+    color: #80f5ad; text-shadow: 0 0 8px rgba(74,222,128,0.55);
+    font-size: 15px; line-height: 1.55;
+    letter-spacing: 0.04em;
   }
   .agent-out .ao-gline {
     display: block;
@@ -2867,23 +2911,29 @@ function renderRuns() {
         ${renderGroupBreakdown(m.byGroup)}
         ${renderErrorTypeBreakdown(m.byType)}
         <div style="margin-top:10px;font-family:var(--mono);font-size:9px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.08em;">Anomaly events — diagnosis · fix · glasses message</div>
-        ${r.events.filter(e => e.label === 'incorrect').slice(0, 16).map(e => {
+        ${r.events.filter(e => e.label === 'incorrect').slice(0, 16).map((e, idx) => {
           const et = e.errorType ? ERROR_TAXONOMY[e.errorType]?.label || e.errorType : '';
           const outClass = e.outcome === 'caught' ? 'caught'
                           : e.outcome === 'miss' || e.outcome === 'missed' ? 'miss'
                           : (e.outcome === 'false_positive' || e.outcome === 'false_pos') ? 'fp' : '';
-          const r1 = `<div class="event-row">
-            <span class="ev-ts">${formatTs(e.ts)}</span>
-            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.phase}${et?' · <span style="color:var(--c-advice)">'+et+'</span>':''}${e.note?' — '+e.note:''}</span>
-            <span class="ev-out ${outClass}">${e.outcome}</span>
-            <span class="ev-tk">${e.inputTokens||0}t</span>
-          </div>`;
-          const r2 = e.agentOutput
+          const eid = `${r.id}-ev${idx}`;
+          const hasDetail = !!(e.agentOutput || e.rationale);
+          // Auto-open the first anomaly event so the user immediately sees
+          // the new contextual format. Subsequent ones stay collapsed.
+          const isOpen = idx === 0 && hasDetail;
+          const body = e.agentOutput
             ? renderAgentOutput(e.agentOutput, r.hardware)
             : (e.rationale
-                ? `<div style="grid-column:1/-1;font-size:9.5px;color:var(--ink-3);padding:2px 0 6px 70px;font-family:var(--mono);line-height:1.55;border-bottom:1px solid var(--line-1);margin-bottom:2px;">↳ ${escapeHTML(String(e.rationale))}</div>`
+                ? `<div class="agent-out agent-out-plain">↳ ${escapeHTML(String(e.rationale))}</div>`
                 : '');
-          return r1 + r2;
+          return `<div class="event-row event-row-expandable ${isOpen ? 'is-open' : ''}" data-eid="${eid}" onclick="toggleEventDetail(event,'${eid}')">
+            <span class="ev-chev">${hasDetail ? (isOpen ? '▾' : '▸') : ' '}</span>
+            <span class="ev-ts">${formatTs(e.ts)}</span>
+            <span class="ev-phase">${e.phase}${et?' · <span style="color:var(--c-advice)">'+et+'</span>':''}${e.note?' — '+e.note:''}</span>
+            <span class="ev-out ${outClass}">${e.outcome}</span>
+            <span class="ev-tk">${e.inputTokens||0}t</span>
+          </div>
+          ${hasDetail ? `<div class="event-detail" id="${eid}-body" style="display:${isOpen ? 'block' : 'none'};">${body}</div>` : ''}`;
         }).join('')}
       </div>
     </div>`;
@@ -2977,6 +3027,20 @@ function toggleRunDetail(id) {
   }
 }
 window.toggleRunDetail = toggleRunDetail;
+
+function toggleEventDetail(evt, eid) {
+  // Stop bubbling so the parent run-row doesn't collapse.
+  if (evt && evt.stopPropagation) evt.stopPropagation();
+  const body = document.getElementById(eid + '-body');
+  const row = document.querySelector(`.event-row[data-eid="${eid}"]`);
+  if (!body || !row) return;
+  const willOpen = body.style.display === 'none';
+  body.style.display = willOpen ? 'block' : 'none';
+  row.classList.toggle('is-open', willOpen);
+  const chev = row.querySelector('.ev-chev');
+  if (chev && chev.textContent.trim()) chev.textContent = willOpen ? '▾' : '▸';
+}
+window.toggleEventDetail = toggleEventDetail;
 
 /* ════════════════════════════════════════════════════════════════════════════
    UTILITIES + WIRING
