@@ -60,19 +60,81 @@ export async function llmCall(p: LLMCallParams): Promise<LLMResult> {
 }
 
 async function stubResponse({ user }: LLMCallParams): Promise<string> {
-  await new Promise((r) => setTimeout(r, 280 + Math.random() * 320));
+  await new Promise((r) => setTimeout(r, 120 + Math.random() * 180));
   const q = user.toLowerCase();
   if (q.includes("torque")) {
-    return "Torque pinion nut to 210–240 Nm in a 3-pass opposing-corner sequence (Comer QE-PG-04). [[advice:09]]";
+    return JSON.stringify({
+      glassesMessage: {
+        label: "TORQUE",
+        value: "210-240 Nm",
+        action: "3-pass opposing",
+        source: "S09 · [[step:09]]",
+      },
+      labBrief: {
+        headline:
+          "Pinion nut torque is 210–240 Nm in a 3-pass opposing-corner sequence.",
+        bullets: ["Use calibrated click wrench. [[step:09]]"],
+      },
+      isAction: false,
+    });
   }
   if (q.includes("shim")) {
-    return "Match shim SKU to the traveler exactly. Do not substitute. [[advice:07]]";
+    return JSON.stringify({
+      glassesMessage: {
+        label: "SHIM",
+        value: "Match traveler",
+        action: "No substitute",
+        source: "[[advice:07]]",
+      },
+      labBrief: {
+        headline: "Match shim SKU to the traveler exactly — do not substitute.",
+        bullets: ["Wrong shim stack changes bearing preload. [[advice:07]]"],
+      },
+      isAction: false,
+    });
   }
   if (q.includes("orient") || q.includes("chamfer")) {
-    return "Chamfered edge of the guide bearing cone faces inboard. [[instr:03]]";
+    return JSON.stringify({
+      glassesMessage: {
+        label: "ORIENTATION",
+        value: "Chamfer INBOARD",
+        action: "Flip if outboard",
+        source: "[[instr:03]]",
+      },
+      labBrief: {
+        headline: "Chamfered edge of the guide bearing cone faces inboard.",
+        bullets: [],
+      },
+      isAction: false,
+    });
   }
   if (q.includes("press")) {
-    return "Press at 8–12 kN with a 2s ramp + 1s hold. Verify gauge ≤ 0.005mm. [[step:04]] [[step:05]]";
+    return JSON.stringify({
+      glassesMessage: {
+        label: "PRESS DEPTH",
+        value: "Gauge ≤0.005mm",
+        action: "8-12 kN · 2s ramp",
+        source: "S04-S05",
+      },
+      labBrief: {
+        headline: "Press at 8–12 kN; verify depth gauge ≤ 0.005 mm before release.",
+        bullets: ["[[step:04]] [[step:05]]"],
+      },
+      isAction: false,
+    });
   }
-  return "STUB: Answer grounded in retrieved nodes. Wire ANTHROPIC_API_KEY to enable real LLM responses.";
+  return JSON.stringify({
+    glassesMessage: {
+      label: "STUB MODE",
+      value: "No API key",
+      action: "Set ANTHROPIC_KEY",
+      source: "Backend .env",
+    },
+    labBrief: {
+      headline:
+        "STUB: Wire ANTHROPIC_API_KEY on the server for live Claude responses.",
+      bullets: [],
+    },
+    isAction: false,
+  });
 }

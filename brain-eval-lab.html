@@ -141,16 +141,20 @@
   @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
 
   /* ── Workspace base ──────────────────── */
-  main.workspace { position: relative; overflow: hidden; }
-  .mode-container { position: absolute; inset: 0; display: none; }
+  main.workspace { position: relative; overflow: hidden; min-height: 0; }
+  .mode-container { position: absolute; inset: 0; display: none; min-height: 0; }
   .mode-container.active { display: grid; }
 
   /* ── Brain mode layout ─────────────── */
-  #brain-mode { grid-template-columns: 320px 1fr 380px; grid-template-rows: 1fr; }
+  #brain-mode { grid-template-columns: 320px 1fr 380px; grid-template-rows: 1fr; min-height: 0; }
   #brain-mode.has-video { grid-template-rows: 1fr 220px; }
-  #brain-mode .left  { border-right: 1px solid var(--line); background: var(--bg); overflow-y: auto; grid-row: 1; }
-  #brain-mode .center { grid-row: 1; position: relative; background: var(--bg); border-right: 1px solid var(--line); }
-  #brain-mode .right { grid-row: 1; background: var(--bg); display: flex; flex-direction: column; }
+  #brain-mode .left  { border-right: 1px solid var(--line); background: var(--bg); overflow-y: auto; grid-row: 1; min-height: 0; }
+  #brain-mode .center { grid-row: 1; position: relative; background: var(--bg); border-right: 1px solid var(--line); min-height: 0; }
+  #brain-mode .right {
+    grid-row: 1; background: var(--bg);
+    display: flex; flex-direction: column;
+    min-height: 0; overflow: hidden;
+  }
   #brain-mode .bottom {
     grid-column: 1 / -1; grid-row: 2;
     border-top: 1px solid var(--line); background: var(--bg-2);
@@ -490,6 +494,7 @@
 
   /* ── Chat panel ─────────────────── */
   .chat-h {
+    flex-shrink: 0;
     padding: 14px 16px;
     background: var(--bg-2);
     border-bottom: 1px solid var(--line);
@@ -506,8 +511,16 @@
     color: var(--warn); letter-spacing: 0.04em;
   }
   .chat-body {
-    flex: 1; overflow-y: auto;
-    padding: 14px 16px; display: flex; flex-direction: column; gap: 12px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
   .chat-empty {
     color: var(--ink-3); font-family: var(--mono); font-size: 11px;
@@ -522,6 +535,11 @@
     text-align: left;
   }
   .chat-empty .suggest:hover { color: var(--ink); border-color: var(--ink-3); }
+  .chat-empty .suggest.is-armed {
+    color: var(--ink);
+    border-color: var(--acc-dim);
+    background: var(--bg-3);
+  }
   .chat-msg { display: flex; flex-direction: column; gap: 4px; }
   .chat-msg.user .bubble {
     align-self: flex-end; background: var(--bg-3);
@@ -560,7 +578,82 @@
   .citation:hover { color: var(--ink); border-color: var(--ink-3); }
   .citation .cdot { width: 6px; height: 6px; border-radius: 50%; }
 
+  .chat-msg.brain .brain-card {
+    align-self: flex-start;
+    width: 100%;
+    max-width: 100%;
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+    border-radius: 4px;
+    padding: 10px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .brain-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .brain-mode-tag {
+    padding: 2px 6px;
+    border-radius: 2px;
+    border: 1px solid var(--line-2);
+  }
+  .brain-mode-tag.is-live { color: var(--ok); border-color: rgba(76,175,80,0.45); }
+  .brain-mode-tag.is-stub { color: var(--warn); border-color: rgba(216,128,0,0.45); }
+  .brain-chat-k {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 6px;
+  }
+  .brain-chat-k.glasses { color: #4ade80; }
+  .brain-glasses-wrap .fov-frame-compact { margin: 0; }
+  .brain-lab-headline {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .brain-lab-bullets {
+    margin: 6px 0 0 0;
+    padding-left: 16px;
+    color: var(--ink-2);
+    font-size: 11.5px;
+    line-height: 1.45;
+  }
+  .brain-lab-bullets li { margin-bottom: 4px; }
+  .brain-cite-inline {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--acc);
+    cursor: pointer;
+    border-bottom: 1px dotted var(--acc-dim);
+  }
+  .chat-msg.pending {
+    padding: 6px 2px;
+  }
+  .chat-pending-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-2);
+    animation: btn-loading-fade 1.4s ease-in-out infinite;
+  }
+
   .chat-input-wrap {
+    flex-shrink: 0;
     padding: 12px 16px;
     border-top: 1px solid var(--line);
     background: var(--bg-2);
@@ -572,8 +665,13 @@
     font-family: var(--sans); font-size: 12px;
     border-radius: 3px;
     outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
   .chat-input:focus { border-color: var(--acc-dim); }
+  .chat-input.chat-input-filled {
+    border-color: var(--acc);
+    box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.2);
+  }
   .chat-send {
     background: var(--acc); border: none; color: var(--bg);
     padding: 0 14px; border-radius: 3px; cursor: pointer;
@@ -1353,18 +1451,10 @@
         <div class="chat-body" id="chat-body">
           <div class="chat-empty">
             Click a graph node to inspect, or ask a question:
-            <span class="suggest" data-q="What's the torque spec on the pinion nut?">
-              What's the torque spec on the pinion nut?
-            </span>
-            <span class="suggest" data-q="How does Marco usually handle the shim selection?">
-              How does Marco usually handle the shim selection?
-            </span>
-            <span class="suggest" data-q="Show me video of someone doing step 7 correctly">
-              Show me video of step 7 done correctly
-            </span>
-            <span class="suggest" data-q="What goes wrong at the press depth verification?">
-              What goes wrong at press depth verification?
-            </span>
+            <span class="suggest" data-q="What is the torque spec for the pinion nut?">Torque spec for the pinion nut?</span>
+            <span class="suggest" data-q="What does Marco recommend for shim selection on the pinion guide?">Marco on shim selection?</span>
+            <span class="suggest" data-q="What is the acceptance criteria for press depth verification?">Press depth acceptance criteria?</span>
+            <span class="suggest" data-q="What goes wrong at press depth verification?">What goes wrong at press depth verification?</span>
           </div>
         </div>
         <div class="chat-input-wrap">
@@ -2073,7 +2163,7 @@ function renderRightPanel() {
     right.innerHTML = `
       <div class="chat-h">
         <span class="ti"><span class="num">02</span>BRAIN</span>
-        <span class="seam">LLM: stub</span>
+        <span class="seam">LLM: …</span>
       </div>
       <div class="chat-body" id="chat-body">${chatBodyHTML()}</div>
       <div class="chat-input-wrap">
@@ -2081,6 +2171,7 @@ function renderRightPanel() {
         <button class="chat-send" id="chat-send">Ask</button>
       </div>`;
     wireChat();
+    scrollChatToEnd();
     return;
   }
   // Show node detail
@@ -2219,42 +2310,154 @@ function chatBodyHTML() {
   if (chatHistory.length === 0) {
     return `<div class="chat-empty">
       Click a graph node to inspect, or ask a question:
-      <span class="suggest" data-q="What's the torque spec on the pinion nut?">What's the torque spec on the pinion nut?</span>
-      <span class="suggest" data-q="How does Marco usually handle shim selection?">How does Marco usually handle shim selection?</span>
-      <span class="suggest" data-q="Show me video of step 7 done correctly">Show me video of step 7 done correctly</span>
+      <span class="suggest" data-q="What is the torque spec for the pinion nut?">Torque spec for the pinion nut?</span>
+      <span class="suggest" data-q="What does Marco recommend for shim selection on the pinion guide?">Marco on shim selection?</span>
+      <span class="suggest" data-q="What is the acceptance criteria for press depth verification?">Press depth acceptance criteria?</span>
       <span class="suggest" data-q="What goes wrong at press depth verification?">What goes wrong at press depth verification?</span>
     </div>`;
   }
   return chatHistory.map(m => {
     if (m.role === 'user') return `<div class="chat-msg user"><div class="bubble">${escapeHtml(m.content)}</div></div>`;
-    const citationsHTML = (m.citations || []).map(c => `
-      <span class="citation" data-id="${c.id}">
-        <span class="cdot" style="background:${nodeColor(c.type)}"></span>
-        ${escapeHtml(c.label.slice(0, 36))}
-      </span>`).join('');
-    return `<div class="chat-msg brain">
-      <div class="bubble">
-        <span class="stub-tag">STUB</span>${escapeHtml(m.content)}
-        ${citationsHTML ? `<div class="citations">${citationsHTML}</div>` : ''}
-      </div>
-    </div>`;
+    if (m.role === 'pending') {
+      return `<div class="chat-msg pending">
+        <span class="chat-pending-dot"><span class="btn-loading-dot"></span>Calling Claude…</span>
+      </div>`;
+    }
+    return renderBrainChatMessage(m);
   }).join('');
+}
+
+
+function renderBrainChatMessage(m) {
+  const modeCls = m.stubbed ? 'is-stub' : 'is-live';
+  const modeLabel = m.stubbed ? 'STUB' : 'LIVE';
+  const lat = m.latencyMs != null ? `${(m.latencyMs / 1000).toFixed(1)}s` : '';
+  const lens = m.lens || { label: '', value: '', action: '', source: '' };
+  const b = lensBudget(null);
+  const headline = (m.labBrief && m.labBrief.headline) || m.content || '';
+  const bullets = ((m.labBrief && m.labBrief.bullets) || []).slice(0, 3);
+  const citations = m.citations || [];
+  const bulletsHTML = bullets.length
+    ? `<ul class="brain-lab-bullets">${bullets.map(bl => `<li>${formatBrainInlineCitations(bl)}</li>`).join('')}</ul>`
+    : '';
+  const citationsHTML = citations.map(c => `
+    <span class="citation" data-id="${c.id}">
+      <span class="cdot" style="background:${nodeColor(c.type)}"></span>
+      ${escapeHtml((c.label || c.id || '').slice(0, 36))}
+    </span>`).join('');
+  return `<div class="chat-msg brain">
+    <div class="brain-card">
+      <div class="brain-card-meta">
+        <span class="brain-mode-tag ${modeCls}">${modeLabel}</span>
+        ${lat ? `<span>${lat}</span>` : ''}
+        <span>glasses preview</span>
+      </div>
+      <div class="brain-glasses-wrap">
+        <div class="brain-chat-k glasses">On glasses (AnswerCard)</div>
+        ${renderAnswerCard(lens, b, { compact: true })}
+      </div>
+      <div>
+        <div class="brain-chat-k">Lab detail</div>
+        <div class="brain-lab-headline">${formatBrainInlineCitations(headline)}</div>
+        ${bulletsHTML}
+      </div>
+      ${citationsHTML ? `<div class="citations">${citationsHTML}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function formatBrainInlineCitations(text) {
+  if (!text) return '';
+  const escaped = escapeHtml(text);
+  return escaped.replace(/\[\[([a-z]+:[\w-]+)\]\]/gi, (_, id) =>
+    `<span class="brain-cite-inline" data-id="${id}">${escapeHtml(id)}</span>`);
+}
+
+function scrollChatToEnd(behavior) {
+  const run = () => {
+    const body = document.getElementById('chat-body');
+    if (!body) return;
+    const top = body.scrollHeight;
+    if (behavior === 'smooth' && body.scrollTo) {
+      body.scrollTo({ top, behavior: 'smooth' });
+    } else {
+      body.scrollTop = top;
+    }
+  };
+  requestAnimationFrame(() => requestAnimationFrame(run));
+}
+
+function setChatBusy(busy) {
+  const input = document.getElementById('chat-input');
+  const send = document.getElementById('chat-send');
+  if (input) {
+    input.disabled = busy;
+    input.placeholder = busy ? 'Waiting for response…' : 'Ask the brain anything…';
+    if (busy) input.classList.remove('chat-input-filled');
+  }
+  if (send) send.disabled = busy;
+}
+
+function suggestQueryText(el) {
+  const fromData = (el.dataset.q || '').trim();
+  if (fromData) return fromData;
+  return (el.textContent || '').trim();
+}
+
+function syncSuggestArmedState(text) {
+  const q = (text || '').trim();
+  document.querySelectorAll('.suggest').forEach(el => {
+    el.classList.toggle('is-armed', q.length > 0 && suggestQueryText(el) === q);
+  });
+}
+
+function fillChatFromSuggest(el) {
+  const input = document.getElementById('chat-input');
+  if (!input || input.disabled) return;
+  const text = suggestQueryText(el);
+  if (!text) return;
+  input.value = text;
+  input.focus({ preventScroll: true });
+  const len = text.length;
+  try { input.setSelectionRange(len, len); } catch {}
+  input.classList.add('chat-input-filled');
+  clearTimeout(window.__chatInputFillTimer);
+  window.__chatInputFillTimer = setTimeout(() => {
+    input.classList.remove('chat-input-filled');
+  }, 700);
+  syncSuggestArmedState(text);
 }
 
 function wireChat() {
   document.querySelectorAll('.suggest').forEach(el => {
-    el.onclick = () => askQuestion(el.dataset.q);
+    el.onclick = (e) => {
+      e.preventDefault();
+      fillChatFromSuggest(el);
+    };
   });
   const input = document.getElementById('chat-input');
   const send = document.getElementById('chat-send');
   if (input) {
-    input.onkeydown = e => { if (e.key === 'Enter') { askQuestion(input.value); input.value = ''; } };
+    input.oninput = () => syncSuggestArmedState(input.value);
+    input.onkeydown = e => {
+      if (e.key === 'Enter' && !input.disabled) {
+        const q = input.value;
+        input.value = '';
+        syncSuggestArmedState('');
+        askQuestion(q);
+      }
+    };
   }
   if (send) {
-    send.onclick = () => { if (input.value) { askQuestion(input.value); input.value = ''; } };
+    send.onclick = () => {
+      if (!input || !input.value || input.disabled) return;
+      const q = input.value;
+      input.value = '';
+      syncSuggestArmedState('');
+      askQuestion(q);
+    };
   }
-  // Citation click → select node
-  document.querySelectorAll('.citation').forEach(c => {
+  document.querySelectorAll('.citation, .brain-cite-inline').forEach(c => {
     c.onclick = () => {
       const node = state.graph.getElementById(c.dataset.id);
       if (node && !node.empty()) { selectNode(node.data()); state.graph.center(node); }
@@ -2264,42 +2467,76 @@ function wireChat() {
 
 async function askQuestion(q) {
   if (!q || !q.trim()) return;
-  chatHistory.push({ role: 'user', content: q });
+  if (chatHistory.some(m => m.role === 'pending')) return;
+  const query = q.trim();
+  chatHistory.push({ role: 'user', content: query });
+  chatHistory.push({ role: 'pending' });
+  renderRightPanel();
+  setChatBusy(true);
+  scrollChatToEnd('smooth');
 
-  // 1. RETRIEVAL — real (works against the actual graph)
-  const retrieved = retrieveRelevantNodes(q);
+  const retrieved = retrieveRelevantNodes(query);
+  let msg;
 
-  // 2. GENERATION — backend first, stub fallback. This is the seam from
-  //    the handoff doc; the backend at /api/brain/chat is now real and also
-  //    accepts the client's ingested artifacts so they participate in retrieval.
-  let answer, citations, stubbed = false;
   try {
     const r = await fetch(`${PLATFORM_API}/api/brain/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        query: q,
+        query,
         artifacts: clientArtifactsForBackend()
       })
     });
     if (!r.ok) throw new Error(`status ${r.status}`);
     const data = await r.json();
     if (window.applyStubbedFromResponse) window.applyStubbedFromResponse(data);
-    answer = data.answer;
-    stubbed = !!data.stubbed;
-    citations = (data.retrieved || []).slice(0, 5).map(n => ({
-      id: n.id, type: n.type, label: n.label, raw: n.raw
-    }));
+    const citations = (data.citations && data.citations.length
+      ? data.citations.map(id => {
+          const n = state.graph && state.graph.getElementById(id);
+          const d = n && !n.empty() ? n.data() : null;
+          return d
+            ? { id: d.id, type: d.type, label: d.label, raw: d.raw }
+            : { id, type: 'Unknown', label: id };
+        })
+      : (data.retrieved || []).slice(0, 5).map(n => ({
+          id: n.id, type: n.type, label: n.label, raw: n.raw
+        })));
+    msg = {
+      role: 'brain',
+      content: data.answer || '',
+      labBrief: data.labBrief || { headline: data.answer || '', bullets: [] },
+      lens: data.lens,
+      citations,
+      stubbed: !!data.stubbed,
+      latencyMs: data.latencyMs,
+      isAction: data.isAction
+    };
   } catch (err) {
     console.warn('Brain backend unreachable, using local stub.', err);
     if (window.applyStubbedFromResponse) window.applyStubbedFromResponse({ stubbed: true });
-    answer = await stubbedLLMCall(q, retrieved);
-    stubbed = true;
-    citations = retrieved.slice(0, 5);
+    const answer = await stubbedLLMCall(query, retrieved);
+    const top = retrieved[0];
+    msg = {
+      role: 'brain',
+      content: answer,
+      labBrief: { headline: answer, bullets: [] },
+      lens: {
+        label: 'OFFLINE',
+        value: 'LOCAL STUB',
+        action: 'Start backend for LIVE',
+        source: top ? String(top.label || top.id).slice(0, 32) : 'no match'
+      },
+      citations: retrieved.slice(0, 5),
+      stubbed: true,
+      latencyMs: null
+    };
   }
 
-  chatHistory.push({ role: 'brain', content: answer, citations, stubbed });
+  chatHistory = chatHistory.filter(m => m.role !== 'pending');
+  chatHistory.push(msg);
+  setChatBusy(false);
   renderRightPanel();
+  scrollChatToEnd('smooth');
 }
 
 // Backend base URL — same origin when served from `/lab/`, else localhost.
