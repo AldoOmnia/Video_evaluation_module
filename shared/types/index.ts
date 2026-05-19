@@ -6,9 +6,9 @@
  * refuses to serve. This is intentional: the spec contract is sacred.
  */
 
-export * from "./procedure";
-export * from "./taxonomy";
-export * from "./hardware";
-export * from "./strategy";
-export * from "./events";
-export * from "./run";
+export * from "./procedure.js";
+export * from "./taxonomy.js";
+export * from "./hardware.js";
+export * from "./strategy.js";
+export * from "./events.js";
+export * from "./run.js";

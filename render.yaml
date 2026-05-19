@@ -1,0 +1,46 @@
+# Render Blueprint — Comer pilot platform
+#
+# One-click deploy:
+#   1. Open https://dashboard.render.com/blueprints
+#   2. "New Blueprint Instance" → pick this repo + the `platform-comer` branch
+#   3. Render reads this file, provisions the service, prompts for the
+#      two `sync: false` secrets (ANTHROPIC_API_KEY + AUTH_TOKEN_SECRET),
+#      and runs the build.
+#   4. Once green, add `comer.theomnia.ai` as a custom domain on the
+#      service and create the CNAME in DNS as instructed by Render.
+#
+# See DEPLOY.md for the full walkthrough.
+
+services:
+  - type: web
+    name: comer-platform
+    runtime: node
+    plan: starter         # $7/mo — keeps the service hot (no cold starts)
+    region: oregon
+    branch: platform-comer
+    rootDir: .
+    autoDeploy: true
+
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+
+    healthCheckPath: /health
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "20"
+      - key: ANTHROPIC_MODEL
+        value: claude-sonnet-4-6
+      # The two host-visible origins for this tenant. The render.com
+      # hostname is what's live before DNS cuts over; the comer.theomnia.ai
+      # host is the eventual public URL. Comma-separated list.
+      - key: ALLOWED_ORIGINS
+        value: "https://comer.theomnia.ai,https://comer-platform.onrender.com"
+      # Secrets — Render will prompt for these at blueprint-create time
+      # and store them outside this file.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: AUTH_TOKEN_SECRET
+        sync: false

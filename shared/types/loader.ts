@@ -10,10 +10,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import YAML from "yaml";
 
-import { ProcedureSpecSchema, type ProcedureSpec } from "./procedure";
-import { TaxonomySchema, type Taxonomy } from "./taxonomy";
-import { HardwareProfilesSchema, type HardwareProfiles } from "./hardware";
-import { StrategiesSchema, type Strategies } from "./strategy";
+import { ProcedureSpecSchema, type ProcedureSpec } from "./procedure.js";
+import { TaxonomySchema, type Taxonomy } from "./taxonomy.js";
+import { HardwareProfilesSchema, type HardwareProfiles } from "./hardware.js";
+import { StrategiesSchema, type Strategies } from "./strategy.js";
 
 const SHARED_ROOT = join(__dirname, "..");
 

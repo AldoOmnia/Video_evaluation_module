@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ErrorCodeSchema, PrioritySchema } from "./taxonomy";
+import { ErrorCodeSchema, PrioritySchema } from "./taxonomy.js";
 
 /**
  * SessionEvent — the atomic unit of an evaluation timeline.
