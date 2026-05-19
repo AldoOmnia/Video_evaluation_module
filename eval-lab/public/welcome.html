@@ -298,6 +298,39 @@
       align-items: center;
       justify-content: center;
     }
+    .preview-step .back-link {
+      flex: 0 0 auto;
+      align-self: flex-start;
+      width: min(100%, 920px);
+      margin: 4px auto 0;
+      padding: 2px 4px;
+      background: none;
+      border: 0;
+      color: var(--ink-3);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      opacity: 0.55;
+      cursor: pointer;
+      transition: opacity 200ms ease, color 200ms ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .preview-step .back-link:hover,
+    .preview-step .back-link:focus-visible {
+      opacity: 1;
+      color: var(--ink-2);
+      outline: none;
+    }
+    .preview-step .back-link .back-arrow {
+      display: inline-block;
+      transition: transform 200ms ease;
+    }
+    .preview-step .back-link:hover .back-arrow {
+      transform: translateX(-2px);
+    }
     /* 16:9 lab viewport — scales to available room, capped for readability */
     .preview-step .ui-frame {
       position: relative;
@@ -1208,6 +1241,9 @@
               </div>
             </div>
           </div>
+          <button type="button" class="back-link" data-back aria-label="Back to previous step">
+            <span class="back-arrow" aria-hidden="true">←</span><span>Back</span>
+          </button>
         </div>
       </article>
 
@@ -1299,6 +1335,9 @@
               </div>
             </div>
           </div>
+          <button type="button" class="back-link" data-back aria-label="Back to previous step">
+            <span class="back-arrow" aria-hidden="true">←</span><span>Back</span>
+          </button>
         </div>
       </article>
 
@@ -1451,6 +1490,12 @@
 
     btnNext.addEventListener('click', advanceNow);
     btnSkip.addEventListener('click', enterLab);
+
+    document.querySelectorAll('[data-back]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (stepIndex > 0) goToStep(stepIndex - 1);
+      });
+    });
 
     dots.forEach((dot, idx) => {
       dot.setAttribute('role', 'button');
