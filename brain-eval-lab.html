@@ -858,6 +858,11 @@
     overflow: hidden;
   }
   .agent-out .ao-gline:empty::before { content: " "; }
+  .agent-out .ao-glasses-cap {
+    margin-top: 6px;
+    font-family: var(--mono); font-size: 9.5px;
+    color: var(--ink-3); letter-spacing: 0.08em; text-transform: uppercase;
+  }
   .agent-out .ao-full-btn {
     margin-left: auto; align-self: flex-start;
     background: var(--bg-3, #0a0a0a);
@@ -1017,6 +1022,34 @@
     font-family: var(--mono); font-size: 10.5px;
     color: var(--ink-3); letter-spacing: 0.1em; text-transform: uppercase;
     text-align: center;
+  }
+  .ao-modal-lens-full {
+    width: 100%; max-width: 460px;
+    background: rgba(74,222,128,0.04);
+    border: 1px solid rgba(74,222,128,0.18);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-top: 6px;
+  }
+  .ao-modal-lens-full > summary {
+    cursor: pointer;
+    font-family: var(--mono); font-size: 10px;
+    color: #4ade80; letter-spacing: 0.1em; text-transform: uppercase;
+    list-style: none;
+    user-select: none;
+  }
+  .ao-modal-lens-full > summary::before {
+    content: "▸ ";
+    display: inline-block;
+    transition: transform 0.15s ease;
+  }
+  .ao-modal-lens-full[open] > summary::before { content: "▾ "; }
+  .ao-modal-lens-full > summary::-webkit-details-marker { display: none; }
+  .ao-modal-lens-full-body {
+    margin-top: 8px;
+    font-family: var(--sans); font-size: 14px; line-height: 1.45;
+    color: var(--ink-1);
+    white-space: pre-wrap;
   }
   .empty { padding: 40px 16px; text-align: center; color: var(--ink-3); font-family: var(--mono); font-size: 11px; }
   .summary { padding: 16px; background: var(--bg-2); border-bottom: 1px solid var(--line); }
@@ -2602,6 +2635,9 @@ function renderAgentOutput(ao, hw, eid) {
       <div class="ao-glasses" style="--lens-w:${lensW}ch;--lens-h:${lensH};">
         ${padded.map(l => `<div class="ao-gline">${escapeHTML(l)}</div>`).join('')}
       </div>
+      <div class="ao-glasses-cap">
+        ${lensW}×${lensH} lens budget · open Full view for the worker's-eye render
+      </div>
     </div>
   </div>`;
 }
@@ -2659,7 +2695,13 @@ function openAgentOutputModal(eid) {
             <div class="ao-modal-lens" style="--lens-w:${lensW}ch;--lens-h:${lensH};">
               ${padded.map(l => `<div class="ao-modal-gline">${escapeHTML(l)}</div>`).join('')}
             </div>
-            <div class="ao-modal-lens-caption">${lensW} chars × ${lensH} lines · what the worker sees in their field of view</div>
+            <div class="ao-modal-lens-caption">
+              ${lensW} chars × ${lensH} lines · hardware budget for ${escapeHTML(hw && hw.name || 'Rokid AI Glasses')}
+            </div>
+            ${ao.fix ? `<details class="ao-modal-lens-full" ${ao.fix.length > lensW * lensH ? 'open' : ''}>
+              <summary>Full corrective action (not truncated)</summary>
+              <div class="ao-modal-lens-full-body">${escapeHTML(ao.fix)}</div>
+            </details>` : ''}
           </div>
         </div>
       </div>
@@ -2940,6 +2982,15 @@ function seedSampleArtifacts() {
 /* ════════════════════════════════════════════════════════════════════════════
    EVAL MODE — adapted from v0.3, now reads procedure from Brain
    ════════════════════════════════════════════════════════════════════════════ */
+/** Generate a session designed to exercise both LIVE-LLM catches AND misses.
+ *  Realism rules:
+ *    - High-risk steps still anomalize ~55% of the time
+ *    - Low/medium-risk steps now have a small (~12%) anomaly chance too
+ *    - ~40% of anomalies are "hard" — note is blank or deliberately vague,
+ *      so the LLM has to infer from step context alone. Many of these will
+ *      become genuine MISSES, which is exactly what you want to see in eval.
+ *    - ~10% are "adversarial" — note hints at correctness while the label
+ *      is incorrect (sensor-vs-OEM disagreement / state repair flavour). */
 function generateEvalSession() {
   const events = [];
   let t = 0;
@@ -2948,23 +2999,36 @@ function generateEvalSession() {
     const num = 1 + Math.floor(Math.random() * 3);
     for (let i = 0; i < num; i++) {
       const ts = t + Math.random() * dur;
-      const isAnomaly = ks.risk === 'high' && Math.random() < 0.55;
+      const anomRoll = Math.random();
+      const isAnomaly =
+        (ks.risk === 'high' && anomRoll < 0.55) ||
+        (ks.risk === 'med' && anomRoll < 0.25) ||
+        (ks.risk === 'low' && anomRoll < 0.12);
       let errorType = null;
       let note = '';
       if (isAnomaly) {
-        // Draw a specific error from this step's errorProfile, weighted toward high_priority
         const profile = ks.errorProfile || {};
         const pool = Math.random() < 0.7
           ? (profile.high_priority || [])
-          : (profile.medium_priority || profile.high_priority || []);
+          : (profile.medium_priority || profile.low_priority || profile.high_priority || []);
         if (pool.length > 0) {
           errorType = pool[Math.floor(Math.random() * pool.length)];
+        } else {
+          errorType = 'INCOMPLETE';
+        }
+        // Roll for hint difficulty.
+        const hintRoll = Math.random();
+        if (hintRoll < 0.10) {
+          // Adversarial — note suggests correct execution, label says incorrect.
+          note = ADVERSARIAL_NOTES[Math.floor(Math.random() * ADVERSARIAL_NOTES.length)];
+        } else if (hintRoll < 0.50) {
+          // Hard — blank or vague note. LLM must infer from step context.
+          note = Math.random() < 0.5 ? '' : VAGUE_NOTES[Math.floor(Math.random() * VAGUE_NOTES.length)];
+        } else {
+          // Easy — explicit hint, LLM should catch.
           note = ERROR_TAXONOMY[errorType]?.label
             ? `${ERROR_TAXONOMY[errorType].label}: ${sampleErrorNote(ks.id, errorType)}`
             : sampleErrorNote(ks.id);
-        } else {
-          errorType = 'INCOMPLETE';
-          note = sampleErrorNote(ks.id);
         }
       }
       events.push({
@@ -2982,7 +3046,40 @@ function generateEvalSession() {
   events.sort((a, b) => a.timestamp - b.timestamp);
   state.eval.session = events;
   renderEvalSession();
+  const stats = events.reduce((s, e) => {
+    if (e.label === 'incorrect') {
+      s.anomalies++;
+      if (!e.note) s.hard++;
+      else if (ADVERSARIAL_NOTES.includes(e.note)) s.adv++;
+      else if (VAGUE_NOTES.includes(e.note)) s.vague++;
+      else s.easy++;
+    }
+    return s;
+  }, { anomalies: 0, easy: 0, vague: 0, hard: 0, adv: 0 });
+  toast(`Session ready · ${stats.anomalies} anomalies (${stats.easy} cued, ${stats.vague + stats.hard} hard, ${stats.adv} adversarial)`);
 }
+
+/** Vague/ambient notes — the LLM has to do real inference to detect. */
+const VAGUE_NOTES = [
+  'Worker proceeding with task',
+  'Routine execution observed',
+  'Standard step transition',
+  'Tool in hand, no anomaly flagged by CV',
+  'Minor variance from baseline',
+  'Hand occlusion partial',
+  'Worker confirmed step done via voice',
+];
+
+/** Adversarial notes — sound like correct execution, but the label is wrong.
+ *  These exercise the LLM's grounding against the procedure spec rather than
+ *  the worker note. Many will (and should) be missed. */
+const ADVERSARIAL_NOTES = [
+  'Worker reports step completed normally',
+  'OEM marker confirms step finished',
+  'Traveler scanned, advancing to next step',
+  'Quality check signed off',
+  'Sensor readings within nominal band',
+];
 
 function sampleErrorNote(stepId, errorType) {
   // Specific notes per (step, errorType) where we have them

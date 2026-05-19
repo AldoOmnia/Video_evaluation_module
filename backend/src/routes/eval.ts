@@ -99,19 +99,33 @@ subsequent lines short and concrete. ABSOLUTELY no prose outside the JSON.
         totalOut += r.outputTokens;
         latencies.push(r.latencyMs);
         const verdict = parseVerdict(r.text);
-        // Enforce the lens display budget on the glasses message — the LLM
-        // sometimes overshoots; we trim deterministically.
-        const lensSource =
-          verdict.glassesMessage && verdict.glassesMessage.length > 0
-            ? verdict.glassesMessage.join(" / ")
-            : verdict.fix || verdict.diagnosis || r.text;
-        const fitted = fitToDisplay(lensSource, hw);
-        const glassesMessage =
-          verdict.glassesMessage && verdict.glassesMessage.length > 0
-            ? verdict.glassesMessage
-                .map((l) => l.slice(0, hw.display?.max_chars_per_line ?? 22))
-                .slice(0, hw.display?.max_lines ?? 4)
-            : fitted.lines;
+        // Enforce the lens display budget. We *always* word-wrap through
+        // fitToDisplay so the worker never sees a mid-word truncation, even
+        // if the LLM ignored the per-line cap. If the LLM emitted multiple
+        // lines, we preserve the line breaks the model intended only when
+        // each line fits; otherwise we concat and reflow.
+        const maxChars = hw.display?.max_chars_per_line ?? 22;
+        const maxLines = hw.display?.max_lines ?? 4;
+        let glassesMessage: string[];
+        const llmLines = verdict.glassesMessage ?? [];
+        const allLinesFit =
+          llmLines.length > 0 &&
+          llmLines.length <= maxLines &&
+          llmLines.every((l) => l.length <= maxChars);
+        if (allLinesFit) {
+          glassesMessage = llmLines.slice(0, maxLines);
+        } else {
+          // Reflow: join with single spaces (preserving paragraph intent) and
+          // hand off to the canonical word-wrapper.
+          const reflowSrc =
+            llmLines.length > 0
+              ? llmLines.join(" ")
+              : verdict.fix || verdict.diagnosis || r.text;
+          const fitted = fitToDisplay(reflowSrc, hw);
+          glassesMessage = fitted.lines.filter((l) => l.length > 0);
+          // Pad to maxLines so the lens preview always renders the full budget.
+          while (glassesMessage.length < maxLines) glassesMessage.push("");
+        }
 
         const truth = ev.errorType ?? null;
         const outcome: "caught" | "missed" | "false_pos" =
@@ -175,10 +189,20 @@ subsequent lines short and concrete. ABSOLUTELY no prose outside the JSON.
         totalIn += sim.inputTokens;
         totalOut += sim.outputTokens;
         latencies.push(sim.latencyMs);
+        const truthLabel = ev.errorType
+          ? specs.taxonomy.errors[ev.errorType]?.label ?? ev.errorType
+          : "anomaly";
+        const simRationale =
+          sim.outcome === "caught"
+            ? `sim · ${truthLabel} — caught by ${strat.name}`
+            : sim.outcome === "missed"
+              ? `sim · ${truthLabel} — MISSED · ${strat.name} catch-rate ${(strat.catch_rate_ideal * 100).toFixed(0)}% · enable LIVE LLM for a real verdict`
+              : `sim · false-positive surfaced by ${strat.name}`;
         scored.push({
           ...ev,
           priority: ev.priority ?? priorityFor(step, ev.errorType),
           ...sim,
+          rationale: ev.rationale ? `${ev.rationale} · ${simRationale}` : simRationale,
         });
       }
     }
@@ -223,7 +247,10 @@ function simulateOutcome(
   const priority = ev.priority ?? priorityFor(step, ev.errorType);
   const priorityBoost =
     priority === "high" ? 1.1 : priority === "medium" ? 1.0 : 0.85;
-  const p = Math.min(0.99, eff * priorityBoost);
+  // Cap at 0.92 (not 0.99) so even the best-tuned strategy produces the
+  // occasional miss — important for demo/eval visibility. The strategy's
+  // headline catch_rate_ideal still dominates lower strategies.
+  const p = Math.min(0.92, eff * priorityBoost);
   const rolled = Math.random();
   const outcome: "caught" | "missed" | "false_pos" =
     rolled < p ? "caught" : Math.random() < fp ? "false_pos" : "missed";
