@@ -97,83 +97,84 @@
 
     .stage {
       height: 100vh;
-      display: grid;
-      grid-template-rows: auto auto 1fr auto auto;
-      padding: 20px 20px 14px;
-      max-width: 720px;
+      width: 100%;
+      max-width: 1080px;
       margin: 0 auto;
+      padding: 10px 24px 8px;
+      display: grid;
+      grid-template-rows: auto 2px 1fr auto;
+      gap: 8px;
     }
 
-    .hero-top {
+    .top-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 16px;
+      min-height: 36px;
     }
     .hero-brand {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
+      flex-shrink: 0;
     }
-    .hero-brand img { width: 40px; height: 40px; object-fit: contain; }
+    .hero-brand img { width: 32px; height: 32px; object-fit: contain; }
     .hero-brand .k {
       font-family: var(--mono);
-      font-size: 9px;
-      letter-spacing: 0.2em;
+      font-size: 8px;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
       color: var(--ink-3);
     }
-    .hero-brand h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
-    .llm-pill {
+    .hero-brand h1 { font-size: 14px; font-weight: 600; letter-spacing: -0.02em; }
+    .top-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .tour-step-label {
       font-family: var(--mono);
       font-size: 9px;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      padding: 4px 9px;
-      border-radius: 20px;
-      border: 1px solid var(--line-2);
       color: var(--ink-3);
-    }
-    .llm-pill.is-live { color: var(--ok); border-color: rgba(74,222,128,0.4); }
-    .llm-pill.is-stub { color: var(--warn); border-color: rgba(245,158,11,0.4); }
-
-    .tour-meta {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-top: 14px;
-    }
-    .tour-step-label {
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--ink-3);
+      white-space: nowrap;
     }
     .tour-step-label strong { color: var(--primary); font-weight: 500; }
-    .tour-dots {
-      display: flex;
-      gap: 6px;
-    }
+    .tour-dots { display: flex; gap: 5px; }
     .tour-dots span {
-      width: 7px; height: 7px;
+      width: 6px; height: 6px;
       border-radius: 50%;
       background: var(--line-2);
       transition: background 280ms ease, transform 280ms ease, box-shadow 280ms ease;
     }
     .tour-dots span.is-active {
       background: var(--primary);
-      box-shadow: 0 0 8px var(--primary-glow);
-      transform: scale(1.15);
+      box-shadow: 0 0 6px var(--primary-glow);
+      transform: scale(1.12);
     }
     .tour-dots span.is-done { background: rgba(0,229,160,0.35); }
+    .llm-pill {
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 20px;
+      border: 1px solid var(--line-2);
+      color: var(--ink-3);
+      white-space: nowrap;
+    }
+    .llm-pill.is-live { color: var(--ok); border-color: rgba(74,222,128,0.4); }
+    .llm-pill.is-stub { color: var(--warn); border-color: rgba(245,158,11,0.4); }
 
     .tour-progress {
       height: 2px;
       background: var(--line);
       border-radius: 2px;
-      margin-top: 10px;
       overflow: hidden;
     }
     .tour-progress-fill {
@@ -187,38 +188,33 @@
     .tour-stage {
       position: relative;
       min-height: 0;
-      margin-top: 16px;
-      display: flex;
-      align-items: center;
+      overflow: hidden;
     }
 
     .tour-step {
       position: absolute;
       inset: 0;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 14px;
       opacity: 0;
       visibility: hidden;
-      transform: translateY(12px);
-      transition: opacity 420ms ease, transform 420ms ease, visibility 0s 420ms;
+      transform: translateY(8px);
+      transition: opacity 360ms ease, transform 360ms ease, visibility 0s 360ms;
       pointer-events: none;
     }
     .tour-step.is-active {
       opacity: 1;
       visibility: visible;
       transform: translateY(0);
-      transition: opacity 480ms ease, transform 480ms ease, visibility 0s;
+      transition: opacity 400ms ease, transform 400ms ease, visibility 0s;
       pointer-events: auto;
     }
 
     .glow-card {
       position: relative;
+      height: 100%;
       background: var(--bg-2);
       border: 1px solid var(--line-2);
-      border-radius: 12px;
-      padding: 20px 22px 18px;
+      border-radius: 10px;
+      padding: 12px 14px;
       --glow-intensity: 0.35;
       box-shadow:
         0 1px 0 rgba(255,255,255,0.03) inset,
@@ -240,44 +236,80 @@
     }
     .glow-card.is-hot { border-color: rgba(255,255,255,0.18); }
 
+    .card-split {
+      display: grid;
+      grid-template-columns: minmax(180px, 32%) 1fr;
+      gap: 14px;
+      height: 100%;
+      align-items: stretch;
+    }
+    .card-copy {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 0;
+    }
+    .card-preview {
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .glow-card.card-intro {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      max-width: 520px;
+      margin: 0 auto;
+      height: auto;
+      align-self: center;
+      position: relative;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .intro-step { display: flex; align-items: center; justify-content: center; }
+
     .step-tag {
       font-family: var(--mono);
-      font-size: 9px;
-      letter-spacing: 0.14em;
+      font-size: 8px;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--primary);
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
     .step-title {
-      font-size: 18px;
+      font-size: 15px;
       font-weight: 600;
       letter-spacing: -0.02em;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
+      line-height: 1.25;
     }
     .step-copy {
-      font-size: 13px;
+      font-size: 12px;
       color: var(--ink-2);
-      line-height: 1.5;
-      max-width: 38em;
+      line-height: 1.45;
     }
     .step-copy strong { color: var(--ink-1); font-weight: 500; }
-
-    .intro-step .step-title { font-size: 22px; }
-    .intro-step .step-copy { font-size: 14px; }
+    .card-intro .step-title { font-size: 17px; }
 
     .ui-frame {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
       border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 8px;
+      border-radius: 6px;
       overflow: hidden;
       background: var(--bg);
-      box-shadow: 0 0 0 1px rgba(0,0,0,0.5) inset, 0 10px 32px rgba(0,0,0,0.5);
-      margin-top: 4px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.5) inset, 0 6px 20px rgba(0,0,0,0.45);
     }
+    .ui-frame-body { flex: 1; min-height: 0; }
     .ui-frame-bar {
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 7px 12px;
+      padding: 5px 10px;
+      flex-shrink: 0;
       background: var(--bg-2);
       border-bottom: 1px solid var(--line);
       font-family: var(--mono);
@@ -294,13 +326,20 @@
 
     .mini-brain {
       display: grid;
-      grid-template-columns: 88px 1fr 140px;
-      min-height: 200px;
+      grid-template-columns: 72px 1fr 118px;
+      height: 100%;
+      min-height: 128px;
+      max-height: 152px;
       font-family: var(--mono);
-      font-size: 8px;
+      font-size: 7px;
     }
-    .mini-brain .col { border-right: 1px solid var(--line); padding: 8px; }
+    .mini-brain .col { border-right: 1px solid var(--line); padding: 6px; }
     .mini-brain .col:last-child { border-right: none; }
+    .mini-brain .col:last-child .fov-mini {
+      aspect-ratio: 1.1;
+      max-height: 78px;
+    }
+    .mini-eval .fov-mini { max-height: 56px; aspect-ratio: 1.25; }
     .mini-ph {
       color: var(--ink-3);
       letter-spacing: 0.1em;
@@ -320,7 +359,8 @@
     .mini-graph {
       position: relative;
       background: #080808;
-      min-height: 184px;
+      min-height: 0;
+      height: 100%;
     }
     .mini-graph svg { position: absolute; inset: 0; width: 100%; height: 100%; }
     .mini-graph .node {
@@ -383,11 +423,13 @@
     .mini-eval {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      min-height: 200px;
+      height: 100%;
+      min-height: 128px;
+      max-height: 152px;
       font-family: var(--mono);
-      font-size: 8px;
+      font-size: 7px;
     }
-    .mini-eval .col { border-right: 1px solid var(--line); padding: 8px; }
+    .mini-eval .col { border-right: 1px solid var(--line); padding: 6px; }
     .mini-eval .col:last-child { border-right: none; }
     .mini-tl-row {
       display: grid;
@@ -443,37 +485,25 @@
       margin-bottom: 5px;
     }
 
-    .done-step {
-      text-align: center;
-      padding: 24px 0;
-    }
-    .done-step .step-title { margin-bottom: 12px; }
-    .done-spinner {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--ink-2);
-      letter-spacing: 0.06em;
-    }
-    .done-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--primary);
-      animation: done-pulse 1.2s ease-in-out infinite;
-    }
-    @keyframes done-pulse {
-      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--primary-glow); }
-      50% { opacity: 0.5; box-shadow: 0 0 12px 4px var(--primary-glow); }
-    }
-
     .tour-footer {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding-top: 12px;
+      min-height: 36px;
     }
+    .footer-powered {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+    }
+    .footer-powered img { height: 14px; opacity: 0.75; }
+    .footer-actions { display: flex; align-items: center; gap: 8px; }
     .btn-skip, .btn-next {
       font-family: var(--mono);
       font-size: 10px;
@@ -497,9 +527,9 @@
     }
     .btn-next:hover { background: rgba(0,229,160,0.14); }
     .btn-next.is-enter {
-      padding: 10px 20px;
+      padding: 8px 16px;
       font-family: var(--sans);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       letter-spacing: 0.04em;
       text-transform: uppercase;
@@ -513,35 +543,24 @@
       box-shadow: 0 0 24px 4px var(--primary-glow), 0 6px 18px rgba(0,229,160,0.22);
     }
 
-    .powered {
-      justify-self: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      padding-top: 6px;
+    @media (max-width: 720px) {
+      .stage { padding: 8px 14px 6px; }
+      .card-split { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+      .card-copy { justify-content: flex-start; }
+      .glow-card.card-intro { top: 0; transform: none; margin-top: 8px; }
+      .mini-brain, .mini-eval { max-height: 140px; }
     }
-    .powered .pb-k {
-      font-family: var(--mono);
-      font-size: 9px;
-      letter-spacing: 0.24em;
-      text-transform: uppercase;
-      color: var(--ink-3);
-    }
-    .powered img { height: 16px; opacity: 0.8; }
 
-    @media (max-width: 560px) {
-      .mini-brain { grid-template-columns: 1fr; min-height: auto; }
-      .mini-brain .col { border-right: none; border-bottom: 1px solid var(--line); }
-      .mini-graph { min-height: 120px; }
-      .mini-eval { grid-template-columns: 1fr; min-height: auto; }
-      .mini-eval .col { border-right: none; border-bottom: 1px solid var(--line); }
+    @media (max-height: 640px) {
+      .hero-brand img { width: 28px; height: 28px; }
+      .hero-brand h1 { font-size: 13px; }
+      .mini-brain, .mini-eval { min-height: 110px; max-height: 120px; }
+      .glow-card { padding: 10px 12px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
       .bg::before, .bg::after { animation: none; }
       .tour-step { transition: none; transform: none; }
-      .done-dot { animation: none; }
     }
   </style>
 </head>
@@ -551,25 +570,24 @@
   <div class="scanlines" aria-hidden="true"></div>
 
   <main class="stage" id="tour">
-    <header class="hero-top">
+    <header class="top-bar">
       <div class="hero-brand">
         <img src="/lab/assets/comer-logo.png" alt="Comer Industries" />
         <div>
-          <div class="k">Comer Industries · Rockford</div>
+          <div class="k">Comer · Rockford</div>
           <h1>Pinion Guide pilot</h1>
         </div>
       </div>
-      <span class="llm-pill" id="llm-pill">LLM · …</span>
-    </header>
-
-    <div class="tour-meta">
-      <div class="tour-step-label" id="tour-label">Overview</div>
-      <div class="tour-dots" id="tour-dots" aria-hidden="true">
-        <span data-i="0"></span>
-        <span data-i="1"></span>
-        <span data-i="2"></span>
+      <div class="top-bar-right">
+        <div class="tour-step-label" id="tour-label">Overview</div>
+        <div class="tour-dots" id="tour-dots" aria-hidden="true">
+          <span data-i="0"></span>
+          <span data-i="1"></span>
+          <span data-i="2"></span>
+        </div>
+        <span class="llm-pill" id="llm-pill">LLM · …</span>
       </div>
-    </div>
+    </header>
     <div class="tour-progress" aria-hidden="true">
       <div class="tour-progress-fill" id="tour-progress"></div>
     </div>
@@ -577,7 +595,7 @@
     <div class="tour-stage">
       <!-- Step 0: brief intro -->
       <article class="tour-step intro-step is-active" data-step="intro">
-        <div class="glow-card" data-glow>
+        <div class="glow-card card-intro" data-glow>
           <div class="step-tag">Omnia × Comer</div>
           <h2 class="step-title">Pinion Guide pilot platform</h2>
           <p class="step-copy">
@@ -590,13 +608,16 @@
 
       <!-- Step 1: Brain only -->
       <article class="tour-step" data-step="brain">
-        <div class="glow-card" data-glow>
-          <div class="step-tag">01 · Brain mode</div>
-          <h2 class="step-title">Knowledge graph + glasses preview</h2>
-          <p class="step-copy">
-            Ingest SOPs, expert notes, and video. Ask questions — see the exact
-            <strong>4-line AnswerCard</strong> workers get on Rokid before it ships to the line.
-          </p>
+        <div class="glow-card card-split" data-glow>
+          <div class="card-copy">
+            <div class="step-tag">01 · Brain mode</div>
+            <h2 class="step-title">Knowledge graph + glasses preview</h2>
+            <p class="step-copy">
+              Ingest SOPs, expert notes, and video. Ask questions — see the exact
+              <strong>4-line AnswerCard</strong> workers get on Rokid before it ships to the line.
+            </p>
+          </div>
+          <div class="card-preview">
           <div class="ui-frame">
             <div class="ui-frame-bar">
               <span class="dot on"></span><span class="dot"></span><span class="dot"></span>
@@ -645,19 +666,22 @@
               </div>
             </div>
           </div>
+          </div>
         </div>
       </article>
 
       <!-- Step 2: Eval only -->
       <article class="tour-step" data-step="eval">
-        <div class="glow-card" data-glow>
-          <div class="step-tag">02 · Eval mode</div>
-          <h2 class="step-title">Agent sessions + error taxonomy</h2>
-          <p class="step-copy">
-            Replay labeled procedure events. Run <strong>SIM</strong> or <strong>LIVE Claude</strong>
-            to score catches and misses against the Pinion Guide taxonomy — with full glasses verdicts.
-            Switch between Brain and Eval anytime from the top bar once you enter.
-          </p>
+        <div class="glow-card card-split" data-glow>
+          <div class="card-copy">
+            <div class="step-tag">02 · Eval mode</div>
+            <h2 class="step-title">Agent sessions + error taxonomy</h2>
+            <p class="step-copy">
+              Replay labeled procedure events. Run <strong>SIM</strong> or <strong>LIVE Claude</strong>
+              to score catches and misses against the Pinion Guide taxonomy — with full glasses verdicts.
+            </p>
+          </div>
+          <div class="card-preview">
           <div class="ui-frame">
             <div class="ui-frame-bar">
               <span class="dot on"></span><span class="dot on"></span><span class="dot"></span>
@@ -697,20 +721,22 @@
               </div>
             </div>
           </div>
+          </div>
         </div>
       </article>
 
     </div>
 
     <footer class="tour-footer">
-      <button type="button" class="btn-skip" id="btn-skip">Skip intro</button>
-      <button type="button" class="btn-next" id="btn-next">Next</button>
+      <div class="footer-powered">
+        <span>Powered by</span>
+        <img src="/lab/assets/omnia-white.png" alt="Omnia" />
+      </div>
+      <div class="footer-actions">
+        <button type="button" class="btn-skip" id="btn-skip">Skip intro</button>
+        <button type="button" class="btn-next" id="btn-next">Next</button>
+      </div>
     </footer>
-
-    <div class="powered">
-      <div class="pb-k">Powered by</div>
-      <img src="/lab/assets/omnia-white.png" alt="Omnia" />
-    </div>
   </main>
 
   <script>
