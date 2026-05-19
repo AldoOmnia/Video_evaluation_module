@@ -686,6 +686,29 @@
   }
   .run-bar .btn + .btn { margin-top: 8px; }
 
+  /* In-flight indicator for the Run buttons. Replaces the old emoji
+     loading glyph (⏳) with a small pulsing dot + text — same visual
+     language as the other status LEDs across the platform. */
+  .btn-loading {
+    display: inline-flex; align-items: center; gap: 8px;
+    animation: btn-loading-fade 1.4s ease-in-out infinite;
+  }
+  .btn-loading-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 0 0 currentColor;
+    animation: btn-loading-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes btn-loading-pulse {
+    0%   { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+    60%  { box-shadow: 0 0 0 6px transparent; opacity: 0.45; }
+    100% { box-shadow: 0 0 0 0 transparent; opacity: 1; }
+  }
+  @keyframes btn-loading-fade {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.7; }
+  }
+
   .runs-table { width: 100%; }
   .run-row {
     border-bottom: 1px solid var(--line); padding: 12px 16px;
@@ -3883,7 +3906,9 @@ async function runOnce(mode) {
   const btn = mode === 'live' ? liveBtn : simBtn;
   const originalLabel = btn.innerHTML;
   [simBtn, liveBtn, allBtn].forEach(b => b && (b.disabled = true));
-  btn.innerHTML = mode === 'live' ? '⏳ Calling Claude…' : '⏳ Running sim…';
+  btn.innerHTML = mode === 'live'
+    ? '<span class="btn-loading"><span class="btn-loading-dot"></span>Calling Claude…</span>'
+    : '<span class="btn-loading"><span class="btn-loading-dot"></span>Running sim…</span>';
   try {
     const run = await runEvaluation(state.eval.session, state.eval.hardware, state.eval.strategy, mode);
     state.eval.runs.push(run);
@@ -3904,7 +3929,7 @@ document.getElementById('run-all-btn').onclick = async () => {
   const btn = document.getElementById('run-all-btn');
   btn.disabled = true;
   for (const sid of Object.keys(CONTEXT_STRATEGIES)) {
-    btn.textContent = `Running ${sid}…`;
+    btn.innerHTML = `<span class="btn-loading"><span class="btn-loading-dot"></span>Running ${sid}…</span>`;
     const run = await runEvaluation(state.eval.session, state.eval.hardware, sid, 'sim');
     state.eval.runs.push(run);
     renderRuns();
