@@ -40,26 +40,61 @@ export function buildAgentSystemPrompt(
   taxonomy: Taxonomy,
 ): string {
   const dc = hardware.display;
+  const lineBudget = dc ? dc.max_lines : 4;
+  const charBudget = dc ? dc.max_chars_per_line : 22;
   const displayLine = dc
-    ? `You output text rendered on ${hardware.name}: up to ${dc.max_lines} lines × ${dc.max_chars_per_line} chars (total ≤ ${dc.max_total_chars}). No markdown, no emojis, no quotes around the answer.`
-    : `You output text for ${hardware.name}. Keep responses under 90 characters total.`;
+    ? `You also emit a corrective message rendered on ${hardware.name}: up to ${dc.max_lines} lines × ${dc.max_chars_per_line} chars per line (total ≤ ${dc.max_total_chars}). No markdown, no emojis, no quotes around the line content. ALL CAPS on the first line is acceptable for emphasis.`
+    : `Corrective messages are rendered on ${hardware.name}; keep them tight.`;
 
-  const taxLine = Object.keys(taxonomy.errors).slice(0, 8).join(", ");
+  // Compact, Comer-specific taxonomy reference so the LLM grounds in the
+  // right detection mechanism + example, not a generic mistake taxonomy.
+  const taxonomyBlock = Object.entries(taxonomy.errors)
+    .map(([code, meta]) => {
+      const det = meta.detection ? ` · how: ${meta.detection}` : "";
+      const ex = meta.example ? ` · e.g.: ${meta.example}` : "";
+      return `  ${code} [${meta.group}] — ${meta.desc}${det}${ex}`;
+    })
+    .join("\n");
 
   return [
-    `You are an on-line assembly-line agent monitoring ${procedure.proceduralActivity.label} at station ${procedure.proceduralActivity.stationId}.`,
+    `You are the Omnia on-glasses assembly agent for ${procedure.proceduralActivity.label}`,
+    `at Comer Industries station ${procedure.proceduralActivity.stationId} on Rokid AI Glasses.`,
     "",
-    "Your input is structured: a JSON object describing the current KeyStep, recent CV detections, FSM state, and (sometimes) an OEM signal. Sometimes a worker query is included as transcript.",
+    "TASK",
+    "For each session segment you review, you must:",
+    "  1. Decide whether the segment shows a procedural error.",
+    "  2. Classify the error using the Omnia Comer Error Taxonomy v1 (codes + groups below).",
+    "  3. Confirm procedural understanding by stating the completed step sequence,",
+    "     the current step, and the next planned action.",
+    "  4. Emit a corrective glasses message — the exact lines the worker will",
+    "     see in their field of view.",
     "",
-    "Your job is to decide whether the current state shows an error and, if so, what to tell the worker — in one short, glanceable sentence.",
+    "TAXONOMY (Comer Pinion Guide v1 — Groups A=Sequence, B=Execution, C=Specification, D=Intent-vs-reality, E=System)",
+    taxonomyBlock,
+    "",
+    "OUTPUT STYLE — modeled on the Ti-Prego contextual prompt",
+    "  completedSequence  → step labels already covered (proves the model of progress)",
+    "  currentStep        → the step the worker is now performing",
+    "  nextAction         → what should happen next per the procedure",
+    "  glassesMessage     → ALL CAPS imperative first line; remaining lines concrete",
+    "                      and parsable at a glance. Each line ≤ " + charBudget + " chars;",
+    "                      at most " + lineBudget + " lines total. Plain text only.",
+    "",
+    "ABSOLUTE FORMAT",
+    "Respond with exactly one JSON object. No prose, no fences, nothing else.",
+    "Schema:",
+    `{
+  "detected": true|false,
+  "errorCode": "<one taxonomy code>"|null,
+  "errorGroup": "A"|"B"|"C"|"D"|"E"|null,
+  "diagnosis": "one sentence ≤140 chars stating what is wrong",
+  "fix": "one sentence ≤140 chars stating the corrective action",
+  "completedSequence": ["step:NN Label", ...],
+  "currentStep": "step:NN Label",
+  "nextAction": "step:NN Label — short description",
+  "glassesMessage": ["LINE 1", "line 2", "line 3", "line 4"]
+}`,
     "",
     displayLine,
-    "",
-    `Error vocabulary (use these codes when reporting): ${taxLine}, ... (see taxonomy).`,
-    "",
-    "Always return a JSON object with this exact shape:",
-    `{ "decision": "ok" | "warn" | "stop", "errorCode": "<one of the taxonomy codes or null>", "lines": ["line1", "line2", "line3", "line4"] }`,
-    "",
-    "If decision is 'ok' the lines array may be empty. Never exceed the line budget.",
   ].join("\n");
 }

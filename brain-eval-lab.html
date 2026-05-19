@@ -689,6 +689,62 @@
   .event-row .ev-out.miss { color: var(--err); }
   .event-row .ev-out.fp { color: var(--warn); }
   .event-row .ev-tk { color: var(--ink-3); text-align: right; }
+  /* ── Agent contextual output (per anomaly event) ──────────────────────── */
+  .agent-out {
+    grid-column: 1 / -1;
+    margin: 4px 0 10px 70px;
+    padding: 10px 12px;
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+    border-left: 2px solid var(--c-advice, #c2410c);
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 10px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .agent-out .ao-row { display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+  .agent-out .ao-chip {
+    font-size: 9.5px; padding: 2px 7px; border-radius: 10px;
+    text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+    white-space: nowrap;
+  }
+  .agent-out .ao-diag { color: var(--ink-1); font-size: 10.5px; flex: 1 1 240px; }
+  .agent-out .ao-fix {
+    background: var(--bg-3, #0a0a0a); padding: 4px 8px; border-radius: 3px;
+    font-size: 10px; color: var(--ink-1);
+  }
+  .agent-out .ao-proc { display: grid; gap: 2px; }
+  .agent-out .ao-proc > div { color: var(--ink-2); }
+  .agent-out .ao-k {
+    display: inline-block; min-width: 80px;
+    font-size: 8.5px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-3); margin-right: 8px;
+  }
+  .agent-out .ao-k-lens {
+    color: #4ade80; letter-spacing: 0.15em; font-weight: 600; margin-bottom: 4px;
+  }
+  .agent-out .ao-glasses-wrap { margin-top: 4px; }
+  .agent-out .ao-glasses {
+    width: max-content; max-width: 100%;
+    padding: 10px 12px;
+    background: radial-gradient(ellipse at center, rgba(74,222,128,0.10), rgba(74,222,128,0.02) 70%), #050a06;
+    border: 1px solid rgba(74,222,128,0.35);
+    border-radius: 6px;
+    box-shadow: inset 0 0 12px rgba(74,222,128,0.08);
+    font-family: var(--mono);
+    color: #6ef0a0; text-shadow: 0 0 6px rgba(74,222,128,0.45);
+    font-size: 11px; line-height: 1.5;
+    letter-spacing: 0.03em;
+  }
+  .agent-out .ao-gline {
+    display: block;
+    width: var(--lens-w, 22ch);
+    white-space: pre;
+    overflow: hidden;
+  }
+  .agent-out .ao-gline:empty::before { content: " "; }
   .empty { padding: 40px 16px; text-align: center; color: var(--ink-3); font-family: var(--mono); font-size: 11px; }
   .summary { padding: 16px; background: var(--bg-2); border-bottom: 1px solid var(--line); }
   .summary h4 {
@@ -2214,6 +2270,49 @@ function escapeHTML(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+/* Render the structured per-event agent verdict in the run-detail panel.
+   Layout follows the Ti-Prego "contextual output" pattern:
+     1. Taxonomy classification chip (errorCode · group)
+     2. Diagnosis line — what was wrong
+     3. Procedural understanding — completed sequence → current → next
+     4. Glasses preview — the literal lines the worker sees on the lens
+*/
+function renderAgentOutput(ao, hw) {
+  if (!ao) return '';
+  const grpLabel = ao.errorGroup ? (ERROR_GROUPS[ao.errorGroup]?.label || ao.errorGroup) : '';
+  const grpColor = ao.errorGroup ? (ERROR_GROUPS[ao.errorGroup]?.color || '#525252') : '#525252';
+  const ecLabel = ao.errorCode ? (ERROR_TAXONOMY[ao.errorCode]?.label || ao.errorCode) : '(no error)';
+  const completed = (ao.completedSequence || []).join(' → ') || '(start of run)';
+  const cur = ao.currentStep || '—';
+  const next = ao.nextAction || '—';
+  const lines = ao.glassesMessage || [];
+  const lensW = (hw && hw.display && hw.display.max_chars_per_line) || 22;
+  const lensH = (hw && hw.display && hw.display.max_lines) || 4;
+  // Pad lines so the preview always shows the full budget the agent had.
+  const padded = lines.slice(0, lensH).concat(Array(Math.max(0, lensH - lines.length)).fill(''));
+
+  return `<div class="agent-out">
+    <div class="ao-row">
+      <span class="ao-chip" style="background:${grpColor}22;border:1px solid ${grpColor}55;color:${grpColor};">
+        ${ao.errorCode || '—'}${ao.errorGroup ? ` · ${ao.errorGroup} ${escapeHTML(grpLabel)}` : ''}
+      </span>
+      <span class="ao-diag">${escapeHTML(ao.diagnosis || '')}</span>
+    </div>
+    ${ao.fix ? `<div class="ao-fix"><span class="ao-k">FIX</span>${escapeHTML(ao.fix)}</div>` : ''}
+    <div class="ao-proc">
+      <div><span class="ao-k">COMPLETED</span>${escapeHTML(completed)}</div>
+      <div><span class="ao-k">CURRENT</span>${escapeHTML(cur)}</div>
+      <div><span class="ao-k">NEXT</span>${escapeHTML(next)}</div>
+    </div>
+    <div class="ao-glasses-wrap">
+      <div class="ao-k ao-k-lens">AI AGENT MESSAGE ON GLASSES</div>
+      <div class="ao-glasses" style="--lens-w:${lensW}ch;--lens-h:${lensH};">
+        ${padded.map(l => `<div class="ao-gline">${escapeHTML(l)}</div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
 function relativeTime(ts) {
   if (!ts) return '';
   const diff = Math.round((Date.now() - ts) / 1000);
@@ -2757,9 +2856,11 @@ function renderRuns() {
             <span class="ev-out ${outClass}">${e.outcome}</span>
             <span class="ev-tk">${e.inputTokens||0}t</span>
           </div>`;
-          const r2 = e.rationale
-            ? `<div style="grid-column:1/-1;font-size:9.5px;color:var(--ink-3);padding:2px 0 6px 70px;font-family:var(--mono);line-height:1.55;border-bottom:1px solid var(--line-1);margin-bottom:2px;">↳ ${escapeHTML(String(e.rationale))}</div>`
-            : '';
+          const r2 = e.agentOutput
+            ? renderAgentOutput(e.agentOutput, r.hardware)
+            : (e.rationale
+                ? `<div style="grid-column:1/-1;font-size:9.5px;color:var(--ink-3);padding:2px 0 6px 70px;font-family:var(--mono);line-height:1.55;border-bottom:1px solid var(--line-1);margin-bottom:2px;">↳ ${escapeHTML(String(e.rationale))}</div>`
+                : '');
           return r1 + r2;
         }).join('')}
       </div>
