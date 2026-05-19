@@ -647,11 +647,24 @@
   .run-row {
     border-bottom: 1px solid var(--line); padding: 12px 16px;
     display: grid; grid-template-columns: 1fr auto; gap: 4px; cursor: pointer;
+    transition: background-color 120ms ease;
   }
   .run-row:hover { background: var(--bg-2); }
+  .run-row.is-open { background: var(--bg-2); }
   .run-row .run-id {
     font-family: var(--mono); color: var(--ink-3); font-size: 9px;
     text-transform: uppercase; letter-spacing: 0.08em;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .run-row .run-chev {
+    display: inline-block; width: 10px; color: var(--ink-2);
+    transition: transform 120ms ease;
+  }
+  .run-row .run-badge {
+    font-family: var(--mono); font-size: 8.5px; padding: 1px 5px;
+    border-radius: 8px; border: 1px solid #4ade8055;
+    color: #4ade80; background: rgba(74,222,128,0.08);
+    letter-spacing: 0.1em;
   }
   .run-row .run-config { font-size: 12px; color: var(--ink); margin-top: 2px; }
   .run-row .run-time { font-family: var(--mono); color: var(--ink-3); font-size: 10px; }
@@ -2824,15 +2837,24 @@ function renderRuns() {
     document.getElementById('summary').style.display = 'none';
     return;
   }
-  el.innerHTML = state.eval.runs.slice().reverse().map(r => {
+  const reversed = state.eval.runs.slice().reverse();
+  el.innerHTML = reversed.map((r, idx) => {
     const m = r.metrics;
     const hi = (m.high_priority_catch_rate * 100).toFixed(0);
     const hiCls = m.high_priority_catch_rate >= 0.85 ? 'ok' : m.high_priority_catch_rate >= 0.6 ? 'warn' : 'err';
     const md = (m.medium_priority_catch_rate * 100).toFixed(0);
-    return `<div class="run-row" data-id="${r.id}" onclick="toggleRunDetail('${r.id}')">
+    // Auto-expand the newest run so the contextual output is visible without
+    // a click. Older runs stay collapsed to keep the list scannable.
+    const isOpen = idx === 0;
+    const hasAgentOutput = r.events.some(e => e.agentOutput);
+    return `<div class="run-row ${isOpen ? 'is-open' : ''}" data-id="${r.id}" onclick="toggleRunDetail('${r.id}')">
       <div>
-        <div class="run-id">${r.id}</div>
-        <div class="run-config">${r.hardware.name} · ${r.strategy.name}</div>
+        <div class="run-id">
+          <span class="run-chev">${isOpen ? '▾' : '▸'}</span>
+          ${r.id}
+          ${hasAgentOutput ? '<span class="run-badge" title="Live LLM output — click to view glasses messages">LIVE</span>' : ''}
+        </div>
+        <div class="run-config">${r.hardware.name} · ${r.strategy.name} · <span style="color:var(--ink-3);">click row to ${isOpen ? 'collapse' : 'expand'}</span></div>
       </div>
       <div class="run-time">${new Date(r.timestamp).toLocaleTimeString()}</div>
       <div class="run-metrics">
@@ -2841,10 +2863,10 @@ function renderRuns() {
         <div class="m"><div class="k">FP</div><div class="v ${m.false_pos > 2 ? 'warn' : ''}">${m.false_pos}</div></div>
         <div class="m"><div class="k">Tokens</div><div class="v">${(m.total_input_tokens/1000).toFixed(1)}k</div></div>
       </div>
-      <div class="run-detail" id="detail-${r.id}" style="display:none;">
+      <div class="run-detail" id="detail-${r.id}" style="display:${isOpen ? 'block' : 'none'};">
         ${renderGroupBreakdown(m.byGroup)}
         ${renderErrorTypeBreakdown(m.byType)}
-        <div style="margin-top:10px;font-family:var(--mono);font-size:9px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.08em;">Anomaly events</div>
+        <div style="margin-top:10px;font-family:var(--mono);font-size:9px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.08em;">Anomaly events — diagnosis · fix · glasses message</div>
         ${r.events.filter(e => e.label === 'incorrect').slice(0, 16).map(e => {
           const et = e.errorType ? ERROR_TAXONOMY[e.errorType]?.label || e.errorType : '';
           const outClass = e.outcome === 'caught' ? 'caught'
@@ -2938,8 +2960,21 @@ function renderSummary() {
 }
 
 function toggleRunDetail(id) {
+  // Ignore clicks that originated inside the expanded detail itself
+  // (so users can select text / click links without collapsing the row).
+  const evt = window.event;
+  if (evt && evt.target && evt.target.closest && evt.target.closest('.run-detail')) return;
   const el = document.getElementById('detail-' + id);
-  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  if (!el) return;
+  const willOpen = el.style.display === 'none';
+  el.style.display = willOpen ? 'block' : 'none';
+  // Flip chevron on the parent row
+  const row = el.closest('.run-row');
+  if (row) {
+    row.classList.toggle('is-open', willOpen);
+    const chev = row.querySelector('.run-chev');
+    if (chev) chev.textContent = willOpen ? '▾' : '▸';
+  }
 }
 window.toggleRunDetail = toggleRunDetail;
 
