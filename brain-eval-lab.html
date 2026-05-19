@@ -3033,22 +3033,23 @@ async function runEvaluation(annotations, hwId, stratId, mode) {
     try {
       toast('Calling Claude via /api/eval — this can take a few seconds per anomaly…');
       const t0 = performance.now();
+      // Strip null/undefined fields — Zod's .optional() does NOT accept null.
+      const events = annotations.map(a => {
+        const ev = {
+          ts: a.timestamp,
+          phase: a.phase,
+          label: a.label === 'incorrect' ? 'incorrect' : 'correct',
+        };
+        if (a.keystepId) ev.stepId = a.keystepId;
+        if (a.errorType) ev.errorType = a.errorType;
+        const note = a.note || a.rationale;
+        if (note) ev.rationale = note;
+        return ev;
+      });
       const r = await fetch(`${PLATFORM_API}/api/eval`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          hardwareId: hwId,
-          strategyId: stratId,
-          liveLLM: true,
-          events: annotations.map(a => ({
-            ts: a.timestamp,
-            phase: a.phase,
-            stepId: a.keystepId,
-            label: a.label === 'incorrect' ? 'incorrect' : 'correct',
-            errorType: a.errorType,
-            rationale: a.note || a.rationale || undefined
-          }))
-        })
+        body: JSON.stringify({ hardwareId: hwId, strategyId: stratId, liveLLM: true, events })
       });
       const elapsed = Math.round(performance.now() - t0);
       console.log('[runEvaluation] /api/eval responded', r.status, 'in', elapsed, 'ms');
@@ -3562,6 +3563,14 @@ async function refreshLLMStatus() {
   } catch {
     setLLMStatus('off');
   }
+}
+
+// Auto-retry every 15s so a transient offline blip self-recovers without
+// the user having to refresh. Pauses while a Claude call is in flight.
+if (!window.__llmStatusInterval) {
+  window.__llmStatusInterval = setInterval(() => {
+    if (!document.hidden) refreshLLMStatus();
+  }, 15000);
 }
 
 // Self-correct from any backend response that includes `stubbed`.

@@ -37,18 +37,23 @@ export const AgentOutputSchema = z.object({
 });
 export type AgentOutput = z.infer<typeof AgentOutputSchema>;
 
+/** Accept `null` as equivalent to "field omitted" so JSON serializers that
+ *  emit `"errorType": null` for correct events don't blow up validation. */
+const nullable = <T extends z.ZodTypeAny>(s: T) =>
+  s.optional().nullable().transform((v) => (v === null ? undefined : v));
+
 export const SessionEventSchema = z.object({
   ts: z.number().nonnegative(),
   phase: z.string(),
-  stepId: z.string().regex(/^step:\d+$/).optional(),
+  stepId: nullable(z.string().regex(/^step:\d+$/)),
   label: z.enum(["correct", "incorrect", "ambiguous"]),
-  errorType: ErrorCodeSchema.optional(),
-  priority: PrioritySchema.optional(),
-  outcome: OutcomeSchema.optional(),
-  inputTokens: z.number().int().nonnegative().optional(),
-  outputTokens: z.number().int().nonnegative().optional(),
-  latencyMs: z.number().nonnegative().optional(),
-  rationale: z.string().optional(),
+  errorType: nullable(ErrorCodeSchema),
+  priority: nullable(PrioritySchema),
+  outcome: nullable(OutcomeSchema),
+  inputTokens: nullable(z.number().int().nonnegative()),
+  outputTokens: nullable(z.number().int().nonnegative()),
+  latencyMs: nullable(z.number().nonnegative()),
+  rationale: nullable(z.string()),
   /** Rich, structured agent verdict (set by /api/eval when liveLLM is on). */
   agentOutput: AgentOutputSchema.optional(),
 });
