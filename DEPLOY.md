@@ -188,6 +188,7 @@ Quick version:
 
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
+| Build fails with `TS7016` / `Cannot find name 'process'` | `NODE_ENV=production` skipped devDependencies (`@types/*`, `typescript`) | `render.yaml` uses `npm install --include=dev && npm run build` |
 | Build fails with `ERR_MODULE_NOT_FOUND` | Imports in `shared/` missing `.js` suffix | grep for `from "\\./[^"]*[^js]"` under `shared/types/`; add `.js` |
 | `/health` says `stubMode: true` in prod | `ANTHROPIC_API_KEY` not set | Set in Render → Environment, redeploy |
 | `/health` returns 200 but `/lab/` 404 | Path resolution drift | Re-check `backend/src/paths.ts` finds `brain-eval-lab.html` (it walks up the tree) |

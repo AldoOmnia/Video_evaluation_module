@@ -21,7 +21,9 @@ services:
     rootDir: .
     autoDeploy: true
 
-    buildCommand: npm install && npm run build
+    # NODE_ENV=production omits devDependencies by default; tsc needs
+    # typescript + @types/* at build time.
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
 
     healthCheckPath: /health
