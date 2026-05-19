@@ -3541,15 +3541,19 @@ function setLLMStatus(mode) {
     if (/^LLM:\s/i.test(s.textContent || '')) s.textContent = brainLabel;
   });
   window.__llmMode = mode;
-  if (liveToggle) {
+  // Disable the LIVE LLM run button when backend is offline, re-enable on live/stub.
+  const liveBtn = document.getElementById('run-btn-live');
+  if (liveBtn) {
     if (mode === 'off') {
-      liveToggle.disabled = true;
-      liveToggle.title = 'Backend unreachable — runs will use the in-browser simulator.';
+      liveBtn.disabled = true;
+      liveBtn.title = 'Backend unreachable — only Run · SIM works right now';
     } else {
-      liveToggle.disabled = false;
-      liveToggle.title = mode === 'live'
-        ? 'Backend has a live LLM. Toggle to route runs through real Anthropic calls.'
-        : 'Backend reachable but in STUB mode (no ANTHROPIC_API_KEY). Toggle to route runs through it anyway.';
+      // Only re-enable if a session exists; otherwise leave whatever
+      // generateEvalSession() set.
+      if (state && state.eval && state.eval.session) liveBtn.disabled = false;
+      liveBtn.title = mode === 'live'
+        ? 'Calls Claude through /api/eval (~3-10s per anomaly) and returns Full-view glasses verdicts.'
+        : 'Backend reachable but in STUB mode (no ANTHROPIC_API_KEY on server) — clicking still goes through /api/eval but the verdicts will be canned.';
     }
   }
 }
