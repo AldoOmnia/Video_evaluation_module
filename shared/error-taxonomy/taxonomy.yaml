@@ -1,6 +1,8 @@
-# OmniaClaw error taxonomy — 5 groups × 19 codes
-# Mirrors omniaclaw-error-taxonomy.pdf one-page reference
-# Each KeyStep's errorProfile in procedure-spec/*.yaml declares which apply
+# Omnia Error Taxonomy — Comer Pinion Guide v1
+# Source: docs/omnia-error-taxonomy.md (mirrored here for Zod-validated load)
+# Each KeyStep's errorProfile in procedure-spec/*.yaml selects which apply.
+# Groups A–B follow Sener et al. CVPR 2022 (Assembly101). Group D is unique
+# to OEM-fusion systems. Group E covers agent-side perception limits.
 
 groups:
   A:
@@ -10,11 +12,11 @@ groups:
   B:
     label: Execution
     color: "#7c3aed"
-    desc: What happens in a step
+    desc: What happens within a step
   C:
     label: Specification
     color: "#0891b2"
-    desc: Measurements & values
+    desc: Measurements and values
   D:
     label: Intent-vs-reality
     color: "#c2410c"
@@ -22,34 +24,129 @@ groups:
   E:
     label: System
     color: "#525252"
-    desc: Perception limits
+    desc: Agent perception limits
 
 errors:
   # Group A — Sequence
-  OMISSION:            { group: A, label: Omission,            desc: "Required step not performed" }
-  INSERTION:           { group: A, label: Insertion,           desc: "Extra action outside the procedure" }
-  ORDER:               { group: A, label: Order,               desc: "Right steps, wrong sequence" }
-  INCOMPLETE:          { group: A, label: Incomplete,          desc: "Step entered but not fully done" }
+  OMISSION:
+    group: A
+    label: Omission
+    desc: Required step not performed
+    detection: FSM never entered state; next-state entry condition met without prior step's completion
+    example: Worker skips S02 Lubricate, goes from S01 directly to S03 Position
+  INSERTION:
+    group: A
+    label: Insertion
+    desc: Extra action outside the procedure
+    detection: Detection signature matches no expected state; or re-execution of a completed step
+    example: Worker re-torques pinion nut after rotational-torque check (S10) is already complete
+  ORDER:
+    group: A
+    label: Order
+    desc: Right steps, wrong sequence
+    detection: FSM transition violates `required_priors` constraint
+    example: S07 Shim Pack loaded before S06 Crush Sleeve installed
+  INCOMPLETE:
+    group: A
+    label: Incomplete
+    desc: Step entered but not fully done
+    detection: State `exit_condition` not satisfied at transition time
+    example: Worker abandons torque sequence after 2 of 3 required passes
 
   # Group B — Execution
-  SUBSTITUTION:        { group: B, label: Substitution,        desc: "Right step, wrong object" }
-  ORIENTATION:         { group: B, label: Orientation,         desc: "Right object, wrong way around" }
-  OMITTED_OBJECT:      { group: B, label: Omitted object,      desc: "Required object not present" }
-  EXTRA_OBJECT:        { group: B, label: Extra object,        desc: "Forbidden object present" }
+  SUBSTITUTION:
+    group: B
+    label: Substitution
+    desc: Right step, wrong object
+    detection: CV detects object SKU/class not matching expected for current state
+    example: Wrong shim thickness loaded — 0.024 mm instead of spec 0.028 mm
+  ORIENTATION:
+    group: B
+    label: Orientation
+    desc: Right object, wrong way around
+    detection: Pose-aware CV check fails, or worker confirmation prompt fails
+    example: Guide bearing chamfered edge facing outboard instead of inboard
+  OMITTED_OBJECT:
+    group: B
+    label: Omitted object
+    desc: Required object not present
+    detection: CV doesn't detect a required object after `minDwellMs` threshold
+    example: Depth gauge not visible at S05 Verify Depth entry
+  EXTRA_OBJECT:
+    group: B
+    label: Extra object
+    desc: Forbidden object present
+    detection: CV detects an object in step's `forbidden_objects` list
+    example: Torque wrench visible during S07 Shim Pack selection — wrong tool
 
   # Group C — Specification
-  OUT_OF_SPEC:         { group: C, label: Out of spec,         desc: "Measured value outside acceptance range" }
-  UNVERIFIED:          { group: C, label: Unverified,          desc: "Required measurement never taken" }
-  BORDERLINE:          { group: C, label: Borderline,          desc: "Within spec but near tolerance edge" }
+  OUT_OF_SPEC:
+    group: C
+    label: Out of spec
+    desc: Measured value outside acceptance range
+    detection: OEM or worker-entered measurement compared to procedure spec
+    example: Pinion nut torque = 195 Nm, spec is 210-240 Nm
+  UNVERIFIED:
+    group: C
+    label: Unverified
+    desc: Required measurement never taken
+    detection: No measurement event logged within step duration
+    example: S05 closed without depth-gauge reading recorded
+  BORDERLINE:
+    group: C
+    label: Borderline
+    desc: Within spec but near tolerance edge
+    detection: Measurement compared to procedure spec ± epsilon
+    example: Press depth at 0.0048 mm — within 0.000-0.005 mm spec but at upper edge
 
   # Group D — Intent-vs-reality (OEM-fusion exclusive)
-  INTENT_MISMATCH:     { group: D, label: Intent mismatch,     desc: "OEM says step N, CV observes M (≠N±1)" }
-  PHANTOM_PROGRESS:    { group: D, label: Phantom progress,    desc: "OEM advanced but CV sees no work" }
-  UNREPORTED_PROGRESS: { group: D, label: Unreported,          desc: "CV sees completion, OEM not updated" }
-  STATE_REPAIR:        { group: D, label: State repair,        desc: "Worker recognized own error and is fixing" }
+  INTENT_MISMATCH:
+    group: D
+    label: Intent mismatch
+    desc: OEM says step N, CV observes step M (≠ N±1)
+    detection: DIVERGED transition sustained beyond threshold
+    example: OEM reports worker on S07 Shim, CV sees torque-nut actions (S09 signature)
+  PHANTOM_PROGRESS:
+    group: D
+    label: Phantom progress
+    desc: OEM advanced but CV sees no work
+    detection: OEM_AHEAD_OF_CV transition persists past expected dwell minimum
+    example: OEM marked S07 complete but CV never observed a shim package
+  UNREPORTED_PROGRESS:
+    group: D
+    label: Unreported progress
+    desc: CV sees completion, OEM not updated
+    detection: CV_AHEAD_OF_OEM transition; OEM state remains stuck
+    example: Worker did rotational-torque check (S10) but didn't scan the traveler
+  STATE_REPAIR:
+    group: D
+    label: State repair
+    desc: Worker recognized own error and is fixing it
+    detection: BACKWARD transition followed by re-entry into corrected state
+    example: Worker realizes wrong shim, removes it, restarts S07 with correct SKU
 
   # Group E — System / perception
-  CV_UNCERTAIN:        { group: E, label: CV uncertain,        desc: "CV confidence below threshold" }
-  STATE_AMBIGUOUS:     { group: E, label: State ambiguous,     desc: "Multiple FSM states equally plausible" }
-  OEM_UNAVAILABLE:     { group: E, label: OEM unavailable,     desc: "OEM signal stale or missing" }
-  OUT_OF_DISTRIBUTION: { group: E, label: OOD,                 desc: "CV detects unknown object class" }
+  CV_UNCERTAIN:
+    group: E
+    label: CV uncertain
+    desc: CV confidence below threshold
+    detection: Aggregate confidence < 0.5 sustained for > 2 s
+    example: Hand occlusion during press operation — should hold proactive interventions
+  STATE_AMBIGUOUS:
+    group: E
+    label: State ambiguous
+    desc: Multiple FSM states equally plausible
+    detection: Top-2 candidate states within probability epsilon
+    example: Mid-procedure pause looks identical between S05 and S06 — use OEM signal to disambiguate
+  OEM_UNAVAILABLE:
+    group: E
+    label: OEM unavailable
+    desc: OEM signal stale or missing
+    detection: No OEM transition event for > expected step duration upper bound
+    example: MSSQL polling timeout — fall back to CV-only inference, flag reduced confidence
+  OUT_OF_DISTRIBUTION:
+    group: E
+    label: Out of distribution
+    desc: CV detects unknown object class
+    detection: Detection class not in any state's expected vocabulary
+    example: Unfamiliar replacement tool on bench — investigate or flag for retraining

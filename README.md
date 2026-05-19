@@ -3,6 +3,23 @@
 The procedural-knowledge graph + agent-evaluation platform behind the
 Aequilibrium / OmniaClaw smart-glasses program.
 
+**Reference material lives in [`docs/`](./docs):**
+
+- [`docs/omnia-error-taxonomy.md`](./docs/omnia-error-taxonomy.md) — the
+  Comer Pinion Guide v1 error taxonomy (5 groups × 19 codes) including
+  detection mechanism and a Pinion-Guide-specific example per code. This
+  is what the agent prompt is grounded in.
+- [`docs/papers/`](./docs/papers) — academic papers informing the build:
+  - Sener et al., **Assembly101** — mistake-taxonomy foundation (Groups A–B).
+  - Jang et al., **EPIC-Tent** — egocentric assembly dataset reference.
+  - Flaborea et al., **PREGO** — online mistake detection baseline.
+  - **Ti-PREGO** — chain-of-thought + contextual prompt pattern that the
+    eval agent's structured output now follows (see
+    `docs/papers/ti-prego-contextual-output.png` for the figure that drives
+    `agentOutput` shape: completed sequence → current step → next action →
+    glasses message).
+  - `omnia-error-taxonomy.pdf` — printable one-pager mirror of the markdown.
+
 This repo extracts the data model, prompt assembly, display constraints,
 and rule engine from the single-file `brain-eval-lab.html` scaffold into a
 shared library. It's designed so the **web eval lab** and a **paired

@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="no-referrer" />
+  <title>Comer Industries · Sign in</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root {
+      --bg: #050505;
+      --bg-2: #0d0d0d;
+      --bg-3: #141414;
+      --ink-1: #f5f5f5;
+      --ink-2: #a3a3a3;
+      --ink-3: #6b6b6b;
+      --line: #1f1f1f;
+      --line-2: #2a2a2a;
+      --primary: #00E5A0;       /* Comer Theme — Primary */
+      --primary-dim: #00996B;   /* Comer Theme — PrimaryDim */
+      --primary-glow: rgba(0,229,160,0.45);
+      --err: #ef4444;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--ink-1);
+      font-family: var(--sans);
+      font-size: 14px; line-height: 1.5;
+      overflow-x: hidden; overflow-y: auto;
+      -webkit-font-smoothing: antialiased;
+    }
+    /* Discreet enterprise-style scrollbar when the page does overflow. */
+    body::-webkit-scrollbar { width: 8px; }
+    body::-webkit-scrollbar-track { background: transparent; }
+    body::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 4px; }
+
+    /* ── Dotted background ────────────────────────────────────────────────
+       Two soft radial-gradient dot grids drifting in opposite directions.
+       Pure CSS, no JS, no images — keeps the page lightweight while still
+       feeling alive on a long load screen. */
+    .bg {
+      position: fixed; inset: 0; z-index: -1;
+      background:
+        radial-gradient(circle at top left, rgba(0,229,160,0.06), transparent 55%),
+        radial-gradient(circle at bottom right, rgba(0,150,255,0.05), transparent 55%),
+        var(--bg);
+    }
+    .bg::before, .bg::after {
+      content: ''; position: absolute; inset: -50%;
+      background-image: radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px);
+      background-size: 22px 22px;
+      animation: drift-slow 60s linear infinite;
+      opacity: 0.9;
+    }
+    .bg::after {
+      background-image: radial-gradient(rgba(0,229,160,0.10) 1.4px, transparent 1.4px);
+      background-size: 56px 56px;
+      animation: drift-fast 40s linear infinite reverse;
+      opacity: 0.55;
+    }
+    @keyframes drift-slow {
+      from { transform: translate3d(0,0,0); }
+      to   { transform: translate3d(-44px,-44px,0); }
+    }
+    @keyframes drift-fast {
+      from { transform: translate3d(0,0,0); }
+      to   { transform: translate3d(-112px,56px,0); }
+    }
+
+    /* Subtle scan-line overlay so the dotted bg feels like a display, not
+       a print pattern. Helps the enterprise / industrial vibe. */
+    .scanlines {
+      position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background: repeating-linear-gradient(
+        180deg,
+        rgba(255,255,255,0) 0px,
+        rgba(255,255,255,0) 3px,
+        rgba(255,255,255,0.012) 3px,
+        rgba(255,255,255,0.012) 4px
+      );
+    }
+
+    /* ── Layout ──────────────────────────────────────────────────────── */
+    .stage {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      padding: 28px 24px 20px;
+    }
+    .content {
+      align-self: center; justify-self: center;
+      width: 100%; max-width: 400px;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 20px;
+    }
+
+    /* ── Client logo header ──────────────────────────────────────────── */
+    .client-logo-wrap {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 16px;
+    }
+    .client-logo {
+      width: 110px; height: 110px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--line-2);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    }
+    .client-logo img {
+      max-width: 100%; max-height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 0 6px rgba(255,255,255,0.05));
+    }
+    .client-name {
+      font-family: var(--mono);
+      font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--ink-3);
+    }
+    .client-name strong {
+      color: var(--ink-1); font-weight: 600;
+    }
+
+    /* ── Login card ──────────────────────────────────────────────────── */
+    .card {
+      width: 100%;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: 12px;
+      padding: 22px 24px 20px;
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.03) inset,
+        0 20px 60px rgba(0,0,0,0.55);
+    }
+    .card h1 {
+      font-size: 18px; font-weight: 600;
+      margin-bottom: 4px; color: var(--ink-1);
+      letter-spacing: -0.01em;
+    }
+    .card .sub {
+      font-family: var(--mono); font-size: 10.5px;
+      color: var(--ink-3); letter-spacing: 0.08em; text-transform: uppercase;
+      margin-bottom: 22px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .field label {
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--ink-3); font-weight: 500;
+    }
+    .field input {
+      width: 100%;
+      background: var(--bg-3);
+      border: 1px solid var(--line-2);
+      border-radius: 6px;
+      padding: 11px 12px;
+      font-family: var(--sans); font-size: 14px;
+      color: var(--ink-1);
+      transition: border-color 140ms ease, box-shadow 140ms ease;
+    }
+    .field input::placeholder { color: var(--ink-3); }
+    .field input:focus {
+      outline: none;
+      border-color: var(--primary-dim);
+      box-shadow: 0 0 0 3px rgba(0,229,160,0.10);
+    }
+
+    .error-msg {
+      min-height: 18px;
+      font-family: var(--mono); font-size: 10.5px;
+      color: var(--err);
+      letter-spacing: 0.04em;
+      margin: -4px 0 10px;
+    }
+
+    /* ── Login button — "on cursor" glow + lift ─────────────────────── */
+    .btn-login {
+      position: relative;
+      width: 100%; border: 0;
+      padding: 13px 16px;
+      font-family: var(--sans); font-size: 13.5px; font-weight: 600;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      color: #06120c;
+      background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dim) 100%);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 160ms ease, box-shadow 220ms ease, filter 160ms ease;
+      box-shadow:
+        0 0 0 0 var(--primary-glow),
+        0 4px 14px rgba(0,229,160,0.18);
+    }
+    .btn-login::after {
+      /* The animated ring that activates on hover. */
+      content: ''; position: absolute; inset: -2px;
+      border-radius: 10px;
+      border: 1px solid rgba(0,229,160,0.0);
+      transition: border-color 220ms ease, transform 220ms ease;
+      pointer-events: none;
+    }
+    .btn-login:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+      box-shadow:
+        0 0 0 6px rgba(0,229,160,0.10),
+        0 0 28px 4px var(--primary-glow),
+        0 6px 20px rgba(0,229,160,0.25);
+      animation: btn-pulse 1.8s ease-in-out infinite;
+    }
+    .btn-login:hover::after {
+      border-color: rgba(0,229,160,0.35);
+      transform: scale(1.02);
+    }
+    .btn-login:active { transform: translateY(0); }
+    .btn-login[disabled] {
+      opacity: 0.6; cursor: progress;
+      animation: none;
+    }
+    @keyframes btn-pulse {
+      0%, 100% {
+        box-shadow:
+          0 0 0 6px rgba(0,229,160,0.10),
+          0 0 28px 4px var(--primary-glow),
+          0 6px 20px rgba(0,229,160,0.25);
+      }
+      50% {
+        box-shadow:
+          0 0 0 10px rgba(0,229,160,0.04),
+          0 0 44px 8px var(--primary-glow),
+          0 6px 22px rgba(0,229,160,0.30);
+      }
+    }
+
+    /* In-flight indicator inside the button (same visual language as the lab). */
+    .btn-loading {
+      display: inline-flex; align-items: center; gap: 8px;
+      animation: btn-loading-fade 1.4s ease-in-out infinite;
+    }
+    .btn-loading-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: currentColor;
+      animation: btn-loading-pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes btn-loading-pulse {
+      0%   { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+      60%  { box-shadow: 0 0 0 6px transparent; opacity: 0.45; }
+      100% { box-shadow: 0 0 0 0 transparent; opacity: 1; }
+    }
+    @keyframes btn-loading-fade {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.7; }
+    }
+
+    /* ── Hint / dev creds (visible because this is a placeholder build) ── */
+    .creds-hint {
+      margin-top: 18px;
+      padding: 10px 12px;
+      border: 1px dashed var(--line-2);
+      border-radius: 6px;
+      background: rgba(0,229,160,0.03);
+      font-family: var(--mono); font-size: 10.5px;
+      color: var(--ink-2);
+      line-height: 1.55;
+    }
+    .creds-hint .k {
+      color: var(--ink-3); letter-spacing: 0.08em; text-transform: uppercase;
+      font-size: 9px; display: block; margin-bottom: 4px;
+    }
+    .creds-hint code {
+      color: var(--primary);
+      background: rgba(0,229,160,0.06);
+      padding: 1px 5px; border-radius: 3px;
+    }
+
+    /* ── Powered-by footer ───────────────────────────────────────────── */
+    .powered {
+      align-self: center;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding-top: 18px;
+    }
+    .powered .pb-k {
+      font-family: var(--mono); font-size: 9px;
+      letter-spacing: 0.24em; text-transform: uppercase;
+      color: var(--ink-3);
+    }
+    .powered img {
+      height: 20px; width: auto;
+      opacity: 0.85;
+      transition: opacity 200ms ease;
+    }
+    .powered:hover img { opacity: 1; }
+    .powered .pb-meta {
+      font-family: var(--mono); font-size: 9px;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--ink-3);
+    }
+
+    /* Reduced motion — drop the background animations and the hover pulse. */
+    @media (prefers-reduced-motion: reduce) {
+      .bg::before, .bg::after { animation: none; }
+      .btn-login, .btn-login:hover, .btn-loading, .btn-loading-dot { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <div class="scanlines" aria-hidden="true"></div>
+
+  <main class="stage">
+    <div class="content">
+
+      <div class="client-logo-wrap">
+        <div class="client-logo">
+          <img src="/lab/assets/comer-logo.png" alt="Comer Industries" />
+        </div>
+        <div class="client-name">CLIENT · <strong>COMER INDUSTRIES</strong></div>
+      </div>
+
+      <form class="card" id="login-form" autocomplete="off" novalidate>
+        <h1>Sign in</h1>
+        <div class="sub">Pinion Guide Assembly · Rockford Station</div>
+
+        <div class="field">
+          <label for="username">Email</label>
+          <input
+            id="username" name="username" type="email"
+            autocomplete="username" inputmode="email"
+            placeholder="you@comer.com" required
+          />
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input
+            id="password" name="password" type="password"
+            autocomplete="current-password"
+            placeholder="••••••••" required
+          />
+        </div>
+
+        <div class="error-msg" id="error-msg" role="alert" aria-live="polite"></div>
+
+        <button class="btn-login" id="btn-login" type="submit">Sign in</button>
+
+        <div class="creds-hint">
+          <span class="k">Demo credentials — placeholder build</span>
+          username <code>admin@comer.com</code><br />
+          password <code>rockford123</code>
+        </div>
+      </form>
+
+    </div>
+
+    <footer class="powered">
+      <div class="pb-k">Powered by</div>
+      <img src="/lab/assets/omnia-white.png" alt="Omnia" />
+      <div class="pb-meta">Comer · platform-comer · build v0.5</div>
+    </footer>
+  </main>
+
+  <script>
+    (() => {
+      const form = document.getElementById('login-form');
+      const userEl = document.getElementById('username');
+      const passEl = document.getElementById('password');
+      const errEl = document.getElementById('error-msg');
+      const btn = document.getElementById('btn-login');
+
+      // If a previous session is still valid, skip the login screen.
+      try {
+        const session = JSON.parse(localStorage.getItem('omnia.session') || 'null');
+        if (session && session.tenant === 'comer' && session.expiresAt > Date.now()) {
+          window.location.replace('/lab/');
+          return;
+        }
+      } catch {}
+
+      const originalLabel = btn.textContent;
+      const setLoading = (on) => {
+        btn.disabled = on;
+        btn.innerHTML = on
+          ? '<span class="btn-loading"><span class="btn-loading-dot"></span>Signing in…</span>'
+          : originalLabel;
+      };
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errEl.textContent = '';
+        const username = userEl.value.trim();
+        const password = passEl.value;
+        if (!username || !password) {
+          errEl.textContent = 'Email and password are required';
+          return;
+        }
+        setLoading(true);
+        try {
+          const r = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tenant: 'comer', username, password }),
+          });
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok || !data.ok) {
+            throw new Error(data.error || 'Invalid email or password');
+          }
+          // Persist a small session blob so /lab/ can self-gate without a
+          // server round-trip. Server-issued token is opaque on the client.
+          localStorage.setItem(
+            'omnia.session',
+            JSON.stringify({
+              tenant: 'comer',
+              token: data.token,
+              user: data.user,
+              expiresAt: Date.now() + (data.ttlSec ?? 60 * 60 * 8) * 1000,
+            }),
+          );
+          window.location.replace('/lab/');
+        } catch (err) {
+          errEl.textContent = err.message || 'Sign-in failed';
+          setLoading(false);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

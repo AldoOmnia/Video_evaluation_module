@@ -43,6 +43,10 @@ export const ErrorMetaSchema = z.object({
   group: GroupIdSchema,
   label: z.string(),
   desc: z.string(),
+  /** How an Omnia agent detects this error class (mechanism, not value). */
+  detection: z.string().optional(),
+  /** A concrete Pinion Guide example, for grounding the LLM and the UI. */
+  example: z.string().optional(),
 });
 
 export const TaxonomySchema = z.object({

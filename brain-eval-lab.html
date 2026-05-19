@@ -322,16 +322,59 @@
     100% { box-shadow: 0 0 0 0 rgba(0,229,160,0); }
   }
 
-  /* Live-eval toggle */
-  .live-toggle {
-    display: inline-flex; align-items: center; gap: 8px;
-    font-size: 11px; color: var(--ink-2); cursor: pointer;
-    padding: 4px 8px; border: 1px solid var(--line);
-    border-radius: 3px; background: var(--bg-2);
-    margin-right: 8px; user-select: none;
+  /* LLM live-status row above the run buttons. Sits flush with the rest of
+     the enterprise toolbar; the bottom margin gives the pill room so it
+     doesn't feel crammed against the primary action buttons. */
+  .run-status {
+    display: flex; align-items: center;
+    padding: 0; margin: 0 0 14px 0;
+    border-right: none;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 9.5px; color: var(--ink-3); font-family: var(--mono);
+    gap: 8px;
   }
-  .live-toggle:hover { border-color: var(--line-2); color: var(--ink); }
-  .live-toggle input { accent-color: var(--acc); cursor: pointer; }
+  .run-status::before {
+    content: "LLM backend";
+    color: var(--ink-3);
+  }
+  .run-btn-sim {
+    background: var(--bg-3, #1a1a1a) !important;
+    color: var(--ink-1) !important;
+    border: 1px solid var(--line-2) !important;
+  }
+  .run-btn-sim:hover:not(:disabled) {
+    background: var(--bg-2) !important;
+    border-color: var(--ink-3) !important;
+  }
+  .run-btn-live {
+    background: linear-gradient(180deg, #ea580c 0%, #c2410c 100%) !important;
+    color: #fff !important;
+    border: 1px solid #ea580c !important;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.10) inset,
+                0 0 14px rgba(234,88,12,0.30);
+    font-weight: 600;
+    display: inline-flex; align-items: baseline; gap: 8px;
+  }
+  .run-btn-live:hover:not(:disabled) {
+    filter: brightness(1.10);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.14) inset,
+                0 0 22px rgba(234,88,12,0.55);
+  }
+  .run-btn-live:disabled {
+    opacity: 0.45;
+    background: var(--bg-3, #1a1a1a) !important;
+    color: var(--ink-3) !important;
+    border-color: var(--line-2) !important;
+    box-shadow: none;
+  }
+  .run-btn-sub {
+    font-family: var(--mono); font-size: 9px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    opacity: 0.85;
+    border-left: 1px solid rgba(255,255,255,0.25);
+    padding-left: 8px;
+  }
 
   /* ── Graph canvas ────────────────────── */
   #cy { width: 100%; height: 100%; background: var(--bg); }
@@ -638,20 +681,63 @@
   .meta-grid .v { font-family: var(--mono); font-size: 12px; color: var(--ink); }
 
   .run-bar {
-    padding: 16px; background: var(--bg-2);
+    padding: 18px 16px 20px; background: var(--bg-2);
     border-top: 1px solid var(--line); position: sticky; bottom: 0;
   }
-  .run-bar .btn + .btn { margin-top: 6px; }
+  .run-bar .btn + .btn { margin-top: 8px; }
+
+  /* In-flight indicator for the Run buttons. Replaces the old emoji
+     loading glyph (⏳) with a small pulsing dot + text — same visual
+     language as the other status LEDs across the platform. */
+  .btn-loading {
+    display: inline-flex; align-items: center; gap: 8px;
+    animation: btn-loading-fade 1.4s ease-in-out infinite;
+  }
+  .btn-loading-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 0 0 currentColor;
+    animation: btn-loading-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes btn-loading-pulse {
+    0%   { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+    60%  { box-shadow: 0 0 0 6px transparent; opacity: 0.45; }
+    100% { box-shadow: 0 0 0 0 transparent; opacity: 1; }
+  }
+  @keyframes btn-loading-fade {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.7; }
+  }
 
   .runs-table { width: 100%; }
   .run-row {
     border-bottom: 1px solid var(--line); padding: 12px 16px;
     display: grid; grid-template-columns: 1fr auto; gap: 4px; cursor: pointer;
+    transition: background-color 120ms ease;
   }
   .run-row:hover { background: var(--bg-2); }
+  .run-row.is-open { background: var(--bg-2); }
   .run-row .run-id {
     font-family: var(--mono); color: var(--ink-3); font-size: 9px;
     text-transform: uppercase; letter-spacing: 0.08em;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .run-row .run-chev {
+    display: inline-block; width: 10px; color: var(--ink-2);
+    transition: transform 120ms ease;
+  }
+  .run-row .run-badge {
+    font-family: var(--mono); font-size: 8.5px; padding: 1px 6px;
+    border-radius: 8px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .run-row .run-badge-live {
+    border: 1px solid #4ade8055;
+    color: #4ade80; background: rgba(74,222,128,0.08);
+  }
+  .run-row .run-badge-sim {
+    border: 1px solid rgba(216,128,0,0.55);
+    color: #f5b340; background: rgba(216,128,0,0.10);
   }
   .run-row .run-config { font-size: 12px; color: var(--ink); margin-top: 2px; }
   .run-row .run-time { font-family: var(--mono); color: var(--ink-3); font-size: 10px; }
@@ -680,15 +766,388 @@
     max-height: 240px; overflow-y: auto;
   }
   .event-row {
-    display: grid; grid-template-columns: 50px 1fr 70px 50px; gap: 8px;
-    padding: 4px 0; border-bottom: 1px dotted var(--line);
+    display: grid;
+    grid-template-columns: 14px 50px 1fr 70px 50px auto;
+    gap: 8px;
+    padding: 6px 6px; border-bottom: 1px dotted var(--line);
+    align-items: center; font-size: 11px;
+  }
+  .event-row .ev-phase {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .event-row .ev-full-btn {
+    background: var(--c-advice, #c2410c);
+    color: #fff; border: none;
+    padding: 4px 9px 4px 7px; border-radius: 4px;
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    cursor: pointer; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 5px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
+    transition: filter 120ms ease, transform 80ms ease;
+  }
+  .event-row .ev-full-btn:hover { filter: brightness(1.15); }
+  .event-row .ev-full-btn:active { transform: translateY(1px); }
+  .event-row .ev-full-placeholder { width: 1px; }
+  .event-row-expandable {
+    cursor: pointer; border-radius: 3px;
+    transition: background-color 120ms ease;
+  }
+  .event-row-expandable:hover { background: var(--bg-2); }
+  .event-row-expandable.is-open {
+    background: var(--bg-2);
+    border-bottom-color: transparent;
+  }
+  .event-row .ev-chev {
+    color: var(--ink-2); font-size: 10px; text-align: center;
+    user-select: none;
   }
   .event-row:last-child { border-bottom: none; }
-  .event-row .ev-ts { color: var(--ink-3); }
+  .event-row .ev-ts { color: var(--ink-3); font-family: var(--mono); font-size: 10px; }
   .event-row .ev-out.caught { color: var(--ok); }
   .event-row .ev-out.miss { color: var(--err); }
   .event-row .ev-out.fp { color: var(--warn); }
-  .event-row .ev-tk { color: var(--ink-3); text-align: right; }
+  /* Compact, vertically stacked legend that always fits in one viewport.
+     Sits at the top of the Results panel as a small enterprise key.
+     Designed to stay readable in the ~280px middle column on smaller
+     viewports — no horizontal clipping, no off-screen content. */
+  .outcome-legend {
+    padding: 10px 12px 11px; margin: 12px 16px 12px;
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 4px;
+    font-family: var(--mono);
+  }
+  .outcome-legend .legend-k {
+    color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.1em;
+    font-size: 9px; margin-bottom: 8px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--line);
+  }
+  .outcome-legend .legend-item {
+    display: grid; grid-template-columns: 74px minmax(0, 1fr); align-items: center;
+    gap: 10px; padding: 3px 0;
+  }
+  .outcome-legend .legend-chip {
+    display: inline-flex; justify-content: center;
+    padding: 2px 4px; border-radius: 3px;
+    font-weight: 600; letter-spacing: 0.04em; font-size: 9.5px;
+    border: 1px solid currentColor;
+    text-transform: lowercase;
+  }
+  .outcome-legend .legend-chip.caught { color: var(--ok); background: rgba(74,222,128,0.08); }
+  .outcome-legend .legend-chip.miss   { color: var(--err); background: rgba(239,68,68,0.08); }
+  .outcome-legend .legend-chip.fp     { color: var(--warn); background: rgba(245,158,11,0.08); }
+  .outcome-legend .legend-d {
+    color: var(--ink-2); font-size: 10.5px; line-height: 1.35;
+    min-width: 0; overflow-wrap: anywhere; word-break: break-word;
+  }
+  .outcome-legend .legend-d strong {
+    color: var(--ink-1); font-weight: 600;
+    margin-right: 2px;
+  }
+  .event-row .ev-tk { color: var(--ink-3); text-align: right; font-family: var(--mono); font-size: 10px; }
+  .event-detail {
+    padding: 0 6px 12px 6px;
+    border-bottom: 1px dotted var(--line);
+    background: var(--bg-2);
+  }
+  .event-detail:last-child { border-bottom: none; }
+  /* ── Agent contextual output (per anomaly event) ──────────────────────── */
+  .agent-out {
+    margin: 6px 0 10px 22px;
+    padding: 14px 16px;
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+    border-left: 3px solid var(--c-advice, #c2410c);
+    border-radius: 4px;
+    font-family: var(--sans, system-ui);
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ink-1);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .agent-out.agent-out-plain {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--ink-2); padding: 8px 12px;
+  }
+  .agent-out .ao-row { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+  .agent-out .ao-chip {
+    font-family: var(--mono);
+    font-size: 11px; padding: 3px 9px; border-radius: 11px;
+    text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+    white-space: nowrap;
+  }
+  .agent-out .ao-diag {
+    color: var(--ink-1); font-size: 13px; flex: 1 1 240px;
+    line-height: 1.55;
+  }
+  .agent-out .ao-fix {
+    background: var(--bg-3, #0a0a0a); padding: 8px 12px; border-radius: 4px;
+    font-size: 12.5px; color: var(--ink-1);
+    border-left: 2px solid var(--ok, #4ade80);
+  }
+  .agent-out .ao-proc {
+    display: grid; gap: 6px; padding: 8px 12px;
+    background: var(--bg-3, #0a0a0a); border-radius: 4px;
+    border: 1px dashed var(--line-2);
+  }
+  .agent-out .ao-proc > div {
+    color: var(--ink-2); font-size: 12px; line-height: 1.5;
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .agent-out .ao-proc > div > :not(.ao-k) {
+    color: var(--ink-1);
+  }
+  .agent-out .ao-k {
+    display: inline-block; min-width: 90px; flex-shrink: 0;
+    font-family: var(--mono);
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .agent-out .ao-k-lens {
+    display: block; min-width: 0;
+    color: #4ade80; letter-spacing: 0.18em; font-weight: 700;
+    margin-bottom: 8px; font-size: 11px;
+  }
+  .agent-out .ao-glasses-wrap { margin-top: 4px; }
+  .agent-out .ao-glasses-cap {
+    margin-top: 6px;
+    font-family: var(--mono); font-size: 9.5px;
+    color: var(--ink-3); letter-spacing: 0.08em; text-transform: uppercase;
+  }
+
+  /* ── FOV frame + AnswerCard — mirrors comer-rokid-demo/.../ui/AnswerCard.kt ─
+     Black FOV box (~1:1, simulating the worker's field of view) with the
+     AnswerCard pinned bottom-left at ~85% width. Each role is rendered with
+     its real Comer-theme color and relative font size:
+       label  10sp dim-teal   value  22sp white
+       action 14sp teal       source 10sp gray
+     Compact variant fits inline inside the eval block; full-size variant
+     is used in the modal. */
+  .fov-frame {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    background: #000;
+    border: 1px solid #222;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.6);
+  }
+  .fov-frame-compact { width: 360px; max-width: 100%; }
+  .fov-corner {
+    position: absolute; width: 12px; height: 12px;
+    border-color: rgba(0,229,160,0.35);
+    border-style: solid;
+  }
+  .fov-tl { top: 6px; left: 6px; border-width: 1.5px 0 0 1.5px; }
+  .fov-tr { top: 6px; right: 6px; border-width: 1.5px 1.5px 0 0; }
+  .fov-bl { bottom: 6px; left: 6px; border-width: 0 0 1.5px 1.5px; }
+  .fov-br { bottom: 6px; right: 6px; border-width: 0 1.5px 1.5px 0; }
+  .answer-card {
+    position: absolute;
+    left: 5%; bottom: 5%;
+    width: 85%;
+    padding: 12px 14px;
+    background: rgba(0,0,0,0.85);
+    font-family: var(--mono, ui-monospace, "SF Mono", Menlo, monospace);
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .answer-card .ac-line { white-space: nowrap; overflow: hidden; text-overflow: clip; }
+  .answer-card .ac-label  { color: #00996B; font-size: 10px;  letter-spacing: 0.04em; }
+  .answer-card .ac-value  { color: #FFFFFF; font-size: 22px;  line-height: 1.1; font-weight: 500; }
+  .answer-card .ac-action { color: #00E5A0; font-size: 13px;  line-height: 1.25; }
+  .answer-card .ac-source { color: #888888; font-size: 10px;  letter-spacing: 0.04em; }
+  /* Larger inside the modal so it actually fills the right column. */
+  .ao-modal-lens-shell .fov-frame {
+    width: 460px; max-width: 100%;
+  }
+  .ao-modal-lens-shell .answer-card { padding: 18px 22px; gap: 6px; }
+  .ao-modal-lens-shell .ac-label  { font-size: 13px; }
+  .ao-modal-lens-shell .ac-value  { font-size: 30px; }
+  .ao-modal-lens-shell .ac-action { font-size: 17px; }
+  .ao-modal-lens-shell .ac-source { font-size: 13px; }
+
+  /* Role inspector table (modal) — shows the raw role text and reminds the
+     reader of the role/size/color contract. */
+  .ao-role-table {
+    margin-top: 10px; width: 100%; max-width: 460px;
+    display: flex; flex-direction: column; gap: 4px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--line, #222);
+    border-radius: 6px; padding: 10px 12px;
+  }
+  .ao-role-row {
+    display: grid; grid-template-columns: 200px 1fr; gap: 10px;
+    align-items: center;
+    font-family: var(--mono); font-size: 11px;
+  }
+  .ao-role-row .ao-role-k { letter-spacing: 0.06em; text-transform: uppercase; }
+  .ao-role-row code {
+    color: var(--ink-1); background: rgba(255,255,255,0.04);
+    padding: 2px 6px; border-radius: 3px;
+    overflow-wrap: anywhere;
+  }
+  .agent-out .ao-full-btn {
+    margin-left: auto; align-self: flex-start;
+    background: var(--bg-3, #0a0a0a);
+    border: 1px solid var(--line-2);
+    color: var(--ink-1);
+    padding: 5px 10px 5px 8px;
+    border-radius: 4px;
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: all 120ms ease;
+  }
+  .agent-out .ao-full-btn:hover {
+    background: var(--c-advice, #c2410c);
+    border-color: var(--c-advice, #c2410c);
+    color: #fff;
+  }
+  .agent-out .ao-full-icon {
+    width: 12px; height: 12px; display: inline-block;
+    background:
+      linear-gradient(currentColor, currentColor) top left / 5px 1.5px no-repeat,
+      linear-gradient(currentColor, currentColor) top left / 1.5px 5px no-repeat,
+      linear-gradient(currentColor, currentColor) top right / 5px 1.5px no-repeat,
+      linear-gradient(currentColor, currentColor) top right / 1.5px 5px no-repeat,
+      linear-gradient(currentColor, currentColor) bottom left / 5px 1.5px no-repeat,
+      linear-gradient(currentColor, currentColor) bottom left / 1.5px 5px no-repeat,
+      linear-gradient(currentColor, currentColor) bottom right / 5px 1.5px no-repeat,
+      linear-gradient(currentColor, currentColor) bottom right / 1.5px 5px no-repeat;
+  }
+
+  /* ── Full-view modal — worker-eye-view at presentation size ───────────── */
+  .ao-modal-backdrop {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.82);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 32px;
+    animation: ao-fade 140ms ease-out;
+  }
+  @keyframes ao-fade { from { opacity: 0; } to { opacity: 1; } }
+  .ao-modal {
+    position: relative;
+    width: min(1180px, 100%);
+    max-height: calc(100vh - 64px);
+    overflow: auto;
+    background: var(--bg-1, #0d0d0d);
+    border: 1px solid var(--line-2);
+    border-left: 4px solid var(--c-advice, #c2410c);
+    border-radius: 8px;
+    padding: 28px 32px 32px;
+    color: var(--ink-1);
+    font-family: var(--sans, system-ui);
+    box-shadow: 0 12px 64px rgba(0,0,0,0.55);
+  }
+  .ao-modal-close {
+    position: absolute; top: 14px; right: 16px;
+    background: transparent; border: none; cursor: pointer;
+    color: var(--ink-2); font-size: 22px; line-height: 1;
+    padding: 4px 8px; border-radius: 4px;
+  }
+  .ao-modal-close:hover { background: var(--bg-2); color: var(--ink-1); }
+  .ao-modal-header {
+    display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .ao-modal-chip {
+    font-family: var(--mono); font-size: 13px; font-weight: 700;
+    padding: 5px 12px; border-radius: 14px;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    white-space: nowrap; align-self: flex-start;
+  }
+  .ao-modal-sub {
+    font-family: var(--mono); font-size: 10.5px;
+    color: var(--ink-3); letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .ao-modal-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.9fr);
+    gap: 28px;
+  }
+  @media (max-width: 880px) {
+    .ao-modal-grid { grid-template-columns: 1fr; }
+  }
+  .ao-modal-section { margin-bottom: 18px; }
+  .ao-modal-section:last-child { margin-bottom: 0; }
+  .ao-modal-label {
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--ink-3); margin-bottom: 8px;
+  }
+  .ao-modal-body {
+    font-size: 14px; line-height: 1.6; color: var(--ink-1);
+  }
+  .ao-modal-body-lg {
+    font-size: 17px; line-height: 1.55;
+  }
+  .ao-modal-fix {
+    background: var(--bg-2);
+    border-left: 3px solid var(--ok, #4ade80);
+    padding: 12px 16px; border-radius: 4px;
+  }
+  .ao-modal-proc {
+    background: var(--bg-2);
+    border: 1px dashed var(--line-2);
+    border-radius: 5px;
+    padding: 12px 16px;
+    display: grid; gap: 8px;
+    font-size: 13.5px;
+  }
+  .ao-modal-proc > div {
+    display: flex; align-items: baseline; gap: 14px;
+    line-height: 1.5;
+  }
+  .ao-modal-k {
+    display: inline-block;
+    min-width: 110px; flex-shrink: 0;
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .ao-modal-right {
+    display: flex; flex-direction: column; gap: 12px;
+    align-items: center; justify-content: flex-start;
+    padding: 6px 0;
+  }
+  .ao-modal-lens-shell {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .ao-modal-lens-caption {
+    font-family: var(--mono); font-size: 10.5px;
+    color: var(--ink-3); letter-spacing: 0.1em; text-transform: uppercase;
+    text-align: center;
+  }
+  .ao-modal-lens-full {
+    width: 100%; max-width: 460px;
+    background: rgba(74,222,128,0.04);
+    border: 1px solid rgba(74,222,128,0.18);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-top: 6px;
+  }
+  .ao-modal-lens-full > summary {
+    cursor: pointer;
+    font-family: var(--mono); font-size: 10px;
+    color: #4ade80; letter-spacing: 0.1em; text-transform: uppercase;
+    list-style: none;
+    user-select: none;
+  }
+  .ao-modal-lens-full > summary::before {
+    content: "▸ ";
+    display: inline-block;
+    transition: transform 0.15s ease;
+  }
+  .ao-modal-lens-full[open] > summary::before { content: "▾ "; }
+  .ao-modal-lens-full > summary::-webkit-details-marker { display: none; }
+  .ao-modal-lens-full-body {
+    margin-top: 8px;
+    font-family: var(--sans); font-size: 14px; line-height: 1.45;
+    color: var(--ink-1);
+    white-space: pre-wrap;
+  }
   .empty { padding: 40px 16px; text-align: center; color: var(--ink-3); font-family: var(--mono); font-size: 11px; }
   .summary { padding: 16px; background: var(--bg-2); border-bottom: 1px solid var(--line); }
   .summary h4 {
@@ -954,18 +1413,41 @@
           <div class="cards" id="strategy-cards"></div>
         </div>
         <div class="run-bar">
-          <label class="live-toggle" title="Route runs through /api/eval (real LLM if ANTHROPIC_API_KEY is set, backend stub otherwise)">
-            <input type="checkbox" id="live-eval-toggle" />
-            <span>Use backend LLM</span>
-            <span class="status-pill is-stub" id="eval-status"><span class="dot"></span><span class="lbl">stub</span></span>
-          </label>
-          <button class="btn" id="run-btn" disabled>Run evaluation</button>
-          <button class="btn btn-secondary" id="run-all-btn" disabled>Run all 4 for ablation</button>
+          <div class="run-status">
+            <span class="status-pill is-stub" id="eval-status" title="Backend LLM status"><span class="dot"></span><span class="lbl">stub</span></span>
+          </div>
+          <button class="btn run-btn-sim" id="run-btn-sim" disabled
+                  title="In-browser simulator — fast, no real LLM calls, no Full-view glasses verdicts">
+            Run · SIM
+          </button>
+          <button class="btn run-btn-live" id="run-btn-live" disabled
+                  title="Calls Claude through /api/eval — ~3-10s per anomaly, produces Full-view glasses verdicts">
+            Run · LIVE LLM <span class="run-btn-sub">contextual verdicts</span>
+          </button>
+          <button class="btn btn-secondary" id="run-all-btn" disabled
+                  title="Run all 4 strategies as a SIM ablation">
+            Ablation · SIM
+          </button>
         </div>
       </section>
 
       <section class="panel">
         <div class="panel-h"><span class="num">03</span>RESULTS</div>
+        <div class="outcome-legend" title="Each anomaly event in the session is judged by the agent (SIM or LIVE LLM).">
+          <div class="legend-k">Outcome key</div>
+          <div class="legend-item">
+            <span class="legend-chip caught">caught</span>
+            <span class="legend-d"><strong>True positive</strong> — mistake detected</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-chip miss">missed</span>
+            <span class="legend-d"><strong>False negative</strong> — mistake passed through</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-chip fp">false_pos</span>
+            <span class="legend-d"><strong>False positive</strong> — flagged when correct</span>
+          </div>
+        </div>
         <div class="summary" id="summary" style="display:none;">
           <h4>Cross-run comparison</h4>
           <div class="bars" id="summary-bars"></div>
@@ -984,8 +1466,15 @@
     <span class="sep">│</span>
     <span id="footer-mode">brain mode</span>
     <span class="sep">│</span>
-    <span>llm: <span style="color:var(--warn);">stub</span> · graph: <span style="color:var(--ink-2);">in-memory</span></span>
+    <span>llm: <span id="footer-llm" style="color:var(--warn);">…</span> · graph: <span style="color:var(--ink-2);">in-memory</span></span>
     <span style="margin-left:auto;">Pilot · Comer Industries · Pinion Guide Station</span>
+    <span class="sep">│</span>
+    <span id="footer-user" style="color:var(--ink-3);">—</span>
+    <button id="footer-signout" type="button"
+            style="margin-left:8px; background:transparent; border:1px solid var(--line-2); color:var(--ink-2); padding:2px 8px; border-radius:3px; font-family:var(--mono); font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer;"
+            title="End your session and return to the login screen">
+      Sign out
+    </button>
   </footer>
 
 </div>
@@ -993,6 +1482,28 @@
 <div class="toast" id="toast"></div>
 
 <script>
+/* ════════════════════════════════════════════════════════════════════════════
+   AUTH GATE
+   The lab is a tenant-scoped tool. If no valid session is present in
+   localStorage we bounce back to /login. The session blob is written
+   by login.html on successful /api/auth/login. This is a client-side
+   gate only — it is NOT a substitute for real server-side auth.
+   ════════════════════════════════════════════════════════════════════════════ */
+(() => {
+  try {
+    const raw = localStorage.getItem('omnia.session');
+    const session = raw ? JSON.parse(raw) : null;
+    if (!session || session.tenant !== 'comer' || !session.expiresAt || session.expiresAt < Date.now()) {
+      localStorage.removeItem('omnia.session');
+      window.location.replace('/login');
+    } else {
+      window.__omniaSession = session;
+    }
+  } catch {
+    window.location.replace('/login');
+  }
+})();
+
 /* ════════════════════════════════════════════════════════════════════════════
    PINION GUIDE PROCEDURE — Comer-style seed data
    Real Tier-1 automotive content for the pinion guide station. 12 KeyStep
@@ -2214,6 +2725,190 @@ function escapeHTML(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+/* Cache the most recently rendered agent outputs so the full-view modal can
+   look them up by event id without re-deriving from DOM. */
+window.__agentOutputCache = window.__agentOutputCache || {};
+
+/* Comer theme colors — must mirror glasses-app/.../ui/ComerTheme.kt so the
+   eval lab's lens preview looks 1:1 like the actual on-glass card. */
+const COMER_THEME = {
+  primary: '#00E5A0',     // teal — action line
+  primaryDim: '#00996B',  // dim teal — label line
+  white: '#FFFFFF',       // headline value
+  textSecondary: '#888888', // source / next line
+  cardBg: 'rgba(0,0,0,0.85)',  // CardBg = 0xDD000000
+};
+
+/* Extract the 4-role lens from the agent output, with sensible fallbacks
+   so legacy events (array-only glassesMessage) still render. */
+function lensFromAgentOutput(ao) {
+  const fallback = ao && Array.isArray(ao.glassesMessage) ? ao.glassesMessage : [];
+  const lens = (ao && ao.lens) || {};
+  return {
+    label: lens.label || fallback[0] || '',
+    value: lens.value || fallback[1] || '',
+    action: lens.action || fallback[2] || '',
+    source: lens.source || fallback[3] || '',
+  };
+}
+
+/* Per-role char budgets from the hardware profile. Default to Rokid AI. */
+function lensBudget(hw) {
+  const b = hw && hw.display && hw.display.four_role_budget;
+  return b || { label_chars: 32, value_chars: 16, action_chars: 28, source_chars: 32 };
+}
+
+/* Render the structured per-event agent verdict in the run-detail panel.
+   Layout follows the Ti-Prego "contextual output" pattern:
+     1. Taxonomy classification chip (errorCode · group)
+     2. Diagnosis line — what was wrong
+     3. Procedural understanding — completed sequence → current → next
+     4. Glasses preview — the literal lines the worker sees on the lens
+   `eid` is an optional event id used by the full-view modal lookup. */
+function renderAgentOutput(ao, hw, eid) {
+  if (!ao) return '';
+  if (eid) {
+    window.__agentOutputCache[eid] = { ao, hw };
+  }
+  const grpLabel = ao.errorGroup ? (ERROR_GROUPS[ao.errorGroup]?.label || ao.errorGroup) : '';
+  const grpColor = ao.errorGroup ? (ERROR_GROUPS[ao.errorGroup]?.color || '#525252') : '#525252';
+  const completed = (ao.completedSequence || []).join(' → ') || '(start of run)';
+  const cur = ao.currentStep || '—';
+  const next = ao.nextAction || '—';
+  const lens = lensFromAgentOutput(ao);
+  const b = lensBudget(hw);
+
+  const fullBtn = eid
+    ? `<button class="ao-full-btn" title="Open the worker's-eye-view in full size" onclick="event.stopPropagation();openAgentOutputModal('${eid}')">
+         <span class="ao-full-icon"></span> Full view
+       </button>`
+    : '';
+
+  return `<div class="agent-out">
+    <div class="ao-row">
+      <span class="ao-chip" style="background:${grpColor}22;border:1px solid ${grpColor}55;color:${grpColor};">
+        ${ao.errorCode || '—'}${ao.errorGroup ? ` · ${ao.errorGroup} ${escapeHTML(grpLabel)}` : ''}
+      </span>
+      <span class="ao-diag">${escapeHTML(ao.diagnosis || '')}</span>
+      ${fullBtn}
+    </div>
+    ${ao.fix ? `<div class="ao-fix"><span class="ao-k">FIX</span>${escapeHTML(ao.fix)}</div>` : ''}
+    <div class="ao-proc">
+      <div><span class="ao-k">COMPLETED</span>${escapeHTML(completed)}</div>
+      <div><span class="ao-k">CURRENT</span>${escapeHTML(cur)}</div>
+      <div><span class="ao-k">NEXT</span>${escapeHTML(next)}</div>
+    </div>
+    <div class="ao-glasses-wrap">
+      <div class="ao-k ao-k-lens">AI AGENT MESSAGE ON GLASSES — exact AnswerCard.kt render</div>
+      ${renderAnswerCard(lens, b, { compact: true })}
+      <div class="ao-glasses-cap">
+        ${escapeHTML(hw && hw.name || 'Rokid AI Glasses')} · bottom-left FOV card · line budgets ${b.label_chars}/${b.value_chars}/${b.action_chars}/${b.source_chars}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* Renders the 4-line AnswerCard inside a simulated bottom-left FOV frame.
+   Mirrors comer-rokid-demo/.../ui/AnswerCard.kt 1:1 (line roles, sizes, colors). */
+function renderAnswerCard(lens, budget, opts) {
+  const compact = opts && opts.compact;
+  const fovClass = compact ? 'fov-frame fov-frame-compact' : 'fov-frame';
+  const labelTxt = lens.label || '';
+  const valueTxt = lens.value || '';
+  const actionTxt = lens.action || '';
+  const sourceTxt = lens.source || '';
+  return `<div class="${fovClass}">
+    <div class="fov-corner fov-tl"></div><div class="fov-corner fov-tr"></div>
+    <div class="fov-corner fov-bl"></div><div class="fov-corner fov-br"></div>
+    <div class="answer-card">
+      <div class="ac-line ac-label" data-budget="${budget.label_chars}">${escapeHTML(labelTxt) || '&nbsp;'}</div>
+      <div class="ac-line ac-value" data-budget="${budget.value_chars}">${escapeHTML(valueTxt) || '&nbsp;'}</div>
+      <div class="ac-line ac-action" data-budget="${budget.action_chars}">${escapeHTML(actionTxt) || '&nbsp;'}</div>
+      <div class="ac-line ac-source" data-budget="${budget.source_chars}">${escapeHTML(sourceTxt) || '&nbsp;'}</div>
+    </div>
+  </div>`;
+}
+
+/* ── Full-view modal — what the worker sees, at presentation size ─────── */
+function openAgentOutputModal(eid) {
+  const entry = window.__agentOutputCache && window.__agentOutputCache[eid];
+  if (!entry) return;
+  const { ao, hw } = entry;
+  const grpLabel = ao.errorGroup ? (ERROR_GROUPS[ao.errorGroup]?.label || ao.errorGroup) : '';
+  const grpColor = ao.errorGroup ? (ERROR_GROUPS[ao.errorGroup]?.color || '#525252') : '#525252';
+  const completed = (ao.completedSequence || []).join('  →  ') || '(start of run)';
+  const cur = ao.currentStep || '—';
+  const next = ao.nextAction || '—';
+  const lens = lensFromAgentOutput(ao);
+  const b = lensBudget(hw);
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'ao-modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="ao-modal" role="dialog" aria-modal="true">
+      <button class="ao-modal-close" title="Close (Esc)">✕</button>
+      <div class="ao-modal-header">
+        <span class="ao-modal-chip" style="background:${grpColor}22;border:1px solid ${grpColor}66;color:${grpColor};">
+          ${ao.errorCode || '—'}${ao.errorGroup ? ` · GROUP ${ao.errorGroup} — ${escapeHTML(grpLabel.toUpperCase())}` : ''}
+        </span>
+        <span class="ao-modal-sub">Agent verdict · Comer Pinion Guide v1 · ${escapeHTML(hw && hw.name || 'Rokid AI Glasses')}</span>
+      </div>
+      <div class="ao-modal-grid">
+        <div class="ao-modal-left">
+          <div class="ao-modal-section">
+            <div class="ao-modal-label">DIAGNOSIS — what is wrong</div>
+            <div class="ao-modal-body ao-modal-body-lg">${escapeHTML(ao.diagnosis || '—')}</div>
+          </div>
+          ${ao.fix ? `<div class="ao-modal-section">
+            <div class="ao-modal-label">CORRECTIVE ACTION</div>
+            <div class="ao-modal-body ao-modal-body-lg ao-modal-fix">${escapeHTML(ao.fix)}</div>
+          </div>` : ''}
+          <div class="ao-modal-section">
+            <div class="ao-modal-label">PROCEDURAL UNDERSTANDING</div>
+            <div class="ao-modal-proc">
+              <div><span class="ao-modal-k">COMPLETED</span><span>${escapeHTML(completed)}</span></div>
+              <div><span class="ao-modal-k">CURRENT</span><span>${escapeHTML(cur)}</span></div>
+              <div><span class="ao-modal-k">NEXT</span><span>${escapeHTML(next)}</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="ao-modal-right">
+          <div class="ao-modal-label" style="text-align:center;color:#4ade80;">
+            AI AGENT MESSAGE ON GLASSES
+          </div>
+          <div class="ao-modal-lens-shell">
+            ${renderAnswerCard(lens, b, { compact: false })}
+            <div class="ao-modal-lens-caption">
+              ${escapeHTML(hw && hw.name || 'Rokid AI Glasses')} · bottom-left AnswerCard · per-line budgets
+              ${b.label_chars} / ${b.value_chars} / ${b.action_chars} / ${b.source_chars}
+            </div>
+            <div class="ao-role-table">
+              <div class="ao-role-row"><span class="ao-role-k" style="color:${COMER_THEME.primaryDim}">LABEL · 10sp dim teal</span><code>${escapeHTML(lens.label || '')}</code></div>
+              <div class="ao-role-row"><span class="ao-role-k" style="color:${COMER_THEME.white}">VALUE · 22sp white</span><code>${escapeHTML(lens.value || '')}</code></div>
+              <div class="ao-role-row"><span class="ao-role-k" style="color:${COMER_THEME.primary}">ACTION · 14sp teal</span><code>${escapeHTML(lens.action || '')}</code></div>
+              <div class="ao-role-row"><span class="ao-role-k" style="color:${COMER_THEME.textSecondary}">SOURCE · 10sp gray</span><code>${escapeHTML(lens.source || '')}</code></div>
+            </div>
+            ${ao.fix ? `<details class="ao-modal-lens-full" ${ao.fix.length > 80 ? 'open' : ''}>
+              <summary>Full corrective action (not truncated)</summary>
+              <div class="ao-modal-lens-full-body">${escapeHTML(ao.fix)}</div>
+            </details>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  document.body.appendChild(backdrop);
+  const close = () => {
+    document.removeEventListener('keydown', onKey);
+    backdrop.remove();
+  };
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+  backdrop.querySelector('.ao-modal-close').onclick = close;
+}
+window.openAgentOutputModal = openAgentOutputModal;
+
 function relativeTime(ts) {
   if (!ts) return '';
   const diff = Math.round((Date.now() - ts) / 1000);
@@ -2477,6 +3172,15 @@ function seedSampleArtifacts() {
 /* ════════════════════════════════════════════════════════════════════════════
    EVAL MODE — adapted from v0.3, now reads procedure from Brain
    ════════════════════════════════════════════════════════════════════════════ */
+/** Generate a session designed to exercise both LIVE-LLM catches AND misses.
+ *  Realism rules:
+ *    - High-risk steps still anomalize ~55% of the time
+ *    - Low/medium-risk steps now have a small (~12%) anomaly chance too
+ *    - ~40% of anomalies are "hard" — note is blank or deliberately vague,
+ *      so the LLM has to infer from step context alone. Many of these will
+ *      become genuine MISSES, which is exactly what you want to see in eval.
+ *    - ~10% are "adversarial" — note hints at correctness while the label
+ *      is incorrect (sensor-vs-OEM disagreement / state repair flavour). */
 function generateEvalSession() {
   const events = [];
   let t = 0;
@@ -2485,23 +3189,36 @@ function generateEvalSession() {
     const num = 1 + Math.floor(Math.random() * 3);
     for (let i = 0; i < num; i++) {
       const ts = t + Math.random() * dur;
-      const isAnomaly = ks.risk === 'high' && Math.random() < 0.55;
+      const anomRoll = Math.random();
+      const isAnomaly =
+        (ks.risk === 'high' && anomRoll < 0.55) ||
+        (ks.risk === 'med' && anomRoll < 0.25) ||
+        (ks.risk === 'low' && anomRoll < 0.12);
       let errorType = null;
       let note = '';
       if (isAnomaly) {
-        // Draw a specific error from this step's errorProfile, weighted toward high_priority
         const profile = ks.errorProfile || {};
         const pool = Math.random() < 0.7
           ? (profile.high_priority || [])
-          : (profile.medium_priority || profile.high_priority || []);
+          : (profile.medium_priority || profile.low_priority || profile.high_priority || []);
         if (pool.length > 0) {
           errorType = pool[Math.floor(Math.random() * pool.length)];
+        } else {
+          errorType = 'INCOMPLETE';
+        }
+        // Roll for hint difficulty.
+        const hintRoll = Math.random();
+        if (hintRoll < 0.10) {
+          // Adversarial — note suggests correct execution, label says incorrect.
+          note = ADVERSARIAL_NOTES[Math.floor(Math.random() * ADVERSARIAL_NOTES.length)];
+        } else if (hintRoll < 0.50) {
+          // Hard — blank or vague note. LLM must infer from step context.
+          note = Math.random() < 0.5 ? '' : VAGUE_NOTES[Math.floor(Math.random() * VAGUE_NOTES.length)];
+        } else {
+          // Easy — explicit hint, LLM should catch.
           note = ERROR_TAXONOMY[errorType]?.label
             ? `${ERROR_TAXONOMY[errorType].label}: ${sampleErrorNote(ks.id, errorType)}`
             : sampleErrorNote(ks.id);
-        } else {
-          errorType = 'INCOMPLETE';
-          note = sampleErrorNote(ks.id);
         }
       }
       events.push({
@@ -2519,7 +3236,40 @@ function generateEvalSession() {
   events.sort((a, b) => a.timestamp - b.timestamp);
   state.eval.session = events;
   renderEvalSession();
+  const stats = events.reduce((s, e) => {
+    if (e.label === 'incorrect') {
+      s.anomalies++;
+      if (!e.note) s.hard++;
+      else if (ADVERSARIAL_NOTES.includes(e.note)) s.adv++;
+      else if (VAGUE_NOTES.includes(e.note)) s.vague++;
+      else s.easy++;
+    }
+    return s;
+  }, { anomalies: 0, easy: 0, vague: 0, hard: 0, adv: 0 });
+  toast(`Session ready · ${stats.anomalies} anomalies (${stats.easy} cued, ${stats.vague + stats.hard} hard, ${stats.adv} adversarial)`);
 }
+
+/** Vague/ambient notes — the LLM has to do real inference to detect. */
+const VAGUE_NOTES = [
+  'Worker proceeding with task',
+  'Routine execution observed',
+  'Standard step transition',
+  'Tool in hand, no anomaly flagged by CV',
+  'Minor variance from baseline',
+  'Hand occlusion partial',
+  'Worker confirmed step done via voice',
+];
+
+/** Adversarial notes — sound like correct execution, but the label is wrong.
+ *  These exercise the LLM's grounding against the procedure spec rather than
+ *  the worker note. Many will (and should) be missed. */
+const ADVERSARIAL_NOTES = [
+  'Worker reports step completed normally',
+  'OEM marker confirms step finished',
+  'Traveler scanned, advancing to next step',
+  'Quality check signed off',
+  'Sensor readings within nominal band',
+];
 
 function sampleErrorNote(stepId, errorType) {
   // Specific notes per (step, errorType) where we have them
@@ -2555,44 +3305,58 @@ function renderEvalSession() {
       <span class="lbl-${ev.label}">${ev.label === 'correct' ? '◉' : '◎'}</span>
       <span class="phase">${ev.phase}</span>
     </div>`).join('');
-  document.getElementById('run-btn').disabled = false;
+  document.getElementById('run-btn-sim').disabled = false;
+  document.getElementById('run-btn-live').disabled = false;
   document.getElementById('run-all-btn').disabled = false;
 }
 
-// When true, runEvaluation will POST to /api/eval against the live backend
-// (real LLM if ANTHROPIC_API_KEY is set there, otherwise the backend's own
-// stub). Flipped by the "Use backend LLM" checkbox in the Evaluate run bar.
-window.USE_BACKEND_EVAL = false;
-
-async function runEvaluation(annotations, hwId, stratId) {
-  if (window.USE_BACKEND_EVAL) {
+/** mode: 'live' → call /api/eval with liveLLM:true. 'sim' → in-browser sim.
+ *  Decided per-button click; no shared global state. */
+async function runEvaluation(annotations, hwId, stratId, mode) {
+  // Backward-compat: callers that don't pass mode (older paths) default to sim.
+  if (mode === undefined) mode = 'sim';
+  console.log('[runEvaluation] mode =', mode, '· hw =', hwId, '· strat =', stratId, '· events =', annotations.length);
+  if (mode === 'live') {
     try {
+      toast('Calling Claude via /api/eval — this can take a few seconds per anomaly…');
+      const t0 = performance.now();
+      // Strip null/undefined fields — Zod's .optional() does NOT accept null.
+      const events = annotations.map(a => {
+        const ev = {
+          ts: a.timestamp,
+          phase: a.phase,
+          label: a.label === 'incorrect' ? 'incorrect' : 'correct',
+        };
+        if (a.keystepId) ev.stepId = a.keystepId;
+        if (a.errorType) ev.errorType = a.errorType;
+        const note = a.note || a.rationale;
+        if (note) ev.rationale = note;
+        return ev;
+      });
       const r = await fetch(`${PLATFORM_API}/api/eval`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          hardwareId: hwId,
-          strategyId: stratId,
-          liveLLM: true,
-          events: annotations.map(a => ({
-            ts: a.timestamp,
-            phase: a.phase,
-            stepId: a.keystepId,
-            label: a.label === 'incorrect' ? 'incorrect' : 'correct',
-            errorType: a.errorType,
-            rationale: a.note || a.rationale || undefined
-          }))
-        })
+        body: JSON.stringify({ hardwareId: hwId, strategyId: stratId, liveLLM: true, events })
       });
+      const elapsed = Math.round(performance.now() - t0);
+      console.log('[runEvaluation] /api/eval responded', r.status, 'in', elapsed, 'ms');
       if (r.ok) {
         const data = await r.json();
         if (window.applyStubbedFromResponse) window.applyStubbedFromResponse(data);
+        const withAo = (data.events || []).filter(e => e.agentOutput).length;
+        toast(`Backend OK in ${elapsed}ms · ${withAo} contextual verdict${withAo===1?'':'s'}`);
+        console.log('[runEvaluation] received', data.events?.length, 'events ·', withAo, 'with agentOutput');
         return data;
       }
-      console.warn('Eval backend returned', r.status, '— falling back to sim');
+      const body = await r.text().catch(() => '');
+      console.error('[runEvaluation] backend returned', r.status, body.slice(0, 500));
+      toast(`Backend returned ${r.status} — see console. Falling back to sim.`);
     } catch (err) {
-      console.warn('Eval backend unreachable, using local sim.', err);
+      console.error('[runEvaluation] backend unreachable', err);
+      toast('Backend unreachable — see console. Falling back to sim.');
     }
+  } else {
+    toast('Running in-browser SIM (fast, no Full view). Click "Run · LIVE LLM" for real verdicts.');
   }
 
   const hw = HARDWARE_PROFILES[hwId];
@@ -2662,10 +3426,22 @@ async function runEvaluation(annotations, hwId, stratId) {
       }
     }
 
+    // Build a short rationale even for the sim path so the row stays
+    // clickable. No real LLM ran here, so we tell the user that explicitly.
+    let simRationale;
+    if (a.label === 'incorrect' && a.errorType) {
+      const et = ERROR_TAXONOMY[a.errorType];
+      simRationale = `sim · ${a.errorType}${et?.label ? ' — '+et.label : ''}` +
+        ` · outcome=${outcome}` +
+        (a.note ? ` · ${a.note}` : '') +
+        ` · enable "Use backend LLM" + Run again for a real contextual verdict`;
+    }
     events.push({
       ts: a.timestamp, phase: a.phase, label: a.label, note: a.note,
+      stepId: a.keystepId,
       errorType: a.errorType, outcome,
-      inputTokens: Math.round(inT), latency: Math.round(latency)
+      inputTokens: Math.round(inT), latency: Math.round(latency),
+      rationale: simRationale
     });
     if (events.length % 8 === 0) await sleep(0);
   }
@@ -2725,15 +3501,27 @@ function renderRuns() {
     document.getElementById('summary').style.display = 'none';
     return;
   }
-  el.innerHTML = state.eval.runs.slice().reverse().map(r => {
+  const reversed = state.eval.runs.slice().reverse();
+  el.innerHTML = reversed.map((r, idx) => {
     const m = r.metrics;
     const hi = (m.high_priority_catch_rate * 100).toFixed(0);
     const hiCls = m.high_priority_catch_rate >= 0.85 ? 'ok' : m.high_priority_catch_rate >= 0.6 ? 'warn' : 'err';
     const md = (m.medium_priority_catch_rate * 100).toFixed(0);
-    return `<div class="run-row" data-id="${r.id}" onclick="toggleRunDetail('${r.id}')">
+    // Auto-expand the newest run so the contextual output is visible without
+    // a click. Older runs stay collapsed to keep the list scannable.
+    const isOpen = idx === 0;
+    const hasAgentOutput = r.events.some(e => e.agentOutput);
+    const modeBadge = hasAgentOutput
+      ? '<span class="run-badge run-badge-live" title="Real Claude calls — Full view available per event">LIVE LLM</span>'
+      : '<span class="run-badge run-badge-sim" title="In-browser simulator — no glasses verdicts. Tick \'Use backend LLM\' and rerun.">SIM</span>';
+    return `<div class="run-row ${isOpen ? 'is-open' : ''}" data-id="${r.id}" onclick="toggleRunDetail('${r.id}')">
       <div>
-        <div class="run-id">${r.id}</div>
-        <div class="run-config">${r.hardware.name} · ${r.strategy.name}</div>
+        <div class="run-id">
+          <span class="run-chev">${isOpen ? '▾' : '▸'}</span>
+          ${r.id}
+          ${modeBadge}
+        </div>
+        <div class="run-config">${r.hardware.name} · ${r.strategy.name} · <span style="color:var(--ink-3);">click row to ${isOpen ? 'collapse' : 'expand'}</span></div>
       </div>
       <div class="run-time">${new Date(r.timestamp).toLocaleTimeString()}</div>
       <div class="run-metrics">
@@ -2742,25 +3530,44 @@ function renderRuns() {
         <div class="m"><div class="k">FP</div><div class="v ${m.false_pos > 2 ? 'warn' : ''}">${m.false_pos}</div></div>
         <div class="m"><div class="k">Tokens</div><div class="v">${(m.total_input_tokens/1000).toFixed(1)}k</div></div>
       </div>
-      <div class="run-detail" id="detail-${r.id}" style="display:none;">
+      <div class="run-detail" id="detail-${r.id}" style="display:${isOpen ? 'block' : 'none'};">
         ${renderGroupBreakdown(m.byGroup)}
         ${renderErrorTypeBreakdown(m.byType)}
-        <div style="margin-top:10px;font-family:var(--mono);font-size:9px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.08em;">Anomaly events</div>
-        ${r.events.filter(e => e.label === 'incorrect').slice(0, 16).map(e => {
+        <div style="margin-top:10px;font-family:var(--mono);font-size:9px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.08em;">Anomaly events — diagnosis · fix · glasses message</div>
+        ${r.events.filter(e => e.label === 'incorrect').slice(0, 16).map((e, idx) => {
           const et = e.errorType ? ERROR_TAXONOMY[e.errorType]?.label || e.errorType : '';
           const outClass = e.outcome === 'caught' ? 'caught'
                           : e.outcome === 'miss' || e.outcome === 'missed' ? 'miss'
                           : (e.outcome === 'false_positive' || e.outcome === 'false_pos') ? 'fp' : '';
-          const r1 = `<div class="event-row">
+          const eid = `${r.id}-ev${idx}`;
+          const hasDetail = !!(e.agentOutput || e.rationale);
+          const hasAgent = !!e.agentOutput;
+          // Cache the agent output now (before any HTML body is built) so the
+          // Full view button on the row header can launch the modal even when
+          // the per-event detail body is collapsed.
+          if (hasAgent) window.__agentOutputCache[eid] = { ao: e.agentOutput, hw: r.hardware };
+          // Auto-open the first anomaly event so the user immediately sees
+          // the new contextual format. Subsequent ones stay collapsed.
+          const isOpen = idx === 0 && hasDetail;
+          const body = e.agentOutput
+            ? renderAgentOutput(e.agentOutput, r.hardware, eid)
+            : (e.rationale
+                ? `<div class="agent-out agent-out-plain">↳ ${escapeHTML(String(e.rationale))}</div>`
+                : '');
+          const fullViewBtn = hasAgent
+            ? `<button class="ev-full-btn" title="Open the worker's-eye full-size view of this verdict" onclick="event.stopPropagation();openAgentOutputModal('${eid}')">
+                 <span class="ao-full-icon"></span> Full view
+               </button>`
+            : '<span class="ev-full-placeholder"></span>';
+          return `<div class="event-row event-row-expandable ${isOpen ? 'is-open' : ''}" data-eid="${eid}" onclick="toggleEventDetail(event,'${eid}')">
+            <span class="ev-chev">${hasDetail ? (isOpen ? '▾' : '▸') : ' '}</span>
             <span class="ev-ts">${formatTs(e.ts)}</span>
-            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.phase}${et?' · <span style="color:var(--c-advice)">'+et+'</span>':''}${e.note?' — '+e.note:''}</span>
+            <span class="ev-phase">${e.phase}${et?' · <span style="color:var(--c-advice)">'+et+'</span>':''}${e.note?' — '+e.note:''}</span>
             <span class="ev-out ${outClass}">${e.outcome}</span>
             <span class="ev-tk">${e.inputTokens||0}t</span>
-          </div>`;
-          const r2 = e.rationale
-            ? `<div style="grid-column:1/-1;font-size:9.5px;color:var(--ink-3);padding:2px 0 6px 70px;font-family:var(--mono);line-height:1.55;border-bottom:1px solid var(--line-1);margin-bottom:2px;">↳ ${escapeHTML(String(e.rationale))}</div>`
-            : '';
-          return r1 + r2;
+            ${fullViewBtn}
+          </div>
+          ${hasDetail ? `<div class="event-detail" id="${eid}-body" style="display:${isOpen ? 'block' : 'none'};">${body}</div>` : ''}`;
         }).join('')}
       </div>
     </div>`;
@@ -2837,10 +3644,37 @@ function renderSummary() {
 }
 
 function toggleRunDetail(id) {
+  // Ignore clicks that originated inside the expanded detail itself
+  // (so users can select text / click links without collapsing the row).
+  const evt = window.event;
+  if (evt && evt.target && evt.target.closest && evt.target.closest('.run-detail')) return;
   const el = document.getElementById('detail-' + id);
-  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  if (!el) return;
+  const willOpen = el.style.display === 'none';
+  el.style.display = willOpen ? 'block' : 'none';
+  // Flip chevron on the parent row
+  const row = el.closest('.run-row');
+  if (row) {
+    row.classList.toggle('is-open', willOpen);
+    const chev = row.querySelector('.run-chev');
+    if (chev) chev.textContent = willOpen ? '▾' : '▸';
+  }
 }
 window.toggleRunDetail = toggleRunDetail;
+
+function toggleEventDetail(evt, eid) {
+  // Stop bubbling so the parent run-row doesn't collapse.
+  if (evt && evt.stopPropagation) evt.stopPropagation();
+  const body = document.getElementById(eid + '-body');
+  const row = document.querySelector(`.event-row[data-eid="${eid}"]`);
+  if (!body || !row) return;
+  const willOpen = body.style.display === 'none';
+  body.style.display = willOpen ? 'block' : 'none';
+  row.classList.toggle('is-open', willOpen);
+  const chev = row.querySelector('.ev-chev');
+  if (chev && chev.textContent.trim()) chev.textContent = willOpen ? '▾' : '▸';
+}
+window.toggleEventDetail = toggleEventDetail;
 
 /* ════════════════════════════════════════════════════════════════════════════
    UTILITIES + WIRING
@@ -2960,11 +3794,7 @@ window.addEventListener('paste', e => {
 document.getElementById('seed-btn').onclick = seedSampleArtifacts;
 document.getElementById('clear-all').onclick = clearAllArtifacts;
 
-// "Use backend LLM" checkbox in Evaluate run bar
-const liveToggle = document.getElementById('live-eval-toggle');
-if (liveToggle) {
-  liveToggle.onchange = () => { window.USE_BACKEND_EVAL = liveToggle.checked; };
-}
+// (Toggle was replaced by explicit Run · SIM and Run · LIVE LLM buttons.)
 
 /* ── LLM status pill: single source of truth ───────────────────────────────
    Updates from /health on boot, and self-corrects from any chat/eval response
@@ -2983,16 +3813,34 @@ function setLLMStatus(mode) {
     const lbl = p.querySelector('.lbl');
     if (lbl) lbl.textContent = (p.id === 'eval-status') ? evalLabel : brainLabel;
   });
+  // Footer text-only span
+  const footerEl = document.getElementById('footer-llm');
+  if (footerEl) {
+    footerEl.textContent = evalLabel;
+    footerEl.style.color = mode === 'live'
+      ? 'var(--ok, #4caf50)'
+      : mode === 'off'
+        ? 'var(--err, #d23)'
+        : 'var(--warn, #d80)';
+  }
+  // Secondary chat seam (panel sub-header)
+  document.querySelectorAll('.chat-h .seam').forEach(s => {
+    if (/^LLM:\s/i.test(s.textContent || '')) s.textContent = brainLabel;
+  });
   window.__llmMode = mode;
-  if (liveToggle) {
+  // Disable the LIVE LLM run button when backend is offline, re-enable on live/stub.
+  const liveBtn = document.getElementById('run-btn-live');
+  if (liveBtn) {
     if (mode === 'off') {
-      liveToggle.disabled = true;
-      liveToggle.title = 'Backend unreachable — runs will use the in-browser simulator.';
+      liveBtn.disabled = true;
+      liveBtn.title = 'Backend unreachable — only Run · SIM works right now';
     } else {
-      liveToggle.disabled = false;
-      liveToggle.title = mode === 'live'
-        ? 'Backend has a live LLM. Toggle to route runs through real Anthropic calls.'
-        : 'Backend reachable but in STUB mode (no ANTHROPIC_API_KEY). Toggle to route runs through it anyway.';
+      // Only re-enable if a session exists; otherwise leave whatever
+      // generateEvalSession() set.
+      if (state && state.eval && state.eval.session) liveBtn.disabled = false;
+      liveBtn.title = mode === 'live'
+        ? 'Calls Claude through /api/eval (~3-10s per anomaly) and returns Full-view glasses verdicts.'
+        : 'Backend reachable but in STUB mode (no ANTHROPIC_API_KEY on server) — clicking still goes through /api/eval but the verdicts will be canned.';
     }
   }
 }
@@ -3008,6 +3856,14 @@ async function refreshLLMStatus() {
   }
 }
 
+// Auto-retry every 15s so a transient offline blip self-recovers without
+// the user having to refresh. Pauses while a Claude call is in flight.
+if (!window.__llmStatusInterval) {
+  window.__llmStatusInterval = setInterval(() => {
+    if (!document.hidden) refreshLLMStatus();
+  }, 15000);
+}
+
 // Self-correct from any backend response that includes `stubbed`.
 // Called by askQuestion and runEvaluation after each call.
 window.applyStubbedFromResponse = (resp) => {
@@ -3015,8 +3871,10 @@ window.applyStubbedFromResponse = (resp) => {
   setLLMStatus(resp.stubbed ? 'stub' : 'live');
 };
 
-// Click any pill to force-refresh
-document.querySelectorAll('#brain-status,#brain-status-chat,#eval-status').forEach(p => {
+// Click any pill to force-refresh — but NOT the eval-status pill, which
+// lives inside the live-toggle <label> and would otherwise compete with
+// the checkbox click.
+document.querySelectorAll('#brain-status,#brain-status-chat').forEach(p => {
   p.style.cursor = 'pointer';
   p.title = (p.title || '') + ' — click to refresh';
   p.onclick = () => refreshLLMStatus();
@@ -3069,29 +3927,65 @@ document.getElementById('ev-from-clips-btn').onclick = () => {
   renderEvalSession();
   toast(`Loaded ${session.length} event${session.length===1?'':'s'} from uploaded clips`);
 };
-document.getElementById('run-btn').onclick = async () => {
+async function runOnce(mode) {
   if (!state.eval.session) return;
-  const btn = document.getElementById('run-btn');
-  btn.disabled = true; btn.textContent = 'Running…';
-  const run = await runEvaluation(state.eval.session, state.eval.hardware, state.eval.strategy);
-  state.eval.runs.push(run);
-  renderRuns();
-  btn.disabled = false; btn.textContent = 'Run evaluation';
-  toast(`${run.strategy.name}: ${(run.metrics.catch_rate*100).toFixed(0)}% catch rate`);
-};
+  const simBtn = document.getElementById('run-btn-sim');
+  const liveBtn = document.getElementById('run-btn-live');
+  const allBtn = document.getElementById('run-all-btn');
+  const btn = mode === 'live' ? liveBtn : simBtn;
+  const originalLabel = btn.innerHTML;
+  [simBtn, liveBtn, allBtn].forEach(b => b && (b.disabled = true));
+  btn.innerHTML = mode === 'live'
+    ? '<span class="btn-loading"><span class="btn-loading-dot"></span>Calling Claude…</span>'
+    : '<span class="btn-loading"><span class="btn-loading-dot"></span>Running sim…</span>';
+  try {
+    const run = await runEvaluation(state.eval.session, state.eval.hardware, state.eval.strategy, mode);
+    state.eval.runs.push(run);
+    renderRuns();
+    const hasAo = (run.events || []).some(e => e.agentOutput);
+    toast(`${run.strategy.name}: ${(run.metrics.catch_rate*100).toFixed(0)}% catch · ${hasAo ? 'LIVE LLM' : 'SIM'}`);
+  } finally {
+    btn.innerHTML = originalLabel;
+    [simBtn, liveBtn, allBtn].forEach(b => b && (b.disabled = false));
+  }
+}
+
+document.getElementById('run-btn-sim').onclick = () => runOnce('sim');
+document.getElementById('run-btn-live').onclick = () => runOnce('live');
+
 document.getElementById('run-all-btn').onclick = async () => {
   if (!state.eval.session) return;
   const btn = document.getElementById('run-all-btn');
   btn.disabled = true;
   for (const sid of Object.keys(CONTEXT_STRATEGIES)) {
-    btn.textContent = `Running ${sid}…`;
-    const run = await runEvaluation(state.eval.session, state.eval.hardware, sid);
+    btn.innerHTML = `<span class="btn-loading"><span class="btn-loading-dot"></span>Running ${sid}…</span>`;
+    const run = await runEvaluation(state.eval.session, state.eval.hardware, sid, 'sim');
     state.eval.runs.push(run);
     renderRuns();
   }
-  btn.disabled = false; btn.textContent = 'Run all 4 for ablation';
-  toast('Ablation complete · 4 strategies');
+  btn.disabled = false; btn.textContent = 'Ablation · SIM';
+  toast('Ablation complete · 4 strategies (SIM)');
 };
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SESSION FOOTER + SIGN-OUT
+   Shows the logged-in user on the bottom bar and wires the Sign out button
+   to clear the localStorage session and bounce back to /login.
+   ════════════════════════════════════════════════════════════════════════════ */
+function wireSignOut() {
+  const userEl = document.getElementById('footer-user');
+  const btn = document.getElementById('footer-signout');
+  const session = window.__omniaSession;
+  if (userEl && session?.user?.username) {
+    userEl.textContent = `signed in as ${session.user.username}`;
+  }
+  if (btn) {
+    btn.onclick = () => {
+      localStorage.removeItem('omnia.session');
+      window.location.replace('/login');
+    };
+  }
+}
 
 /* ════════════════════════════════════════════════════════════════════════════
    INITIAL RENDER
@@ -3105,6 +3999,7 @@ window.addEventListener('load', () => {
   renderStrategyCards();
   renderArtifactList();
   wireChat();
+  wireSignOut();
 
   if (restored) toast(`Restored ${state.brain.artifacts.length} artifact${state.brain.artifacts.length===1?'':'s'} from last session`);
 

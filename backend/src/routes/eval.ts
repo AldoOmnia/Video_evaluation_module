@@ -22,8 +22,17 @@ import {
 import {
   buildAgentSystemPrompt,
 } from "../../../shared/prompt-assembly/systemPrompt.js";
-import { fitToDisplay } from "../../../shared/display-constraints/rokid.js";
-import { SessionEventSchema, type SessionEvent } from "../../../shared/types/events.js";
+import {
+  fitToDisplay,
+  fitFourRole,
+  coerceFourRole,
+} from "../../../shared/display-constraints/rokid.js";
+import {
+  SessionEventSchema,
+  type SessionEvent,
+  type AgentOutput,
+  type FourRoleLens,
+} from "../../../shared/types/events.js";
 import type { ErrorCode, Priority } from "../../../shared/types/taxonomy.js";
 import { ERROR_CODES } from "../../../shared/types/taxonomy.js";
 import type { RunMetrics, RunResult } from "../../../shared/types/run.js";
@@ -71,41 +80,73 @@ evalRouter.post("/", async (req, res, next) => {
           detections: deriveDetections(ev),
         };
         const prompt = buildPrompt(strat, specs.procedure, ctx);
-        // Hard structured-output directive. Any prose breaks scoring, so the
-        // model must emit only one JSON object and nothing else.
+        const completed = completedSequenceFor(step, specs.procedure);
+        const nextStep = nextStepFor(step, specs.procedure);
         const userMsg = `${prompt.user}
 
 CONTEXT FOR THIS SEGMENT
+  procedure: ${specs.procedure.proceduralActivity.label} (Station ${specs.procedure.proceduralActivity.stationId})
   step: ${step.id} — ${step.label} (risk: ${step.risk})
   acceptance: ${step.acceptance}
   high-priority errors here: ${step.errorProfile.high_priority.join(", ") || "—"}
-  worker notes: ${ev.rationale ?? "(none)"}
+  completed so far (per FSM): ${completed.map((c) => `${c.id} ${c.label}`).join(" → ") || "(none — start of run)"}
+  next planned action: ${nextStep ? `${nextStep.id} ${nextStep.label}` : "(end of procedure)"}
+  worker note: ${ev.rationale ?? "(none)"}
 
 YOUR TASK
-Decide whether this segment shows a procedural error.
-"detected" is true if and only if you would flag this to the worker.
-"errorCode" must be one of the taxonomy codes, or null if no error.
-
-RESPONSE FORMAT — ABSOLUTE
-Respond with exactly one JSON object and nothing else. No prose before.
-No prose after. No code fences. No markdown.
-Schema:
-{"detected": true|false, "errorCode": "OMISSION|INSERTION|ORDER|INCOMPLETE|SUBSTITUTION|ORIENTATION|OMITTED_OBJECT|EXTRA_OBJECT|OUT_OF_SPEC|UNVERIFIED|BORDERLINE|INTENT_MISMATCH|PHANTOM_PROGRESS|UNREPORTED_PROGRESS|STATE_REPAIR|CV_UNCERTAIN|STATE_AMBIGUOUS|OEM_UNAVAILABLE|OUT_OF_DISTRIBUTION"|null, "diagnosis": "one short sentence ≤140 chars stating what is wrong", "fix": "one short corrective action ≤140 chars"}
+Produce one JSON object per the Omnia Comer Pinion Guide v1 schema described in the system prompt.
+Use the Comer detection mechanisms + examples there. Compose a glasses message
+in the same imperative style as the Ti-Prego contextual prompt — first line ALL CAPS,
+subsequent lines short and concrete. ABSOLUTELY no prose outside the JSON.
 `;
         const r = await llmCall({
           system: buildAgentSystemPrompt(specs.procedure, hw, specs.taxonomy),
           user: userMsg,
-          maxTokens: 220,
+          maxTokens: 380,
         });
         totalIn += r.inputTokens;
         totalOut += r.outputTokens;
         latencies.push(r.latencyMs);
         const verdict = parseVerdict(r.text);
+        // Coerce whatever shape the LLM returned (role object / array of
+        // lines / a single string) into the canonical 4 role strings, then
+        // word-wrap each role to its individual char budget. This mirrors
+        // comer-rokid-demo/.../ui/AnswerCard.kt 1:1.
+        const rawRoles = coerceFourRole(
+          verdict.lensRaw,
+          verdict.fix || verdict.diagnosis || r.text,
+        );
+        // Fallbacks so the lens always renders something sensible:
+        if (!rawRoles.label) {
+          rawRoles.label = verdict.detected
+            ? verdict.errorCode || "ANOMALY"
+            : "STEP OK";
+        }
+        if (!rawRoles.value) {
+          rawRoles.value = verdict.detected
+            ? (verdict.diagnosis ?? "").split(/[—.;:]/)[0] ?? ""
+            : step.label;
+        }
+        if (!rawRoles.action) {
+          rawRoles.action = verdict.detected
+            ? verdict.fix ?? ""
+            : "Continue procedure";
+        }
+        if (!rawRoles.source) {
+          rawRoles.source = nextStep
+            ? `${nextStep.id} next`
+            : "end of procedure";
+        }
+        const lensFit = fitFourRole(rawRoles, hw);
+        const lens: FourRoleLens = {
+          label: lensFit.label,
+          value: lensFit.value,
+          action: lensFit.action,
+          source: lensFit.source,
+        };
+        const glassesMessage = lensFit.lines.slice();
+
         const truth = ev.errorType ?? null;
-        // Scoring rules:
-        //  - detected ∧ truth-anomaly  → "caught" (credit the catch; code match is a separate quality metric)
-        //  - detected ∧ no truth        → "false_pos"
-        //  - ¬detected ∧ truth-anomaly  → "missed"
         const outcome: "caught" | "missed" | "false_pos" =
           verdict.detected && truth
             ? "caught"
@@ -120,8 +161,27 @@ Schema:
                 ? "same-group"
                 : "different"
             : null;
-        const lineForDisplay = verdict.diagnosis || r.text;
-        const display = fitToDisplay(lineForDisplay, hw);
+
+        const agentOutput: AgentOutput = {
+          detected: verdict.detected,
+          errorCode: verdict.errorCode,
+          errorGroup: verdict.errorCode
+            ? specs.taxonomy.errors[verdict.errorCode]?.group ?? null
+            : null,
+          diagnosis: verdict.diagnosis,
+          fix: verdict.fix,
+          completedSequence:
+            verdict.completedSequence.length > 0
+              ? verdict.completedSequence
+              : completed.map((c) => `${c.id} ${c.label}`),
+          currentStep: verdict.currentStep || `${step.id} ${step.label}`,
+          nextAction:
+            verdict.nextAction ||
+            (nextStep ? `${nextStep.id} ${nextStep.label}` : "(end of procedure)"),
+          lens,
+          glassesMessage,
+        };
+
         scored.push({
           ...ev,
           outcome,
@@ -129,6 +189,7 @@ Schema:
           inputTokens: r.inputTokens,
           outputTokens: r.outputTokens,
           latencyMs: r.latencyMs,
+          agentOutput,
           rationale: [
             verdict.diagnosis ? `diagnosis: ${verdict.diagnosis}` : "",
             verdict.fix ? `fix: ${verdict.fix}` : "",
@@ -137,7 +198,8 @@ Schema:
               : truth
                 ? `code: — (truth ${truth})`
                 : "",
-            `lens: "${display.lines.filter(Boolean).join(" / ")}"`,
+            `next: ${agentOutput.nextAction}`,
+            `lens: "${glassesMessage.join(" / ")}"`,
           ]
             .filter(Boolean)
             .join(" | "),
@@ -147,10 +209,20 @@ Schema:
         totalIn += sim.inputTokens;
         totalOut += sim.outputTokens;
         latencies.push(sim.latencyMs);
+        const truthLabel = ev.errorType
+          ? specs.taxonomy.errors[ev.errorType]?.label ?? ev.errorType
+          : "anomaly";
+        const simRationale =
+          sim.outcome === "caught"
+            ? `sim · ${truthLabel} — caught by ${strat.name}`
+            : sim.outcome === "missed"
+              ? `sim · ${truthLabel} — MISSED · ${strat.name} catch-rate ${(strat.catch_rate_ideal * 100).toFixed(0)}% · enable LIVE LLM for a real verdict`
+              : `sim · false-positive surfaced by ${strat.name}`;
         scored.push({
           ...ev,
           priority: ev.priority ?? priorityFor(step, ev.errorType),
           ...sim,
+          rationale: ev.rationale ? `${ev.rationale} · ${simRationale}` : simRationale,
         });
       }
     }
@@ -195,7 +267,10 @@ function simulateOutcome(
   const priority = ev.priority ?? priorityFor(step, ev.errorType);
   const priorityBoost =
     priority === "high" ? 1.1 : priority === "medium" ? 1.0 : 0.85;
-  const p = Math.min(0.99, eff * priorityBoost);
+  // Cap at 0.92 (not 0.99) so even the best-tuned strategy produces the
+  // occasional miss — important for demo/eval visibility. The strategy's
+  // headline catch_rate_ideal still dominates lower strategies.
+  const p = Math.min(0.92, eff * priorityBoost);
   const rolled = Math.random();
   const outcome: "caught" | "missed" | "false_pos" =
     rolled < p ? "caught" : Math.random() < fp ? "false_pos" : "missed";
@@ -228,11 +303,17 @@ interface AgentVerdict {
   errorCode: ErrorCode | null;
   diagnosis: string;
   fix: string;
+  completedSequence: string[];
+  currentStep: string;
+  nextAction: string;
+  glassesMessage: string[];
+  /** Whatever shape the LLM produced for the lens — coerced downstream. */
+  lensRaw: unknown;
 }
 
-/** Robust extraction of {detected, errorCode, diagnosis, fix} from the LLM.
- *  Tries every JSON object in the text and picks the best candidate (one with
- *  a valid errorCode + diagnosis). Falls back to a code-mention heuristic. */
+/** Robust extraction of the full contextual verdict from the LLM. Tries every
+ *  JSON object in the text and picks the most complete candidate. Falls back
+ *  to a code-mention heuristic so we never return nothing. */
 function parseVerdict(text: string): AgentVerdict {
   const stripped = text
     .replace(/```json\s*/gi, "")
@@ -240,20 +321,45 @@ function parseVerdict(text: string): AgentVerdict {
     .trim();
 
   const candidates = extractJsonObjects(stripped);
-  // Score candidates: prefer ones with a diagnosis AND a valid errorCode.
   let best: AgentVerdict | null = null;
   let bestScore = -1;
   for (const obj of candidates) {
     const ecRaw = typeof obj.errorCode === "string" ? obj.errorCode.toUpperCase() : null;
     const ec =
       ecRaw && (ERROR_CODES as readonly string[]).includes(ecRaw) ? (ecRaw as ErrorCode) : null;
-    const diag = String(obj.diagnosis ?? "").slice(0, 200);
-    const fix = String(obj.fix ?? "").slice(0, 200);
+    const diag = String(obj.diagnosis ?? "").slice(0, 240);
+    const fix = String(obj.fix ?? "").slice(0, 240);
     const detected = !!obj.detected || !!ec;
-    const score = (diag ? 2 : 0) + (ec ? 2 : 0) + (fix ? 1 : 0) + (detected ? 1 : 0);
+    const completedSequence = toStringArray(obj.completedSequence).slice(0, 24);
+    const currentStep = String(obj.currentStep ?? "").slice(0, 120);
+    const nextAction = String(obj.nextAction ?? "").slice(0, 200);
+    const lensRaw = obj.glassesMessage ?? obj.lens ?? null;
+    const glassesMessage = toStringArray(obj.glassesMessage).slice(0, 6);
+    const hasLensObj =
+      lensRaw && typeof lensRaw === "object" && !Array.isArray(lensRaw);
+    const score =
+      (diag ? 2 : 0) +
+      (ec ? 2 : 0) +
+      (fix ? 1 : 0) +
+      (detected ? 1 : 0) +
+      (completedSequence.length > 0 ? 1 : 0) +
+      (currentStep ? 1 : 0) +
+      (nextAction ? 1 : 0) +
+      (glassesMessage.length > 0 ? 2 : 0) +
+      (hasLensObj ? 2 : 0);
     if (score > bestScore) {
       bestScore = score;
-      best = { detected, errorCode: ec, diagnosis: diag, fix };
+      best = {
+        detected,
+        errorCode: ec,
+        diagnosis: diag,
+        fix,
+        completedSequence,
+        currentStep,
+        nextAction,
+        glassesMessage,
+        lensRaw,
+      };
     }
   }
   if (best && bestScore > 0) return best;
@@ -265,7 +371,17 @@ function parseVerdict(text: string): AgentVerdict {
     errorCode: (found as ErrorCode | undefined) ?? null,
     diagnosis: stripped.slice(0, 200),
     fix: "",
+    completedSequence: [],
+    currentStep: "",
+    nextAction: "",
+    glassesMessage: [],
+    lensRaw: null,
   };
+}
+
+function toStringArray(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v.filter((x): x is string => typeof x === "string").map((s) => s.trim()).filter(Boolean);
 }
 
 /** Find every plausible JSON object in `s`, in order, ignoring braces inside
@@ -318,6 +434,16 @@ function extractJsonObjects(s: string): Array<Record<string, unknown>> {
     i = end + 1;
   }
   return out;
+}
+
+/** All keysteps strictly before the current one, in procedure order. */
+function completedSequenceFor(step: KeyStep, procedure: ProcedureSpec): KeyStep[] {
+  return procedure.keysteps.filter((k) => k.order < step.order);
+}
+
+/** The next keystep after the current one (or null if at end). */
+function nextStepFor(step: KeyStep, procedure: ProcedureSpec): KeyStep | null {
+  return procedure.keysteps.find((k) => k.order === step.order + 1) ?? null;
 }
 
 /** Derive minimal CV-like detections from a labeled event so the prompt has
