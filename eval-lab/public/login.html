@@ -475,7 +475,7 @@
       const errEl = document.getElementById('error-msg');
       const btn = document.getElementById('btn-login');
 
-      function afterAuthRedirect() {
+      function resumeSessionRedirect() {
         if (localStorage.getItem('omnia.introSeen') === '1') {
           window.location.replace('/lab/');
         } else {
@@ -487,7 +487,7 @@
       try {
         const session = JSON.parse(localStorage.getItem('omnia.session') || 'null');
         if (session && session.tenant === 'comer' && session.expiresAt > Date.now()) {
-          afterAuthRedirect();
+          resumeSessionRedirect();
           return;
         }
       } catch {}
@@ -531,7 +531,9 @@
               expiresAt: Date.now() + (data.ttlSec ?? 60 * 60 * 8) * 1000,
             }),
           );
-          afterAuthRedirect();
+          // Fresh sign-in always shows the welcome tour (reset one-time skip flag).
+          localStorage.removeItem('omnia.introSeen');
+          window.location.replace('/welcome/');
         } catch (err) {
           errEl.textContent = err.message || 'Sign-in failed';
           setLoading(false);

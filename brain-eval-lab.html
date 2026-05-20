@@ -4258,6 +4258,7 @@ function wireSignOut() {
   if (btn) {
     btn.onclick = () => {
       localStorage.removeItem('omnia.session');
+      localStorage.removeItem('omnia.introSeen');
       window.location.replace('/login');
     };
   }
