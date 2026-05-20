@@ -11,10 +11,6 @@
     "resolveJsonModule": true,
     "outDir": "dist",
     "rootDir": "..",
-    "baseUrl": ".",
-    "paths": {
-      "@shared/*": ["../shared/*"]
-    },
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },

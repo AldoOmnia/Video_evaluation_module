@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ErrorCodeSchema } from "./taxonomy";
+import { ErrorCodeSchema } from "./taxonomy.js";
 
 export const RiskSchema = z.enum(["low", "med", "high"]);
 

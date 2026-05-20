@@ -1,7 +1,7 @@
 # Brain · Eval Lab — Platform
 
 The procedural-knowledge graph + agent-evaluation platform behind the
-Aequilibrium / OmniaClaw smart-glasses program.
+Omnia smart-glasses program.
 
 **Reference material lives in [`docs/`](./docs):**
 
@@ -84,6 +84,11 @@ open http://localhost:3001/lab/
 The lab loads `brain-eval-lab.html` from the repo root. The Brain chat
 talks to `/api/brain/chat`; toggling `USE_BACKEND_EVAL` in the dev console
 routes the Evaluate runs through `/api/eval`.
+
+For production deploys to a tenant subdomain like
+`https://comer.theomnia.ai`, see [`DEPLOY.md`](./DEPLOY.md). The repo
+ships with a `render.yaml` Blueprint that gets a new tenant live in
+~10 minutes (Render + a single CNAME).
 
 ---
 

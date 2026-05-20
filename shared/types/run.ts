@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { HardwareProfileSchema } from "./hardware";
-import { ContextStrategySchema } from "./strategy";
-import { SessionEventSchema } from "./events";
-import { ErrorCodeSchema, GroupIdSchema, PrioritySchema } from "./taxonomy";
+import { HardwareProfileSchema } from "./hardware.js";
+import { ContextStrategySchema } from "./strategy.js";
+import { SessionEventSchema } from "./events.js";
+import { ErrorCodeSchema, GroupIdSchema, PrioritySchema } from "./taxonomy.js";
 
 const PerBucketCount = z.object({
   seen: z.number().int().nonnegative(),

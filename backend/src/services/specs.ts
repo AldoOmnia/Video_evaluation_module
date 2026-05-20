@@ -3,20 +3,17 @@
  * frozen and re-used by every route.
  */
 import { readFileSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import YAML from "yaml";
 
 import { ProcedureSpecSchema } from "../../../shared/types/procedure.js";
 import { TaxonomySchema } from "../../../shared/types/taxonomy.js";
 import { HardwareProfilesSchema } from "../../../shared/types/hardware.js";
 import { StrategiesSchema } from "../../../shared/types/strategy.js";
-
-const HERE = dirname(fileURLToPath(import.meta.url));
-const SHARED = join(HERE, "..", "..", "..", "shared");
+import { SHARED_DIR } from "../paths.js";
 
 function read(rel: string): unknown {
-  return YAML.parse(readFileSync(join(SHARED, rel), "utf8"));
+  return YAML.parse(readFileSync(join(SHARED_DIR, rel), "utf8"));
 }
 
 export const specs = Object.freeze({

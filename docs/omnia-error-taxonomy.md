@@ -60,4 +60,4 @@ Reports decompose catch rate by error type. **Headline metric: high-priority err
 
 ---
 
-*Aequilibrium, Inc. / Omnia • Pilot: Comer Industries Pinion Guide Station PG-04 • Hardware: Rokid AI Glasses*
+*Omnia • Pilot: Comer Industries Pinion Guide Station PG-04 • Hardware: Rokid AI Glasses*

@@ -1,0 +1,1583 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Comer Industries · Platform overview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #050505;
+      --bg-2: #0d0d0d;
+      --bg-3: #141414;
+      --ink-1: #f5f5f5;
+      --ink-2: #a3a3a3;
+      --ink-3: #6b6b6b;
+      --line: #1f1f1f;
+      --line-2: #2a2a2a;
+      --primary: #00E5A0;
+      --primary-dim: #00996B;
+      --primary-glow: rgba(0,229,160,0.45);
+      --ok: #4ade80;
+      --warn: #f59e0b;
+      --err: #ef4444;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+      --acc: #00E5A0;
+      --c-keystep: #60a5fa;
+      --c-advice: #f472b6;
+      --c-document: #a78bfa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--ink-1);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.5;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .bg {
+      position: fixed; inset: 0; z-index: -2;
+      background:
+        radial-gradient(circle at top left, rgba(0,229,160,0.06), transparent 55%),
+        radial-gradient(circle at bottom right, rgba(0,150,255,0.05), transparent 55%),
+        var(--bg);
+    }
+    .bg::before, .bg::after {
+      content: ''; position: absolute; inset: -50%;
+      background-image: radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px);
+      background-size: 22px 22px;
+      animation: drift-slow 60s linear infinite;
+      opacity: 0.9;
+    }
+    .bg::after {
+      background-image: radial-gradient(rgba(0,229,160,0.10) 1.4px, transparent 1.4px);
+      background-size: 56px 56px;
+      animation: drift-fast 40s linear infinite reverse;
+      opacity: 0.55;
+    }
+    @keyframes drift-slow {
+      from { transform: translate3d(0,0,0); }
+      to   { transform: translate3d(-44px,-44px,0); }
+    }
+    @keyframes drift-fast {
+      from { transform: translate3d(0,0,0); }
+      to   { transform: translate3d(-112px,56px,0); }
+    }
+    .cursor-glow {
+      position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background: radial-gradient(
+        420px circle at var(--mx, 50%) var(--my, 50%),
+        rgba(255,255,255,0.10) 0%,
+        rgba(0,229,160,0.08) 25%,
+        rgba(0,229,160,0.03) 45%,
+        rgba(0,0,0,0) 70%
+      );
+      opacity: 0;
+      transition: opacity 320ms ease;
+      mix-blend-mode: screen;
+    }
+    .cursor-glow.is-active { opacity: 1; }
+    .scanlines {
+      position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background: repeating-linear-gradient(
+        180deg,
+        rgba(255,255,255,0) 0px,
+        rgba(255,255,255,0) 3px,
+        rgba(255,255,255,0.012) 3px,
+        rgba(255,255,255,0.012) 4px
+      );
+    }
+
+    .stage {
+      height: 100vh;
+      width: 100%;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 10px 24px 8px;
+      display: grid;
+      grid-template-rows: auto 2px 1fr auto;
+      gap: 8px;
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      min-height: 36px;
+    }
+    .hero-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .hero-brand img { width: 32px; height: 32px; object-fit: contain; }
+    .hero-brand .k {
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+    }
+    .hero-brand h1 { font-size: 14px; font-weight: 600; letter-spacing: -0.02em; }
+    .top-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .tour-step-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      white-space: nowrap;
+    }
+    .tour-step-label strong { color: var(--primary); font-weight: 500; }
+    .tour-dots { display: flex; gap: 5px; }
+    .tour-dots span {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--line-2);
+      cursor: pointer;
+      transition: background 280ms ease, transform 280ms ease, box-shadow 280ms ease;
+    }
+    .tour-dots span:hover { background: var(--ink-3); }
+    .tour-dots span.is-active {
+      background: var(--primary);
+      box-shadow: 0 0 6px var(--primary-glow);
+      transform: scale(1.12);
+    }
+    .tour-dots span.is-done { background: rgba(0,229,160,0.35); }
+    .llm-pill {
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 20px;
+      border: 1px solid var(--line-2);
+      color: var(--ink-3);
+      white-space: nowrap;
+    }
+    .llm-pill.is-live { color: var(--ok); border-color: rgba(74,222,128,0.4); }
+    .llm-pill.is-stub { color: var(--warn); border-color: rgba(245,158,11,0.4); }
+
+    .tour-progress {
+      height: 2px;
+      background: var(--line);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .tour-progress-fill {
+      height: 100%;
+      width: 100%;
+      transform: scaleX(0);
+      transform-origin: left center;
+      background: linear-gradient(90deg, var(--primary-dim), var(--primary));
+      border-radius: 2px;
+      will-change: transform;
+    }
+
+    .tour-stage {
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .tour-step {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(8px);
+      transition: opacity 360ms ease, transform 360ms ease, visibility 0s 360ms;
+      pointer-events: none;
+    }
+    .tour-step.is-active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+      transition: opacity 400ms ease, transform 400ms ease, visibility 0s;
+      pointer-events: auto;
+    }
+
+    .glow-card {
+      position: relative;
+      height: 100%;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: 10px;
+      padding: 12px 14px;
+      --glow-intensity: 0.35;
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.03) inset,
+        0 20px 60px rgba(0,0,0,0.55),
+        0 0 calc(40px * var(--glow-intensity)) calc(2px * var(--glow-intensity)) rgba(255,255,255,calc(0.18 * var(--glow-intensity))),
+        0 0 calc(80px * var(--glow-intensity)) calc(6px * var(--glow-intensity)) rgba(0,229,160,calc(0.12 * var(--glow-intensity)));
+      transition: box-shadow 220ms ease, border-color 220ms ease;
+    }
+    .glow-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      border-radius: 12px;
+      background: radial-gradient(
+        320px circle at var(--cx, 50%) var(--cy, 50%),
+        rgba(255,255,255,calc(0.06 * var(--glow-intensity))),
+        rgba(255,255,255,0) 60%
+      );
+      pointer-events: none;
+    }
+    .glow-card.is-hot { border-color: rgba(255,255,255,0.18); }
+
+    .card-stack {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      gap: 10px;
+    }
+    .card-stack.has-preview {
+      height: 100%;
+    }
+    .card-copy {
+      flex-shrink: 0;
+    }
+    .card-preview {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Brain / Eval: copy + frame centered as one block in the stage */
+    .tour-step[data-step="brain"],
+    .tour-step[data-step="eval"] {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 0;
+    }
+    .preview-step {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-height: 100%;
+      min-height: 0;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+    }
+    .preview-step .card-copy {
+      flex: 0 0 auto;
+      width: min(100%, 920px);
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 0 2px;
+    }
+    .preview-step .card-copy .step-title {
+      margin-bottom: 4px;
+    }
+    .preview-step .card-copy .step-copy {
+      margin: 0;
+    }
+    .preview-step .ui-frame-slot {
+      flex: 0 1 auto;
+      width: 100%;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .preview-step .back-link {
+      flex: 0 0 auto;
+      align-self: flex-start;
+      width: min(100%, 920px);
+      margin: 4px auto 0;
+      padding: 2px 4px;
+      background: none;
+      border: 0;
+      color: var(--ink-3);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      opacity: 0.55;
+      cursor: pointer;
+      transition: opacity 200ms ease, color 200ms ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .preview-step .back-link:hover,
+    .preview-step .back-link:focus-visible {
+      opacity: 1;
+      color: var(--ink-2);
+      outline: none;
+    }
+    .preview-step .back-link .back-arrow {
+      display: inline-block;
+      transition: transform 200ms ease;
+    }
+    .preview-step .back-link:hover .back-arrow {
+      transform: translateX(-2px);
+    }
+    /* 16:9 lab viewport — scales to available room, capped for readability */
+    .preview-step .ui-frame {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      width: min(100%, 920px);
+      max-width: 100%;
+      max-height: 100%;
+      flex: 0 1 auto;
+      margin: 0 auto;
+      --glow-intensity: 0.32;
+    }
+    .preview-step .ui-frame[data-glow]::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 6px;
+      pointer-events: none;
+      z-index: 1;
+      background: radial-gradient(
+        240px circle at var(--cx, 50%) var(--cy, 50%),
+        rgba(255,255,255,calc(0.06 * var(--glow-intensity))),
+        rgba(255,255,255,0) 62%
+      );
+    }
+    .preview-step .ui-frame.is-hot {
+      border-color: rgba(255,255,255,0.2);
+    }
+    .preview-step .ui-frame .ui-frame-bar {
+      font-size: 10px;
+      padding: 7px 12px;
+    }
+    .preview-step .ui-frame .ui-frame-bar .dot {
+      width: 8px;
+      height: 8px;
+    }
+    .preview-step .ui-frame .ui-frame-body {
+      position: relative;
+      z-index: 2;
+    }
+    .preview-step .ui-frame .mini-brain,
+    .preview-step .ui-frame .mini-eval {
+      height: 100%;
+      font-size: 11px;
+    }
+    .preview-step .ui-frame .mini-brain .col,
+    .preview-step .ui-frame .mini-eval .col {
+      padding: 8px 10px;
+    }
+    .preview-step .ui-frame .mini-ph {
+      margin-bottom: 6px;
+    }
+    .preview-step .ui-frame .mini-file {
+      padding: 4px 5px;
+    }
+    .preview-step .ui-frame .mini-file-icon {
+      width: 14px;
+      height: 16px;
+    }
+    .preview-step .ui-frame .mini-prompt {
+      font-size: 0.8em;
+      padding: 3px 5px;
+      margin-bottom: 4px;
+    }
+    .preview-step .ui-frame .fov-brain-chat .ac {
+      position: static;
+      width: 100%;
+      padding: 3px 4px;
+      gap: 1px;
+    }
+    .preview-step .ui-frame .mini-graph .node {
+      width: 11px;
+      height: 11px;
+    }
+    .preview-step .ui-frame .mini-live { font-size: 0.85em; }
+    .preview-step .ui-frame .mini-k { font-size: 0.85em; }
+    .preview-step .ui-frame .mini-btn {
+      font-size: 0.9em;
+      padding: 6px;
+    }
+    .preview-step .ui-frame .mini-legend-row {
+      grid-template-columns: 58px 1fr;
+    }
+    .preview-step .ui-frame .mini-outcome-legend {
+      padding: 6px 7px;
+      margin-bottom: 5px;
+    }
+    .preview-step .ui-frame .mini-verdict {
+      padding: 7px 8px;
+      gap: 4px;
+    }
+    .preview-step .ui-frame .mini-diag {
+      font-size: 1em;
+      line-height: 1.3;
+    }
+    .preview-step .ui-frame .fov-mini.fov-brain-chat {
+      max-height: 88px;
+      margin-top: 4px;
+    }
+    .preview-step .ui-frame .fov-mini.fov-eval-verdict {
+      width: 100%;
+      max-width: 100%;
+      max-height: 52px;
+      min-height: 44px;
+      aspect-ratio: unset;
+    }
+    .preview-step .ui-frame .fov-eval-verdict .ac {
+      position: static;
+      left: auto;
+      bottom: auto;
+      width: 100%;
+      padding: 3px 5px;
+      gap: 1px;
+      line-height: 1.12;
+    }
+    .preview-step .ui-frame .fov-eval-verdict .ac-label {
+      font-size: 0.6em;
+    }
+    .preview-step .ui-frame .fov-eval-verdict .ac-value {
+      font-size: 0.82em;
+      line-height: 1.1;
+    }
+    .preview-step .ui-frame .fov-eval-verdict .ac-action {
+      font-size: 0.62em;
+      line-height: 1.15;
+    }
+    .preview-step .ui-frame .mini-glasses-sm {
+      flex-shrink: 0;
+    }
+    .preview-step .ui-frame .fov-brain-chat .fov-corner {
+      width: 7px;
+      height: 7px;
+    }
+
+    /* Knowledge graph — richer preview (inside frame only) */
+    .preview-step .ui-frame .mini-graph {
+      background:
+        radial-gradient(ellipse 90% 70% at 50% 35%, rgba(0,229,160,0.12) 0%, transparent 55%),
+        linear-gradient(180deg, #0c1210 0%, #060606 100%);
+      border: 1px solid rgba(0,229,160,0.14);
+      border-radius: 4px;
+    }
+    .preview-step .ui-frame .mini-graph svg .g-edge {
+      stroke: rgba(0,229,160,0.45);
+      stroke-width: 1.4;
+    }
+    .preview-step .ui-frame .mini-graph svg .g-edge-dim {
+      stroke: rgba(255,255,255,0.12);
+      stroke-width: 1;
+    }
+    .preview-step .ui-frame .mini-graph .node {
+      border: 1px solid rgba(255,255,255,0.25);
+      box-shadow: 0 0 10px rgba(0,229,160,0.35);
+    }
+    .preview-step .ui-frame .mini-graph .node.is-hub {
+      width: 14px;
+      height: 14px;
+      border-color: var(--primary);
+      box-shadow: 0 0 14px var(--primary-glow);
+    }
+    .preview-step .ui-frame .mini-graph .g-label {
+      position: absolute;
+      font-size: 0.75em;
+      letter-spacing: 0.06em;
+      color: var(--ink-2);
+      transform: translate(-50%, -50%);
+      white-space: nowrap;
+    }
+    .preview-step .ui-frame .mini-graph .g-label.hub {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* Eval — session ↔ results correlation */
+    .mini-session-tag {
+      font-size: 0.85em;
+      color: var(--ok);
+      letter-spacing: 0.06em;
+      margin-bottom: 5px;
+    }
+    .mini-pov {
+      margin-bottom: 6px;
+      border: 1px solid var(--line-2);
+      border-radius: 4px;
+      overflow: hidden;
+      background: #0a0a0a;
+    }
+    .mini-pov-tag {
+      display: block;
+      font-size: 0.75em;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      padding: 3px 5px;
+      background: var(--bg-2);
+      border-bottom: 1px solid var(--line);
+    }
+    .mini-pov-frame {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      background: #0a0a0a;
+    }
+    .mini-pov-frame img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center center;
+    }
+    .mini-pov-task {
+      font-size: 0.8em;
+      color: var(--ink-2);
+      padding: 4px 5px;
+      line-height: 1.25;
+      border-top: 1px dashed var(--line-2);
+    }
+    .mini-tl-row.is-active {
+      background: rgba(0,229,160,0.06);
+      border-left: 2px solid var(--primary);
+      padding-left: 4px;
+      margin-left: -6px;
+    }
+    .mini-tl-link {
+      font-size: 0.75em;
+      color: var(--primary);
+      letter-spacing: 0.04em;
+      margin-top: 4px;
+      opacity: 0.9;
+    }
+    .mini-hw-card {
+      border: 1px solid var(--primary-dim);
+      border-radius: 4px;
+      padding: 6px 7px;
+      background: rgba(0,229,160,0.06);
+      margin-bottom: 6px;
+    }
+    .mini-hw-name {
+      font-size: 0.95em;
+      font-weight: 600;
+      color: var(--ink-1);
+      margin-bottom: 3px;
+    }
+    .mini-hw-desc {
+      font-size: 0.8em;
+      color: var(--ink-2);
+      line-height: 1.3;
+      margin-bottom: 5px;
+    }
+    .mini-hw-specs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+    }
+    .mini-hw-specs span {
+      font-size: 0.7em;
+      padding: 2px 5px;
+      border-radius: 2px;
+      border: 1px solid var(--line-2);
+      color: var(--ink-3);
+    }
+    .mini-hw-specs span.has {
+      color: var(--ok);
+      border-color: rgba(74,222,128,0.35);
+      background: rgba(74,222,128,0.08);
+    }
+    .mini-corr-bar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.75em;
+      color: var(--ink-3);
+      margin-bottom: 5px;
+      padding: 3px 5px;
+      background: var(--bg-3);
+      border-radius: 3px;
+      border: 1px solid var(--line-2);
+    }
+    .mini-corr-bar strong {
+      color: var(--warn);
+      font-weight: 600;
+    }
+    .preview-step .ui-frame .col-session,
+    .preview-step .ui-frame .col-config,
+    .preview-step .ui-frame .col-results {
+      overflow-y: auto;
+    }
+    .preview-step .ui-frame .mini-diag strong {
+      color: var(--err);
+      font-weight: 600;
+    }
+    .glow-card.card-intro {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: auto;
+      width: 100%;
+      max-width: 480px;
+    }
+    .tour-step.intro-step {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .step-tag {
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+    .step-title {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+      line-height: 1.25;
+    }
+    .step-copy {
+      font-size: 12px;
+      color: var(--ink-2);
+      line-height: 1.45;
+    }
+    .step-copy strong { color: var(--ink-1); font-weight: 500; }
+    .card-intro .step-title { font-size: 17px; }
+
+    .ui-frame {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 6px;
+      overflow: hidden;
+      background: var(--bg);
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.5) inset, 0 6px 20px rgba(0,0,0,0.45);
+    }
+    .ui-frame-body { flex: 1; min-height: 0; }
+    .ui-frame-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      flex-shrink: 0;
+      background: var(--bg-2);
+      border-bottom: 1px solid var(--line);
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+    }
+    .ui-frame-bar .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--line-2);
+    }
+    .ui-frame-bar .dot.on { background: var(--primary); box-shadow: 0 0 6px var(--primary-glow); }
+
+    /* Matches #brain-mode: 320px · 1fr · 380px ≈ 30% · 40% · 35% */
+    .mini-brain {
+      display: grid;
+      grid-template-columns: 30% 1fr 35%;
+      height: 100%;
+      min-height: 0;
+      font-family: var(--mono);
+      font-size: clamp(6px, 0.62vw, 7.5px);
+    }
+    .mini-brain .col {
+      border-right: 1px solid var(--line);
+      padding: 6px 8px;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .mini-brain .col:last-child {
+      border-right: none;
+      display: flex;
+      flex-direction: column;
+    }
+    .mini-brain-card {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: 4px;
+      padding: 6px;
+    }
+    /* Chat panel: compact AnswerCard, not full-column FOV */
+    .fov-mini.fov-brain-chat {
+      width: 85%;
+      max-width: 100%;
+      aspect-ratio: 1 / 1;
+      flex: 0 0 auto;
+      max-height: 48px;
+      margin-top: 2px;
+    }
+    .fov-brain-chat .fov-corner { width: 5px; height: 5px; }
+    .fov-brain-chat .ac { padding: 3px 4px; gap: 1px; }
+    .fov-brain-chat .ac-value { font-size: 0.7em; }
+    .fov-brain-chat .ac-label,
+    .fov-brain-chat .ac-action,
+    .fov-brain-chat .ac-source { font-size: 0.65em; }
+    .mini-ph {
+      color: var(--ink-3);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .mini-ph .n { color: var(--acc); margin-right: 4px; }
+    .mini-drop {
+      border: 1px dashed var(--line-2);
+      border-radius: 3px;
+      padding: 5px 4px;
+      text-align: center;
+      color: var(--ink-3);
+      margin-bottom: 4px;
+      line-height: 1.3;
+      font-size: 0.95em;
+    }
+    .mini-file {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 6px;
+      margin-bottom: 4px;
+      border: 1px solid var(--line-2);
+      border-radius: 4px;
+      background: var(--bg-3);
+    }
+    .mini-file-icon {
+      width: 16px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+    .mini-file-body {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .mini-file-type {
+      font-size: 0.7em;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+    .mini-file-pdf .mini-file-type { color: #f87171; }
+    .mini-file-csv .mini-file-type { color: #4ade80; }
+    .mini-file-name {
+      font-size: 0.8em;
+      color: var(--ink-2);
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .mini-prompt {
+      font-family: var(--sans);
+      font-size: 0.85em;
+      color: var(--ink-2);
+      line-height: 1.3;
+      padding: 4px 6px;
+      margin-bottom: 5px;
+      border-radius: 4px;
+      background: var(--bg-3);
+      border: 1px solid var(--line-2);
+    }
+    .mini-prompt-k {
+      display: block;
+      font-family: var(--mono);
+      font-size: 0.65em;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      margin-bottom: 2px;
+    }
+    .mini-graph {
+      position: relative;
+      background: #080808;
+      min-height: 0;
+      height: 100%;
+    }
+    .mini-graph svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .mini-graph .node {
+      position: absolute;
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .mini-chat-h {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      color: var(--ink-3);
+    }
+    .mini-live { color: var(--ok); font-size: 7px; }
+    .mini-k {
+      font-size: 7px;
+      color: #4ade80;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .fov-mini {
+      position: relative;
+      background: #000;
+      border: 1px solid #222;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    /* Matches #eval-mode: 320px · 1fr · 380px */
+    .mini-eval {
+      display: grid;
+      grid-template-columns: 30% 1fr 35%;
+      height: 100%;
+      min-height: 0;
+      font-family: var(--mono);
+      font-size: clamp(6px, 0.62vw, 7.5px);
+    }
+    .mini-eval .col-results {
+      background: linear-gradient(180deg, rgba(0,229,160,0.04), transparent 32%);
+    }
+    .mini-outcome-legend {
+      border: 1px solid var(--line-2);
+      border-radius: 3px;
+      padding: 5px 6px;
+      margin-bottom: 6px;
+      background: var(--bg-3);
+    }
+    .mini-legend-k {
+      font-size: 0.85em;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      margin-bottom: 4px;
+      padding-bottom: 3px;
+      border-bottom: 1px solid var(--line);
+    }
+    .mini-legend-row {
+      display: grid;
+      grid-template-columns: 52px 1fr;
+      gap: 4px;
+      align-items: center;
+      padding: 2px 0;
+      font-size: 0.9em;
+      color: var(--ink-2);
+    }
+    .mini-verdict {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      padding: 6px 7px;
+      border: 1px solid rgba(245,158,11,0.35);
+      border-left: 2px solid var(--warn);
+      border-radius: 3px;
+      background: var(--bg-2);
+    }
+    .mini-tax-chip {
+      display: inline-block;
+      font-size: 0.95em;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 3px 7px;
+      border-radius: 10px;
+      border: 1px solid rgba(245,158,11,0.5);
+      color: var(--warn);
+      background: rgba(245,158,11,0.1);
+      width: fit-content;
+    }
+    .mini-diag {
+      font-family: var(--sans);
+      font-size: 1.05em;
+      line-height: 1.35;
+      color: var(--ink-1);
+    }
+    .mini-outcome-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .mini-chip.lg {
+      font-size: 0.95em;
+      padding: 3px 8px;
+      font-weight: 600;
+    }
+    .mini-meta {
+      font-size: 0.85em;
+      color: var(--ink-3);
+    }
+    .mini-glasses-sm {
+      margin-top: auto;
+      padding-top: 4px;
+      border-top: 1px dashed var(--line-2);
+    }
+    .mini-k-sm {
+      font-size: 0.8em;
+      color: var(--ink-3);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+      display: block;
+    }
+    .fov-mini.fov-eval-verdict {
+      width: 72%;
+      aspect-ratio: 1.15 / 1;
+      max-height: 38px;
+    }
+    .fov-eval-verdict .ac { padding: 2px 4px; }
+    .fov-eval-verdict .ac-value { font-size: 0.65em; }
+    .mini-eval .col {
+      border-right: 1px solid var(--line);
+      padding: 6px 8px;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .mini-eval .col:last-child { border-right: none; }
+    .mini-eval .col-results {
+      display: flex;
+      flex-direction: column;
+    }
+    .mini-eval .col-session { opacity: 0.92; }
+    .mini-eval .col-config { opacity: 0.88; }
+    .fov-mini .ac {
+      position: absolute;
+      left: 5%; bottom: 5%;
+      width: 88%;
+      padding: 5px 6px;
+      background: rgba(0,0,0,0.88);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .fov-mini .ac-label  { color: #00996B; font-size: 0.85em; }
+    .fov-mini .ac-value  { color: #fff; font-size: 1.35em; font-weight: 500; line-height: 1.1; }
+    .fov-mini .ac-action { color: #00E5A0; font-size: 0.95em; }
+    .fov-mini .ac-source { color: #888; font-size: 0.85em; }
+    .fov-corner {
+      position: absolute;
+      width: 8px; height: 8px;
+      border-color: rgba(0,229,160,0.35);
+      border-style: solid;
+    }
+    .fov-tl { top: 4px; left: 4px; border-width: 1px 0 0 1px; }
+    .fov-br { bottom: 4px; right: 4px; border-width: 0 1px 1px 0; }
+
+    .mini-tl-row {
+      display: grid;
+      grid-template-columns: 26px 10px 1fr;
+      gap: 4px;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--line);
+      align-items: center;
+    }
+    .mini-tl-row:last-child { border-bottom: none; }
+    .mini-tl-row .bad { color: var(--err); }
+    .mini-tl-row .ok { color: var(--ok); }
+    .mini-btn {
+      display: block;
+      width: 100%;
+      margin-top: 5px;
+      padding: 5px;
+      border-radius: 3px;
+      border: 1px solid var(--line-2);
+      background: var(--bg-3);
+      color: var(--ink-2);
+      font-size: 7px;
+      text-align: center;
+    }
+    .mini-btn.live {
+      border-color: var(--primary-dim);
+      color: var(--primary);
+      background: rgba(0,229,160,0.08);
+    }
+    .mini-chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+    .mini-chip {
+      font-size: 7px;
+      padding: 2px 6px;
+      border-radius: 2px;
+      border: 1px solid var(--line-2);
+    }
+    .mini-chip.caught { color: var(--ok); background: rgba(74,222,128,0.08); }
+    .mini-chip.miss { color: var(--err); background: rgba(239,68,68,0.08); }
+    .mini-chip.fp { color: var(--warn); background: rgba(245,158,11,0.08); }
+
+    .tour-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 36px;
+    }
+    .footer-powered {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+    }
+    .footer-powered img { height: 14px; opacity: 0.75; }
+    .footer-actions { display: flex; align-items: center; gap: 8px; }
+    .btn-skip, .btn-next {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      padding: 8px 12px;
+      border-radius: 4px;
+      transition: color 140ms ease, border-color 140ms ease;
+    }
+    .btn-skip {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--ink-3);
+    }
+    .btn-skip:hover { color: var(--ink-2); border-color: var(--line-2); }
+    .btn-next {
+      background: rgba(0,229,160,0.08);
+      border: 1px solid var(--primary-dim);
+      color: var(--primary);
+    }
+    .btn-next:hover { background: rgba(0,229,160,0.14); }
+    .btn-next.is-enter {
+      padding: 8px 16px;
+      font-family: var(--sans);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #06120c;
+      background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dim) 100%);
+      border: none;
+      box-shadow: 0 4px 14px rgba(0,229,160,0.18);
+    }
+    .btn-next.is-enter:hover {
+      filter: brightness(1.05);
+      box-shadow: 0 0 24px 4px var(--primary-glow), 0 6px 18px rgba(0,229,160,0.22);
+    }
+
+    @media (max-width: 720px) {
+      .stage { padding: 8px 14px 6px; }
+      .mini-brain { grid-template-columns: 56px 1fr 88px; }
+      .preview-step .ui-frame .mini-brain,
+      .preview-step .ui-frame .mini-eval {
+        font-size: 9px;
+      }
+      .preview-step .ui-frame .fov-mini.fov-brain-chat {
+        max-height: 72px;
+      }
+    }
+
+    @media (max-height: 640px) {
+      .hero-brand img { width: 28px; height: 28px; }
+      .hero-brand h1 { font-size: 13px; }
+      .glow-card { padding: 10px 12px; }
+      .card-stack { gap: 6px; }
+      .step-title { font-size: 14px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .bg::before, .bg::after { animation: none; }
+      .tour-step { transition: none; transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <div class="cursor-glow" id="cursor-glow" aria-hidden="true"></div>
+  <div class="scanlines" aria-hidden="true"></div>
+
+  <main class="stage" id="tour">
+    <header class="top-bar">
+      <div class="hero-brand">
+        <img src="/lab/assets/comer-logo.png" alt="Comer Industries" />
+        <div>
+          <div class="k">Comer · Rockford</div>
+          <h1>Pinion Guide pilot</h1>
+        </div>
+      </div>
+      <div class="top-bar-right">
+        <div class="tour-step-label" id="tour-label">Overview</div>
+        <div class="tour-dots" id="tour-dots" role="tablist" aria-label="Tour steps">
+          <span data-i="0"></span>
+          <span data-i="1"></span>
+          <span data-i="2"></span>
+        </div>
+        <span class="llm-pill" id="llm-pill">LLM · …</span>
+      </div>
+    </header>
+    <div class="tour-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Intro tour progress">
+      <div class="tour-progress-fill" id="tour-progress"></div>
+    </div>
+
+    <div class="tour-stage">
+      <!-- Step 0: brief intro -->
+      <article class="tour-step intro-step is-active" data-step="intro">
+        <div class="glow-card card-intro" data-glow>
+          <div class="step-tag">Omnia × Comer</div>
+          <h2 class="step-title">Pinion Guide pilot platform</h2>
+          <p class="step-copy">
+            This platform has two areas. <strong>Brain</strong> is for looking up the procedure and seeing the
+            short answers workers get on their smart glasses. <strong>Eval</strong> replays real station moments
+            and shows whether the system spotted mistakes in time — or let them slip through.
+            Everything is built around your official <strong>Pinion Guide (PG-04)</strong> assembly steps.
+          </p>
+        </div>
+      </article>
+
+      <!-- Step 1: Brain only -->
+      <article class="tour-step" data-step="brain">
+        <div class="preview-step">
+          <div class="card-copy">
+            <div class="step-tag">01 · Brain mode</div>
+            <h2 class="step-title">Knowledge graph + glasses preview</h2>
+            <p class="step-copy">
+              Ingest SOPs, expert notes, and video. Ask questions — see the exact
+              <strong>4-line AnswerCard</strong> workers get on Rokid before it ships to the line.
+            </p>
+          </div>
+          <div class="ui-frame-slot">
+            <div class="ui-frame" data-glow>
+              <div class="ui-frame-bar">
+                <span class="dot on"></span><span class="dot"></span><span class="dot"></span>
+                <span>brain-eval-lab · Brain</span>
+              </div>
+              <div class="ui-frame-body">
+                <div class="mini-brain">
+                <div class="col">
+                  <div class="mini-ph"><span class="n">01</span>Ingest</div>
+                  <div class="mini-file mini-file-pdf">
+                    <svg class="mini-file-icon" viewBox="0 0 16 18" aria-hidden="true">
+                      <path fill="#2a1515" stroke="#f87171" stroke-width="0.8" d="M1 1h9l4 4v12H1V1z"/>
+                      <path fill="#f87171" d="M10 1v4h4"/>
+                    </svg>
+                    <div class="mini-file-body">
+                      <span class="mini-file-type">PDF</span>
+                      <span class="mini-file-name">PG-04 SOP</span>
+                    </div>
+                  </div>
+                  <div class="mini-file mini-file-csv">
+                    <svg class="mini-file-icon" viewBox="0 0 16 18" aria-hidden="true">
+                      <path fill="#152a18" stroke="#4ade80" stroke-width="0.8" d="M1 1h9l4 4v12H1V1z"/>
+                      <path fill="#4ade80" d="M10 1v4h4"/>
+                    </svg>
+                    <div class="mini-file-body">
+                      <span class="mini-file-type">CSV</span>
+                      <span class="mini-file-name">Torque tables</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="col mini-graph">
+                  <div class="mini-ph"><span class="n">·</span>Procedure graph</div>
+                  <svg viewBox="0 0 200 120" preserveAspectRatio="none" aria-hidden="true">
+                    <defs>
+                      <filter id="g-glow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="1.5" result="b"/>
+                        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                      </filter>
+                    </defs>
+                    <line class="g-edge-dim" x1="40" y1="30" x2="90" y2="55"/>
+                    <line class="g-edge" x1="90" y1="55" x2="150" y2="40" filter="url(#g-glow)"/>
+                    <line class="g-edge" x1="90" y1="55" x2="70" y2="90" filter="url(#g-glow)"/>
+                    <line class="g-edge-dim" x1="150" y1="40" x2="160" y2="85"/>
+                  </svg>
+                  <span class="g-label" style="left:20%;top:22%">S04</span>
+                  <span class="node" style="left:20%;top:28%;background:var(--c-document)"></span>
+                  <span class="g-label hub" style="left:45%;top:40%">S09</span>
+                  <span class="node is-hub" style="left:45%;top:48%;background:var(--c-keystep)"></span>
+                  <span class="g-label" style="left:75%;top:28%">ADV</span>
+                  <span class="node" style="left:75%;top:35%;background:var(--c-advice)"></span>
+                  <span class="g-label" style="left:34%;top:72%">KS</span>
+                  <span class="node" style="left:35%;top:78%;background:var(--c-keystep)"></span>
+                  <span class="g-label" style="left:80%;top:68%">S12</span>
+                  <span class="node" style="left:80%;top:74%;background:var(--c-keystep)"></span>
+                </div>
+                <div class="col">
+                  <div class="mini-chat-h">
+                    <span><span class="n">02</span> Brain</span>
+                    <span class="mini-live">live</span>
+                  </div>
+                  <div class="mini-prompt">
+                    <span class="mini-prompt-k">Question</span>
+                    Torque spec for pinion nut?
+                  </div>
+                  <div class="mini-brain-card">
+                    <div class="mini-k">On glasses (AnswerCard)</div>
+                    <div class="fov-mini fov-brain-chat">
+                      <span class="fov-corner fov-tl"></span>
+                      <span class="fov-corner fov-br"></span>
+                      <div class="ac">
+                        <span class="ac-label">TORQUE PINION</span>
+                        <span class="ac-value">See Step 09</span>
+                        <span class="ac-action">3-pass sequence</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button type="button" class="back-link" data-back aria-label="Back to previous step">
+            <span class="back-arrow" aria-hidden="true">←</span><span>Back</span>
+          </button>
+        </div>
+      </article>
+
+      <!-- Step 2: Eval only -->
+      <article class="tour-step" data-step="eval">
+        <div class="preview-step">
+          <div class="card-copy">
+            <div class="step-tag">02 · Eval mode</div>
+            <h2 class="step-title">Error detection + taxonomy scoring</h2>
+            <p class="step-copy">
+              Replay real moments from the line. The system grades each mistake as
+              <strong>caught</strong>, <strong>missed</strong>, or <strong>false alarm</strong> —
+              so you can see how reliably it would catch errors in production.
+            </p>
+          </div>
+          <div class="ui-frame-slot">
+            <div class="ui-frame" data-glow>
+              <div class="ui-frame-bar">
+                <span class="dot on"></span><span class="dot on"></span><span class="dot"></span>
+                <span>brain-eval-lab · Eval</span>
+              </div>
+              <div class="ui-frame-body">
+                <div class="mini-eval">
+                <div class="col col-session">
+                  <div class="mini-ph"><span class="n">01</span>Session</div>
+                  <div class="mini-session-tag">PG-04 · Pinion Guide loaded</div>
+                  <div class="mini-pov">
+                    <span class="mini-pov-tag">Worker POV · 2:05</span>
+                    <div class="mini-pov-frame">
+                      <img src="/lab/assets/worker_pov.jpg" alt="Worker point of view at the station" />
+                    </div>
+                    <div class="mini-pov-task">Task: 3-pass pinion nut torque (Step 09)</div>
+                  </div>
+                  <div class="mini-tl-row is-active"><span>2:05</span><span class="bad">!</span><span>Single-pass torque</span></div>
+                  <div class="mini-tl-link">↳ matches B04 in Results →</div>
+                </div>
+                <div class="col col-config">
+                  <div class="mini-ph"><span class="n">02</span>Config</div>
+                  <div class="mini-hw-card">
+                    <div class="mini-hw-name">Rokid AI Glasses</div>
+                    <div class="mini-hw-desc">Comer pilot · camera + display</div>
+                    <div class="mini-hw-specs">
+                      <span class="has">camera</span>
+                      <span class="has">display</span>
+                      <span class="has">audio</span>
+                      <span>200ms</span>
+                    </div>
+                  </div>
+                  <span class="mini-btn live">Run · LIVE LLM</span>
+                </div>
+                <div class="col col-results">
+                  <div class="mini-ph"><span class="n">03</span>Results</div>
+                  <div class="mini-outcome-legend">
+                    <div class="mini-legend-k">Outcome key</div>
+                    <div class="mini-legend-row">
+                      <span class="mini-chip caught">caught</span>
+                      <span>True positive</span>
+                    </div>
+                    <div class="mini-legend-row">
+                      <span class="mini-chip miss">missed</span>
+                      <span>False negative</span>
+                    </div>
+                    <div class="mini-legend-row">
+                      <span class="mini-chip fp">false_pos</span>
+                      <span>False positive</span>
+                    </div>
+                  </div>
+                  <div class="mini-corr-bar">Session <strong>2:05</strong> → B04 · torque</div>
+                  <div class="mini-verdict">
+                    <span class="mini-tax-chip">B04 · TORQUE</span>
+                    <p class="mini-diag">Single-pass torquing — agent scored <strong>missed</strong></p>
+                    <div class="mini-outcome-row">
+                      <span class="mini-chip miss lg">missed</span>
+                      <span class="mini-meta">LIVE · 6.1s</span>
+                    </div>
+                  </div>
+                  <div class="mini-glasses-sm">
+                    <span class="mini-k-sm">What the worker sees</span>
+                    <div class="fov-mini fov-eval-verdict">
+                      <div class="ac">
+                        <span class="ac-label">TORQUE SEQ.</span>
+                        <span class="ac-value">3-pass req.</span>
+                        <span class="ac-action">Re-torque now</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button type="button" class="back-link" data-back aria-label="Back to previous step">
+            <span class="back-arrow" aria-hidden="true">←</span><span>Back</span>
+          </button>
+        </div>
+      </article>
+
+    </div>
+
+    <footer class="tour-footer">
+      <div class="footer-powered">
+        <span>Powered by</span>
+        <img src="/lab/assets/omnia-white.png" alt="Omnia" />
+      </div>
+      <div class="footer-actions">
+        <button type="button" class="btn-skip" id="btn-skip">Skip intro</button>
+        <button type="button" class="btn-next" id="btn-next">Next</button>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    const STEPS = [
+      { id: 'intro', label: 'Overview', durationMs: 4500 },
+      { id: 'brain', label: 'Brain mode', durationMs: 8500 },
+      { id: 'eval',  label: 'Eval mode', durationMs: 8500 },
+    ];
+    const TOTAL_TOUR_MS = STEPS.reduce((sum, s) => sum + s.durationMs, 0);
+
+    function stepBasePct(i) {
+      let ms = 0;
+      for (let j = 0; j < i; j++) ms += STEPS[j].durationMs;
+      return (ms / TOTAL_TOUR_MS) * 100;
+    }
+
+    function stepSpanPct(i) {
+      return (STEPS[i].durationMs / TOTAL_TOUR_MS) * 100;
+    }
+
+    function hasSession() {
+      try {
+        const s = JSON.parse(localStorage.getItem('omnia.session') || 'null');
+        return s && s.tenant === 'comer' && s.expiresAt > Date.now();
+      } catch { return false; }
+    }
+    if (!hasSession()) window.location.replace('/login');
+
+    function enterLab() {
+      localStorage.setItem('omnia.introSeen', '1');
+      window.location.replace('/lab/');
+    }
+
+    let stepIndex = 0;
+    let stepStartedAt = 0;
+    let rafId = null;
+    let advanceTimer = null;
+    let paused = false;
+    let pausedAt = 0;
+    let advanceEndsAt = 0;
+    let advanceRemainingMs = 0;
+
+    const steps = [...document.querySelectorAll('.tour-step')];
+    const dots = [...document.querySelectorAll('#tour-dots span')];
+    const labelEl = document.getElementById('tour-label');
+    const progressEl = document.getElementById('tour-progress');
+    const progressBar = progressEl.parentElement;
+    const btnNext = document.getElementById('btn-next');
+    const btnSkip = document.getElementById('btn-skip');
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function setProgressPct(pct) {
+      const clamped = Math.max(0, Math.min(100, pct));
+      progressEl.style.transform = `scaleX(${clamped / 100})`;
+      progressBar.setAttribute('aria-valuenow', String(Math.round(clamped)));
+    }
+
+    function clearTimers() {
+      if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      advanceRemainingMs = 0;
+      advanceEndsAt = 0;
+    }
+
+    function scheduleStepAdvance(i) {
+      const wait = STEPS[i].durationMs;
+      advanceEndsAt = Date.now() + wait;
+      const isLast = i >= STEPS.length - 1;
+      advanceTimer = setTimeout(() => {
+        if (isLast) setProgressPct(100);
+        else goToStep(i + 1);
+      }, wait);
+    }
+
+    function setStepUI(i) {
+      steps.forEach((el, idx) => el.classList.toggle('is-active', idx === i));
+      dots.forEach((d, idx) => {
+        d.classList.toggle('is-active', idx === i);
+        d.classList.toggle('is-done', idx < i);
+      });
+      const s = STEPS[i];
+      const isLast = i >= STEPS.length - 1;
+      labelEl.innerHTML = isLast
+        ? `Ready · <strong>${s.label}</strong>`
+        : `Step ${i + 1} of ${STEPS.length} · <strong>${s.label}</strong>`;
+      btnNext.textContent = isLast ? 'Enter platform' : 'Next';
+      btnNext.classList.toggle('is-enter', isLast);
+    }
+
+    function currentProgressPct() {
+      if (stepIndex >= STEPS.length) return 100;
+      const dur = STEPS[stepIndex].durationMs;
+      const elapsed = Date.now() - stepStartedAt;
+      const t = Math.min(1, elapsed / dur);
+      return stepBasePct(stepIndex) + t * stepSpanPct(stepIndex);
+    }
+
+    function tickProgress() {
+      if (paused || stepIndex >= STEPS.length) return;
+      const pct = currentProgressPct();
+      setProgressPct(pct);
+      const dur = STEPS[stepIndex].durationMs;
+      const doneStep = Date.now() - stepStartedAt >= dur;
+      if (!doneStep) {
+        rafId = requestAnimationFrame(tickProgress);
+      } else {
+        setProgressPct(stepBasePct(stepIndex) + stepSpanPct(stepIndex));
+        rafId = null;
+      }
+    }
+
+    function startProgressForStep(i) {
+      setProgressPct(stepBasePct(i));
+      if (prefersReducedMotion) return;
+      rafId = requestAnimationFrame(tickProgress);
+    }
+
+    function goToStep(i) {
+      if (i >= STEPS.length) return;
+      clearTimers();
+      stepIndex = i;
+      stepStartedAt = Date.now();
+      setStepUI(i);
+      startProgressForStep(i);
+      scheduleStepAdvance(i);
+    }
+
+    function advanceNow() {
+      if (stepIndex >= STEPS.length - 1) {
+        enterLab();
+        return;
+      }
+      goToStep(stepIndex + 1);
+    }
+
+    btnNext.addEventListener('click', advanceNow);
+    btnSkip.addEventListener('click', enterLab);
+
+    document.querySelectorAll('[data-back]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (stepIndex > 0) goToStep(stepIndex - 1);
+      });
+    });
+
+    dots.forEach((dot, idx) => {
+      dot.setAttribute('role', 'button');
+      dot.setAttribute('tabindex', '0');
+      dot.setAttribute('aria-label', `Go to step ${idx + 1}`);
+      dot.addEventListener('click', () => goToStep(idx));
+      dot.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          goToStep(idx);
+        }
+      });
+    });
+
+    document.getElementById('tour').addEventListener('mouseenter', () => {
+      if (!paused) pausedAt = Date.now();
+      paused = true;
+      if (advanceTimer) {
+        clearTimeout(advanceTimer);
+        advanceTimer = null;
+        advanceRemainingMs = Math.max(0, advanceEndsAt - Date.now());
+      }
+    });
+    document.getElementById('tour').addEventListener('mouseleave', () => {
+      if (paused && pausedAt) stepStartedAt += Date.now() - pausedAt;
+      pausedAt = 0;
+      paused = false;
+      if (!advanceTimer && advanceRemainingMs > 0) {
+        advanceEndsAt = Date.now() + advanceRemainingMs;
+        const wait = advanceRemainingMs;
+        advanceRemainingMs = 0;
+        const isLast = stepIndex >= STEPS.length - 1;
+        advanceTimer = setTimeout(() => {
+          if (isLast) setProgressPct(100);
+          else goToStep(stepIndex + 1);
+        }, wait);
+      }
+      if (!rafId && stepIndex < STEPS.length && !prefersReducedMotion) {
+        rafId = requestAnimationFrame(tickProgress);
+      }
+    });
+
+    (async () => {
+      const pill = document.getElementById('llm-pill');
+      try {
+        const r = await fetch('/health', { cache: 'no-store' });
+        const d = await r.json();
+        pill.textContent = d.stubMode ? 'LLM · stub' : 'LLM · live';
+        pill.classList.add(d.stubMode ? 'is-stub' : 'is-live');
+      } catch {
+        pill.textContent = 'LLM · offline';
+      }
+    })();
+
+    (() => {
+      const glow = document.getElementById('cursor-glow');
+      if (!glow || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      let mx = innerWidth / 2, my = innerHeight / 2, queued = false;
+      const tick = () => {
+        queued = false;
+        document.body.style.setProperty('--mx', mx + 'px');
+        document.body.style.setProperty('--my', my + 'px');
+        const card = document.querySelector('.tour-step.is-active [data-glow]');
+        if (!card) return;
+        const r = card.getBoundingClientRect();
+        card.style.setProperty('--cx', ((mx - r.left) / r.width) * 100 + '%');
+        card.style.setProperty('--cy', ((my - r.top) / r.height) * 100 + '%');
+        const dist = Math.hypot(mx - (r.left + r.width / 2), my - (r.top + r.height / 2));
+        const intensity = Math.max(0.2, Math.min(1, 1 - dist / (Math.max(r.width, r.height) * 1.1)));
+        card.style.setProperty('--glow-intensity', intensity.toFixed(3));
+        card.classList.toggle('is-hot', intensity > 0.55);
+      };
+      window.addEventListener('mousemove', (e) => {
+        mx = e.clientX; my = e.clientY;
+        glow.classList.add('is-active');
+        if (!queued) { queued = true; requestAnimationFrame(tick); }
+      });
+      window.addEventListener('mouseleave', () => glow.classList.remove('is-active'));
+      tick();
+    })();
+
+    goToStep(0);
+  </script>
+</body>
+</html>

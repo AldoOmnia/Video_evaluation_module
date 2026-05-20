@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "dist/server.js",
+  "main": "dist/backend/src/server.js",
   "scripts": {
     "build": "tsc -p .",
-    "start": "node dist/server.js",
+    "start": "node dist/backend/src/server.js",
     "dev": "tsx watch src/server.ts",
     "typecheck": "tsc -p . --noEmit"
   },
