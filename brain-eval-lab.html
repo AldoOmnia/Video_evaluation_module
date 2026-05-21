@@ -146,8 +146,8 @@
   .mode-container.active { display: grid; }
 
   /* ── Brain mode layout ─────────────── */
-  #brain-mode { grid-template-columns: 320px 1fr 380px; grid-template-rows: 1fr; min-height: 0; }
-  #brain-mode.has-video { grid-template-rows: 1fr 220px; }
+  #brain-mode { grid-template-columns: 320px 1fr 380px; grid-template-rows: minmax(0, 1fr); min-height: 0; }
+  #brain-mode.has-video { grid-template-rows: minmax(0, 1fr) clamp(260px, 38vh, 420px); }
   #brain-mode .left  { border-right: 1px solid var(--line); background: var(--bg); overflow-y: auto; grid-row: 1; min-height: 0; }
   #brain-mode .center { grid-row: 1; position: relative; background: var(--bg); border-right: 1px solid var(--line); min-height: 0; }
   #brain-mode .right {
@@ -159,8 +159,14 @@
     grid-column: 1 / -1; grid-row: 2;
     border-top: 1px solid var(--line); background: var(--bg-2);
     display: none;
+    min-height: 0;
+    overflow: hidden;
   }
-  #brain-mode.has-video .bottom { display: grid; grid-template-columns: 340px 1fr 320px; }
+  #brain-mode.has-video .bottom {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr) 320px;
+    min-height: 260px;
+  }
 
   /* ── Eval mode layout ────────────────── */
   #eval-mode { grid-template-columns: 320px 1fr 380px; }
@@ -705,9 +711,64 @@
   .vp-center {
     display: flex; align-items: center; justify-content: center;
     background: #000;
-    padding: 12px;
+    padding: 8px;
+    min-height: 0;
+    height: 100%;
+    position: relative;
   }
-  .vp-center video { max-height: 100%; max-width: 100%; }
+  .vp-center video {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+    background: #000;
+  }
+  .vp-loading {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.72);
+    font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+    letter-spacing: 0.06em; text-transform: uppercase;
+    pointer-events: none;
+  }
+  .vp-loading[hidden] { display: none !important; }
+
+  .video-source {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgba(239,83,80,0.35);
+    border-radius: 4px;
+    background: rgba(239,83,80,0.06);
+  }
+  .video-source[hidden] { display: none !important; }
+  .video-source .vs-head {
+    font-family: var(--mono); font-size: 9px;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--c-video); margin-bottom: 6px;
+  }
+  .video-source .vs-name {
+    font-size: 11.5px; color: var(--ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .video-source .vs-meta {
+    font-family: var(--mono); font-size: 9px; color: var(--ink-3); margin-top: 4px;
+  }
+  .video-source .vs-actions {
+    display: flex; gap: 6px; margin-top: 8px;
+  }
+  .video-source .vs-actions button {
+    flex: 1;
+    background: var(--bg-3); border: 1px solid var(--line-2);
+    color: var(--ink-2); padding: 6px 8px;
+    font-family: var(--mono); font-size: 10px;
+    border-radius: 2px; cursor: pointer;
+  }
+  .video-source .vs-actions button:hover { color: var(--ink); border-color: var(--ink-3); }
+  .video-source .vs-actions button.primary {
+    color: var(--c-video); border-color: rgba(239,83,80,0.45);
+    background: rgba(239,83,80,0.10);
+  }
 
   .vp-right { padding: 12px 14px; overflow-y: auto; }
   .vp-right h4 {
@@ -723,6 +784,11 @@
     color: var(--ink-2); padding: 6px 8px;
     font-family: var(--mono); font-size: 10px;
     border-radius: 2px; cursor: pointer;
+  }
+  .tag-range button.is-set {
+    border-color: var(--acc-dim);
+    color: var(--ink);
+    background: rgba(0,229,160,0.08);
   }
   .tag-range button:hover { color: var(--ink); border-color: var(--ink-3); }
   .tag-range .stamp { color: var(--acc); margin-left: 4px; font-weight: 600; }
@@ -1392,6 +1458,16 @@
             <input type="file" id="video-input" accept="video/*" />
           </label>
 
+          <div class="video-source" id="video-source" hidden>
+            <div class="vs-head">Loaded recording</div>
+            <div class="vs-name" id="vs-name">—</div>
+            <div class="vs-meta" id="vs-meta">—</div>
+            <div class="vs-actions">
+              <button type="button" class="primary" id="vs-open-player">Open tagging panel</button>
+              <button type="button" id="vs-clear-video">Clear</button>
+            </div>
+          </div>
+
           <button class="btn btn-secondary" id="seed-btn" style="margin-top: 10px;">
             Seed sample artifacts
           </button>
@@ -1477,13 +1553,17 @@
           </div>
         </div>
         <div class="vp-center">
-          <video id="vp-video" controls></video>
+          <div class="vp-loading" id="vp-loading" hidden>Loading video…</div>
+          <video id="vp-video" controls preload="metadata"></video>
         </div>
         <div class="vp-right">
           <h4>Tag range as keystep</h4>
+          <p class="small" style="font-family:var(--mono);font-size:9px;color:var(--ink-3);margin:-4px 0 8px;line-height:1.45;">
+            Scrub the video to the start of a step, click <strong>Set IN</strong>, scrub to the end, click <strong>Set OUT</strong>, pick a keystep, then Save.
+          </p>
           <div class="tag-range">
-            <button id="tag-start">Set IN <span class="stamp" id="stamp-in">—</span></button>
-            <button id="tag-end">Set OUT <span class="stamp" id="stamp-out">—</span></button>
+            <button type="button" id="tag-start">Set IN <span class="stamp" id="stamp-in">—</span></button>
+            <button type="button" id="tag-end">Set OUT <span class="stamp" id="stamp-out">—</span></button>
           </div>
           <select class="keystep-select" id="tag-keystep">
             <option value="">Assign to keystep…</option>
@@ -1492,7 +1572,7 @@
             <option value="">Error type (optional — if mistake clip)…</option>
           </select>
           <input class="chat-input" id="tag-name" placeholder="Segment name (optional)" style="margin-bottom: 6px; margin-top: 6px;" />
-          <button class="btn" id="tag-save">Save segment</button>
+          <button type="button" class="btn" id="tag-save">Save segment</button>
           <div class="tag-saved" id="tag-saved-list"></div>
         </div>
       </section>
@@ -2141,14 +2221,23 @@ function updateGraphStats() {
 /* ════════════════════════════════════════════════════════════════════════════
    NODE SELECTION + DETAIL PANEL
    ════════════════════════════════════════════════════════════════════════════ */
+function resolveVideoUrl(raw) {
+  if (!raw) return null;
+  if (raw.videoUrl) return raw.videoUrl;
+  const byName = raw.fileName && state.brain.videoFiles?.[raw.fileName]?.url;
+  if (byName) return byName;
+  if (state.brain.videoFile && raw.fileName === state.brain.videoFile.name) return state.brain.videoUrl;
+  return state.brain.videoUrl || null;
+}
+
 function selectNode(data) {
   state.brain.selectedNode = data;
   document.getElementById('stat-selection').textContent = data.label || data.id;
   renderRightPanel();
 
-  // If video segment, open the video player
-  if (data.type === 'VideoSegment' && data.raw && data.raw.videoUrl) {
-    openVideoPlayer(data.raw.videoUrl, data.raw.fileName, data.raw);
+  if (data.type === 'VideoSegment' && data.raw) {
+    const url = resolveVideoUrl(data.raw);
+    if (url) openVideoPlayer(url, data.raw.fileName, data.raw);
   }
 }
 
@@ -2874,9 +2963,37 @@ function ingestVideo(file) {
     onArtifactChanged();
     toast(`${file.name} loaded — linked to ${linked} indexed clip${linked===1?'':'s'}`);
   } else {
-    toast(`Video loaded — tag time ranges in the player, or drop a video-index CSV`);
+    toast(`Video loaded — scrub to a step, set IN/OUT, then Save segment`);
   }
-  openVideoPlayer(url, file.name);
+  updateVideoSourceBar();
+  requestAnimationFrame(() => openVideoPlayer(url, file.name));
+}
+
+function updateVideoSourceBar() {
+  const bar = document.getElementById('video-source');
+  if (!bar) return;
+  const file = state.brain.videoFile;
+  const url = state.brain.videoUrl;
+  if (!file || !url) {
+    bar.hidden = true;
+    return;
+  }
+  bar.hidden = false;
+  document.getElementById('vs-name').textContent = file.name;
+  document.getElementById('vs-meta').textContent =
+    `${formatBytes(file.size)} · panel ${document.getElementById('brain-mode').classList.contains('has-video') ? 'open' : 'closed'}`;
+}
+
+function clearLoadedVideo() {
+  if (state.brain.videoUrl) {
+    try { URL.revokeObjectURL(state.brain.videoUrl); } catch {}
+  }
+  state.brain.videoFile = null;
+  state.brain.videoUrl = null;
+  state.brain.videoFiles = {};
+  closeVideoPlayer();
+  updateVideoSourceBar();
+  toast('Cleared loaded video');
 }
 
 function validateFile(file, allowedExts) {
@@ -3281,18 +3398,67 @@ function rebuildGraph() {
 /* ════════════════════════════════════════════════════════════════════════════
    VIDEO PLAYER + MANUAL TAGGING
    ════════════════════════════════════════════════════════════════════════════ */
+function resizeBrainLayout() {
+  if (state.graph) {
+    requestAnimationFrame(() => {
+      state.graph.resize();
+    });
+  }
+}
+
+function resetTagStamps() {
+  state.brain.tagRangeIn = null;
+  state.brain.tagRangeOut = null;
+  document.getElementById('stamp-in').textContent = '—';
+  document.getElementById('stamp-out').textContent = '—';
+  document.getElementById('tag-start')?.classList.remove('is-set');
+  document.getElementById('tag-end')?.classList.remove('is-set');
+}
+
+function videoReadyForTagging() {
+  const v = document.getElementById('vp-video');
+  return !!(v && v.src && Number.isFinite(v.duration) && v.duration > 0);
+}
+
 function openVideoPlayer(url, filename, segment) {
+  if (!url) {
+    toast('No video loaded — drop a recording in the Video zone first');
+    return;
+  }
+  switchMode('brain');
   document.getElementById('brain-mode').classList.add('has-video');
+  updateVideoSourceBar();
+
   const video = document.getElementById('vp-video');
-  video.src = url;
+  const loadingEl = document.getElementById('vp-loading');
+  resetTagStamps();
+
+  if (loadingEl) {
+    loadingEl.hidden = false;
+    loadingEl.textContent = 'Loading video metadata…';
+  }
+  document.getElementById('vp-duration').textContent = '—';
+  document.getElementById('vp-current').textContent = '00:00';
   document.getElementById('vp-filename').textContent = filename || '—';
 
+  video.pause();
+  video.src = url;
+  video.load();
+
   video.onloadedmetadata = () => {
+    if (loadingEl) loadingEl.hidden = true;
     document.getElementById('vp-duration').textContent = formatTs(video.duration);
     if (segment) {
       video.currentTime = segment.timestampStart || 0;
-      video.play();
+      video.play().catch(() => {});
     }
+  };
+  video.onerror = () => {
+    if (loadingEl) {
+      loadingEl.hidden = false;
+      loadingEl.textContent = 'Could not play this file in the browser';
+    }
+    toast('Video failed to load — try H.264 .mp4 or re-encode the file');
   };
   video.ontimeupdate = () => {
     document.getElementById('vp-current').textContent = formatTs(video.currentTime);
@@ -3306,11 +3472,11 @@ function openVideoPlayer(url, filename, segment) {
       `<option value="${k.id}">${k.order}. ${k.label}</option>`
     ).join('');
 
-  // Wire error-type dropdown to filter based on selected keystep's profile
   sel.onchange = () => populateErrorTypeOptions(sel.value);
   populateErrorTypeOptions('');
 
   renderSavedTags();
+  resizeBrainLayout();
 }
 
 function populateErrorTypeOptions(keystepId) {
@@ -3350,21 +3516,36 @@ function closeVideoPlayer() {
   document.getElementById('brain-mode').classList.remove('has-video');
   const video = document.getElementById('vp-video');
   video.pause();
-  state.brain.tagRangeIn = null;
-  state.brain.tagRangeOut = null;
-  document.getElementById('stamp-in').textContent = '—';
-  document.getElementById('stamp-out').textContent = '—';
+  resetTagStamps();
+  updateVideoSourceBar();
+  resizeBrainLayout();
 }
 
 function tagInPoint() {
   const v = document.getElementById('vp-video');
+  if (!videoReadyForTagging()) {
+    toast('Wait for the video to finish loading, then scrub to the IN point');
+    return;
+  }
   state.brain.tagRangeIn = v.currentTime;
   document.getElementById('stamp-in').textContent = formatTs(v.currentTime);
+  document.getElementById('tag-start').classList.add('is-set');
+  toast(`IN → ${formatTs(v.currentTime)}`);
 }
 function tagOutPoint() {
   const v = document.getElementById('vp-video');
+  if (!videoReadyForTagging()) {
+    toast('Wait for the video to finish loading, then scrub to the OUT point');
+    return;
+  }
+  if (state.brain.tagRangeIn === null) {
+    toast('Set IN first, then scrub to OUT');
+    return;
+  }
   state.brain.tagRangeOut = v.currentTime;
   document.getElementById('stamp-out').textContent = formatTs(v.currentTime);
+  document.getElementById('tag-end').classList.add('is-set');
+  toast(`OUT → ${formatTs(v.currentTime)}`);
 }
 
 function saveTagAsSegment() {
@@ -3392,10 +3573,7 @@ function saveTagAsSegment() {
     attachedTo: keystep
   };
   addArtifact(segment);
-  state.brain.tagRangeIn = null;
-  state.brain.tagRangeOut = null;
-  document.getElementById('stamp-in').textContent = '—';
-  document.getElementById('stamp-out').textContent = '—';
+  resetTagStamps();
   document.getElementById('tag-name').value = '';
   if (document.getElementById('tag-errortype')) document.getElementById('tag-errortype').value = '';
   renderSavedTags();
@@ -3415,6 +3593,9 @@ function renderSavedTags() {
   }).join('');
   list.querySelectorAll('.tag-row').forEach(el => {
     el.onclick = () => {
+      const seg = state.brain.artifacts.find(a => a.id === el.dataset.id);
+      const url = resolveVideoUrl(seg);
+      if (url) openVideoPlayer(url, seg?.fileName, seg);
       const node = state.graph.getElementById(el.dataset.id);
       if (node && !node.empty()) selectNode(node.data());
     };
@@ -4178,6 +4359,24 @@ document.getElementById('vp-close').onclick = closeVideoPlayer;
 document.getElementById('tag-start').onclick = tagInPoint;
 document.getElementById('tag-end').onclick = tagOutPoint;
 document.getElementById('tag-save').onclick = saveTagAsSegment;
+document.getElementById('vs-open-player').onclick = () => {
+  if (!state.brain.videoUrl) {
+    toast('No video loaded — drop a recording first');
+    return;
+  }
+  openVideoPlayer(state.brain.videoUrl, state.brain.videoFile?.name);
+};
+document.getElementById('vs-clear-video').onclick = () => {
+  if (!state.brain.videoFile) return;
+  if (!confirm(`Remove ${state.brain.videoFile.name} from this session? Saved clip tags stay in the graph.`)) return;
+  clearLoadedVideo();
+};
+window.addEventListener('keydown', e => {
+  if (!document.getElementById('brain-mode').classList.contains('has-video')) return;
+  if (e.target.closest('input, textarea, select')) return;
+  if (e.key === 'i' || e.key === 'I') { e.preventDefault(); tagInPoint(); }
+  if (e.key === 'o' || e.key === 'O') { e.preventDefault(); tagOutPoint(); }
+});
 
 // Eval mode wiring
 document.getElementById('ev-gen-btn').onclick = generateEvalSession;
