@@ -49,9 +49,27 @@ const BodySchema = z.object({
 
 export const evalRouter = Router();
 
+/** Drop unknown error codes instead of 400 — CSV/manual tags sometimes typo. */
+function sanitizeIncomingEvents(raw: unknown): unknown {
+  if (!Array.isArray(raw)) return raw;
+  const allowed = new Set<string>(ERROR_CODES);
+  return raw.map((row) => {
+    if (!row || typeof row !== "object") return row;
+    const ev = { ...(row as Record<string, unknown>) };
+    if (ev.errorType === null || ev.errorType === "") delete ev.errorType;
+    else if (typeof ev.errorType === "string" && !allowed.has(ev.errorType)) {
+      delete ev.errorType;
+    }
+    return ev;
+  });
+}
+
 evalRouter.post("/", async (req, res, next) => {
   try {
-    const body = BodySchema.parse(req.body);
+    const body = BodySchema.parse({
+      ...(req.body as object),
+      events: sanitizeIncomingEvents((req.body as { events?: unknown }).events),
+    });
     const hw = specs.hardware.profiles[body.hardwareId];
     const strat = specs.strategies.strategies[body.strategyId];
     if (!hw) return res.status(400).json({ error: `unknown hardware ${body.hardwareId}` });

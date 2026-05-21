@@ -1568,8 +1568,12 @@
           <select class="keystep-select" id="tag-keystep">
             <option value="">Assign to keystep…</option>
           </select>
+          <select class="keystep-select" id="tag-execution" style="margin-top: 6px;">
+            <option value="mistake">Clip type · mistake / anomaly</option>
+            <option value="correct">Clip type · correct execution reference</option>
+          </select>
           <select class="keystep-select" id="tag-errortype" style="margin-top: 6px;">
-            <option value="">Error type (optional — if mistake clip)…</option>
+            <option value="">Error code (optional — helps eval scoring)…</option>
           </select>
           <input class="chat-input" id="tag-name" placeholder="Segment name (optional)" style="margin-bottom: 6px; margin-top: 6px;" />
           <button type="button" class="btn" id="tag-save">Save segment</button>
@@ -3550,7 +3554,9 @@ function tagOutPoint() {
 
 function saveTagAsSegment() {
   const keystep = document.getElementById('tag-keystep').value;
-  const errorType = document.getElementById('tag-errortype')?.value || null;
+  const execution = document.getElementById('tag-execution')?.value || 'mistake';
+  let errorType = document.getElementById('tag-errortype')?.value || null;
+  if (errorType && !ERROR_TAXONOMY[errorType]) errorType = null;
   const name = document.getElementById('tag-name').value.trim();
   const tin = state.brain.tagRangeIn;
   const tout = state.brain.tagRangeOut;
@@ -3559,25 +3565,29 @@ function saveTagAsSegment() {
   if (tout <= tin) { toast('OUT must be after IN'); return; }
 
   const ks = PINION_GUIDE_PROCEDURE.keysteps.find(k => k.id === keystep);
+  const isCorrect = execution === 'correct';
   const etLabel = errorType ? ERROR_TAXONOMY[errorType]?.label : null;
   const segment = {
     id: `vid:${slug(state.brain.videoFile?.name || 'video')}-${Date.now()}`,
     type: 'VideoSegment',
-    label: name || (errorType ? `${ks.label} · ${etLabel}` : `${ks.label} (clip)`),
+    label: name || (errorType ? `${ks.label} · ${etLabel}` : `${ks.label} (${isCorrect ? 'correct' : 'mistake'})`),
     fileName: state.brain.videoFile?.name || 'video',
     videoUrl: state.brain.videoUrl,
     timestampStart: tin,
     timestampEnd: tout,
-    errorType,
-    isCorrectExecution: !errorType,
+    errorType: isCorrect ? null : errorType,
+    isCorrectExecution: isCorrect,
     attachedTo: keystep
   };
   addArtifact(segment);
   resetTagStamps();
   document.getElementById('tag-name').value = '';
   if (document.getElementById('tag-errortype')) document.getElementById('tag-errortype').value = '';
+  if (document.getElementById('tag-execution')) document.getElementById('tag-execution').value = 'mistake';
   renderSavedTags();
-  toast(errorType ? `Tagged ${etLabel} clip for ${ks.label}` : `Tagged correct-execution clip for ${ks.label}`);
+  toast(isCorrect
+    ? `Saved correct-execution reference for ${ks.label}`
+    : (errorType ? `Saved mistake clip · ${etLabel} @ ${ks.label}` : `Saved mistake clip @ ${ks.label} — add error code for scored eval`));
 }
 
 function renderSavedTags() {
@@ -3765,54 +3775,75 @@ function renderEvalSession() {
   document.getElementById('run-all-btn').disabled = false;
 }
 
+/** Normalize in-memory session rows → API SessionEvent[] for /api/eval. */
+function sessionEventsForApi(annotations) {
+  const validErrors = new Set(Object.keys(ERROR_TAXONOMY));
+  return annotations.map(a => {
+    const labelRaw = a.label || 'correct';
+    const label = labelRaw === 'incorrect' ? 'incorrect'
+      : labelRaw === 'ambiguous' ? 'ambiguous'
+      : 'correct';
+    const ev = {
+      ts: Math.max(0, Number(a.timestamp) || 0),
+      phase: String(a.phase || a.keystepId || 'segment').slice(0, 240),
+      label,
+    };
+    const stepId = a.keystepId || a.stepId;
+    if (stepId && /^step:\d+$/.test(stepId)) ev.stepId = stepId;
+    if (a.errorType && validErrors.has(a.errorType)) ev.errorType = a.errorType;
+    const note = a.note || a.rationale;
+    if (note) ev.rationale = String(note).slice(0, 4000);
+    return ev;
+  });
+}
+
+function parseEvalApiError(bodyText) {
+  try {
+    const parsed = JSON.parse(bodyText);
+    const issue = parsed.issues?.[0] || parsed.error;
+    if (typeof issue === 'string') return issue.slice(0, 280);
+    if (issue?.message) {
+      const path = issue.path?.length ? ` (${issue.path.join('.')})` : '';
+      return `${issue.message}${path}`;
+    }
+  } catch {}
+  return bodyText.slice(0, 280) || 'Unknown server error';
+}
+
 /** mode: 'live' → call /api/eval with liveLLM:true. 'sim' → in-browser sim.
  *  Decided per-button click; no shared global state. */
 async function runEvaluation(annotations, hwId, stratId, mode) {
-  // Backward-compat: callers that don't pass mode (older paths) default to sim.
   if (mode === undefined) mode = 'sim';
   console.log('[runEvaluation] mode =', mode, '· hw =', hwId, '· strat =', stratId, '· events =', annotations.length);
   if (mode === 'live') {
-    try {
-      toast('Calling Claude via /api/eval — this can take a few seconds per anomaly…');
-      const t0 = performance.now();
-      // Strip null/undefined fields — Zod's .optional() does NOT accept null.
-      const events = annotations.map(a => {
-        const ev = {
-          ts: a.timestamp,
-          phase: a.phase,
-          label: a.label === 'incorrect' ? 'incorrect' : 'correct',
-        };
-        if (a.keystepId) ev.stepId = a.keystepId;
-        if (a.errorType) ev.errorType = a.errorType;
-        const note = a.note || a.rationale;
-        if (note) ev.rationale = note;
-        return ev;
-      });
-      const r = await fetch(`${PLATFORM_API}/api/eval`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hardwareId: hwId, strategyId: stratId, liveLLM: true, events })
-      });
-      const elapsed = Math.round(performance.now() - t0);
-      console.log('[runEvaluation] /api/eval responded', r.status, 'in', elapsed, 'ms');
-      if (r.ok) {
-        const data = await r.json();
-        if (window.applyStubbedFromResponse) window.applyStubbedFromResponse(data);
-        const withAo = (data.events || []).filter(e => e.agentOutput).length;
-        toast(`Backend OK in ${elapsed}ms · ${withAo} contextual verdict${withAo===1?'':'s'}`);
-        console.log('[runEvaluation] received', data.events?.length, 'events ·', withAo, 'with agentOutput');
-        return data;
-      }
-      const body = await r.text().catch(() => '');
-      console.error('[runEvaluation] backend returned', r.status, body.slice(0, 500));
-      toast(`Backend returned ${r.status} — see console. Falling back to sim.`);
-    } catch (err) {
-      console.error('[runEvaluation] backend unreachable', err);
-      toast('Backend unreachable — see console. Falling back to sim.');
+    const events = sessionEventsForApi(annotations);
+    const anomalyCount = events.filter(e => e.label === 'incorrect').length;
+    if (anomalyCount === 0) {
+      throw new Error('No mistake clips in this session — tag segments as "mistake / anomaly" in Brain, or import a CSV with label=incorrect.');
     }
-  } else {
-    toast('Running in-browser SIM (fast, no Full view). Click "Run · LIVE LLM" for real verdicts.');
+    toast(`Calling Claude for ${anomalyCount} anomaly clip${anomalyCount === 1 ? '' : 's'} (~3–8s each)…`);
+    const t0 = performance.now();
+    const r = await fetch(`${PLATFORM_API}/api/eval`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hardwareId: hwId, strategyId: stratId, liveLLM: true, events })
+    });
+    const elapsed = Math.round(performance.now() - t0);
+    const body = await r.text();
+    console.log('[runEvaluation] /api/eval responded', r.status, 'in', elapsed, 'ms');
+    if (!r.ok) {
+      console.error('[runEvaluation] backend returned', r.status, body.slice(0, 500));
+      throw new Error(`Live eval failed (${r.status}): ${parseEvalApiError(body)}`);
+    }
+    const data = JSON.parse(body);
+    if (window.applyStubbedFromResponse) window.applyStubbedFromResponse(data);
+    const withAo = (data.events || []).filter(e => e.agentOutput).length;
+    toast(`Live LLM OK in ${(elapsed / 1000).toFixed(1)}s · ${withAo} contextual verdict${withAo === 1 ? '' : 's'}`);
+    console.log('[runEvaluation] received', data.events?.length, 'events ·', withAo, 'with agentOutput');
+    return { ...data, runMode: 'live' };
   }
+
+  toast('Running in-browser SIM (fast, no Full view). Click "Run · LIVE LLM" for real verdicts.');
 
   const hw = HARDWARE_PROFILES[hwId];
   const st = CONTEXT_STRATEGIES[stratId];
@@ -3905,6 +3936,8 @@ async function runEvaluation(annotations, hwId, stratId, mode) {
     id: 'r' + Date.now() + '-' + Math.random().toString(36).slice(2, 5),
     hardware: hw, strategy: st,
     timestamp: new Date().toISOString(), events,
+    runMode: 'sim',
+    stubbed: true,
     metrics: {
       anomalies: total, caught, missed, false_pos: fp,
       catch_rate: total > 0 ? caught / total : 0,
@@ -3966,9 +3999,10 @@ function renderRuns() {
     // a click. Older runs stay collapsed to keep the list scannable.
     const isOpen = idx === 0;
     const hasAgentOutput = r.events.some(e => e.agentOutput);
-    const modeBadge = hasAgentOutput
-      ? '<span class="run-badge run-badge-live" title="Real Claude calls — Full view available per event">LIVE LLM</span>'
-      : '<span class="run-badge run-badge-sim" title="In-browser simulator — no glasses verdicts. Tick \'Use backend LLM\' and rerun.">SIM</span>';
+    const isLiveRun = r.runMode === 'live' || r.stubbed === false;
+    const modeBadge = isLiveRun
+      ? `<span class="run-badge run-badge-live" title="Real Claude calls via /api/eval — Full view available per anomaly">LIVE LLM${hasAgentOutput ? '' : ' · awaiting anomalies'}</span>`
+      : '<span class="run-badge run-badge-sim" title="In-browser simulator — no glasses verdicts. Use Run · LIVE LLM for real verdicts.">SIM</span>';
     return `<div class="run-row ${isOpen ? 'is-open' : ''}" data-id="${r.id}" onclick="toggleRunDetail('${r.id}')">
       <div>
         <div class="run-id">
@@ -4386,19 +4420,29 @@ document.getElementById('ev-from-clips-btn').onclick = () => {
     toast('No VideoSegment artifacts yet. Drop a video-index CSV (and your videos) in Brain mode first.');
     return;
   }
-  // Build session events in clip order, preserving the labeled error_type.
-  const session = segments.map((seg, i) => ({
-    timestamp: i * 30,
-    phase: ((state.brain && (PINION_GUIDE_PROCEDURE.keysteps.find(k => k.id === seg.attachedTo) || {})).label) || seg.attachedTo,
-    keystepId: seg.attachedTo,
-    label: seg.isCorrectExecution ? 'correct' : 'incorrect',
-    errorType: seg.errorType || null,
-    note: seg.notes || seg.label || '',
-    sourceClip: seg.fileName
-  }));
+  const validErrors = new Set(Object.keys(ERROR_TAXONOMY));
+  const session = segments.map((seg, i) => {
+    let errorType = seg.errorType || null;
+    if (errorType && !validErrors.has(errorType)) errorType = null;
+    const label = seg.isCorrectExecution === true ? 'correct'
+      : seg.isCorrectExecution === false || errorType ? 'incorrect'
+      : 'correct';
+    return {
+      timestamp: Math.round(seg.timestampStart ?? i * 30),
+      phase: ((PINION_GUIDE_PROCEDURE.keysteps.find(k => k.id === seg.attachedTo) || {}).label) || seg.attachedTo,
+      keystepId: seg.attachedTo,
+      label,
+      errorType: label === 'incorrect' ? errorType : null,
+      note: seg.notes || seg.label || '',
+      sourceClip: seg.fileName
+    };
+  });
+  const mistakes = session.filter(e => e.label === 'incorrect').length;
   state.eval.session = session;
   renderEvalSession();
-  toast(`Loaded ${session.length} event${session.length===1?'':'s'} from uploaded clips`);
+  toast(mistakes > 0
+    ? `Loaded ${session.length} clip${session.length === 1 ? '' : 's'} · ${mistakes} mistake clip${mistakes === 1 ? '' : 's'} ready for LIVE LLM`
+    : `Loaded ${session.length} clip${session.length === 1 ? '' : 's'} — all marked correct; tag mistake clips in Brain for LIVE eval`);
 };
 async function runOnce(mode) {
   if (!state.eval.session) return;
@@ -4415,8 +4459,12 @@ async function runOnce(mode) {
     const run = await runEvaluation(state.eval.session, state.eval.hardware, state.eval.strategy, mode);
     state.eval.runs.push(run);
     renderRuns();
+    const isLive = run.runMode === 'live' || run.stubbed === false;
     const hasAo = (run.events || []).some(e => e.agentOutput);
-    toast(`${run.strategy.name}: ${(run.metrics.catch_rate*100).toFixed(0)}% catch · ${hasAo ? 'LIVE LLM' : 'SIM'}`);
+    toast(`${run.strategy.name}: ${(run.metrics.catch_rate * 100).toFixed(0)}% catch · ${isLive ? 'LIVE LLM' : 'SIM'}${isLive && hasAo ? ' · open row for Full view' : ''}`);
+  } catch (err) {
+    console.error('[runOnce]', err);
+    toast(err?.message || 'Evaluation failed — see console');
   } finally {
     btn.innerHTML = originalLabel;
     [simBtn, liveBtn, allBtn].forEach(b => b && (b.disabled = false));
