@@ -48,6 +48,25 @@ export const AgentOutputSchema = z.object({
   /** Pre-truncation role text (eval lab full-view). */
   lensFull: FourRoleLensSchema.optional(),
   lensTruncated: z.boolean().optional(),
+  /** Provenance for corrective action lines (eval lab). */
+  fixSources: z
+    .array(
+      z.object({
+        id: z.string(),
+        kind: z.enum(["instruction", "expert_advice", "taxonomy", "llm"]),
+        text: z.string(),
+      }),
+    )
+    .optional(),
+  actionSources: z
+    .array(
+      z.object({
+        id: z.string(),
+        kind: z.enum(["instruction", "expert_advice", "taxonomy", "llm"]),
+        text: z.string(),
+      }),
+    )
+    .optional(),
 });
 export type AgentOutput = z.infer<typeof AgentOutputSchema>;
 

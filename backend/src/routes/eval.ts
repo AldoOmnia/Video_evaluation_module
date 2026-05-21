@@ -29,6 +29,10 @@ import {
   optimizeLensRoles,
 } from "../../../shared/display-constraints/rokid.js";
 import {
+  deriveCorrective,
+  formatCorrectiveContext,
+} from "../../../shared/corrective-actions/deriveCorrective.js";
+import {
   SessionEventSchema,
   type SessionEvent,
   type AgentOutput,
@@ -101,6 +105,11 @@ evalRouter.post("/", async (req, res, next) => {
         const prompt = buildPrompt(strat, specs.procedure, ctx);
         const completed = completedSequenceFor(step, specs.procedure);
         const nextStep = nextStepFor(step, specs.procedure);
+        const correctiveCtx = formatCorrectiveContext(
+          specs.procedure,
+          step,
+          ev.errorType ?? undefined,
+        );
         const userMsg = `${prompt.user}
 
 CONTEXT FOR THIS SEGMENT
@@ -111,6 +120,9 @@ CONTEXT FOR THIS SEGMENT
   completed so far (per FSM): ${completed.map((c) => `${c.id} ${c.label}`).join(" → ") || "(none — start of run)"}
   next planned action: ${nextStep ? `${nextStep.id} ${nextStep.label}` : "(end of procedure)"}
   worker note: ${ev.rationale ?? "(none)"}
+
+AUTHORITATIVE CORRECTIVES FOR THIS STEP (ground fix + glassesMessage.action here — do not invent steps outside this list)
+${correctiveCtx}
 
 YOUR TASK
 Produce one JSON object per the Omnia Comer Pinion Guide v1 schema described in the system prompt.
@@ -127,6 +139,13 @@ subsequent lines short and concrete. ABSOLUTELY no prose outside the JSON.
         totalOut += r.outputTokens;
         latencies.push(r.latencyMs);
         const verdict = parseVerdict(r.text);
+        const derived = deriveCorrective(
+          specs.procedure,
+          step,
+          ev.errorType ?? verdict.errorCode ?? undefined,
+          verdict,
+        );
+        if (derived.fix) verdict.fix = derived.fix;
         // Coerce whatever shape the LLM returned (role object / array of
         // lines / a single string) into the canonical 4 role strings, then
         // word-wrap each role to its individual char budget. This mirrors
@@ -134,12 +153,12 @@ subsequent lines short and concrete. ABSOLUTELY no prose outside the JSON.
         const rawRoles = optimizeLensRoles(
           coerceFourRole(
             verdict.lensRaw,
-            verdict.fix || verdict.diagnosis || r.text,
+            derived.fix || verdict.diagnosis || r.text,
           ),
           {
             detected: verdict.detected,
             errorCode: verdict.errorCode,
-            fix: verdict.fix,
+            fix: derived.lensAction || derived.fix,
             diagnosis: verdict.diagnosis,
           },
         );
@@ -156,8 +175,10 @@ subsequent lines short and concrete. ABSOLUTELY no prose outside the JSON.
         }
         if (!rawRoles.action) {
           rawRoles.action = verdict.detected
-            ? verdict.fix ?? ""
+            ? derived.lensAction || derived.fix || ""
             : "Continue procedure";
+        } else if (derived.lensAction && verdict.detected) {
+          rawRoles.action = derived.lensAction;
         }
         if (!rawRoles.source) {
           rawRoles.source = nextStep
@@ -214,6 +235,8 @@ subsequent lines short and concrete. ABSOLUTELY no prose outside the JSON.
           glassesMessage,
           lensFull,
           lensTruncated: lensFit.truncated,
+          fixSources: derived.fixSources,
+          actionSources: derived.actionSources,
         };
 
         scored.push({

@@ -109,7 +109,7 @@ No markdown, no emojis, no surrounding quotes. Keep each line a single short fra
   "errorCode": "<one taxonomy code>"|null,
   "errorGroup": "A"|"B"|"C"|"D"|"E"|null,
   "diagnosis": "one sentence ≤140 chars stating what is wrong",
-  "fix": "one sentence ≤140 chars stating the corrective action",
+  "fix": "one sentence ≤140 chars — MUST ground in AUTHORITATIVE CORRECTIVES from the user message (instr/advice/taxonomy); LLM may add context but not invent new steps",
   "completedSequence": ["step:NN Label", ...],
   "currentStep": "step:NN Label",
   "nextAction": "step:NN Label — short description",
