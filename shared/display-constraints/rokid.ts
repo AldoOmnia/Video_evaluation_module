@@ -41,7 +41,7 @@ export interface FourRoleDisplay {
 export const ROKID_FOUR_ROLE: FourRoleBudget = {
   label_chars: 32,
   value_chars: 16,
-  action_chars: 28,
+  action_chars: 36,
   source_chars: 32,
 };
 
@@ -114,6 +114,66 @@ export function getFourRoleBudget(hw: HardwareProfile): FourRoleBudget {
   return hw.display?.four_role_budget ?? ROKID_FOUR_ROLE;
 }
 
+export function optimizeLensRoles(
+  parts: { label?: string; value?: string; action?: string; source?: string },
+  hints?: {
+    detected?: boolean;
+    errorCode?: string | null;
+    fix?: string;
+    diagnosis?: string;
+  },
+): { label: string; value: string; action: string; source: string } {
+  let label = clean(parts.label ?? "");
+  let value = clean(parts.value ?? "");
+  let action = clean(parts.action ?? "");
+  const source = clean(parts.source ?? "");
+
+  if (!hints?.detected) return { label, value, action, source };
+
+  const code = hints.errorCode ?? "";
+  const fix = clean(hints.fix ?? "");
+  const diag = clean(hints.diagnosis ?? "");
+  const blob = `${diag} ${action} ${fix}`.toLowerCase();
+
+  if (!label && code) label = code.replace(/_/g, " ");
+
+  // VALUE = large headline (≤16 chars) — the error fact, not the imperative.
+  const valueTooLong = value.length > 18;
+  const valueIsPreamble = /^stop\b|^verify\b/i.test(value);
+  if (!value || valueTooLong || valueIsPreamble) {
+    if (/shim|sku/.test(blob) || code === "SUBSTITUTION") {
+      value = "WRONG SHIM SKU";
+    } else if (code === "ORIENTATION") {
+      value = "WRONG ORIENTATION";
+    } else if (code === "UNVERIFIED") {
+      value = "NOT VERIFIED";
+    } else if (code === "OUT_OF_SPEC") {
+      value = "OUT OF SPEC";
+    } else if (diag) {
+      value = diag.split(/[—.;,]/)[0]?.trim() ?? value;
+    }
+  }
+
+  // ACTION = short imperative — never a long "Stop — verify …" preamble.
+  if (/^stop\s*[—–-]/i.test(action) || action.length > 34) {
+    if (fix && fix.length <= 40) {
+      action = fix.split(/[.;]/)[0]?.trim() ?? fix;
+    } else if (/shim|sku/.test(blob)) {
+      action = "Check SKU vs traveler";
+    } else {
+      action = action
+        .replace(/^stop\s*[—–-]\s*/i, "")
+        .replace(/^please\s+/i, "")
+        .replace(/^verify\s+/i, "Check ");
+    }
+  }
+  if (action.length > 44) {
+    action = action.split(/[.;]/)[0]?.trim() ?? action;
+  }
+
+  return { label, value, action, source };
+}
+
 /**
  * Fit four arbitrary role strings into the AnswerCard 4-line layout.
  * Each role gets its own char budget so the small LABEL/SOURCE roles
@@ -130,11 +190,9 @@ export function fitFourRole(
   const action = clean(parts.action ?? "");
   const source = clean(parts.source ?? "");
 
-  // Wrap each role to its own width but use only the first wrapped line per
-  // role so the overall layout stays exactly 4 lines (one per role).
   const labelLine = wrapFirst(label, b.label_chars);
   const valueLine = wrapFirst(value, b.value_chars);
-  const actionLine = wrapFirst(action, b.action_chars);
+  const actionLine = fitActionLine(action, b.action_chars);
   const sourceLine = wrapFirst(source, b.source_chars);
 
   const total = label.length + value.length + action.length + source.length;
@@ -152,6 +210,36 @@ export function fitFourRole(
     truncated,
     glanceability,
   };
+}
+
+/** Action line keeps the tail ("vs traveler") when space is tight. */
+function fitActionLine(s: string, maxChars: number): string {
+  if (!s) return "";
+  if (s.length <= maxChars) return s;
+
+  let t = s.replace(/^stop\s*[—–-]\s*/i, "").replace(/^please\s+/i, "");
+  if (t.length <= maxChars) return t;
+
+  const vsMatch = t.match(/\bvs\.?\s+(.+)$/i);
+  if (vsMatch) {
+    const tail = `vs ${vsMatch[1].trim()}`;
+    if (tail.length <= maxChars) {
+      const head = t.slice(0, t.length - vsMatch[0].length).trim();
+      const headBudget = maxChars - tail.length - 1;
+      if (headBudget >= 6) {
+        const headFit = wrapFirst(head, headBudget);
+        const combined = `${headFit} ${tail}`;
+        return combined.length <= maxChars ? combined : tail.slice(0, maxChars);
+      }
+      return tail.slice(0, maxChars);
+    }
+  }
+
+  const wrapped = wrapFirst(t, maxChars);
+  if (wrapped.length < t.length && maxChars > 1) {
+    return wrapped.length >= maxChars ? wrapped : `${wrapped.slice(0, maxChars - 1)}…`;
+  }
+  return wrapped;
 }
 
 /** Greedy first-line word-wrap; ensures no mid-word slicing. */

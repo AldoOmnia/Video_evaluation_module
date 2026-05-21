@@ -43,13 +43,13 @@ export function buildAgentSystemPrompt(
   const fr = dc?.four_role_budget ?? {
     label_chars: 32,
     value_chars: 16,
-    action_chars: 28,
+    action_chars: 36,
     source_chars: 32,
   };
   const lensSpec = `4-line AnswerCard rendered bottom-left on ${hardware.name}. Each line is a DIFFERENT visual role:
   line1 LABEL  — small dim-teal mono, ≤ ${fr.label_chars} chars, ALL CAPS, names the issue (e.g. "WRONG ORIENTATION", "UNVERIFIED STEP")
-  line2 VALUE  — large white mono, ≤ ${fr.value_chars} chars, the single most important fact at a glance (e.g. "Chamfer OUTBOARD", "Gauge 0.008 mm", "Reading missing")
-  line3 ACTION — teal mono, ≤ ${fr.action_chars} chars, one imperative corrective sentence (e.g. "Flip 180° • re-press", "Take depth reading now")
+  line2 VALUE  — large white mono, ≤ ${fr.value_chars} chars, the error headline at a glance (e.g. "WRONG SHIM SKU", "Chamfer OUTBOARD", "Gauge 0.008 mm") — NOT a long sentence
+  line3 ACTION — teal mono, ≤ ${fr.action_chars} chars, one SHORT imperative (e.g. "Check SKU vs traveler", "Flip 180° • re-press") — never start with "Stop — verify…"; put the error fact on VALUE
   line4 SOURCE — small gray mono, ≤ ${fr.source_chars} chars, context: next step or evidence (e.g. "S04 next · pri:HIGH", "OEM marker absent")
 No markdown, no emojis, no surrounding quotes. Keep each line a single short fragment — the on-device Compose text view will clip overflow.`;
 

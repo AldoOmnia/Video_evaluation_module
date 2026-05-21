@@ -12,7 +12,7 @@ export function buildGlassesQuerySystemPrompt(
   const fr = hardware.display?.four_role_budget ?? {
     label_chars: 32,
     value_chars: 16,
-    action_chars: 28,
+    action_chars: 36,
     source_chars: 32,
   };
 

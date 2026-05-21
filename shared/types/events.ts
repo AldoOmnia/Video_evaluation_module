@@ -45,6 +45,9 @@ export const AgentOutputSchema = z.object({
   lens: FourRoleLensSchema.default({ label: "", value: "", action: "", source: "" }),
   /** Legacy flat 4-line projection of lens, kept for back-compat consumers. */
   glassesMessage: z.array(z.string()).default([]),
+  /** Pre-truncation role text (eval lab full-view). */
+  lensFull: FourRoleLensSchema.optional(),
+  lensTruncated: z.boolean().optional(),
 });
 export type AgentOutput = z.infer<typeof AgentOutputSchema>;
 

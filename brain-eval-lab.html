@@ -1147,7 +1147,8 @@
     font-family: var(--mono, ui-monospace, "SF Mono", Menlo, monospace);
     display: flex; flex-direction: column; gap: 4px;
   }
-  .answer-card .ac-line { white-space: nowrap; overflow: hidden; text-overflow: clip; }
+  .answer-card .ac-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .answer-card .ac-line.is-truncated { outline: 1px dashed rgba(245,158,11,0.45); outline-offset: 2px; }
   .answer-card .ac-label  { color: #00996B; font-size: 10px;  letter-spacing: 0.04em; }
   .answer-card .ac-value  { color: #FFFFFF; font-size: 22px;  line-height: 1.1; font-weight: 500; }
   .answer-card .ac-action { color: #00E5A0; font-size: 13px;  line-height: 1.25; }
@@ -1895,7 +1896,11 @@ const HARDWARE_PROFILES = {
     id: 'rokid_ai', name: 'Rokid AI Glasses',
     desc: 'Current Comer pilot. Mono RGB camera + voice + display. No eye tracking.',
     signals: { eye_gaze: false, camera: true, display: true, hand_track: false, audio_in: true, audio_out: true },
-    dwell_threshold_ms: 800, latency_budget_ms: 200
+    dwell_threshold_ms: 800, latency_budget_ms: 200,
+    display: {
+      max_lines: 4, max_chars_per_line: 16, max_total_chars: 118, rich_formatting: false,
+      four_role_budget: { label_chars: 32, value_chars: 16, action_chars: 36, source_chars: 32 }
+    }
   },
   snap_spectacles: {
     id: 'snap_spectacles', name: 'Snap Spectacles 5G',
@@ -3150,7 +3155,13 @@ function lensFromAgentOutput(ao) {
 /* Per-role char budgets from the hardware profile. Default to Rokid AI. */
 function lensBudget(hw) {
   const b = hw && hw.display && hw.display.four_role_budget;
-  return b || { label_chars: 32, value_chars: 16, action_chars: 28, source_chars: 32 };
+  return b || { label_chars: 32, value_chars: 16, action_chars: 36, source_chars: 32 };
+}
+
+function lensLinesForDisplay(ao) {
+  const lens = lensFromAgentOutput(ao);
+  const full = ao && ao.lensFull ? ao.lensFull : lens;
+  return { lens, full, truncated: !!(ao && ao.lensTruncated) };
 }
 
 /* Render the structured per-event agent verdict in the run-detail panel.
@@ -3172,6 +3183,7 @@ function renderAgentOutput(ao, hw, eid) {
   const next = ao.nextAction || '—';
   const lens = lensFromAgentOutput(ao);
   const b = lensBudget(hw);
+  const { full, truncated } = lensLinesForDisplay(ao);
 
   const fullBtn = eid
     ? `<button class="ao-full-btn" title="Open the worker's-eye-view in full size" onclick="event.stopPropagation();openAgentOutputModal('${eid}')">
@@ -3194,8 +3206,8 @@ function renderAgentOutput(ao, hw, eid) {
       <div><span class="ao-k">NEXT</span>${escapeHTML(next)}</div>
     </div>
     <div class="ao-glasses-wrap">
-      <div class="ao-k ao-k-lens">AI AGENT MESSAGE ON GLASSES — exact AnswerCard.kt render</div>
-      ${renderAnswerCard(lens, b, { compact: true })}
+      <div class="ao-k ao-k-lens">AI AGENT MESSAGE ON GLASSES — exact AnswerCard.kt render${truncated ? ' · <span style="color:var(--warn)">truncated to fit lens</span>' : ''}</div>
+      ${renderAnswerCard(lens, b, { compact: true, full, truncated })}
       <div class="ao-glasses-cap">
         ${escapeHTML(hw && hw.name || 'Rokid AI Glasses')} · bottom-left FOV card · line budgets ${b.label_chars}/${b.value_chars}/${b.action_chars}/${b.source_chars}
       </div>
@@ -3207,19 +3219,22 @@ function renderAgentOutput(ao, hw, eid) {
    Mirrors comer-rokid-demo/.../ui/AnswerCard.kt 1:1 (line roles, sizes, colors). */
 function renderAnswerCard(lens, budget, opts) {
   const compact = opts && opts.compact;
+  const full = (opts && opts.full) || lens;
+  const truncated = opts && opts.truncated;
   const fovClass = compact ? 'fov-frame fov-frame-compact' : 'fov-frame';
-  const labelTxt = lens.label || '';
-  const valueTxt = lens.value || '';
-  const actionTxt = lens.action || '';
-  const sourceTxt = lens.source || '';
+  const line = (role, cls, txt, fullTxt, budgetKey) => {
+    const isTrunc = truncated && fullTxt && fullTxt !== txt;
+    const title = fullTxt && fullTxt !== txt ? ` title="${escapeHTML(fullTxt)}"` : '';
+    return `<div class="ac-line ${cls}${isTrunc ? ' is-truncated' : ''}" data-budget="${budget[budgetKey]}"${title}>${escapeHTML(txt) || '&nbsp;'}</div>`;
+  };
   return `<div class="${fovClass}">
     <div class="fov-corner fov-tl"></div><div class="fov-corner fov-tr"></div>
     <div class="fov-corner fov-bl"></div><div class="fov-corner fov-br"></div>
     <div class="answer-card">
-      <div class="ac-line ac-label" data-budget="${budget.label_chars}">${escapeHTML(labelTxt) || '&nbsp;'}</div>
-      <div class="ac-line ac-value" data-budget="${budget.value_chars}">${escapeHTML(valueTxt) || '&nbsp;'}</div>
-      <div class="ac-line ac-action" data-budget="${budget.action_chars}">${escapeHTML(actionTxt) || '&nbsp;'}</div>
-      <div class="ac-line ac-source" data-budget="${budget.source_chars}">${escapeHTML(sourceTxt) || '&nbsp;'}</div>
+      ${line('label', 'ac-label', lens.label, full.label, 'label_chars')}
+      ${line('value', 'ac-value', lens.value, full.value, 'value_chars')}
+      ${line('action', 'ac-action', lens.action, full.action, 'action_chars')}
+      ${line('source', 'ac-source', lens.source, full.source, 'source_chars')}
     </div>
   </div>`;
 }
@@ -3236,6 +3251,7 @@ function openAgentOutputModal(eid) {
   const next = ao.nextAction || '—';
   const lens = lensFromAgentOutput(ao);
   const b = lensBudget(hw);
+  const { full, truncated } = lensLinesForDisplay(ao);
 
   const backdrop = document.createElement('div');
   backdrop.className = 'ao-modal-backdrop';
@@ -3270,21 +3286,25 @@ function openAgentOutputModal(eid) {
         <div class="ao-modal-right">
           <div class="ao-modal-label" style="text-align:center;color:#4ade80;">
             AI AGENT MESSAGE ON GLASSES
+            ${truncated ? '<span style="display:block;font-size:10px;color:var(--warn,#f5a524);margin-top:4px;">Dashed outline = clipped on lens · full text below</span>' : ''}
           </div>
           <div class="ao-modal-lens-shell">
-            ${renderAnswerCard(lens, b, { compact: false })}
+            ${renderAnswerCard(lens, b, { compact: false, full, truncated })}
             <div class="ao-modal-lens-caption">
               ${escapeHTML(hw && hw.name || 'Rokid AI Glasses')} · bottom-left AnswerCard · per-line budgets
               ${b.label_chars} / ${b.value_chars} / ${b.action_chars} / ${b.source_chars}
             </div>
             <div class="ao-role-table">
-              <div class="ao-role-row"><span class="ao-role-k" style="color:${COMER_THEME.primaryDim}">LABEL · 10sp dim teal</span><code>${escapeHTML(lens.label || '')}</code></div>
-              <div class="ao-role-row"><span class="ao-role-k" style="color:${COMER_THEME.white}">VALUE · 22sp white</span><code>${escapeHTML(lens.value || '')}</code></div>
-              <div class="ao-role-row"><span class="ao-role-k" style="color:${COMER_THEME.primary}">ACTION · 14sp teal</span><code>${escapeHTML(lens.action || '')}</code></div>
-              <div class="ao-role-row"><span class="ao-role-k" style="color:${COMER_THEME.textSecondary}">SOURCE · 10sp gray</span><code>${escapeHTML(lens.source || '')}</code></div>
+              <div class="ao-role-row"><span class="ao-role-k" style="color:${COMER_THEME.primaryDim}">LABEL · on lens</span><code>${escapeHTML(lens.label || '')}</code></div>
+              <div class="ao-role-row"><span class="ao-role-k" style="color:${COMER_THEME.white}">VALUE · on lens</span><code>${escapeHTML(lens.value || '')}</code></div>
+              <div class="ao-role-row"><span class="ao-role-k" style="color:${COMER_THEME.primary}">ACTION · on lens</span><code>${escapeHTML(lens.action || '')}</code></div>
+              <div class="ao-role-row"><span class="ao-role-k" style="color:${COMER_THEME.textSecondary}">SOURCE · on lens</span><code>${escapeHTML(lens.source || '')}</code></div>
+              ${truncated ? `
+              <div class="ao-role-row"><span class="ao-role-k" style="color:var(--warn)">ACTION · full</span><code>${escapeHTML(full.action || ao.fix || '')}</code></div>
+              <div class="ao-role-row"><span class="ao-role-k" style="color:var(--warn)">VALUE · full</span><code>${escapeHTML(full.value || '')}</code></div>` : ''}
             </div>
-            ${ao.fix ? `<details class="ao-modal-lens-full" ${ao.fix.length > 80 ? 'open' : ''}>
-              <summary>Full corrective action (not truncated)</summary>
+            ${ao.fix ? `<details class="ao-modal-lens-full" open>
+              <summary>Full corrective action (complete text)</summary>
               <div class="ao-modal-lens-full-body">${escapeHTML(ao.fix)}</div>
             </details>` : ''}
           </div>

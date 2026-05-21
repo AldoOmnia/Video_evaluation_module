@@ -23,12 +23,12 @@ profiles:
     display:
       max_lines: 4
       max_chars_per_line: 16   # value line (line2, 22sp white) — smallest budget
-      max_total_chars: 110     # ~32+16+28+32
+      max_total_chars: 118     # ~32+16+36+32
       rich_formatting: false
       four_role_budget:
         label_chars: 32        # line1 — small dim-teal label, 10sp
         value_chars: 16        # line2 — large white headline, 22sp
-        action_chars: 28       # line3 — teal corrective action, 14sp
+        action_chars: 36       # line3 — teal corrective action, 14sp
         source_chars: 32       # line4 — small gray context/next, 10sp
 
   snap_spectacles:

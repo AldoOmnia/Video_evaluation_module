@@ -26,6 +26,7 @@ import {
   fitToDisplay,
   fitFourRole,
   coerceFourRole,
+  optimizeLensRoles,
 } from "../../../shared/display-constraints/rokid.js";
 import {
   SessionEventSchema,
@@ -130,9 +131,17 @@ subsequent lines short and concrete. ABSOLUTELY no prose outside the JSON.
         // lines / a single string) into the canonical 4 role strings, then
         // word-wrap each role to its individual char budget. This mirrors
         // comer-rokid-demo/.../ui/AnswerCard.kt 1:1.
-        const rawRoles = coerceFourRole(
-          verdict.lensRaw,
-          verdict.fix || verdict.diagnosis || r.text,
+        const rawRoles = optimizeLensRoles(
+          coerceFourRole(
+            verdict.lensRaw,
+            verdict.fix || verdict.diagnosis || r.text,
+          ),
+          {
+            detected: verdict.detected,
+            errorCode: verdict.errorCode,
+            fix: verdict.fix,
+            diagnosis: verdict.diagnosis,
+          },
         );
         // Fallbacks so the lens always renders something sensible:
         if (!rawRoles.label) {
@@ -155,6 +164,7 @@ subsequent lines short and concrete. ABSOLUTELY no prose outside the JSON.
             ? `${nextStep.id} next`
             : "end of procedure";
         }
+        const lensFull = { ...rawRoles };
         const lensFit = fitFourRole(rawRoles, hw);
         const lens: FourRoleLens = {
           label: lensFit.label,
@@ -164,13 +174,9 @@ subsequent lines short and concrete. ABSOLUTELY no prose outside the JSON.
         };
         const glassesMessage = lensFit.lines.slice();
 
+        const codeForPriority =
+          ev.errorType ?? verdict.errorCode ?? undefined;
         const truth = ev.errorType ?? null;
-        const outcome: "caught" | "missed" | "false_pos" =
-          verdict.detected && truth
-            ? "caught"
-            : verdict.detected && !truth
-              ? "false_pos"
-              : "missed";
         const codeMatch =
           truth && verdict.errorCode
             ? verdict.errorCode === truth
@@ -179,6 +185,14 @@ subsequent lines short and concrete. ABSOLUTELY no prose outside the JSON.
                 ? "same-group"
                 : "different"
             : null;
+        const outcome =
+          ev.label === "incorrect"
+            ? verdict.detected
+              ? ("caught" as const)
+              : ("missed" as const)
+            : verdict.detected
+              ? ("false_pos" as const)
+              : ("n/a" as const);
 
         const agentOutput: AgentOutput = {
           detected: verdict.detected,
@@ -198,12 +212,20 @@ subsequent lines short and concrete. ABSOLUTELY no prose outside the JSON.
             (nextStep ? `${nextStep.id} ${nextStep.label}` : "(end of procedure)"),
           lens,
           glassesMessage,
+          lensFull,
+          lensTruncated: lensFit.truncated,
         };
 
         scored.push({
           ...ev,
           outcome,
-          priority: ev.priority ?? priorityFor(step, ev.errorType),
+          priority:
+            ev.priority ??
+            (codeForPriority
+              ? priorityFor(step, codeForPriority)
+              : verdict.detected
+                ? "medium"
+                : "low"),
           inputTokens: r.inputTokens,
           outputTokens: r.outputTokens,
           latencyMs: r.latencyMs,
@@ -498,19 +520,25 @@ function computeMetrics(
     if (e.outcome === "caught") caught++;
     if (e.outcome === "missed") missed++;
     if (e.outcome === "false_pos") fp++;
-    if (e.label !== "incorrect" || !e.errorType) continue;
-    const code = e.errorType;
-    byType[code] ??= { seen: 0, caught: 0, missed: 0 };
-    byType[code].seen++;
-    if (e.outcome === "caught") byType[code].caught++;
-    if (e.outcome === "missed") byType[code].missed++;
+    if (e.label !== "incorrect") continue;
 
-    const group = groupFor(code) ?? "E";
-    byGroup[group] ??= { seen: 0, caught: 0 };
-    byGroup[group].seen++;
-    if (e.outcome === "caught") byGroup[group].caught++;
+    const code =
+      e.errorType ??
+      (e.agentOutput?.errorCode as ErrorCode | undefined);
 
-    const p = e.priority ?? "low";
+    if (code) {
+      byType[code] ??= { seen: 0, caught: 0, missed: 0 };
+      byType[code].seen++;
+      if (e.outcome === "caught") byType[code].caught++;
+      if (e.outcome === "missed") byType[code].missed++;
+
+      const group = groupFor(code) ?? "E";
+      byGroup[group] ??= { seen: 0, caught: 0 };
+      byGroup[group].seen++;
+      if (e.outcome === "caught") byGroup[group].caught++;
+    }
+
+    const p = e.priority ?? "medium";
     byPriority[p].seen++;
     if (e.outcome === "caught") byPriority[p].caught++;
   }
