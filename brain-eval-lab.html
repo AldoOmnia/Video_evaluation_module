@@ -1387,7 +1387,7 @@
           <label class="drop" id="video-drop" data-kind="video">
             <div class="ico">VID</div>
             <p>Drop a procedure recording</p>
-            <p class="small">opens the manual-tag workflow → VideoSegment nodes</p>
+            <p class="small">opens the manual-tag workflow → VideoSegment nodes · up to ~512 MB</p>
             <span class="accept">.mp4 .mov .webm</span>
             <input type="file" id="video-input" accept="video/*" />
           </label>
@@ -2649,7 +2649,8 @@ async function stubbedLLMCall(query, retrieved) {
    INGEST — file upload becomes a graph node
    ════════════════════════════════════════════════════════════════════════════ */
 
-const MAX_FILE_BYTES = 50 * 1024 * 1024;  // 50 MB hard cap (browser memory)
+const MAX_DOCUMENT_BYTES = 50 * 1024 * 1024;   // PDF/CSV — parsed into memory + localStorage
+const MAX_VIDEO_BYTES = 512 * 1024 * 1024;       // ~512 MB — streamed via blob URL (typical Comer POV ~400 MB)
 const MAX_PDF_PAGES = 40;                  // cap text extraction for huge SOPs
 const MAX_TEXT_CHARS = 60_000;             // ~15K tokens; enough for retrieval
 const STORAGE_KEY = 'brain.artifacts.v1';
@@ -2848,8 +2849,8 @@ function ingestVideo(file) {
     toast(`${file.name} doesn't look like a video file`);
     return;
   }
-  if (file.size > MAX_FILE_BYTES) {
-    toast(`${file.name} is too large (${formatBytes(file.size)}). Trim before uploading.`);
+  if (file.size > MAX_VIDEO_BYTES) {
+    toast(`${file.name} is too large (${formatBytes(file.size)}). Max ~512 MB — trim or compress first.`);
     return;
   }
   const url = URL.createObjectURL(file);
@@ -2880,8 +2881,8 @@ function ingestVideo(file) {
 
 function validateFile(file, allowedExts) {
   if (!file) return false;
-  if (file.size > MAX_FILE_BYTES) {
-    toast(`${file.name} is too large (${formatBytes(file.size)}). 50MB max.`);
+  if (file.size > MAX_DOCUMENT_BYTES) {
+    toast(`${file.name} is too large (${formatBytes(file.size)}). 50 MB max for PDF/CSV.`);
     return false;
   }
   const ext = (file.name.split('.').pop() || '').toLowerCase();
