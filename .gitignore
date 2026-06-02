@@ -39,9 +39,11 @@ Thumbs.db
 /White.png
 /Comer-industries_placeholder-logo.png
 
-# Raw POV footage — large source videos. The web-friendly transcode that the
-# synthetic-pov page actually streams lives at eval-lab/public/assets/ and is
-# also kept out of git history (regenerate from source with ffmpeg).
+# Raw POV footage — large source videos stay out of git (regenerate the web
+# transcode from source with ffmpeg). The small web-optimized POV clip that the
+# synthetic-pov page streams (eval-lab/public/assets/phase8_pov.mp4, ~17 MB
+# H.264 540x720) IS committed so it deploys to the hosted site.
 /Phase_8_Video.MP4
 *.MP4
-eval-lab/public/assets/phase8_pov.mp4
+# …but DO ship the small web POV clip (case-insensitive FS makes *.MP4 match it).
+!eval-lab/public/assets/phase8_pov.mp4
