@@ -639,7 +639,7 @@
     // The API key lives server-side; this page only talks to /api/worldlabs/*.
     // Marble worlds can't be iframed (X-Frame-Options: DENY), so we poll the
     // world by id and render its exported .spz with Spark (window.SplatViewer).
-    const DEFAULT_WORLD = "4188c682-bcc9-40bf-bae9-b70b506e4c6d"; // pinion guide station (360° pano → 3DGS)
+    const DEFAULT_WORLD = "470aa29b-a1f9-40a5-885e-1f7232ba109c"; // pinion guide station (360° pano → 3DGS, marble-1.1-plus)
     const WORLD_ID = params.get("world") || DEFAULT_WORLD;        // ?world=<id> override
     const LS_WORLD = "syntheticPov.worldId";
     const splatBody = document.getElementById("splatBody");
