@@ -63,6 +63,8 @@ export interface GenerateOptions {
   imageUrl?: string;
   /** Upload + ground on a local asset under eval-lab/public/assets/. */
   localAsset?: string;
+  /** The image is a 360° equirectangular panorama (2:1). Max spatial control. */
+  isPano?: boolean;
   /** Make the world public so its Marble URL is embeddable. */
   isPublic?: boolean;
   displayName?: string;
@@ -114,12 +116,14 @@ export async function generateWorld(opts: GenerateOptions): Promise<{
     world_prompt = {
       type: "image",
       image_prompt: { source: "media_asset", media_asset_id: mediaAssetId },
+      ...(opts.isPano ? { is_pano: true } : {}),
       ...(opts.prompt ? { text_prompt: opts.prompt } : {}),
     };
   } else if (opts.imageUrl) {
     world_prompt = {
       type: "image",
       image_prompt: { source: "uri", uri: opts.imageUrl },
+      ...(opts.isPano ? { is_pano: true } : {}),
       ...(opts.prompt ? { text_prompt: opts.prompt } : {}),
     };
   } else {
