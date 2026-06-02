@@ -26,7 +26,12 @@ import {
   fitToDisplay,
   fitFourRole,
   coerceFourRole,
+  optimizeLensRoles,
 } from "../../../shared/display-constraints/rokid.js";
+import {
+  deriveCorrective,
+  formatCorrectiveContext,
+} from "../../../shared/corrective-actions/deriveCorrective.js";
 import {
   SessionEventSchema,
   type SessionEvent,
@@ -49,9 +54,27 @@ const BodySchema = z.object({
 
 export const evalRouter = Router();
 
+/** Drop unknown error codes instead of 400 — CSV/manual tags sometimes typo. */
+function sanitizeIncomingEvents(raw: unknown): unknown {
+  if (!Array.isArray(raw)) return raw;
+  const allowed = new Set<string>(ERROR_CODES);
+  return raw.map((row) => {
+    if (!row || typeof row !== "object") return row;
+    const ev = { ...(row as Record<string, unknown>) };
+    if (ev.errorType === null || ev.errorType === "") delete ev.errorType;
+    else if (typeof ev.errorType === "string" && !allowed.has(ev.errorType)) {
+      delete ev.errorType;
+    }
+    return ev;
+  });
+}
+
 evalRouter.post("/", async (req, res, next) => {
   try {
-    const body = BodySchema.parse(req.body);
+    const body = BodySchema.parse({
+      ...(req.body as object),
+      events: sanitizeIncomingEvents((req.body as { events?: unknown }).events),
+    });
     const hw = specs.hardware.profiles[body.hardwareId];
     const strat = specs.strategies.strategies[body.strategyId];
     if (!hw) return res.status(400).json({ error: `unknown hardware ${body.hardwareId}` });
@@ -82,6 +105,11 @@ evalRouter.post("/", async (req, res, next) => {
         const prompt = buildPrompt(strat, specs.procedure, ctx);
         const completed = completedSequenceFor(step, specs.procedure);
         const nextStep = nextStepFor(step, specs.procedure);
+        const correctiveCtx = formatCorrectiveContext(
+          specs.procedure,
+          step,
+          ev.errorType ?? undefined,
+        );
         const userMsg = `${prompt.user}
 
 CONTEXT FOR THIS SEGMENT
@@ -92,6 +120,9 @@ CONTEXT FOR THIS SEGMENT
   completed so far (per FSM): ${completed.map((c) => `${c.id} ${c.label}`).join(" → ") || "(none — start of run)"}
   next planned action: ${nextStep ? `${nextStep.id} ${nextStep.label}` : "(end of procedure)"}
   worker note: ${ev.rationale ?? "(none)"}
+
+AUTHORITATIVE CORRECTIVES FOR THIS STEP (ground fix + glassesMessage.action here — do not invent steps outside this list)
+${correctiveCtx}
 
 YOUR TASK
 Produce one JSON object per the Omnia Comer Pinion Guide v1 schema described in the system prompt.
@@ -108,13 +139,28 @@ subsequent lines short and concrete. ABSOLUTELY no prose outside the JSON.
         totalOut += r.outputTokens;
         latencies.push(r.latencyMs);
         const verdict = parseVerdict(r.text);
+        const derived = deriveCorrective(
+          specs.procedure,
+          step,
+          ev.errorType ?? verdict.errorCode ?? undefined,
+          verdict,
+        );
+        if (derived.fix) verdict.fix = derived.fix;
         // Coerce whatever shape the LLM returned (role object / array of
         // lines / a single string) into the canonical 4 role strings, then
         // word-wrap each role to its individual char budget. This mirrors
         // comer-rokid-demo/.../ui/AnswerCard.kt 1:1.
-        const rawRoles = coerceFourRole(
-          verdict.lensRaw,
-          verdict.fix || verdict.diagnosis || r.text,
+        const rawRoles = optimizeLensRoles(
+          coerceFourRole(
+            verdict.lensRaw,
+            derived.fix || verdict.diagnosis || r.text,
+          ),
+          {
+            detected: verdict.detected,
+            errorCode: verdict.errorCode,
+            fix: derived.lensAction || derived.fix,
+            diagnosis: verdict.diagnosis,
+          },
         );
         // Fallbacks so the lens always renders something sensible:
         if (!rawRoles.label) {
@@ -129,14 +175,17 @@ subsequent lines short and concrete. ABSOLUTELY no prose outside the JSON.
         }
         if (!rawRoles.action) {
           rawRoles.action = verdict.detected
-            ? verdict.fix ?? ""
+            ? derived.lensAction || derived.fix || ""
             : "Continue procedure";
+        } else if (derived.lensAction && verdict.detected) {
+          rawRoles.action = derived.lensAction;
         }
         if (!rawRoles.source) {
           rawRoles.source = nextStep
             ? `${nextStep.id} next`
             : "end of procedure";
         }
+        const lensFull = { ...rawRoles };
         const lensFit = fitFourRole(rawRoles, hw);
         const lens: FourRoleLens = {
           label: lensFit.label,
@@ -146,13 +195,9 @@ subsequent lines short and concrete. ABSOLUTELY no prose outside the JSON.
         };
         const glassesMessage = lensFit.lines.slice();
 
+        const codeForPriority =
+          ev.errorType ?? verdict.errorCode ?? undefined;
         const truth = ev.errorType ?? null;
-        const outcome: "caught" | "missed" | "false_pos" =
-          verdict.detected && truth
-            ? "caught"
-            : verdict.detected && !truth
-              ? "false_pos"
-              : "missed";
         const codeMatch =
           truth && verdict.errorCode
             ? verdict.errorCode === truth
@@ -161,6 +206,14 @@ subsequent lines short and concrete. ABSOLUTELY no prose outside the JSON.
                 ? "same-group"
                 : "different"
             : null;
+        const outcome =
+          ev.label === "incorrect"
+            ? verdict.detected
+              ? ("caught" as const)
+              : ("missed" as const)
+            : verdict.detected
+              ? ("false_pos" as const)
+              : ("n/a" as const);
 
         const agentOutput: AgentOutput = {
           detected: verdict.detected,
@@ -180,12 +233,22 @@ subsequent lines short and concrete. ABSOLUTELY no prose outside the JSON.
             (nextStep ? `${nextStep.id} ${nextStep.label}` : "(end of procedure)"),
           lens,
           glassesMessage,
+          lensFull,
+          lensTruncated: lensFit.truncated,
+          fixSources: derived.fixSources,
+          actionSources: derived.actionSources,
         };
 
         scored.push({
           ...ev,
           outcome,
-          priority: ev.priority ?? priorityFor(step, ev.errorType),
+          priority:
+            ev.priority ??
+            (codeForPriority
+              ? priorityFor(step, codeForPriority)
+              : verdict.detected
+                ? "medium"
+                : "low"),
           inputTokens: r.inputTokens,
           outputTokens: r.outputTokens,
           latencyMs: r.latencyMs,
@@ -480,19 +543,25 @@ function computeMetrics(
     if (e.outcome === "caught") caught++;
     if (e.outcome === "missed") missed++;
     if (e.outcome === "false_pos") fp++;
-    if (e.label !== "incorrect" || !e.errorType) continue;
-    const code = e.errorType;
-    byType[code] ??= { seen: 0, caught: 0, missed: 0 };
-    byType[code].seen++;
-    if (e.outcome === "caught") byType[code].caught++;
-    if (e.outcome === "missed") byType[code].missed++;
+    if (e.label !== "incorrect") continue;
 
-    const group = groupFor(code) ?? "E";
-    byGroup[group] ??= { seen: 0, caught: 0 };
-    byGroup[group].seen++;
-    if (e.outcome === "caught") byGroup[group].caught++;
+    const code =
+      e.errorType ??
+      (e.agentOutput?.errorCode as ErrorCode | undefined);
 
-    const p = e.priority ?? "low";
+    if (code) {
+      byType[code] ??= { seen: 0, caught: 0, missed: 0 };
+      byType[code].seen++;
+      if (e.outcome === "caught") byType[code].caught++;
+      if (e.outcome === "missed") byType[code].missed++;
+
+      const group = groupFor(code) ?? "E";
+      byGroup[group] ??= { seen: 0, caught: 0 };
+      byGroup[group].seen++;
+      if (e.outcome === "caught") byGroup[group].caught++;
+    }
+
+    const p = e.priority ?? "medium";
     byPriority[p].seen++;
     if (e.outcome === "caught") byPriority[p].caught++;
   }

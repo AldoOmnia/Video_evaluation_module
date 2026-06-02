@@ -8,7 +8,15 @@ import { evalRouter } from "./routes/eval.js";
 import { specRouter } from "./routes/spec.js";
 import { queryRouter } from "./routes/query.js";
 import { authRouter } from "./routes/auth.js";
-import { EVAL_LAB_PUBLIC, LAB_HTML, LOGIN_HTML, WELCOME_HTML } from "./paths.js";
+import { worldLabsRouter } from "./routes/worldlabs.js";
+import { worldLabsConfigured } from "./services/worldlabs.js";
+import {
+  EVAL_LAB_PUBLIC,
+  LAB_HTML,
+  LOGIN_HTML,
+  WELCOME_HTML,
+  SYNTHETIC_POV_HTML,
+} from "./paths.js";
 
 const app = express();
 
@@ -40,6 +48,7 @@ app.get("/health", (_req, res) => {
     steps: specs.procedure.keysteps.length,
     hardwareProfiles: Object.keys(specs.hardware.profiles).length,
     strategies: Object.keys(specs.strategies.strategies).length,
+    worldLabs: worldLabsConfigured(),
     cors: wildcard ? "wildcard" : allow,
     nodeEnv: process.env.NODE_ENV ?? "development",
   });
@@ -49,6 +58,7 @@ app.use("/api/spec", specRouter);
 app.use("/api/brain/chat", brainChatRouter);
 app.use("/api/eval", evalRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/worldlabs", worldLabsRouter);
 app.use("/query", queryRouter); // Rokid APK compatibility
 
 // Serve the eval lab HTML directly so a single `npm run dev` is enough
@@ -68,6 +78,14 @@ app.get(["/", "/login", "/login/"], (_req, res) => {
 app.get(["/welcome", "/welcome/"], (_req, res) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
   res.sendFile(WELCOME_HTML);
+});
+
+// Synthetic POV — Rerun-style multi-panel view: live 3D SLAM viewport,
+// worker POV video, SLAM/eye tiles, and a World Labs splat embed slot.
+// Configurable via query params (?video=, ?splat=, ?dur=).
+app.get(["/synthetic-pov", "/synthetic-pov/"], (_req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.sendFile(SYNTHETIC_POV_HTML);
 });
 
 app.get("/lab/", (_req, res) => {

@@ -146,8 +146,8 @@
   .mode-container.active { display: grid; }
 
   /* ── Brain mode layout ─────────────── */
-  #brain-mode { grid-template-columns: 320px 1fr 380px; grid-template-rows: 1fr; min-height: 0; }
-  #brain-mode.has-video { grid-template-rows: 1fr 220px; }
+  #brain-mode { grid-template-columns: 320px 1fr 380px; grid-template-rows: minmax(0, 1fr); min-height: 0; }
+  #brain-mode.has-video { grid-template-rows: minmax(0, 1fr) clamp(260px, 38vh, 420px); }
   #brain-mode .left  { border-right: 1px solid var(--line); background: var(--bg); overflow-y: auto; grid-row: 1; min-height: 0; }
   #brain-mode .center { grid-row: 1; position: relative; background: var(--bg); border-right: 1px solid var(--line); min-height: 0; }
   #brain-mode .right {
@@ -159,8 +159,14 @@
     grid-column: 1 / -1; grid-row: 2;
     border-top: 1px solid var(--line); background: var(--bg-2);
     display: none;
+    min-height: 0;
+    overflow: hidden;
   }
-  #brain-mode.has-video .bottom { display: grid; grid-template-columns: 340px 1fr 320px; }
+  #brain-mode.has-video .bottom {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr) 320px;
+    min-height: 260px;
+  }
 
   /* ── Eval mode layout ────────────────── */
   #eval-mode { grid-template-columns: 320px 1fr 380px; }
@@ -705,9 +711,64 @@
   .vp-center {
     display: flex; align-items: center; justify-content: center;
     background: #000;
-    padding: 12px;
+    padding: 8px;
+    min-height: 0;
+    height: 100%;
+    position: relative;
   }
-  .vp-center video { max-height: 100%; max-width: 100%; }
+  .vp-center video {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+    background: #000;
+  }
+  .vp-loading {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.72);
+    font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+    letter-spacing: 0.06em; text-transform: uppercase;
+    pointer-events: none;
+  }
+  .vp-loading[hidden] { display: none !important; }
+
+  .video-source {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgba(239,83,80,0.35);
+    border-radius: 4px;
+    background: rgba(239,83,80,0.06);
+  }
+  .video-source[hidden] { display: none !important; }
+  .video-source .vs-head {
+    font-family: var(--mono); font-size: 9px;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--c-video); margin-bottom: 6px;
+  }
+  .video-source .vs-name {
+    font-size: 11.5px; color: var(--ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .video-source .vs-meta {
+    font-family: var(--mono); font-size: 9px; color: var(--ink-3); margin-top: 4px;
+  }
+  .video-source .vs-actions {
+    display: flex; gap: 6px; margin-top: 8px;
+  }
+  .video-source .vs-actions button {
+    flex: 1;
+    background: var(--bg-3); border: 1px solid var(--line-2);
+    color: var(--ink-2); padding: 6px 8px;
+    font-family: var(--mono); font-size: 10px;
+    border-radius: 2px; cursor: pointer;
+  }
+  .video-source .vs-actions button:hover { color: var(--ink); border-color: var(--ink-3); }
+  .video-source .vs-actions button.primary {
+    color: var(--c-video); border-color: rgba(239,83,80,0.45);
+    background: rgba(239,83,80,0.10);
+  }
 
   .vp-right { padding: 12px 14px; overflow-y: auto; }
   .vp-right h4 {
@@ -723,6 +784,11 @@
     color: var(--ink-2); padding: 6px 8px;
     font-family: var(--mono); font-size: 10px;
     border-radius: 2px; cursor: pointer;
+  }
+  .tag-range button.is-set {
+    border-color: var(--acc-dim);
+    color: var(--ink);
+    background: rgba(0,229,160,0.08);
   }
   .tag-range button:hover { color: var(--ink); border-color: var(--ink-3); }
   .tag-range .stamp { color: var(--acc); margin-left: 4px; font-weight: 600; }
@@ -1015,6 +1081,25 @@
     font-size: 12.5px; color: var(--ink-1);
     border-left: 2px solid var(--ok, #4ade80);
   }
+  .ao-fix-block { margin-top: 8px; }
+  .ao-fix-sources {
+    display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;
+  }
+  .ao-src-chip {
+    font-family: var(--mono); font-size: 8.5px;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    padding: 2px 6px; border-radius: 2px;
+    border: 1px solid var(--line-2); color: var(--ink-3);
+    background: var(--bg-3);
+  }
+  .ao-src-chip.kind-instruction { color: #38bdf8; border-color: rgba(56,189,248,0.35); }
+  .ao-src-chip.kind-expert_advice { color: #f5a524; border-color: rgba(245,165,36,0.35); }
+  .ao-src-chip.kind-taxonomy { color: #c084fc; border-color: rgba(192,132,252,0.35); }
+  .ao-src-chip.kind-llm { color: var(--acc-dim); border-color: rgba(0,229,160,0.35); }
+  .ao-lens-action-note {
+    margin-top: 8px; font-family: var(--mono); font-size: 9px; color: var(--ink-3);
+    line-height: 1.45;
+  }
   .agent-out .ao-proc {
     display: grid; gap: 6px; padding: 8px 12px;
     background: var(--bg-3, #0a0a0a); border-radius: 4px;
@@ -1081,7 +1166,8 @@
     font-family: var(--mono, ui-monospace, "SF Mono", Menlo, monospace);
     display: flex; flex-direction: column; gap: 4px;
   }
-  .answer-card .ac-line { white-space: nowrap; overflow: hidden; text-overflow: clip; }
+  .answer-card .ac-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .answer-card .ac-line.is-truncated { outline: 1px dashed rgba(245,158,11,0.45); outline-offset: 2px; }
   .answer-card .ac-label  { color: #00996B; font-size: 10px;  letter-spacing: 0.04em; }
   .answer-card .ac-value  { color: #FFFFFF; font-size: 22px;  line-height: 1.1; font-weight: 500; }
   .answer-card .ac-action { color: #00E5A0; font-size: 13px;  line-height: 1.25; }
@@ -1387,10 +1473,20 @@
           <label class="drop" id="video-drop" data-kind="video">
             <div class="ico">VID</div>
             <p>Drop a procedure recording</p>
-            <p class="small">opens the manual-tag workflow → VideoSegment nodes</p>
+            <p class="small">opens the manual-tag workflow → VideoSegment nodes · up to ~512 MB</p>
             <span class="accept">.mp4 .mov .webm</span>
             <input type="file" id="video-input" accept="video/*" />
           </label>
+
+          <div class="video-source" id="video-source" hidden>
+            <div class="vs-head">Loaded recording</div>
+            <div class="vs-name" id="vs-name">—</div>
+            <div class="vs-meta" id="vs-meta">—</div>
+            <div class="vs-actions">
+              <button type="button" class="primary" id="vs-open-player">Open tagging panel</button>
+              <button type="button" id="vs-clear-video">Clear</button>
+            </div>
+          </div>
 
           <button class="btn btn-secondary" id="seed-btn" style="margin-top: 10px;">
             Seed sample artifacts
@@ -1477,22 +1573,30 @@
           </div>
         </div>
         <div class="vp-center">
-          <video id="vp-video" controls></video>
+          <div class="vp-loading" id="vp-loading" hidden>Loading video…</div>
+          <video id="vp-video" controls preload="metadata"></video>
         </div>
         <div class="vp-right">
           <h4>Tag range as keystep</h4>
+          <p class="small" style="font-family:var(--mono);font-size:9px;color:var(--ink-3);margin:-4px 0 8px;line-height:1.45;">
+            Scrub the video to the start of a step, click <strong>Set IN</strong>, scrub to the end, click <strong>Set OUT</strong>, pick a keystep, then Save.
+          </p>
           <div class="tag-range">
-            <button id="tag-start">Set IN <span class="stamp" id="stamp-in">—</span></button>
-            <button id="tag-end">Set OUT <span class="stamp" id="stamp-out">—</span></button>
+            <button type="button" id="tag-start">Set IN <span class="stamp" id="stamp-in">—</span></button>
+            <button type="button" id="tag-end">Set OUT <span class="stamp" id="stamp-out">—</span></button>
           </div>
           <select class="keystep-select" id="tag-keystep">
             <option value="">Assign to keystep…</option>
           </select>
+          <select class="keystep-select" id="tag-execution" style="margin-top: 6px;">
+            <option value="mistake">Clip type · mistake / anomaly</option>
+            <option value="correct">Clip type · correct execution reference</option>
+          </select>
           <select class="keystep-select" id="tag-errortype" style="margin-top: 6px;">
-            <option value="">Error type (optional — if mistake clip)…</option>
+            <option value="">Error code (optional — helps eval scoring)…</option>
           </select>
           <input class="chat-input" id="tag-name" placeholder="Segment name (optional)" style="margin-bottom: 6px; margin-top: 6px;" />
-          <button class="btn" id="tag-save">Save segment</button>
+          <button type="button" class="btn" id="tag-save">Save segment</button>
           <div class="tag-saved" id="tag-saved-list"></div>
         </div>
       </section>
@@ -1811,7 +1915,11 @@ const HARDWARE_PROFILES = {
     id: 'rokid_ai', name: 'Rokid AI Glasses',
     desc: 'Current Comer pilot. Mono RGB camera + voice + display. No eye tracking.',
     signals: { eye_gaze: false, camera: true, display: true, hand_track: false, audio_in: true, audio_out: true },
-    dwell_threshold_ms: 800, latency_budget_ms: 200
+    dwell_threshold_ms: 800, latency_budget_ms: 200,
+    display: {
+      max_lines: 4, max_chars_per_line: 16, max_total_chars: 118, rich_formatting: false,
+      four_role_budget: { label_chars: 32, value_chars: 16, action_chars: 36, source_chars: 32 }
+    }
   },
   snap_spectacles: {
     id: 'snap_spectacles', name: 'Snap Spectacles 5G',
@@ -2141,14 +2249,23 @@ function updateGraphStats() {
 /* ════════════════════════════════════════════════════════════════════════════
    NODE SELECTION + DETAIL PANEL
    ════════════════════════════════════════════════════════════════════════════ */
+function resolveVideoUrl(raw) {
+  if (!raw) return null;
+  if (raw.videoUrl) return raw.videoUrl;
+  const byName = raw.fileName && state.brain.videoFiles?.[raw.fileName]?.url;
+  if (byName) return byName;
+  if (state.brain.videoFile && raw.fileName === state.brain.videoFile.name) return state.brain.videoUrl;
+  return state.brain.videoUrl || null;
+}
+
 function selectNode(data) {
   state.brain.selectedNode = data;
   document.getElementById('stat-selection').textContent = data.label || data.id;
   renderRightPanel();
 
-  // If video segment, open the video player
-  if (data.type === 'VideoSegment' && data.raw && data.raw.videoUrl) {
-    openVideoPlayer(data.raw.videoUrl, data.raw.fileName, data.raw);
+  if (data.type === 'VideoSegment' && data.raw) {
+    const url = resolveVideoUrl(data.raw);
+    if (url) openVideoPlayer(url, data.raw.fileName, data.raw);
   }
 }
 
@@ -2649,10 +2766,127 @@ async function stubbedLLMCall(query, retrieved) {
    INGEST — file upload becomes a graph node
    ════════════════════════════════════════════════════════════════════════════ */
 
-const MAX_FILE_BYTES = 50 * 1024 * 1024;  // 50 MB hard cap (browser memory)
+const MAX_DOCUMENT_BYTES = 50 * 1024 * 1024;   // PDF/CSV — parsed into memory + localStorage
+const MAX_VIDEO_BYTES = 512 * 1024 * 1024;       // ~512 MB — streamed via blob URL (typical Comer POV ~400 MB)
+const STORAGE_KEY = 'brain.artifacts.v1';
+const VIDEO_DB_NAME = 'brain.videos.v1';
+const VIDEO_STORE = 'files';
+
+function openVideoDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(VIDEO_DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(VIDEO_STORE)) {
+        db.createObjectStore(VIDEO_STORE, { keyPath: 'fileName' });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function persistVideoBlob(file) {
+  const db = await openVideoDb();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(VIDEO_STORE, 'readwrite');
+    tx.objectStore(VIDEO_STORE).put({
+      fileName: file.name,
+      blob: file,
+      size: file.size,
+      mimeType: file.type || 'video/mp4',
+      addedAt: Date.now(),
+    });
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+}
+
+async function loadVideoBlob(fileName) {
+  const db = await openVideoDb();
+  const rec = await new Promise((resolve, reject) => {
+    const tx = db.transaction(VIDEO_STORE, 'readonly');
+    const req = tx.objectStore(VIDEO_STORE).get(fileName);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  db.close();
+  return rec;
+}
+
+async function deleteVideoBlob(fileName) {
+  const db = await openVideoDb();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(VIDEO_STORE, 'readwrite');
+    tx.objectStore(VIDEO_STORE).delete(fileName);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+}
+
+async function listStoredVideoNames() {
+  const db = await openVideoDb();
+  const names = await new Promise((resolve, reject) => {
+    const tx = db.transaction(VIDEO_STORE, 'readonly');
+    const req = tx.objectStore(VIDEO_STORE).getAllKeys();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+  db.close();
+  return names;
+}
+
+function registerVideoFile(file, url, addedAt, persisted) {
+  state.brain.videoFiles = state.brain.videoFiles || {};
+  state.brain.videoFiles[file.name] = { url, size: file.size, addedAt, persisted: !!persisted };
+  for (const a of state.brain.artifacts) {
+    if (a.type === 'VideoSegment' && a.fileName === file.name) {
+      a.videoUrl = url;
+      a.videoLinked = true;
+    }
+  }
+}
+
+async function restoreVideosFromStorage() {
+  if (!window.indexedDB) return 0;
+  try {
+    const names = new Set(await listStoredVideoNames());
+    for (const a of state.brain.artifacts) {
+      if (a.type === 'VideoSegment' && a.fileName) names.add(a.fileName);
+    }
+    if (names.size === 0) return 0;
+
+    let restored = 0;
+    let newest = null;
+    for (const fileName of names) {
+      const rec = await loadVideoBlob(fileName);
+      if (!rec || !rec.blob) continue;
+      const file = rec.blob instanceof File
+        ? rec.blob
+        : new File([rec.blob], fileName, { type: rec.mimeType || 'video/mp4' });
+      const url = URL.createObjectURL(file);
+      registerVideoFile(file, url, rec.addedAt || Date.now(), true);
+      restored++;
+      if (!newest || (rec.addedAt || 0) > newest.addedAt) {
+        newest = { file, url, addedAt: rec.addedAt || 0 };
+      }
+    }
+    if (newest) {
+      state.brain.videoFile = newest.file;
+      state.brain.videoUrl = newest.url;
+    }
+    updateVideoSourceBar();
+    return restored;
+  } catch (e) {
+    console.warn('video restore failed', e);
+    return 0;
+  }
+}
+
 const MAX_PDF_PAGES = 40;                  // cap text extraction for huge SOPs
 const MAX_TEXT_CHARS = 60_000;             // ~15K tokens; enough for retrieval
-const STORAGE_KEY = 'brain.artifacts.v1';
 
 async function ingestPDF(file) {
   if (!validateFile(file, ['pdf'])) return;
@@ -2848,40 +3082,77 @@ function ingestVideo(file) {
     toast(`${file.name} doesn't look like a video file`);
     return;
   }
-  if (file.size > MAX_FILE_BYTES) {
-    toast(`${file.name} is too large (${formatBytes(file.size)}). Trim before uploading.`);
+  if (file.size > MAX_VIDEO_BYTES) {
+    toast(`${file.name} is too large (${formatBytes(file.size)}). Max ~512 MB — trim or compress first.`);
     return;
   }
   const url = URL.createObjectURL(file);
   state.brain.videoFile = file;
   state.brain.videoUrl = url;
+  registerVideoFile(file, url, Date.now(), false);
+  persistVideoBlob(file).catch(e => console.warn('video persist failed', e));
 
-  // Remember this video by filename so any video-index CSV can link to it.
-  state.brain.videoFiles = state.brain.videoFiles || {};
-  state.brain.videoFiles[file.name] = { url, size: file.size, addedAt: Date.now() };
-
-  // Back-fill any pre-existing VideoSegment artifacts that referenced this file.
-  let linked = 0;
-  for (const a of state.brain.artifacts) {
-    if (a.type === 'VideoSegment' && !a.videoLinked && a.fileName === file.name) {
-      a.videoUrl = url;
-      a.videoLinked = true;
-      linked++;
-    }
-  }
+  const linked = state.brain.artifacts.filter(
+    a => a.type === 'VideoSegment' && a.fileName === file.name && a.videoLinked
+  ).length;
   if (linked > 0) {
     onArtifactChanged();
-    toast(`${file.name} loaded — linked to ${linked} indexed clip${linked===1?'':'s'}`);
+    toast(`${file.name} saved locally — linked to ${linked} clip${linked === 1 ? '' : 's'}`);
   } else {
-    toast(`Video loaded — tag time ranges in the player, or drop a video-index CSV`);
+    toast(`Video saved locally — survives refresh · scrub, set IN/OUT, Save`);
   }
-  openVideoPlayer(url, file.name);
+  updateVideoSourceBar();
+  requestAnimationFrame(() => openVideoPlayer(url, file.name));
+}
+
+function updateVideoSourceBar() {
+  const bar = document.getElementById('video-source');
+  if (!bar) return;
+  const file = state.brain.videoFile;
+  const url = state.brain.videoUrl;
+  const storedCount = Object.keys(state.brain.videoFiles || {}).length;
+  if (!file || !url) {
+    if (storedCount > 0) {
+      bar.hidden = false;
+      document.getElementById('vs-name').textContent = `${storedCount} video${storedCount === 1 ? '' : 's'} in browser storage`;
+      document.getElementById('vs-meta').textContent = 'Click Open tagging panel or drop again to preview';
+      return;
+    }
+    bar.hidden = true;
+    return;
+  }
+  bar.hidden = false;
+  document.getElementById('vs-name').textContent = file.name;
+  document.getElementById('vs-meta').textContent =
+    `${formatBytes(file.size)} · ${Object.keys(state.brain.videoFiles || {}).length} file(s) in browser storage · panel ${document.getElementById('brain-mode').classList.contains('has-video') ? 'open' : 'closed'}`;
+}
+
+async function clearLoadedVideo() {
+  const name = state.brain.videoFile?.name;
+  if (state.brain.videoUrl) {
+    try { URL.revokeObjectURL(state.brain.videoUrl); } catch {}
+  }
+  if (name) {
+    try { await deleteVideoBlob(name); } catch (e) { console.warn('video delete failed', e); }
+    delete state.brain.videoFiles[name];
+    for (const a of state.brain.artifacts) {
+      if (a.type === 'VideoSegment' && a.fileName === name) {
+        a.videoUrl = null;
+        a.videoLinked = false;
+      }
+    }
+  }
+  state.brain.videoFile = null;
+  state.brain.videoUrl = null;
+  closeVideoPlayer();
+  updateVideoSourceBar();
+  toast(name ? `Removed ${name} from browser storage` : 'Cleared loaded video');
 }
 
 function validateFile(file, allowedExts) {
   if (!file) return false;
-  if (file.size > MAX_FILE_BYTES) {
-    toast(`${file.name} is too large (${formatBytes(file.size)}). 50MB max.`);
+  if (file.size > MAX_DOCUMENT_BYTES) {
+    toast(`${file.name} is too large (${formatBytes(file.size)}). 50 MB max for PDF/CSV.`);
     return false;
   }
   const ext = (file.name.split('.').pop() || '').toLowerCase();
@@ -3028,7 +3299,49 @@ function lensFromAgentOutput(ao) {
 /* Per-role char budgets from the hardware profile. Default to Rokid AI. */
 function lensBudget(hw) {
   const b = hw && hw.display && hw.display.four_role_budget;
-  return b || { label_chars: 32, value_chars: 16, action_chars: 28, source_chars: 32 };
+  return b || { label_chars: 32, value_chars: 16, action_chars: 36, source_chars: 32 };
+}
+
+function lensLinesForDisplay(ao) {
+  const lens = lensFromAgentOutput(ao);
+  const full = ao && ao.lensFull ? ao.lensFull : lens;
+  return { lens, full, truncated: !!(ao && ao.lensTruncated) };
+}
+
+const CORRECTIVE_KIND_LABEL = {
+  instruction: 'Work instruction',
+  expert_advice: 'Expert advice',
+  taxonomy: 'Error taxonomy',
+  llm: 'LLM contextual',
+};
+
+function renderSourceChips(sources) {
+  if (!sources || !sources.length) return '';
+  const seen = new Set();
+  const chips = [];
+  for (const s of sources) {
+    const key = `${s.kind}:${s.id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    chips.push(`<span class="ao-src-chip kind-${s.kind}" title="${escapeHTML(s.text)}">${escapeHTML(CORRECTIVE_KIND_LABEL[s.kind] || s.kind)} · ${escapeHTML(s.id)}</span>`);
+  }
+  return `<div class="ao-fix-sources">${chips.join('')}</div>`;
+}
+
+function renderCorrectiveBlock(ao, lens) {
+  if (!ao || !ao.detected) return '';
+  const fix = ao.fix || '';
+  const fixSources = renderSourceChips(ao.fixSources);
+  const actionSources = renderSourceChips(ao.actionSources);
+  return `<div class="ao-fix-block">
+    <div class="ao-k">CORRECTIVE ACTION · lab detail</div>
+    <div class="ao-fix">${escapeHTML(fix || '—')}</div>
+    ${fixSources || '<div class="ao-lens-action-note">Sources: procedure spec + live LLM</div>'}
+    <div class="ao-k" style="margin-top:8px;">ON-GLASS ACTION · what worker sees (teal line)</div>
+    <div class="ao-fix" style="border-left-color:var(--acc);">${escapeHTML(lens.action || '—')}</div>
+    ${actionSources}
+    <div class="ao-lens-action-note">Priority: official step instructions → expert advice → taxonomy default → LLM nuance. The teal ACTION line is shortened to fit the Rokid display budget.</div>
+  </div>`;
 }
 
 /* Render the structured per-event agent verdict in the run-detail panel.
@@ -3050,6 +3363,7 @@ function renderAgentOutput(ao, hw, eid) {
   const next = ao.nextAction || '—';
   const lens = lensFromAgentOutput(ao);
   const b = lensBudget(hw);
+  const { full, truncated } = lensLinesForDisplay(ao);
 
   const fullBtn = eid
     ? `<button class="ao-full-btn" title="Open the worker's-eye-view in full size" onclick="event.stopPropagation();openAgentOutputModal('${eid}')">
@@ -3065,15 +3379,15 @@ function renderAgentOutput(ao, hw, eid) {
       <span class="ao-diag">${escapeHTML(ao.diagnosis || '')}</span>
       ${fullBtn}
     </div>
-    ${ao.fix ? `<div class="ao-fix"><span class="ao-k">FIX</span>${escapeHTML(ao.fix)}</div>` : ''}
+    ${renderCorrectiveBlock(ao, lens)}
     <div class="ao-proc">
       <div><span class="ao-k">COMPLETED</span>${escapeHTML(completed)}</div>
       <div><span class="ao-k">CURRENT</span>${escapeHTML(cur)}</div>
       <div><span class="ao-k">NEXT</span>${escapeHTML(next)}</div>
     </div>
     <div class="ao-glasses-wrap">
-      <div class="ao-k ao-k-lens">AI AGENT MESSAGE ON GLASSES — exact AnswerCard.kt render</div>
-      ${renderAnswerCard(lens, b, { compact: true })}
+      <div class="ao-k ao-k-lens">AI AGENT MESSAGE ON GLASSES — exact AnswerCard.kt render${truncated ? ' · <span style="color:var(--warn)">truncated to fit lens</span>' : ''}</div>
+      ${renderAnswerCard(lens, b, { compact: true, full, truncated })}
       <div class="ao-glasses-cap">
         ${escapeHTML(hw && hw.name || 'Rokid AI Glasses')} · bottom-left FOV card · line budgets ${b.label_chars}/${b.value_chars}/${b.action_chars}/${b.source_chars}
       </div>
@@ -3085,19 +3399,22 @@ function renderAgentOutput(ao, hw, eid) {
    Mirrors comer-rokid-demo/.../ui/AnswerCard.kt 1:1 (line roles, sizes, colors). */
 function renderAnswerCard(lens, budget, opts) {
   const compact = opts && opts.compact;
+  const full = (opts && opts.full) || lens;
+  const truncated = opts && opts.truncated;
   const fovClass = compact ? 'fov-frame fov-frame-compact' : 'fov-frame';
-  const labelTxt = lens.label || '';
-  const valueTxt = lens.value || '';
-  const actionTxt = lens.action || '';
-  const sourceTxt = lens.source || '';
+  const line = (role, cls, txt, fullTxt, budgetKey) => {
+    const isTrunc = truncated && fullTxt && fullTxt !== txt;
+    const title = fullTxt && fullTxt !== txt ? ` title="${escapeHTML(fullTxt)}"` : '';
+    return `<div class="ac-line ${cls}${isTrunc ? ' is-truncated' : ''}" data-budget="${budget[budgetKey]}"${title}>${escapeHTML(txt) || '&nbsp;'}</div>`;
+  };
   return `<div class="${fovClass}">
     <div class="fov-corner fov-tl"></div><div class="fov-corner fov-tr"></div>
     <div class="fov-corner fov-bl"></div><div class="fov-corner fov-br"></div>
     <div class="answer-card">
-      <div class="ac-line ac-label" data-budget="${budget.label_chars}">${escapeHTML(labelTxt) || '&nbsp;'}</div>
-      <div class="ac-line ac-value" data-budget="${budget.value_chars}">${escapeHTML(valueTxt) || '&nbsp;'}</div>
-      <div class="ac-line ac-action" data-budget="${budget.action_chars}">${escapeHTML(actionTxt) || '&nbsp;'}</div>
-      <div class="ac-line ac-source" data-budget="${budget.source_chars}">${escapeHTML(sourceTxt) || '&nbsp;'}</div>
+      ${line('label', 'ac-label', lens.label, full.label, 'label_chars')}
+      ${line('value', 'ac-value', lens.value, full.value, 'value_chars')}
+      ${line('action', 'ac-action', lens.action, full.action, 'action_chars')}
+      ${line('source', 'ac-source', lens.source, full.source, 'source_chars')}
     </div>
   </div>`;
 }
@@ -3114,6 +3431,7 @@ function openAgentOutputModal(eid) {
   const next = ao.nextAction || '—';
   const lens = lensFromAgentOutput(ao);
   const b = lensBudget(hw);
+  const { full, truncated } = lensLinesForDisplay(ao);
 
   const backdrop = document.createElement('div');
   backdrop.className = 'ao-modal-backdrop';
@@ -3132,9 +3450,15 @@ function openAgentOutputModal(eid) {
             <div class="ao-modal-label">DIAGNOSIS — what is wrong</div>
             <div class="ao-modal-body ao-modal-body-lg">${escapeHTML(ao.diagnosis || '—')}</div>
           </div>
-          ${ao.fix ? `<div class="ao-modal-section">
-            <div class="ao-modal-label">CORRECTIVE ACTION</div>
-            <div class="ao-modal-body ao-modal-body-lg ao-modal-fix">${escapeHTML(ao.fix)}</div>
+          ${ao.detected ? `<div class="ao-modal-section">
+            <div class="ao-modal-label">CORRECTIVE ACTION · lab detail</div>
+            <div class="ao-modal-body ao-modal-body-lg ao-modal-fix">${escapeHTML(ao.fix || '—')}</div>
+            ${renderSourceChips(ao.fixSources)}
+          </div>
+          <div class="ao-modal-section">
+            <div class="ao-modal-label">ON-GLASS ACTION · teal line</div>
+            <div class="ao-modal-body ao-modal-body-lg ao-modal-fix" style="border-left-color:#00E5A0;">${escapeHTML(lens.action || '—')}</div>
+            ${renderSourceChips(ao.actionSources)}
           </div>` : ''}
           <div class="ao-modal-section">
             <div class="ao-modal-label">PROCEDURAL UNDERSTANDING</div>
@@ -3148,21 +3472,25 @@ function openAgentOutputModal(eid) {
         <div class="ao-modal-right">
           <div class="ao-modal-label" style="text-align:center;color:#4ade80;">
             AI AGENT MESSAGE ON GLASSES
+            ${truncated ? '<span style="display:block;font-size:10px;color:var(--warn,#f5a524);margin-top:4px;">Dashed outline = clipped on lens · full text below</span>' : ''}
           </div>
           <div class="ao-modal-lens-shell">
-            ${renderAnswerCard(lens, b, { compact: false })}
+            ${renderAnswerCard(lens, b, { compact: false, full, truncated })}
             <div class="ao-modal-lens-caption">
               ${escapeHTML(hw && hw.name || 'Rokid AI Glasses')} · bottom-left AnswerCard · per-line budgets
               ${b.label_chars} / ${b.value_chars} / ${b.action_chars} / ${b.source_chars}
             </div>
             <div class="ao-role-table">
-              <div class="ao-role-row"><span class="ao-role-k" style="color:${COMER_THEME.primaryDim}">LABEL · 10sp dim teal</span><code>${escapeHTML(lens.label || '')}</code></div>
-              <div class="ao-role-row"><span class="ao-role-k" style="color:${COMER_THEME.white}">VALUE · 22sp white</span><code>${escapeHTML(lens.value || '')}</code></div>
-              <div class="ao-role-row"><span class="ao-role-k" style="color:${COMER_THEME.primary}">ACTION · 14sp teal</span><code>${escapeHTML(lens.action || '')}</code></div>
-              <div class="ao-role-row"><span class="ao-role-k" style="color:${COMER_THEME.textSecondary}">SOURCE · 10sp gray</span><code>${escapeHTML(lens.source || '')}</code></div>
+              <div class="ao-role-row"><span class="ao-role-k" style="color:${COMER_THEME.primaryDim}">LABEL · on lens</span><code>${escapeHTML(lens.label || '')}</code></div>
+              <div class="ao-role-row"><span class="ao-role-k" style="color:${COMER_THEME.white}">VALUE · on lens</span><code>${escapeHTML(lens.value || '')}</code></div>
+              <div class="ao-role-row"><span class="ao-role-k" style="color:${COMER_THEME.primary}">ACTION · on lens</span><code>${escapeHTML(lens.action || '')}</code></div>
+              <div class="ao-role-row"><span class="ao-role-k" style="color:${COMER_THEME.textSecondary}">SOURCE · on lens</span><code>${escapeHTML(lens.source || '')}</code></div>
+              ${truncated ? `
+              <div class="ao-role-row"><span class="ao-role-k" style="color:var(--warn)">ACTION · full</span><code>${escapeHTML(full.action || ao.fix || '')}</code></div>
+              <div class="ao-role-row"><span class="ao-role-k" style="color:var(--warn)">VALUE · full</span><code>${escapeHTML(full.value || '')}</code></div>` : ''}
             </div>
-            ${ao.fix ? `<details class="ao-modal-lens-full" ${ao.fix.length > 80 ? 'open' : ''}>
-              <summary>Full corrective action (not truncated)</summary>
+            ${ao.fix ? `<details class="ao-modal-lens-full" open>
+              <summary>Full corrective action (complete text)</summary>
               <div class="ao-modal-lens-full-body">${escapeHTML(ao.fix)}</div>
             </details>` : ''}
           </div>
@@ -3280,18 +3608,67 @@ function rebuildGraph() {
 /* ════════════════════════════════════════════════════════════════════════════
    VIDEO PLAYER + MANUAL TAGGING
    ════════════════════════════════════════════════════════════════════════════ */
+function resizeBrainLayout() {
+  if (state.graph) {
+    requestAnimationFrame(() => {
+      state.graph.resize();
+    });
+  }
+}
+
+function resetTagStamps() {
+  state.brain.tagRangeIn = null;
+  state.brain.tagRangeOut = null;
+  document.getElementById('stamp-in').textContent = '—';
+  document.getElementById('stamp-out').textContent = '—';
+  document.getElementById('tag-start')?.classList.remove('is-set');
+  document.getElementById('tag-end')?.classList.remove('is-set');
+}
+
+function videoReadyForTagging() {
+  const v = document.getElementById('vp-video');
+  return !!(v && v.src && Number.isFinite(v.duration) && v.duration > 0);
+}
+
 function openVideoPlayer(url, filename, segment) {
+  if (!url) {
+    toast('No video loaded — drop a recording in the Video zone first');
+    return;
+  }
+  switchMode('brain');
   document.getElementById('brain-mode').classList.add('has-video');
+  updateVideoSourceBar();
+
   const video = document.getElementById('vp-video');
-  video.src = url;
+  const loadingEl = document.getElementById('vp-loading');
+  resetTagStamps();
+
+  if (loadingEl) {
+    loadingEl.hidden = false;
+    loadingEl.textContent = 'Loading video metadata…';
+  }
+  document.getElementById('vp-duration').textContent = '—';
+  document.getElementById('vp-current').textContent = '00:00';
   document.getElementById('vp-filename').textContent = filename || '—';
 
+  video.pause();
+  video.src = url;
+  video.load();
+
   video.onloadedmetadata = () => {
+    if (loadingEl) loadingEl.hidden = true;
     document.getElementById('vp-duration').textContent = formatTs(video.duration);
     if (segment) {
       video.currentTime = segment.timestampStart || 0;
-      video.play();
+      video.play().catch(() => {});
     }
+  };
+  video.onerror = () => {
+    if (loadingEl) {
+      loadingEl.hidden = false;
+      loadingEl.textContent = 'Could not play this file in the browser';
+    }
+    toast('Video failed to load — try H.264 .mp4 or re-encode the file');
   };
   video.ontimeupdate = () => {
     document.getElementById('vp-current').textContent = formatTs(video.currentTime);
@@ -3305,11 +3682,11 @@ function openVideoPlayer(url, filename, segment) {
       `<option value="${k.id}">${k.order}. ${k.label}</option>`
     ).join('');
 
-  // Wire error-type dropdown to filter based on selected keystep's profile
   sel.onchange = () => populateErrorTypeOptions(sel.value);
   populateErrorTypeOptions('');
 
   renderSavedTags();
+  resizeBrainLayout();
 }
 
 function populateErrorTypeOptions(keystepId) {
@@ -3349,26 +3726,43 @@ function closeVideoPlayer() {
   document.getElementById('brain-mode').classList.remove('has-video');
   const video = document.getElementById('vp-video');
   video.pause();
-  state.brain.tagRangeIn = null;
-  state.brain.tagRangeOut = null;
-  document.getElementById('stamp-in').textContent = '—';
-  document.getElementById('stamp-out').textContent = '—';
+  resetTagStamps();
+  updateVideoSourceBar();
+  resizeBrainLayout();
 }
 
 function tagInPoint() {
   const v = document.getElementById('vp-video');
+  if (!videoReadyForTagging()) {
+    toast('Wait for the video to finish loading, then scrub to the IN point');
+    return;
+  }
   state.brain.tagRangeIn = v.currentTime;
   document.getElementById('stamp-in').textContent = formatTs(v.currentTime);
+  document.getElementById('tag-start').classList.add('is-set');
+  toast(`IN → ${formatTs(v.currentTime)}`);
 }
 function tagOutPoint() {
   const v = document.getElementById('vp-video');
+  if (!videoReadyForTagging()) {
+    toast('Wait for the video to finish loading, then scrub to the OUT point');
+    return;
+  }
+  if (state.brain.tagRangeIn === null) {
+    toast('Set IN first, then scrub to OUT');
+    return;
+  }
   state.brain.tagRangeOut = v.currentTime;
   document.getElementById('stamp-out').textContent = formatTs(v.currentTime);
+  document.getElementById('tag-end').classList.add('is-set');
+  toast(`OUT → ${formatTs(v.currentTime)}`);
 }
 
 function saveTagAsSegment() {
   const keystep = document.getElementById('tag-keystep').value;
-  const errorType = document.getElementById('tag-errortype')?.value || null;
+  const execution = document.getElementById('tag-execution')?.value || 'mistake';
+  let errorType = document.getElementById('tag-errortype')?.value || null;
+  if (errorType && !ERROR_TAXONOMY[errorType]) errorType = null;
   const name = document.getElementById('tag-name').value.trim();
   const tin = state.brain.tagRangeIn;
   const tout = state.brain.tagRangeOut;
@@ -3377,28 +3771,29 @@ function saveTagAsSegment() {
   if (tout <= tin) { toast('OUT must be after IN'); return; }
 
   const ks = PINION_GUIDE_PROCEDURE.keysteps.find(k => k.id === keystep);
+  const isCorrect = execution === 'correct';
   const etLabel = errorType ? ERROR_TAXONOMY[errorType]?.label : null;
   const segment = {
     id: `vid:${slug(state.brain.videoFile?.name || 'video')}-${Date.now()}`,
     type: 'VideoSegment',
-    label: name || (errorType ? `${ks.label} · ${etLabel}` : `${ks.label} (clip)`),
+    label: name || (errorType ? `${ks.label} · ${etLabel}` : `${ks.label} (${isCorrect ? 'correct' : 'mistake'})`),
     fileName: state.brain.videoFile?.name || 'video',
     videoUrl: state.brain.videoUrl,
     timestampStart: tin,
     timestampEnd: tout,
-    errorType,
-    isCorrectExecution: !errorType,
+    errorType: isCorrect ? null : errorType,
+    isCorrectExecution: isCorrect,
     attachedTo: keystep
   };
   addArtifact(segment);
-  state.brain.tagRangeIn = null;
-  state.brain.tagRangeOut = null;
-  document.getElementById('stamp-in').textContent = '—';
-  document.getElementById('stamp-out').textContent = '—';
+  resetTagStamps();
   document.getElementById('tag-name').value = '';
   if (document.getElementById('tag-errortype')) document.getElementById('tag-errortype').value = '';
+  if (document.getElementById('tag-execution')) document.getElementById('tag-execution').value = 'mistake';
   renderSavedTags();
-  toast(errorType ? `Tagged ${etLabel} clip for ${ks.label}` : `Tagged correct-execution clip for ${ks.label}`);
+  toast(isCorrect
+    ? `Saved correct-execution reference for ${ks.label}`
+    : (errorType ? `Saved mistake clip · ${etLabel} @ ${ks.label}` : `Saved mistake clip @ ${ks.label} — add error code for scored eval`));
 }
 
 function renderSavedTags() {
@@ -3414,6 +3809,9 @@ function renderSavedTags() {
   }).join('');
   list.querySelectorAll('.tag-row').forEach(el => {
     el.onclick = () => {
+      const seg = state.brain.artifacts.find(a => a.id === el.dataset.id);
+      const url = resolveVideoUrl(seg);
+      if (url) openVideoPlayer(url, seg?.fileName, seg);
       const node = state.graph.getElementById(el.dataset.id);
       if (node && !node.empty()) selectNode(node.data());
     };
@@ -3583,54 +3981,75 @@ function renderEvalSession() {
   document.getElementById('run-all-btn').disabled = false;
 }
 
+/** Normalize in-memory session rows → API SessionEvent[] for /api/eval. */
+function sessionEventsForApi(annotations) {
+  const validErrors = new Set(Object.keys(ERROR_TAXONOMY));
+  return annotations.map(a => {
+    const labelRaw = a.label || 'correct';
+    const label = labelRaw === 'incorrect' ? 'incorrect'
+      : labelRaw === 'ambiguous' ? 'ambiguous'
+      : 'correct';
+    const ev = {
+      ts: Math.max(0, Number(a.timestamp) || 0),
+      phase: String(a.phase || a.keystepId || 'segment').slice(0, 240),
+      label,
+    };
+    const stepId = a.keystepId || a.stepId;
+    if (stepId && /^step:\d+$/.test(stepId)) ev.stepId = stepId;
+    if (a.errorType && validErrors.has(a.errorType)) ev.errorType = a.errorType;
+    const note = a.note || a.rationale;
+    if (note) ev.rationale = String(note).slice(0, 4000);
+    return ev;
+  });
+}
+
+function parseEvalApiError(bodyText) {
+  try {
+    const parsed = JSON.parse(bodyText);
+    const issue = parsed.issues?.[0] || parsed.error;
+    if (typeof issue === 'string') return issue.slice(0, 280);
+    if (issue?.message) {
+      const path = issue.path?.length ? ` (${issue.path.join('.')})` : '';
+      return `${issue.message}${path}`;
+    }
+  } catch {}
+  return bodyText.slice(0, 280) || 'Unknown server error';
+}
+
 /** mode: 'live' → call /api/eval with liveLLM:true. 'sim' → in-browser sim.
  *  Decided per-button click; no shared global state. */
 async function runEvaluation(annotations, hwId, stratId, mode) {
-  // Backward-compat: callers that don't pass mode (older paths) default to sim.
   if (mode === undefined) mode = 'sim';
   console.log('[runEvaluation] mode =', mode, '· hw =', hwId, '· strat =', stratId, '· events =', annotations.length);
   if (mode === 'live') {
-    try {
-      toast('Calling Claude via /api/eval — this can take a few seconds per anomaly…');
-      const t0 = performance.now();
-      // Strip null/undefined fields — Zod's .optional() does NOT accept null.
-      const events = annotations.map(a => {
-        const ev = {
-          ts: a.timestamp,
-          phase: a.phase,
-          label: a.label === 'incorrect' ? 'incorrect' : 'correct',
-        };
-        if (a.keystepId) ev.stepId = a.keystepId;
-        if (a.errorType) ev.errorType = a.errorType;
-        const note = a.note || a.rationale;
-        if (note) ev.rationale = note;
-        return ev;
-      });
-      const r = await fetch(`${PLATFORM_API}/api/eval`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hardwareId: hwId, strategyId: stratId, liveLLM: true, events })
-      });
-      const elapsed = Math.round(performance.now() - t0);
-      console.log('[runEvaluation] /api/eval responded', r.status, 'in', elapsed, 'ms');
-      if (r.ok) {
-        const data = await r.json();
-        if (window.applyStubbedFromResponse) window.applyStubbedFromResponse(data);
-        const withAo = (data.events || []).filter(e => e.agentOutput).length;
-        toast(`Backend OK in ${elapsed}ms · ${withAo} contextual verdict${withAo===1?'':'s'}`);
-        console.log('[runEvaluation] received', data.events?.length, 'events ·', withAo, 'with agentOutput');
-        return data;
-      }
-      const body = await r.text().catch(() => '');
-      console.error('[runEvaluation] backend returned', r.status, body.slice(0, 500));
-      toast(`Backend returned ${r.status} — see console. Falling back to sim.`);
-    } catch (err) {
-      console.error('[runEvaluation] backend unreachable', err);
-      toast('Backend unreachable — see console. Falling back to sim.');
+    const events = sessionEventsForApi(annotations);
+    const anomalyCount = events.filter(e => e.label === 'incorrect').length;
+    if (anomalyCount === 0) {
+      throw new Error('No mistake clips in this session — tag segments as "mistake / anomaly" in Brain, or import a CSV with label=incorrect.');
     }
-  } else {
-    toast('Running in-browser SIM (fast, no Full view). Click "Run · LIVE LLM" for real verdicts.');
+    toast(`Calling Claude for ${anomalyCount} anomaly clip${anomalyCount === 1 ? '' : 's'} (~3–8s each)…`);
+    const t0 = performance.now();
+    const r = await fetch(`${PLATFORM_API}/api/eval`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hardwareId: hwId, strategyId: stratId, liveLLM: true, events })
+    });
+    const elapsed = Math.round(performance.now() - t0);
+    const body = await r.text();
+    console.log('[runEvaluation] /api/eval responded', r.status, 'in', elapsed, 'ms');
+    if (!r.ok) {
+      console.error('[runEvaluation] backend returned', r.status, body.slice(0, 500));
+      throw new Error(`Live eval failed (${r.status}): ${parseEvalApiError(body)}`);
+    }
+    const data = JSON.parse(body);
+    if (window.applyStubbedFromResponse) window.applyStubbedFromResponse(data);
+    const withAo = (data.events || []).filter(e => e.agentOutput).length;
+    toast(`Live LLM OK in ${(elapsed / 1000).toFixed(1)}s · ${withAo} contextual verdict${withAo === 1 ? '' : 's'}`);
+    console.log('[runEvaluation] received', data.events?.length, 'events ·', withAo, 'with agentOutput');
+    return { ...data, runMode: 'live' };
   }
+
+  toast('Running in-browser SIM (fast, no Full view). Click "Run · LIVE LLM" for real verdicts.');
 
   const hw = HARDWARE_PROFILES[hwId];
   const st = CONTEXT_STRATEGIES[stratId];
@@ -3723,6 +4142,8 @@ async function runEvaluation(annotations, hwId, stratId, mode) {
     id: 'r' + Date.now() + '-' + Math.random().toString(36).slice(2, 5),
     hardware: hw, strategy: st,
     timestamp: new Date().toISOString(), events,
+    runMode: 'sim',
+    stubbed: true,
     metrics: {
       anomalies: total, caught, missed, false_pos: fp,
       catch_rate: total > 0 ? caught / total : 0,
@@ -3784,9 +4205,10 @@ function renderRuns() {
     // a click. Older runs stay collapsed to keep the list scannable.
     const isOpen = idx === 0;
     const hasAgentOutput = r.events.some(e => e.agentOutput);
-    const modeBadge = hasAgentOutput
-      ? '<span class="run-badge run-badge-live" title="Real Claude calls — Full view available per event">LIVE LLM</span>'
-      : '<span class="run-badge run-badge-sim" title="In-browser simulator — no glasses verdicts. Tick \'Use backend LLM\' and rerun.">SIM</span>';
+    const isLiveRun = r.runMode === 'live' || r.stubbed === false;
+    const modeBadge = isLiveRun
+      ? `<span class="run-badge run-badge-live" title="Real Claude calls via /api/eval — Full view available per anomaly">LIVE LLM${hasAgentOutput ? '' : ' · awaiting anomalies'}</span>`
+      : '<span class="run-badge run-badge-sim" title="In-browser simulator — no glasses verdicts. Use Run · LIVE LLM for real verdicts.">SIM</span>';
     return `<div class="run-row ${isOpen ? 'is-open' : ''}" data-id="${r.id}" onclick="toggleRunDetail('${r.id}')">
       <div>
         <div class="run-id">
@@ -4177,6 +4599,24 @@ document.getElementById('vp-close').onclick = closeVideoPlayer;
 document.getElementById('tag-start').onclick = tagInPoint;
 document.getElementById('tag-end').onclick = tagOutPoint;
 document.getElementById('tag-save').onclick = saveTagAsSegment;
+document.getElementById('vs-open-player').onclick = () => {
+  if (!state.brain.videoUrl) {
+    toast('No video loaded — drop a recording first');
+    return;
+  }
+  openVideoPlayer(state.brain.videoUrl, state.brain.videoFile?.name);
+};
+document.getElementById('vs-clear-video').onclick = () => {
+  if (!state.brain.videoFile) return;
+  if (!confirm(`Remove ${state.brain.videoFile.name} from browser storage? Saved clip tags stay in the graph.`)) return;
+  clearLoadedVideo();
+};
+window.addEventListener('keydown', e => {
+  if (!document.getElementById('brain-mode').classList.contains('has-video')) return;
+  if (e.target.closest('input, textarea, select')) return;
+  if (e.key === 'i' || e.key === 'I') { e.preventDefault(); tagInPoint(); }
+  if (e.key === 'o' || e.key === 'O') { e.preventDefault(); tagOutPoint(); }
+});
 
 // Eval mode wiring
 document.getElementById('ev-gen-btn').onclick = generateEvalSession;
@@ -4186,19 +4626,29 @@ document.getElementById('ev-from-clips-btn').onclick = () => {
     toast('No VideoSegment artifacts yet. Drop a video-index CSV (and your videos) in Brain mode first.');
     return;
   }
-  // Build session events in clip order, preserving the labeled error_type.
-  const session = segments.map((seg, i) => ({
-    timestamp: i * 30,
-    phase: ((state.brain && (PINION_GUIDE_PROCEDURE.keysteps.find(k => k.id === seg.attachedTo) || {})).label) || seg.attachedTo,
-    keystepId: seg.attachedTo,
-    label: seg.isCorrectExecution ? 'correct' : 'incorrect',
-    errorType: seg.errorType || null,
-    note: seg.notes || seg.label || '',
-    sourceClip: seg.fileName
-  }));
+  const validErrors = new Set(Object.keys(ERROR_TAXONOMY));
+  const session = segments.map((seg, i) => {
+    let errorType = seg.errorType || null;
+    if (errorType && !validErrors.has(errorType)) errorType = null;
+    const label = seg.isCorrectExecution === true ? 'correct'
+      : seg.isCorrectExecution === false || errorType ? 'incorrect'
+      : 'correct';
+    return {
+      timestamp: Math.round(seg.timestampStart ?? i * 30),
+      phase: ((PINION_GUIDE_PROCEDURE.keysteps.find(k => k.id === seg.attachedTo) || {}).label) || seg.attachedTo,
+      keystepId: seg.attachedTo,
+      label,
+      errorType: label === 'incorrect' ? errorType : null,
+      note: seg.notes || seg.label || '',
+      sourceClip: seg.fileName
+    };
+  });
+  const mistakes = session.filter(e => e.label === 'incorrect').length;
   state.eval.session = session;
   renderEvalSession();
-  toast(`Loaded ${session.length} event${session.length===1?'':'s'} from uploaded clips`);
+  toast(mistakes > 0
+    ? `Loaded ${session.length} clip${session.length === 1 ? '' : 's'} · ${mistakes} mistake clip${mistakes === 1 ? '' : 's'} ready for LIVE LLM`
+    : `Loaded ${session.length} clip${session.length === 1 ? '' : 's'} — all marked correct; tag mistake clips in Brain for LIVE eval`);
 };
 async function runOnce(mode) {
   if (!state.eval.session) return;
@@ -4215,8 +4665,12 @@ async function runOnce(mode) {
     const run = await runEvaluation(state.eval.session, state.eval.hardware, state.eval.strategy, mode);
     state.eval.runs.push(run);
     renderRuns();
+    const isLive = run.runMode === 'live' || run.stubbed === false;
     const hasAo = (run.events || []).some(e => e.agentOutput);
-    toast(`${run.strategy.name}: ${(run.metrics.catch_rate*100).toFixed(0)}% catch · ${hasAo ? 'LIVE LLM' : 'SIM'}`);
+    toast(`${run.strategy.name}: ${(run.metrics.catch_rate * 100).toFixed(0)}% catch · ${isLive ? 'LIVE LLM' : 'SIM'}${isLive && hasAo ? ' · open row for Full view' : ''}`);
+  } catch (err) {
+    console.error('[runOnce]', err);
+    toast(err?.message || 'Evaluation failed — see console');
   } finally {
     btn.innerHTML = originalLabel;
     [simBtn, liveBtn, allBtn].forEach(b => b && (b.disabled = false));
@@ -4279,6 +4733,13 @@ window.addEventListener('load', () => {
   wireSignOut();
 
   if (restored) toast(`Restored ${state.brain.artifacts.length} artifact${state.brain.artifacts.length===1?'':'s'} from last session`);
+
+  restoreVideosFromStorage().then(count => {
+    if (count > 0) {
+      toast(`Restored ${count} video${count === 1 ? '' : 's'} from browser storage — open tagging panel or click a clip`);
+      renderArtifactList();
+    }
+  });
 
   // Graph init depends on Cytoscape
   if (typeof cytoscape === 'undefined') {

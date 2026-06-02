@@ -1,0 +1,1339 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Comer Industries · Synthetic POV</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!--
+    Spark (World Labs' open-source 3DGS renderer) loads its OWN modern three
+    via this import map. It is module-scoped and does NOT touch the global
+    window.THREE (r128) used by the procedural "World View" quad, so the two
+    coexist. Marble worlds cannot be iframed (X-Frame-Options: DENY), so we
+    render the exported .spz splat in-page with Spark instead.
+  -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
+      "@sparkjsdev/spark": "https://sparkjs.dev/releases/spark/2.1.0/spark.module.js"
+    }
+  }
+  </script>
+  <style>
+    :root {
+      --bg: #050505;
+      --bg-2: #0c0d0d;
+      --bg-3: #121414;
+      --bg-4: #181b1b;
+      --ink-1: #f1f4f3;
+      --ink-2: #9aa6a1;
+      --ink-3: #5d6864;
+      --line: #1d2120;
+      --line-2: #28302d;
+      --primary: #00E5A0;
+      --primary-dim: #00996B;
+      --primary-glow: rgba(0,229,160,0.45);
+      --blue: #38bdf8;
+      --violet: #a78bfa;
+      --amber: #f59e0b;
+      --err: #ef4444;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+
+    /* Layout variables driven by the resizers (persisted to localStorage). */
+    :root { --sidebar-w: 200px; --qcol: 50%; --qrow: 50%; --timeline-h: 150px; }
+
+    /* Drag-to-resize splitters */
+    .rsz { position: absolute; z-index: 50; background: transparent; transition: background .12s; touch-action: none; }
+    .rsz-v { top: 0; bottom: 0; width: 8px; margin-left: -4px; cursor: col-resize; }
+    .rsz-h { left: 0; right: 0; height: 8px; margin-top: -4px; cursor: row-resize; }
+    .rsz:hover, .rsz.active { background: rgba(0,229,160,0.35); }
+
+    /* Movable quadrants */
+    .quad > .panel-head { cursor: grab; user-select: none; }
+    .quad > .panel-head:active { cursor: grabbing; }
+    .quad > .panel-head .grip { color: var(--ink-3); margin-right: 6px; letter-spacing: -1px; }
+    .quad.drop-target { outline: 2px dashed var(--primary); outline-offset: -2px; }
+    .quad.drop-target::after {
+      content: ''; position: absolute; inset: 0; z-index: 45;
+      background: rgba(0,229,160,0.10); pointer-events: none;
+    }
+    .quads.dragging iframe, .quads.dragging video { pointer-events: none; }
+    .quads.dragging .rsz { display: none; }
+    html, body { height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--ink-1);
+      font-family: var(--sans);
+      font-size: 13px;
+      line-height: 1.45;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app {
+      height: 100vh;
+      width: 100%;
+      display: grid;
+      grid-template-rows: 42px 1fr var(--timeline-h, 150px);
+    }
+
+    /* ── Top bar ─────────────────────────────── */
+    .topbar {
+      display: flex; align-items: center; gap: 14px;
+      padding: 0 14px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, var(--bg-2), var(--bg));
+    }
+    .brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+    .brand .logo {
+      width: 18px; height: 18px; border-radius: 4px;
+      background: radial-gradient(circle at 30% 30%, var(--primary), var(--primary-dim));
+      box-shadow: 0 0 12px var(--primary-glow);
+    }
+    .brand .name { font-weight: 600; letter-spacing: -0.01em; }
+    .brand .sub { color: var(--ink-3); font-family: var(--mono); font-size: 11px; }
+    .rec-pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 4px 10px; border-radius: 5px;
+      background: var(--bg-3); border: 1px solid var(--line-2);
+      font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+    }
+    .rec-pill .glyph { color: var(--primary); }
+    .top-spacer { flex: 1; }
+    .top-meta {
+      display: flex; align-items: center; gap: 16px;
+      font-family: var(--mono); font-size: 11px; color: var(--ink-3);
+    }
+    .top-meta b { color: var(--ink-1); font-weight: 500; }
+    .live-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--primary);
+      box-shadow: 0 0 8px var(--primary-glow);
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.35;} }
+
+    /* ── Main 3-column area ─────────────────── */
+    .main {
+      position: relative;
+      display: grid;
+      grid-template-columns: var(--sidebar-w, 200px) 1fr;
+      min-height: 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    /* ── 2×2 quadrant grid ──────────────────── */
+    .quads {
+      position: relative;
+      display: grid;
+      grid-template-columns: var(--qcol, 50%) 1fr;
+      grid-template-rows: var(--qrow, 50%) 1fr;
+      min-height: 0;
+    }
+    .quad {
+      position: relative; min-height: 0;
+      display: flex; flex-direction: column;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .quad:nth-child(2n) { border-right: none; }
+    .quad:nth-child(n+3) { border-bottom: none; }
+    .q-body {
+      position: relative; flex: 1; min-height: 0; overflow: hidden;
+      background: #000;
+    }
+    /* video quad fills instead of using a fixed aspect ratio */
+    .q-body.cam-body { aspect-ratio: auto; }
+    .q-body.splat-body { height: auto; }
+    .q-body.viewport { background: radial-gradient(circle at 50% 40%, #0a1614, #050606 70%); }
+
+    /* SLAM + eye quad */
+    .slam-quad { display: flex; flex-direction: column; }
+    .slam-grid {
+      flex: 1; min-height: 0; display: grid;
+      grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+    }
+    .slam-grid .slam-cell { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .slam-grid .slam-cell:nth-child(2n) { border-right: none; }
+    .slam-grid .slam-cell:nth-child(n+3) { border-bottom: none; }
+    .slam-grid .slam-img { flex: 1; aspect-ratio: auto; }
+    .slam-img.mirror img { transform: scaleX(-1); }
+    .slam-quad .gaze-body { height: 64px; flex-shrink: 0; border-top: 1px solid var(--line); }
+
+    .panel { border-right: 1px solid var(--line); min-height: 0; display: flex; flex-direction: column; }
+    .panel:last-child { border-right: none; }
+
+    .panel-head {
+      display: flex; align-items: center; gap: 8px;
+      height: 28px; padding: 0 10px; flex-shrink: 0;
+      border-bottom: 1px solid var(--line);
+      background: var(--bg-2);
+      font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--ink-3);
+    }
+    .panel-head .pi { color: var(--primary); font-size: 10px; }
+    .panel-head .tag {
+      margin-left: auto; font-size: 9.5px; color: var(--ink-3);
+      border: 1px solid var(--line-2); border-radius: 3px; padding: 1px 6px;
+    }
+
+    /* ── Left: blueprint tree ───────────────── */
+    .tree { overflow-y: auto; padding: 6px 4px; }
+    .tree::-webkit-scrollbar { width: 8px; }
+    .tree::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 4px; }
+    .t-row {
+      display: flex; align-items: center; gap: 6px;
+      padding: 3px 8px; border-radius: 4px;
+      font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+      cursor: default; white-space: nowrap;
+    }
+    .t-row:hover { background: var(--bg-3); }
+    .t-row.sel { background: rgba(0,229,160,0.10); color: var(--ink-1); }
+    .t-row .caret { color: var(--ink-3); width: 9px; display: inline-block; }
+    .t-row .ico { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+    .t-row .cnt { margin-left: auto; color: var(--ink-3); font-size: 9.5px; }
+    .ico.points { background: var(--primary); }
+    .ico.path { background: var(--blue); }
+    .ico.cam { background: var(--violet); }
+    .ico.imu { background: var(--amber); }
+    .ico.gaze { background: var(--err); }
+    .ico.world { background: var(--ink-2); }
+    .indent-1 { padding-left: 18px; }
+    .indent-2 { padding-left: 32px; }
+    .tree-sep { height: 1px; background: var(--line); margin: 6px 8px; }
+    .tree-cap { padding: 8px 10px 4px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+
+    /* ── Center: 3D viewport ────────────────── */
+    .viewport { position: relative; background: radial-gradient(circle at 50% 40%, #0a1614, #050606 70%); }
+    #scene { display: block; width: 100%; height: 100%; }
+    .vp-overlay { position: absolute; inset: 0; pointer-events: none; }
+    .vp-tabs {
+      position: absolute; top: 8px; left: 10px; display: flex; gap: 4px; pointer-events: auto;
+    }
+    .vp-tab {
+      font-family: var(--mono); font-size: 10px; color: var(--ink-2);
+      background: rgba(8,10,10,0.7); border: 1px solid var(--line-2);
+      border-radius: 4px; padding: 3px 9px; backdrop-filter: blur(6px);
+    }
+    .vp-tab.active { color: var(--primary); border-color: var(--primary-dim); }
+    .vp-legend {
+      position: absolute; bottom: 10px; left: 10px;
+      background: rgba(8,10,10,0.72); border: 1px solid var(--line-2);
+      border-radius: 6px; padding: 8px 10px; backdrop-filter: blur(6px);
+      font-family: var(--mono); font-size: 10px; color: var(--ink-2);
+    }
+    .vp-legend .lg { display: flex; align-items: center; gap: 7px; margin: 2px 0; }
+    .vp-legend .sw { width: 9px; height: 9px; border-radius: 2px; }
+    .vp-stats {
+      position: absolute; top: 8px; right: 10px;
+      font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+      text-align: right; line-height: 1.6;
+    }
+    .vp-stats b { color: var(--primary); font-weight: 500; }
+    .gizmo {
+      position: absolute; bottom: 10px; right: 12px; width: 56px; height: 56px;
+      opacity: 0.85;
+    }
+    .vp-hint {
+      position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+      font-family: var(--mono); font-size: 9.5px; color: var(--ink-3);
+      opacity: 0; transition: opacity .3s; pointer-events: none;
+    }
+    .viewport:hover .vp-hint { opacity: 0.7; }
+
+    /* ── Right rail ─────────────────────────── */
+    .rail { overflow-y: auto; display: flex; flex-direction: column; }
+    .rail::-webkit-scrollbar { width: 8px; }
+    .rail::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 4px; }
+    .tile { border-bottom: 1px solid var(--line); }
+    .tile-head {
+      display: flex; align-items: center; gap: 7px;
+      height: 24px; padding: 0 10px;
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em;
+      text-transform: uppercase; color: var(--ink-3);
+      background: var(--bg-2);
+    }
+    .tile-head .dot { width: 7px; height: 7px; border-radius: 2px; }
+    .tile-head .res { margin-left: auto; color: var(--ink-3); font-size: 9px; }
+
+    /* World Labs splat */
+    .splat-body {
+      position: relative; height: 188px; background: #060809; overflow: hidden;
+    }
+    .splat-body iframe { width: 100%; height: 100%; border: 0; display: block; }
+    .splat-ph {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 12px;
+      background:
+        radial-gradient(circle at 30% 25%, rgba(0,229,160,0.18), transparent 55%),
+        radial-gradient(circle at 75% 70%, rgba(56,189,248,0.16), transparent 55%),
+        #07090a;
+    }
+    .splat-ph .splat-anim {
+      position: absolute; inset: 0; opacity: 0.5;
+      background-image: radial-gradient(rgba(0,229,160,0.5) 1px, transparent 1.4px);
+      background-size: 14px 14px;
+      animation: splatdrift 9s linear infinite;
+      mix-blend-mode: screen;
+      mask-image: radial-gradient(circle at 50% 50%, #000 0%, transparent 70%);
+    }
+    @keyframes splatdrift { from{background-position:0 0;} to{background-position:42px 56px;} }
+    .splat-ph .wl-badge {
+      position: relative; font-family: var(--mono); font-size: 11px; color: var(--ink-1);
+      border: 1px solid var(--line-2); border-radius: 20px; padding: 5px 12px;
+      background: rgba(6,8,9,0.6); backdrop-filter: blur(4px);
+    }
+    .splat-ph .wl-badge b { color: var(--primary); }
+    .splat-ph .wl-hint { position: relative; font-size: 10px; color: var(--ink-3); font-family: var(--mono); max-width: 240px; }
+    .splat-ph .wl-actions { position: relative; display: flex; gap: 6px; }
+    .splat-ph .wl-cta {
+      position: relative; pointer-events: auto;
+      font-family: var(--mono); font-size: 10px; color: var(--primary);
+      border: 1px solid var(--primary-dim); border-radius: 4px; padding: 4px 10px;
+      background: rgba(0,229,160,0.08); cursor: pointer;
+    }
+    .splat-ph .wl-cta:hover { background: rgba(0,229,160,0.16); }
+    .splat-ph .wl-cta.ghost { color: var(--ink-2); border-color: var(--line-2); background: rgba(255,255,255,0.03); }
+    .splat-ph .wl-cta.ghost:hover { color: var(--ink-1); border-color: var(--ink-3); }
+    .splat-ph .wl-cta:disabled { opacity: 0.5; cursor: default; }
+    .splat-ph .wl-status {
+      position: relative; display: flex; align-items: center; gap: 8px;
+      font-family: var(--mono); font-size: 10px; color: var(--ink-2);
+      background: rgba(6,8,9,0.6); border: 1px solid var(--line-2);
+      border-radius: 6px; padding: 6px 11px; backdrop-filter: blur(4px); max-width: 280px;
+    }
+    .wl-spin {
+      width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+      border: 2px solid var(--line-2); border-top-color: var(--primary);
+      animation: wlspin 0.8s linear infinite;
+    }
+    @keyframes wlspin { to { transform: rotate(360deg); } }
+    .wl-open {
+      position: absolute; bottom: 7px; right: 9px; z-index: 3;
+      font-family: var(--mono); font-size: 9.5px; color: var(--primary);
+      background: rgba(6,8,9,0.7); border: 1px solid var(--primary-dim);
+      border-radius: 4px; padding: 3px 8px; text-decoration: none; backdrop-filter: blur(4px);
+    }
+    .wl-open:hover { background: rgba(0,229,160,0.16); }
+
+    /* RGB POV camera */
+    .cam-body { position: relative; background: #000; aspect-ratio: 16/10; overflow: hidden; }
+    .cam-body video, .cam-body img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .cam-hud { position: absolute; inset: 0; pointer-events: none; }
+    .cam-ts {
+      position: absolute; top: 6px; left: 8px; font-family: var(--mono); font-size: 10px;
+      color: var(--primary); text-shadow: 0 0 4px #000;
+    }
+    .cam-rec {
+      position: absolute; top: 6px; right: 8px; display: flex; align-items: center; gap: 5px;
+      font-family: var(--mono); font-size: 10px; color: #fff; text-shadow: 0 0 4px #000;
+    }
+    .cam-rec .rd { width: 7px; height: 7px; border-radius: 50%; background: var(--err); animation: pulse 1.4s infinite; }
+    .cam-cross { position: absolute; top: 50%; left: 50%; width: 26px; height: 26px; transform: translate(-50%,-50%); opacity: 0.5; }
+    .cam-cross::before, .cam-cross::after { content:''; position:absolute; background: var(--primary); }
+    .cam-cross::before { left: 50%; top: 0; width: 1px; height: 100%; transform: translateX(-50%); }
+    .cam-cross::after { top: 50%; left: 0; height: 1px; width: 100%; transform: translateY(-50%); }
+    .det-box {
+      position: absolute; border: 1.5px solid var(--primary); border-radius: 3px;
+      box-shadow: 0 0 8px rgba(0,229,160,0.4);
+    }
+    .det-box .lab {
+      position: absolute; top: -15px; left: -1px; font-family: var(--mono); font-size: 9px;
+      color: #021;  background: var(--primary); padding: 0 4px; border-radius: 2px; white-space: nowrap;
+    }
+    .det-box.blue { border-color: var(--blue); box-shadow: 0 0 8px rgba(56,189,248,0.4); }
+    .det-box.blue .lab { background: var(--blue); }
+
+    /* SLAM dual + gaze row */
+    .slam-row { display: grid; grid-template-columns: 1fr 1fr; }
+    .slam-cell { position: relative; border-right: 1px solid var(--line); }
+    .slam-cell:last-child { border-right: none; }
+    .slam-cell .sh {
+      height: 20px; display: flex; align-items: center; padding: 0 8px;
+      font-family: var(--mono); font-size: 9px; color: var(--ink-3); text-transform: uppercase;
+      background: var(--bg-2); border-bottom: 1px solid var(--line);
+    }
+    .slam-img { position: relative; aspect-ratio: 4/3; overflow: hidden; background:#000; }
+    .slam-img img {
+      width: 110%; height: 110%; object-fit: cover; margin: -5%;
+      filter: grayscale(1) contrast(1.35) brightness(0.9);
+    }
+    .slam-img.right img { transform: scaleX(-1); filter: grayscale(1) contrast(1.45) brightness(0.8); }
+    .slam-img::after {
+      content:''; position:absolute; inset:0;
+      background: radial-gradient(circle at 50% 50%, transparent 45%, rgba(0,0,0,0.6) 100%);
+    }
+
+    .gaze-body { position: relative; height: 96px; background: #07090a; overflow: hidden; }
+    #gazeCanvas { width: 100%; height: 100%; display: block; }
+
+    /* ── Bottom timeline ────────────────────── */
+    .timeline {
+      position: relative;
+      display: grid; grid-template-columns: 212px 1fr; min-height: 0;
+      background: var(--bg-2);
+    }
+    .tl-controls {
+      border-right: 1px solid var(--line); padding: 10px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .transport { display: flex; align-items: center; gap: 6px; }
+    .tbtn {
+      width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--line-2);
+      background: var(--bg-3); color: var(--ink-1); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .tbtn:hover { border-color: var(--primary-dim); color: var(--primary); }
+    .tbtn.primary { background: rgba(0,229,160,0.12); border-color: var(--primary-dim); color: var(--primary); }
+    .time-read { font-family: var(--mono); font-size: 13px; color: var(--ink-1); }
+    .time-read .dur { color: var(--ink-3); }
+    .speed-row { display: flex; align-items: center; gap: 4px; }
+    .speed-row .lab { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); }
+    .sbtn {
+      font-family: var(--mono); font-size: 10px; color: var(--ink-2);
+      border: 1px solid var(--line-2); background: var(--bg-3); border-radius: 3px;
+      padding: 2px 6px; cursor: pointer;
+    }
+    .sbtn.active { color: var(--primary); border-color: var(--primary-dim); }
+
+    .tl-tracks { position: relative; min-width: 0; padding: 6px 12px 8px; overflow: hidden; }
+    .tl-ruler {
+      position: relative; height: 16px; border-bottom: 1px solid var(--line);
+      font-family: var(--mono); font-size: 9px; color: var(--ink-3);
+    }
+    .tl-tick { position: absolute; top: 0; height: 16px; border-left: 1px solid var(--line-2); padding-left: 3px; }
+    .track { position: relative; height: 30px; margin-top: 6px; }
+    .track .tlabel {
+      position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+      font-family: var(--mono); font-size: 9px; color: var(--ink-3); z-index: 2;
+      background: var(--bg-2); padding-right: 6px;
+    }
+    .track canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .playhead {
+      position: absolute; top: 0; bottom: 6px; width: 1px; background: var(--primary);
+      box-shadow: 0 0 8px var(--primary-glow); z-index: 5; pointer-events: none;
+    }
+    .playhead::before {
+      content:''; position: absolute; top: 0; left: -4px; width: 9px; height: 9px;
+      background: var(--primary); border-radius: 2px; box-shadow: 0 0 8px var(--primary-glow);
+    }
+    .tl-scrub { position: absolute; inset: 0; cursor: ew-resize; z-index: 4; }
+  </style>
+</head>
+<body>
+  <div class="app">
+
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo"></div>
+        <span class="name">Comer</span>
+        <span class="sub">· synthetic-pov</span>
+      </div>
+      <div class="rec-pill">
+        <span class="glyph">●</span>
+        <span id="recName">PG-04_pinion-guide_walk_0</span>
+      </div>
+      <div class="top-spacer"></div>
+      <div class="top-meta">
+        <span>algorithm output · <b>semi-dense + closed-loop</b></span>
+        <span>fps <b id="fpsRead">—</b></span>
+        <span class="live-dot"></span>
+        <span><b id="modeRead">REPLAY</b></span>
+      </div>
+    </header>
+
+    <!-- Main: streams tree + 2×2 quadrants -->
+    <div class="main">
+
+      <!-- Resizer: sidebar / quadrants -->
+      <div class="rsz rsz-v" data-rsz="sidebar" style="left:var(--sidebar-w,200px);" title="Drag to resize"></div>
+
+      <!-- Left: streams tree -->
+      <div class="panel">
+        <div class="panel-head"><span class="pi">▣</span> Streams <span class="tag">recording</span></div>
+        <div class="tree">
+          <div class="t-row"><span class="caret">▾</span><span class="ico world"></span>world</div>
+          <div class="t-row sel indent-1"><span class="caret"></span><span class="ico points"></span>points <span class="cnt" id="ptCount">0</span></div>
+          <div class="t-row indent-1"><span class="caret"></span><span class="ico path"></span>device_trajectory</div>
+          <div class="t-row indent-1"><span class="caret"></span><span class="ico cam"></span>glasses_pose</div>
+          <div class="t-row"><span class="caret">▾</span><span class="ico cam"></span>cameras</div>
+          <div class="t-row indent-1"><span class="caret"></span><span class="ico cam"></span>rgb</div>
+          <div class="t-row indent-1"><span class="caret"></span><span class="ico cam"></span>slam_front_l</div>
+          <div class="t-row indent-1"><span class="caret"></span><span class="ico cam"></span>slam_front_r</div>
+          <div class="t-row indent-1"><span class="caret"></span><span class="ico cam"></span>slam_side_l</div>
+          <div class="t-row indent-1"><span class="caret"></span><span class="ico cam"></span>slam_side_r</div>
+          <div class="t-row"><span class="caret">▾</span><span class="ico gaze"></span>eye_gaze</div>
+          <div class="t-row indent-1"><span class="caret"></span><span class="ico gaze"></span>direction</div>
+          <div class="t-row"><span class="caret">▾</span><span class="ico imu"></span>imu</div>
+          <div class="t-row indent-1"><span class="caret"></span><span class="ico imu"></span>accel</div>
+          <div class="t-row indent-1"><span class="caret"></span><span class="ico imu"></span>gyro</div>
+          <div class="tree-sep"></div>
+          <div class="tree-cap">Reconstruction</div>
+          <div class="t-row"><span class="caret"></span><span class="ico points"></span>worldlabs_splat <span class="cnt">ext</span></div>
+        </div>
+      </div>
+
+      <!-- 2×2 quadrants -->
+      <div class="quads">
+
+        <!-- Q1 top-left: real video -->
+        <div class="quad" data-quad="video">
+          <div class="panel-head"><span class="grip">⠿</span><span class="pi" style="color:var(--violet)">●</span> RGB · worker POV <span class="tag">2400×1800</span></div>
+          <div class="q-body cam-body" id="camBody">
+            <video id="povVideo" poster="/lab/assets/phase8_frame.jpg" muted loop playsinline></video>
+            <div class="cam-hud">
+              <div class="cam-ts" id="camTs">00:00.0</div>
+              <div class="cam-rec"><span class="rd"></span>REC</div>
+              <div class="cam-cross"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q2 top-right: World Labs splat (top view) -->
+        <div class="quad" data-quad="splat">
+          <div class="panel-head"><span class="grip">⠿</span><span class="pi" style="color:var(--primary)">●</span> World Labs · splat <span class="tag">top view · 3DGS</span></div>
+          <div class="q-body splat-body" id="splatBody">
+            <div class="splat-ph" id="splatPh">
+              <div class="splat-anim"></div>
+              <div class="wl-badge"><b>World Labs</b> · Gaussian splat</div>
+              <div class="wl-hint" id="splatHint">360° camera → reconstruction lands here.</div>
+              <div class="wl-actions" id="splatActions">
+                <button class="wl-cta" id="genPov">From worker POV</button>
+                <button class="wl-cta ghost" id="genPrompt">From prompt</button>
+              </div>
+              <div class="wl-status" id="splatStatus" hidden>
+                <span class="wl-spin"></span>
+                <span id="splatStatusText">Starting…</span>
+              </div>
+            </div>
+            <a class="wl-open" id="splatOpen" href="#" target="_blank" rel="noopener" hidden>open in Marble ↗</a>
+          </div>
+        </div>
+
+        <!-- Q3 bottom-left: 3D world view — floating dots + moving glasses -->
+        <div class="quad" data-quad="world">
+          <div class="panel-head"><span class="grip">⠿</span><span class="pi" style="color:var(--blue)">◇</span> World View <span class="tag">3D · floating points</span></div>
+          <div class="q-body viewport" id="viewport">
+            <canvas id="scene"></canvas>
+            <div class="vp-overlay">
+              <div class="vp-stats">
+                points <b id="ptStat">—</b><br>
+                traj <b id="trajStat">—</b> m<br>
+                t <b id="tStat">0.0</b>s
+              </div>
+              <div class="vp-legend">
+                <div class="lg"><span class="sw" style="background:var(--primary)"></span> semi-dense points</div>
+                <div class="lg"><span class="sw" style="background:var(--blue)"></span> closed-loop trajectory</div>
+                <div class="lg"><span class="sw" style="background:#fff"></span> glasses pose</div>
+              </div>
+              <svg class="gizmo" viewBox="0 0 56 56">
+                <line x1="28" y1="28" x2="28" y2="6"  stroke="#9aa6a1" stroke-width="1.5"/>
+                <line x1="28" y1="28" x2="48" y2="40" stroke="#ef4444" stroke-width="1.5"/>
+                <line x1="28" y1="28" x2="8"  y2="40" stroke="#38bdf8" stroke-width="1.5"/>
+                <text x="28" y="5"  fill="#9aa6a1" font-size="7" text-anchor="middle" font-family="monospace">Y</text>
+                <text x="51" y="43" fill="#ef4444" font-size="7" font-family="monospace">X</text>
+                <text x="2"  y="43" fill="#38bdf8" font-size="7" font-family="monospace">Z</text>
+              </svg>
+              <div class="vp-hint">drag to orbit · scroll to zoom</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q4 bottom-right: SLAM cameras + eye gaze -->
+        <div class="quad" data-quad="slam">
+          <div class="panel-head"><span class="grip">⠿</span><span class="pi" style="color:var(--blue)">●</span> SLAM + eye <span class="tag">mono · et</span></div>
+          <div class="q-body slam-quad">
+            <div class="slam-grid">
+              <div class="slam-cell">
+                <div class="sh">front-left</div>
+                <div class="slam-img"><img src="/lab/assets/phase8_frame.jpg" alt="slam front-left"></div>
+              </div>
+              <div class="slam-cell">
+                <div class="sh">front-right</div>
+                <div class="slam-img mirror"><img src="/lab/assets/phase8_frame.jpg" alt="slam front-right"></div>
+              </div>
+              <div class="slam-cell">
+                <div class="sh">side-left</div>
+                <div class="slam-img"><img src="/lab/assets/phase8_frame.jpg" alt="slam side-left"></div>
+              </div>
+              <div class="slam-cell">
+                <div class="sh">side-right</div>
+                <div class="slam-img mirror"><img src="/lab/assets/phase8_frame.jpg" alt="slam side-right"></div>
+              </div>
+            </div>
+            <div class="gaze-body"><canvas id="gazeCanvas"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Resizers: column + row splitters (kept last so quad :nth-child
+             border rules stay correct) -->
+        <div class="rsz rsz-v" data-rsz="qcol" style="left:var(--qcol,50%);" title="Drag to resize"></div>
+        <div class="rsz rsz-h" data-rsz="qrow" style="top:var(--qrow,50%);" title="Drag to resize"></div>
+
+      </div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="timeline">
+      <!-- Resizer: main / timeline -->
+      <div class="rsz rsz-h" data-rsz="timeline" style="top:0;" title="Drag to resize"></div>
+      <div class="tl-controls">
+        <div class="transport">
+          <button class="tbtn" id="btnBack" title="Restart">⏮</button>
+          <button class="tbtn primary" id="btnPlay" title="Play / pause">▶</button>
+          <div class="time-read"><span id="curTime">00:00.0</span><span class="dur" id="durTime"> / 00:30.0</span></div>
+        </div>
+        <div class="speed-row">
+          <span class="lab">speed</span>
+          <button class="sbtn" data-spd="0.5">0.5×</button>
+          <button class="sbtn active" data-spd="1">1×</button>
+          <button class="sbtn" data-spd="2">2×</button>
+          <button class="sbtn" data-spd="4">4×</button>
+        </div>
+      </div>
+      <div class="tl-tracks" id="tlTracks">
+        <div class="tl-ruler" id="tlRuler"></div>
+        <div class="track"><span class="tlabel">accel</span><canvas id="accelCanvas"></canvas></div>
+        <div class="track"><span class="tlabel">gyro</span><canvas id="gyroCanvas"></canvas></div>
+        <div class="playhead" id="playhead"></div>
+        <div class="tl-scrub" id="tlScrub"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+
+    // ── Config (URL-overridable for live demos) ───────────────────────
+    const params = new URLSearchParams(location.search);
+    const CONFIG = {
+      // Worker POV footage (web transcode of Phase_8_Video.MP4). Override
+      // with ?video=<url> or pass ?video= (empty) to fall back to the still.
+      povVideo: params.has("video")
+        ? params.get("video")
+        : "/lab/assets/phase8_pov.mp4",
+      splatUrl: params.get("splat") || "",           // ?splat=<direct .spz/.ply url for Spark>
+      duration: parseFloat(params.get("dur")) || 30, // seconds (until video metadata loads)
+    };
+
+    // DURATION is adopted from the POV video's real length once it loads,
+    // unless the caller pinned it explicitly via ?dur=.
+    let DURATION = CONFIG.duration;
+    const durationLocked = params.has("dur");
+    let playT = 0;            // current time in seconds
+    let playing = true;
+    let speed = 1;
+    let lastNow = performance.now();
+
+    // ── World Labs splat (rendered in-page with Spark) ────────────────
+    // The API key lives server-side; this page only talks to /api/worldlabs/*.
+    // Marble worlds can't be iframed (X-Frame-Options: DENY), so we poll the
+    // world by id and render its exported .spz with Spark (window.SplatViewer).
+    const DEFAULT_WORLD = "470aa29b-a1f9-40a5-885e-1f7232ba109c"; // pinion guide station — single-pano reconstruction (marble-1.1-plus)
+    const WORLD_ID = params.get("world") || DEFAULT_WORLD;        // ?world=<id> override
+    const LS_WORLD = "syntheticPov.worldId";
+    const splatBody = document.getElementById("splatBody");
+    const splatPh = document.getElementById("splatPh");
+    const splatHint = document.getElementById("splatHint");
+    const splatActions = document.getElementById("splatActions");
+    const splatStatus = document.getElementById("splatStatus");
+    const splatStatusText = document.getElementById("splatStatusText");
+    const splatOpen = document.getElementById("splatOpen");
+    const genPov = document.getElementById("genPov");
+    const genPrompt = document.getElementById("genPrompt");
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    function marbleUrlFor(id) { return `https://marble.worldlabs.ai/world/${id}`; }
+    function splatProxyFor(id) { return `/api/worldlabs/world/${encodeURIComponent(id)}/splat`; }
+
+    // Hand a splat URL to the Spark module (queue if it hasn't loaded yet).
+    function renderSplat(url, fileType) {
+      if (splatPh) splatPh.style.display = "none";
+      window.__splatPending = { url, fileType };
+      if (window.SplatViewer) window.SplatViewer.mount(url, fileType);
+    }
+
+    function setStatus(text, busy) {
+      if (text == null) { splatStatus.hidden = true; splatActions.hidden = false; return; }
+      splatActions.hidden = true;
+      splatStatus.hidden = false;
+      splatStatus.querySelector(".wl-spin").style.visibility = busy ? "visible" : "hidden";
+      splatStatusText.textContent = text;
+    }
+
+    // Poll a world until its splat assets are ready, then render with Spark.
+    let worldPolling = false;
+    async function trackWorld(id) {
+      if (!id || worldPolling) return;
+      worldPolling = true;
+      localStorage.setItem(LS_WORLD, id);
+      splatOpen.href = marbleUrlFor(id);
+      splatOpen.hidden = false;
+      const started = Date.now();
+      setStatus("Checking world…", true);
+      while (worldPolling) {
+        let s;
+        try {
+          s = await (await fetch(`/api/worldlabs/world/${encodeURIComponent(id)}`)).json();
+        } catch { await sleep(6000); continue; }
+        if (s.error) { setStatus("Error: " + s.error, false); worldPolling = false; return; }
+        if (s.done) {
+          setStatus(null);
+          renderSplat(splatProxyFor(id), "spz");
+          worldPolling = false;
+          return;
+        }
+        const t = Date.now() - started;
+        const mins = Math.floor(t / 60000);
+        const secs = Math.floor((t % 60000) / 1000);
+        setStatus((s.progress || "Generating world") + ` · ${mins}m${String(secs).padStart(2, "0")}s`, true);
+        if (s.thumbnail) {
+          splatBody.style.backgroundImage = `url("${s.thumbnail}")`;
+          splatBody.style.backgroundSize = "cover";
+          splatBody.style.backgroundPosition = "center";
+        }
+        await sleep(6000);
+      }
+    }
+
+    // Generate a brand-new world, then track it to render the splat.
+    async function generate(opts, label) {
+      setStatus(label, true);
+      try {
+        const res = await fetch("/api/worldlabs/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(opts),
+        });
+        const data = await res.json();
+        if (!res.ok) { setStatus(data.error || "Generate failed", false); return; }
+        if (data.worldId) { trackWorld(data.worldId); return; }
+        if (data.operationId) {
+          // Resolve the world id from the operation, then track the world.
+          const started = Date.now();
+          while (true) {
+            await sleep(5000);
+            let s;
+            try { s = await (await fetch(`/api/worldlabs/operation/${encodeURIComponent(data.operationId)}`)).json(); }
+            catch { continue; }
+            if (s.error) { setStatus("Generation failed: " + s.error, false); return; }
+            if (s.worldId) { trackWorld(s.worldId); return; }
+            const t = Date.now() - started;
+            setStatus("Starting generation… · " + Math.floor(t / 1000) + "s", true);
+          }
+        }
+        setStatus("No operation returned", false);
+      } catch (e) {
+        setStatus("Network error: " + e.message, false);
+      }
+    }
+
+    genPov?.addEventListener("click", () =>
+      generate(
+        { localAsset: "phase8_frame.jpg", prompt: "Industrial gearbox assembly workstation, worker point of view", displayName: "Comer · worker POV" },
+        "Uploading POV + starting…",
+      ),
+    );
+    genPrompt?.addEventListener("click", () => {
+      const p = prompt(
+        "Describe the world to generate:",
+        "Industrial assembly workstation with a gearbox pinion housing, torque wrench, shim trays and parts bins under bright overhead lighting, concrete factory floor.",
+      );
+      if (p) generate({ prompt: p, displayName: "Comer · prompt" }, "Starting generation…");
+    });
+
+    // Boot: direct ?splat=<asset url> > world id (?world= or the resumed default).
+    (async function initSplat() {
+      let configured = true;
+      try {
+        const st = await (await fetch("/api/worldlabs/status")).json();
+        configured = !!st.configured;
+        if (!configured) { splatActions.hidden = true; splatHint.textContent = "World Labs not configured on the server."; }
+      } catch { /* assume configured; trackWorld will surface errors */ }
+      if (CONFIG.splatUrl) { renderSplat(CONFIG.splatUrl); return; } // direct .spz/.ply URL
+      if (configured && WORLD_ID) { trackWorld(WORLD_ID); return; }
+    })();
+
+    // ── POV video ─────────────────────────────────────────────────────
+    const povVideo = document.getElementById("povVideo");
+    let videoReady = false;
+    if (CONFIG.povVideo) {
+      povVideo.src = CONFIG.povVideo;
+      povVideo.addEventListener("loadedmetadata", () => {
+        videoReady = true;
+        // Adopt the footage's true length so the timeline, ruler, IMU tracks
+        // and the synthetic 3D walk all span the real recording.
+        if (!durationLocked && isFinite(povVideo.duration) && povVideo.duration > 1) {
+          DURATION = povVideo.duration;
+          const durEl = document.getElementById("durTime");
+          if (durEl) durEl.textContent = " / " + fmt(DURATION);
+          buildRuler();
+          drawAllSeries();
+        }
+      });
+      povVideo.addEventListener("error", () => {
+        // Bad/unsupported source — keep the poster still visible.
+        console.warn("[synthetic-pov] POV video failed to load:", CONFIG.povVideo);
+      });
+      povVideo.play().catch(() => {});
+    }
+
+    // ── Three.js synthetic SLAM scene ─────────────────────────────────
+    const canvas = document.getElementById("scene");
+    const viewport = document.getElementById("viewport");
+    const hasThree = typeof THREE !== "undefined";
+    let renderer, scene, camera, points, trajLine, frustum, deviceDot, trajSamples = [], trajLengthM = 0;
+    let camAzimuth = 0.7, camElev = 0.5, camDist = 14;
+    const PT_COUNT = 7200;
+
+    function rand(a, b) { return a + Math.random() * (b - a); }
+
+    function buildPointCloud() {
+      const positions = new Float32Array(PT_COUNT * 3);
+      const colors = new Float32Array(PT_COUNT * 3);
+      const cLow = new THREE.Color(0x00e5a0);
+      const cMid = new THREE.Color(0x38bdf8);
+      const cHigh = new THREE.Color(0xeaf6f1);
+      let i = 0;
+      function put(x, y, z) {
+        positions[i * 3] = x; positions[i * 3 + 1] = y; positions[i * 3 + 2] = z;
+        const h = Math.min(1, Math.max(0, y / 3.4));
+        const c = h < 0.5 ? cLow.clone().lerp(cMid, h * 2) : cMid.clone().lerp(cHigh, (h - 0.5) * 2);
+        const jit = 0.82 + Math.random() * 0.18;
+        colors[i * 3] = c.r * jit; colors[i * 3 + 1] = c.g * jit; colors[i * 3 + 2] = c.b * jit;
+        i++;
+      }
+      // floor scatter
+      for (let n = 0; n < 2600 && i < PT_COUNT; n++) put(rand(-6.5, 6.5), rand(0, 0.07), rand(-6.5, 6.5));
+      // back wall
+      for (let n = 0; n < 1300 && i < PT_COUNT; n++) put(rand(-6.5, 6.5), rand(0, 3.4), -6.4 + rand(-0.12, 0.12));
+      // left wall
+      for (let n = 0; n < 1100 && i < PT_COUNT; n++) put(-6.4 + rand(-0.12, 0.12), rand(0, 3.4), rand(-6.5, 6.5));
+      // workbench cluster (box surface)
+      for (let n = 0; n < 1400 && i < PT_COUNT; n++) {
+        const bx = 1.8, bz = -3.2;
+        put(bx + rand(-1.4, 1.4), rand(0.75, 1.0), bz + rand(-0.8, 0.8));
+      }
+      // ambient structure
+      while (i < PT_COUNT) put(rand(-6, 6), rand(0, 3.2), rand(-6, 6));
+
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+      const mat = new THREE.PointsMaterial({ size: 0.045, vertexColors: true, sizeAttenuation: true, transparent: true, opacity: 0.92 });
+      points = new THREE.Points(geo, mat);
+      scene.add(points);
+      document.getElementById("ptStat").textContent = PT_COUNT.toLocaleString();
+      document.getElementById("ptCount").textContent = PT_COUNT.toLocaleString();
+    }
+
+    function buildTrajectory() {
+      const pts = [
+        new THREE.Vector3(-4.5, 1.4, 4.2),
+        new THREE.Vector3(-2.0, 1.45, 2.0),
+        new THREE.Vector3(0.5, 1.4, 0.5),
+        new THREE.Vector3(2.4, 1.5, -1.6),
+        new THREE.Vector3(2.6, 1.45, -3.0),
+        new THREE.Vector3(0.8, 1.5, -3.4),
+        new THREE.Vector3(-1.4, 1.42, -2.2),
+        new THREE.Vector3(-3.2, 1.48, -0.2),
+        new THREE.Vector3(-3.6, 1.4, 2.4),
+        new THREE.Vector3(-4.5, 1.4, 4.2),
+      ];
+      const trajCurve = new THREE.CatmullRomCurve3(pts, true, "catmullrom", 0.5);
+      trajSamples = trajCurve.getPoints(220);
+      trajLengthM = trajCurve.getLength();
+      document.getElementById("trajStat").textContent = trajLengthM.toFixed(1);
+      const geo = new THREE.BufferGeometry().setFromPoints(trajSamples);
+      trajLine = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.9 }));
+      scene.add(trajLine);
+
+      deviceDot = new THREE.Mesh(
+        new THREE.SphereGeometry(0.12, 16, 16),
+        new THREE.MeshBasicMaterial({ color: 0xffffff })
+      );
+      scene.add(deviceDot);
+
+      // camera frustum (pyramid wireframe)
+      const fg = new THREE.BufferGeometry();
+      const d = 0.9, w = 0.6, h = 0.4;
+      const apex = [0, 0, 0];
+      const c1 = [-w, h, -d], c2 = [w, h, -d], c3 = [w, -h, -d], c4 = [-w, -h, -d];
+      const verts = [];
+      [[apex, c1], [apex, c2], [apex, c3], [apex, c4], [c1, c2], [c2, c3], [c3, c4], [c4, c1]]
+        .forEach(([a, b]) => { verts.push(...a, ...b); });
+      fg.setAttribute("position", new THREE.Float32BufferAttribute(verts, 3));
+      frustum = new THREE.LineSegments(fg, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }));
+      scene.add(frustum);
+    }
+
+    function buildGrid() {
+      const grid = new THREE.GridHelper(13, 26, 0x1d2120, 0x141716);
+      grid.position.y = 0;
+      scene.add(grid);
+    }
+
+    function initThree() {
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x050606, 0.045);
+      camera = new THREE.PerspectiveCamera(55, 1, 0.1, 200);
+      buildGrid();
+      buildPointCloud();
+      buildTrajectory();
+      resizeThree();
+      window.addEventListener("resize", resizeThree);
+      setupOrbit();
+    }
+
+    function resizeThree() {
+      if (!renderer) return;
+      const w = viewport.clientWidth, h = viewport.clientHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+
+    function setupOrbit() {
+      let dragging = false, px = 0, py = 0;
+      viewport.addEventListener("pointerdown", (e) => { dragging = true; px = e.clientX; py = e.clientY; });
+      window.addEventListener("pointerup", () => { dragging = false; });
+      window.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        camAzimuth -= (e.clientX - px) * 0.006;
+        camElev = Math.max(0.05, Math.min(1.45, camElev + (e.clientY - py) * 0.005));
+        px = e.clientX; py = e.clientY;
+      });
+      viewport.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        camDist = Math.max(5, Math.min(28, camDist + e.deltaY * 0.012));
+      }, { passive: false });
+    }
+
+    function updateThree(frac, autoRot) {
+      if (!renderer) return;
+      camAzimuth += autoRot;
+      const cx = Math.sin(camAzimuth) * Math.cos(camElev) * camDist;
+      const cz = Math.cos(camAzimuth) * Math.cos(camElev) * camDist;
+      const cy = Math.sin(camElev) * camDist + 1.5;
+      camera.position.set(cx, cy, cz);
+      camera.lookAt(0, 1.2, 0);
+
+      if (trajSamples.length && deviceDot) {
+        const N = trajSamples.length;
+        const fi = frac * (N - 1);
+        const idx = Math.min(N - 1, Math.floor(fi));
+        const p = trajSamples[idx];
+        const pNext = trajSamples[(idx + 1) % N];
+        deviceDot.position.copy(p);
+        frustum.position.copy(p);
+        frustum.lookAt(pNext);
+        // reveal trajectory progressively
+        trajLine.geometry.setDrawRange(0, Math.max(2, idx + 1));
+      }
+      renderer.render(scene, camera);
+    }
+
+    if (hasThree) initThree();
+
+    // ── Eye gaze canvas ───────────────────────────────────────────────
+    const gz = document.getElementById("gazeCanvas");
+    const gzx = gz.getContext("2d");
+    function drawGaze(t) {
+      const w = gz.width = gz.clientWidth * 2, h = gz.height = gz.clientHeight * 2;
+      gzx.clearRect(0, 0, w, h);
+      // crosshair guides
+      gzx.strokeStyle = "rgba(93,104,100,0.35)"; gzx.lineWidth = 1;
+      gzx.beginPath(); gzx.moveTo(w / 2, 0); gzx.lineTo(w / 2, h); gzx.moveTo(0, h / 2); gzx.lineTo(w, h / 2); gzx.stroke();
+      // gaze point (lissajous-ish wander)
+      const gx = w / 2 + Math.sin(t * 1.7) * w * 0.3 + Math.sin(t * 0.6) * w * 0.08;
+      const gy = h / 2 + Math.cos(t * 1.1) * h * 0.28;
+      const grad = gzx.createRadialGradient(gx, gy, 0, gx, gy, 26);
+      grad.addColorStop(0, "rgba(239,68,68,0.9)"); grad.addColorStop(1, "rgba(239,68,68,0)");
+      gzx.fillStyle = grad; gzx.beginPath(); gzx.arc(gx, gy, 26, 0, Math.PI * 2); gzx.fill();
+      gzx.fillStyle = "#ef4444"; gzx.beginPath(); gzx.arc(gx, gy, 3.5, 0, Math.PI * 2); gzx.fill();
+    }
+
+    // ── IMU time-series ───────────────────────────────────────────────
+    const accelC = document.getElementById("accelCanvas");
+    const gyroC = document.getElementById("gyroCanvas");
+    function seriesAt(phase, freq, t) { return Math.sin(t * freq + phase) * 0.6 + Math.sin(t * freq * 2.3 + phase) * 0.25 + Math.sin(t * freq * 0.5) * 0.15; }
+    function drawSeries(cv, defs) {
+      const ctx = cv.getContext("2d");
+      const w = cv.width = cv.clientWidth * 2, h = cv.height = cv.clientHeight * 2;
+      ctx.clearRect(0, 0, w, h);
+      defs.forEach((d) => {
+        ctx.strokeStyle = d.color; ctx.lineWidth = 1.4; ctx.globalAlpha = 0.85;
+        ctx.beginPath();
+        for (let px = 0; px <= w; px += 2) {
+          const tt = (px / w) * DURATION;
+          const v = seriesAt(d.phase, d.freq, tt);
+          const y = h / 2 - v * (h / 2 - 4);
+          if (px === 0) ctx.moveTo(px, y); else ctx.lineTo(px, y);
+        }
+        ctx.stroke();
+      });
+      ctx.globalAlpha = 1;
+    }
+    function drawAllSeries() {
+      drawSeries(accelC, [
+        { color: "#f59e0b", freq: 2.1, phase: 0 },
+        { color: "#fbbf24", freq: 1.6, phase: 1.3 },
+        { color: "#d97706", freq: 2.8, phase: 2.5 },
+      ]);
+      drawSeries(gyroC, [
+        { color: "#38bdf8", freq: 1.4, phase: 0.5 },
+        { color: "#22d3ee", freq: 2.5, phase: 1.9 },
+        { color: "#0ea5e9", freq: 1.0, phase: 3.1 },
+      ]);
+    }
+
+    // ── Timeline ruler ────────────────────────────────────────────────
+    function buildRuler() {
+      const ruler = document.getElementById("tlRuler");
+      ruler.innerHTML = "";
+      // Adaptive tick spacing — aim for ~8 labels regardless of duration.
+      const steps = [1, 2, 5, 10, 15, 30, 60, 120, 300];
+      const raw = DURATION / 8;
+      let step = steps[steps.length - 1];
+      for (const s of steps) { if (raw <= s) { step = s; break; } }
+      for (let s = 0; s <= DURATION + 0.001; s += step) {
+        const tick = document.createElement("div");
+        tick.className = "tl-tick";
+        tick.style.left = (s / DURATION * 100) + "%";
+        tick.textContent = s >= 60 ? (s / 60).toFixed(s % 60 ? 1 : 0) + "m" : s + "s";
+        ruler.appendChild(tick);
+      }
+    }
+    buildRuler();
+
+    // scrub interaction
+    const tlScrub = document.getElementById("tlScrub");
+    function scrubTo(clientX) {
+      const r = tlScrub.getBoundingClientRect();
+      const f = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
+      playT = f * DURATION;
+      syncVideo(true);
+    }
+    let scrubbing = false;
+    tlScrub.addEventListener("pointerdown", (e) => { scrubbing = true; scrubTo(e.clientX); });
+    window.addEventListener("pointerup", () => { scrubbing = false; });
+    window.addEventListener("pointermove", (e) => { if (scrubbing) scrubTo(e.clientX); });
+
+    // ── Transport ─────────────────────────────────────────────────────
+    const btnPlay = document.getElementById("btnPlay");
+    btnPlay.addEventListener("click", () => {
+      playing = !playing;
+      btnPlay.textContent = playing ? "❚❚" : "▶";
+      if (playing && CONFIG.povVideo) povVideo.play().catch(() => {});
+      else povVideo.pause();
+    });
+    btnPlay.textContent = "❚❚";
+    document.getElementById("btnBack").addEventListener("click", () => { playT = 0; syncVideo(true); });
+    document.querySelectorAll(".sbtn").forEach((b) => {
+      b.addEventListener("click", () => {
+        document.querySelectorAll(".sbtn").forEach((x) => x.classList.remove("active"));
+        b.classList.add("active");
+        speed = parseFloat(b.dataset.spd);
+        if (videoReady) povVideo.playbackRate = Math.min(4, speed);
+      });
+    });
+
+    function syncVideo(force) {
+      if (!videoReady) return;
+      const vd = povVideo.duration || DURATION;
+      const target = (playT / DURATION) * vd;
+      if (force || Math.abs(povVideo.currentTime - target) > 0.4) povVideo.currentTime = target;
+    }
+
+    // ── Time formatting ───────────────────────────────────────────────
+    function fmt(s) {
+      const m = Math.floor(s / 60);
+      const sec = s - m * 60;
+      return String(m).padStart(2, "0") + ":" + sec.toFixed(1).padStart(4, "0");
+    }
+
+    // ── Master loop ───────────────────────────────────────────────────
+    const playhead = document.getElementById("playhead");
+    const tracks = document.getElementById("tlTracks");
+    drawAllSeries();
+    window.addEventListener("resize", drawAllSeries);
+
+    // ── Movable + resizable quadrants (Rerun-style docking) ───────────
+    (function setupLayout() {
+      const root = document.documentElement;
+      const main = document.querySelector(".main");
+      const quads = document.querySelector(".quads");
+      const timeline = document.querySelector(".timeline");
+      const LS = "syntheticPov.layout";
+      const state = { vars: {}, order: null };
+      try { Object.assign(state, JSON.parse(localStorage.getItem(LS) || "{}")); } catch {}
+      if (!state.vars) state.vars = {};
+
+      const persist = () => { try { localStorage.setItem(LS, JSON.stringify(state)); } catch {} };
+      // Restore saved sizes before anything renders.
+      Object.entries(state.vars).forEach(([k, v]) => root.style.setProperty(k, v));
+
+      const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+      const cfg = [
+        { sel: "[data-rsz=sidebar]", scope: main, axis: "x", unit: "px", varName: "--sidebar-w",
+          min: 130, max: () => Math.min(460, main.clientWidth - 360) },
+        { sel: "[data-rsz=qcol]", scope: quads, axis: "x", unit: "%", varName: "--qcol", min: 15, max: () => 85 },
+        { sel: "[data-rsz=qrow]", scope: quads, axis: "y", unit: "%", varName: "--qrow", min: 15, max: () => 85 },
+        { sel: "[data-rsz=timeline]", scope: timeline, axis: "y", unit: "px", varName: "--timeline-h",
+          special: "timeline", min: 90, max: () => Math.round(window.innerHeight * 0.6) },
+      ];
+
+      cfg.forEach((c) => {
+        const el = c.scope.querySelector(c.sel);
+        if (!el) return;
+        let active = false;
+        el.addEventListener("pointerdown", (e) => {
+          active = true; el.classList.add("active");
+          try { el.setPointerCapture(e.pointerId); } catch {}
+          e.preventDefault();
+        });
+        const end = (e) => {
+          if (!active) return;
+          active = false; el.classList.remove("active");
+          try { el.releasePointerCapture(e.pointerId); } catch {}
+          persist();
+        };
+        el.addEventListener("pointerup", end);
+        el.addEventListener("pointercancel", end);
+        el.addEventListener("pointermove", (e) => {
+          if (!active) return;
+          const lo = c.min, hi = c.max();
+          let value;
+          if (c.special === "timeline") {
+            value = clamp(window.innerHeight - e.clientY, lo, hi) + "px";
+          } else {
+            const box = c.scope.getBoundingClientRect();
+            if (c.axis === "x") {
+              const px = e.clientX - box.left;
+              value = c.unit === "px"
+                ? clamp(px, lo, hi) + "px"
+                : clamp((px / box.width) * 100, lo, hi) + "%";
+            } else {
+              const py = e.clientY - box.top;
+              value = clamp((py / box.height) * 100, lo, hi) + "%";
+            }
+          }
+          root.style.setProperty(c.varName, value);
+          state.vars[c.varName] = value;
+          window.dispatchEvent(new Event("resize"));
+        });
+      });
+
+      // ── Movable: drag a quad header onto another to swap positions ──
+      const byKey = {};
+      [...quads.querySelectorAll(".quad")].forEach((q) => { byKey[q.dataset.quad] = q; });
+      if (Array.isArray(state.order)) {
+        state.order.forEach((k) => { if (byKey[k]) quads.appendChild(byKey[k]); });
+      }
+      const swapNodes = (a, b) => {
+        const t = document.createComment("");
+        a.parentNode.insertBefore(t, a);
+        b.parentNode.insertBefore(a, b);
+        t.parentNode.insertBefore(b, t);
+        t.remove();
+      };
+      const saveOrder = () => {
+        state.order = [...quads.querySelectorAll(".quad")].map((q) => q.dataset.quad);
+        persist();
+      };
+
+      let dragSrc = null;
+      [...quads.querySelectorAll(".quad")].forEach((q) => {
+        const head = q.querySelector(".panel-head");
+        if (!head) return;
+        head.setAttribute("draggable", "true");
+        head.addEventListener("dragstart", (e) => {
+          dragSrc = q; quads.classList.add("dragging");
+          e.dataTransfer.effectAllowed = "move";
+          try { e.dataTransfer.setData("text/plain", q.dataset.quad); } catch {}
+        });
+        head.addEventListener("dragend", () => {
+          quads.classList.remove("dragging"); dragSrc = null;
+          [...quads.querySelectorAll(".quad")].forEach((x) => x.classList.remove("drop-target"));
+        });
+        q.addEventListener("dragover", (e) => {
+          if (dragSrc && dragSrc !== q) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; q.classList.add("drop-target"); }
+        });
+        q.addEventListener("dragleave", (e) => {
+          if (!q.contains(e.relatedTarget)) q.classList.remove("drop-target");
+        });
+        q.addEventListener("drop", (e) => {
+          e.preventDefault(); q.classList.remove("drop-target");
+          if (dragSrc && dragSrc !== q) { swapNodes(dragSrc, q); saveOrder(); window.dispatchEvent(new Event("resize")); }
+        });
+      });
+
+      // Settle 3D + timeline sizing after restoring the layout.
+      window.dispatchEvent(new Event("resize"));
+    })();
+
+    let frames = 0, fpsT = performance.now();
+    let warned3D = false;
+    function loop(now) {
+      // Self-healing: a single thrown frame (e.g. a transient WebGL/init race)
+      // must never permanently kill playback, so the rAF reschedule lives in
+      // finally and the 3D update is isolated in its own try/catch.
+      try {
+        const dt = (now - lastNow) / 1000;
+        lastNow = now;
+        if (playing && !scrubbing) {
+          playT += dt * speed;
+          if (playT >= DURATION) playT -= DURATION;
+          syncVideo(false);
+        }
+        const frac = playT / DURATION;
+
+        // 3D (isolated — keeps the rest of the HUD alive if WebGL hiccups)
+        try {
+          updateThree(frac, playing ? 0.0016 * speed : 0);
+        } catch (e) {
+          if (!warned3D) { console.warn("[synthetic-pov] 3D frame skipped:", e); warned3D = true; }
+        }
+        document.getElementById("tStat").textContent = playT.toFixed(1);
+
+        // playhead within tracks padding region
+        const padL = 12, padR = 12;
+        const tw = tracks.clientWidth - padL - padR;
+        playhead.style.left = (padL + frac * tw) + "px";
+
+        // readouts
+        document.getElementById("curTime").textContent = fmt(playT);
+        document.getElementById("camTs").textContent = fmt(playT);
+
+        // gaze
+        drawGaze(playT);
+      } catch (e) {
+        if (!warned3D) { console.warn("[synthetic-pov] frame error:", e); warned3D = true; }
+      }
+
+      // fps
+      frames++;
+      if (now - fpsT > 500) {
+        document.getElementById("fpsRead").textContent = Math.round(frames * 1000 / (now - fpsT));
+        frames = 0; fpsT = now;
+      }
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  })();
+  </script>
+
+  <!-- Spark splat viewer: renders the World Labs world (.spz) in the top-right
+       quad. Module-scoped (own three@0.180), exposes window.SplatViewer. -->
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+    import { SparkRenderer, SplatMesh } from "@sparkjsdev/spark";
+
+    const host = document.getElementById("splatBody");
+    let renderer, scene, camera, controls, current, raf, ready = false;
+
+    function init() {
+      if (ready || !host) return;
+      ready = true;
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(60, 1, 0.01, 1000);
+      camera.position.set(0, 0.6, 3);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      Object.assign(renderer.domElement.style, {
+        position: "absolute", inset: "0", width: "100%", height: "100%",
+        display: "block", zIndex: "1",
+      });
+      host.insertBefore(renderer.domElement, host.firstChild);
+
+      scene.add(new SparkRenderer({ renderer }));
+
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.08;
+      controls.target.set(0, 0, 0);
+
+      const ro = new ResizeObserver(size);
+      ro.observe(host);
+      size();
+
+      renderer.setAnimationLoop(() => {
+        controls.update();
+        renderer.render(scene, camera);
+      });
+    }
+
+    function size() {
+      if (!renderer) return;
+      const w = host.clientWidth || 1, h = host.clientHeight || 1;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+
+    function frameToSplat(splat) {
+      try {
+        splat.updateMatrixWorld(true);
+        const box = splat.getBoundingBox(true);
+        if (!box || box.isEmpty()) return;
+        box.applyMatrix4(splat.matrixWorld); // account for the Y-flip below
+        const center = box.getCenter(new THREE.Vector3());
+        const sphere = box.getBoundingSphere(new THREE.Sphere());
+        const r = sphere.radius || 2;
+        const dist = (r / Math.tan((camera.fov * Math.PI) / 360)) * 1.3;
+        controls.target.copy(center);
+        camera.position.set(center.x, center.y + r * 0.25, center.z + dist);
+        camera.near = Math.max(dist / 1000, 0.01);
+        camera.far = dist * 1000;
+        camera.updateProjectionMatrix();
+        controls.update();
+      } catch { /* keep default framing */ }
+    }
+
+    async function mount(url, fileType) {
+      init();
+      if (current) { scene.remove(current); current.dispose?.(); current = null; }
+      const opts = { url };
+      if (fileType) opts.fileType = fileType; // proxy URL has no .spz extension
+      let splat;
+      try {
+        splat = new SplatMesh(opts);
+      } catch (e) { showError(e); return; }
+      // Marble/3DGS assets are Y-down; flip 180° about X to stand them upright.
+      splat.quaternion.set(1, 0, 0, 0);
+      scene.add(splat);
+      current = splat;
+      try {
+        await splat.initialized;
+        frameToSplat(splat);
+      } catch (e) { showError(e); return; }
+      size();
+    }
+
+    function showError(e) {
+      console.error("[synthetic-pov] splat load failed:", e);
+      const ph = document.getElementById("splatPh");
+      const hint = document.getElementById("splatHint");
+      if (ph) ph.style.display = "";
+      if (hint) hint.textContent = "Splat failed to load — open in Marble ↗";
+    }
+
+    window.SplatViewer = { mount, isReady: () => ready };
+    if (window.__splatPending) mount(window.__splatPending.url, window.__splatPending.fileType);
+  </script>
+</body>
+</html>
