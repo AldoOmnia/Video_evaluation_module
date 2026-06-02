@@ -34,3 +34,4 @@ export const EVAL_LAB_PUBLIC = join(REPO_ROOT, "eval-lab", "public");
 export const LAB_HTML = join(REPO_ROOT, "brain-eval-lab.html");
 export const LOGIN_HTML = join(EVAL_LAB_PUBLIC, "login.html");
 export const WELCOME_HTML = join(EVAL_LAB_PUBLIC, "welcome.html");
+export const SYNTHETIC_POV_HTML = join(EVAL_LAB_PUBLIC, "synthetic-pov.html");

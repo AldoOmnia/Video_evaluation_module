@@ -40,9 +40,15 @@ services:
       # host is the eventual public URL. Comma-separated list.
       - key: ALLOWED_ORIGINS
         value: "https://comer.theomnia.ai,https://comer-platform.onrender.com"
+      # World Labs (Marble) World API — powers the synthetic-pov splat panel.
+      # Model is safe to commit; the key is a prompted secret.
+      - key: WORLDLABS_MODEL
+        value: marble-1.1
       # Secrets — Render will prompt for these at blueprint-create time
       # and store them outside this file.
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: AUTH_TOKEN_SECRET
+        sync: false
+      - key: WORLDLABS_API_KEY
         sync: false

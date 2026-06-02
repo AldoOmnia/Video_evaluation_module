@@ -38,3 +38,10 @@ Thumbs.db
 # duplicate-asset confusion and a 600KB+ White.png blob in history.
 /White.png
 /Comer-industries_placeholder-logo.png
+
+# Raw POV footage — large source videos. The web-friendly transcode that the
+# synthetic-pov page actually streams lives at eval-lab/public/assets/ and is
+# also kept out of git history (regenerate from source with ffmpeg).
+/Phase_8_Video.MP4
+*.MP4
+eval-lab/public/assets/phase8_pov.mp4

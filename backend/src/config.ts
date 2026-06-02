@@ -9,6 +9,8 @@ export const config = {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean),
+  worldLabsKey: process.env.WORLDLABS_API_KEY ?? "",
+  worldLabsModel: process.env.WORLDLABS_MODEL ?? "marble-1.1",
 };
 
 export const stubMode = config.forceStub || !config.anthropicKey;
