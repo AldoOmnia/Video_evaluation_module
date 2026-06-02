@@ -28,6 +28,8 @@ const GenerateSchema = z.object({
   imageUrl: z.string().url().optional(),
   localAsset: z.string().max(128).optional(),
   isPano: z.boolean().optional(),
+  multiImageAssets: z.array(z.string().max(128)).max(8).optional(),
+  reconstruct: z.boolean().optional(),
   isPublic: z.boolean().optional(),
   displayName: z.string().max(120).optional(),
 });

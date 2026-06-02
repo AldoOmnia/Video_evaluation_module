@@ -65,6 +65,14 @@ export interface GenerateOptions {
   localAsset?: string;
   /** The image is a 360° equirectangular panorama (2:1). Max spatial control. */
   isPano?: boolean;
+  /**
+   * Multiple local assets under eval-lab/public/assets/ to fuse into ONE world
+   * (multi-image / "Auto Layout"). Up to 4 normally, or up to 8 when
+   * `reconstruct` is true. All should be the same space, ideally overlapping.
+   */
+  multiImageAssets?: string[];
+  /** Auto Layout reconstruction mode — lets the model infer relative poses. */
+  reconstruct?: boolean;
   /** Make the world public so its Marble URL is embeddable. */
   isPublic?: boolean;
   displayName?: string;
@@ -111,7 +119,22 @@ export async function generateWorld(opts: GenerateOptions): Promise<{
   const isPublic = opts.isPublic ?? true;
 
   let world_prompt: Record<string, unknown>;
-  if (opts.localAsset) {
+  if (opts.multiImageAssets && opts.multiImageAssets.length) {
+    // Upload all images, then build a multi-image prompt. With reconstruct
+    // (Auto Layout) the model infers relative positions of same-space shots.
+    const ids: string[] = [];
+    for (const asset of opts.multiImageAssets) {
+      ids.push(await uploadLocalAsset(asset));
+    }
+    world_prompt = {
+      type: "multi-image",
+      multi_image_prompt: ids.map((id) => ({
+        content: { source: "media_asset", media_asset_id: id },
+      })),
+      reconstruct_images: opts.reconstruct ?? true,
+      ...(opts.prompt ? { text_prompt: opts.prompt } : {}),
+    };
+  } else if (opts.localAsset) {
     const mediaAssetId = await uploadLocalAsset(opts.localAsset);
     world_prompt = {
       type: "image",
