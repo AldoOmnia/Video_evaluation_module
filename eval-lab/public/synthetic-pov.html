@@ -367,6 +367,7 @@
       filter: grayscale(1) contrast(1.35) brightness(0.9);
     }
     .slam-img.right img { transform: scaleX(-1); filter: grayscale(1) contrast(1.45) brightness(0.8); }
+    .slam-img canvas { width: 100%; height: 100%; display: block; background: #0a0d0e; }
     .slam-img::after {
       content:''; position:absolute; inset:0;
       background: radial-gradient(circle at 50% 50%, transparent 45%, rgba(0,0,0,0.6) 100%);
@@ -555,19 +556,19 @@
             <div class="slam-grid">
               <div class="slam-cell">
                 <div class="sh">front-left</div>
-                <div class="slam-img"><img src="/lab/assets/phase8_frame.jpg" alt="slam front-left"></div>
+                <div class="slam-img"><canvas class="slam-cv" data-cam="fl"></canvas></div>
               </div>
               <div class="slam-cell">
                 <div class="sh">front-right</div>
-                <div class="slam-img mirror"><img src="/lab/assets/phase8_frame.jpg" alt="slam front-right"></div>
+                <div class="slam-img"><canvas class="slam-cv" data-cam="fr"></canvas></div>
               </div>
               <div class="slam-cell">
                 <div class="sh">side-left</div>
-                <div class="slam-img"><img src="/lab/assets/phase8_frame.jpg" alt="slam side-left"></div>
+                <div class="slam-img"><canvas class="slam-cv" data-cam="sl"></canvas></div>
               </div>
               <div class="slam-cell">
                 <div class="sh">side-right</div>
-                <div class="slam-img mirror"><img src="/lab/assets/phase8_frame.jpg" alt="slam side-right"></div>
+                <div class="slam-img"><canvas class="slam-cv" data-cam="sr"></canvas></div>
               </div>
             </div>
             <div class="gaze-body"><canvas id="gazeCanvas"></canvas></div>
@@ -794,10 +795,15 @@
     const hasThree = typeof THREE !== "undefined";
     let renderer, scene, camera, points, trajLine, frustum, deviceDot, trajSamples = [], trajLengthM = 0;
     let camAzimuth = 0.7, camElev = 0.5, camDist = 14;
-    const PT_COUNT = 7200;
+    const PT_COUNT = 11000;
 
     function rand(a, b) { return a + Math.random() * (b - a); }
 
+    // Hand-modeled to echo the actual Pinion Guide Station seen in the POV
+    // footage: a long central assembly/fixture line, flanking CNC machines,
+    // overhead gantry crane + hoist, ceiling light grid, drums, and the
+    // translucent curtain walls. (Placeholder for the COLMAP sparse cloud,
+    // which will replace this with measured geometry once SfM runs.)
     function buildPointCloud() {
       const positions = new Float32Array(PT_COUNT * 3);
       const colors = new Float32Array(PT_COUNT * 3);
@@ -806,26 +812,71 @@
       const cHigh = new THREE.Color(0xeaf6f1);
       let i = 0;
       function put(x, y, z) {
+        if (i >= PT_COUNT) return;
         positions[i * 3] = x; positions[i * 3 + 1] = y; positions[i * 3 + 2] = z;
-        const h = Math.min(1, Math.max(0, y / 3.4));
+        const h = Math.min(1, Math.max(0, y / 3.6));
         const c = h < 0.5 ? cLow.clone().lerp(cMid, h * 2) : cMid.clone().lerp(cHigh, (h - 0.5) * 2);
         const jit = 0.82 + Math.random() * 0.18;
         colors[i * 3] = c.r * jit; colors[i * 3 + 1] = c.g * jit; colors[i * 3 + 2] = c.b * jit;
         i++;
       }
-      // floor scatter
-      for (let n = 0; n < 2600 && i < PT_COUNT; n++) put(rand(-6.5, 6.5), rand(0, 0.07), rand(-6.5, 6.5));
-      // back wall
-      for (let n = 0; n < 1300 && i < PT_COUNT; n++) put(rand(-6.5, 6.5), rand(0, 3.4), -6.4 + rand(-0.12, 0.12));
-      // left wall
-      for (let n = 0; n < 1100 && i < PT_COUNT; n++) put(-6.4 + rand(-0.12, 0.12), rand(0, 3.4), rand(-6.5, 6.5));
-      // workbench cluster (box surface)
-      for (let n = 0; n < 1400 && i < PT_COUNT; n++) {
-        const bx = 1.8, bz = -3.2;
-        put(bx + rand(-1.4, 1.4), rand(0.75, 1.0), bz + rand(-0.8, 0.8));
+      // points on the visible faces of a box (machines, benches)
+      function box(cx, cy, cz, sx, sy, sz, n) {
+        const hx = sx / 2, hz = sz / 2;
+        for (let k = 0; k < n; k++) {
+          const f = Math.random();
+          let x, y, z;
+          if (f < 0.34) { x = cx + rand(-hx, hx); z = cz + rand(-hz, hz); y = cy + sy; }
+          else if (f < 0.51) { x = cx - hx; y = cy + rand(0, sy); z = cz + rand(-hz, hz); }
+          else if (f < 0.68) { x = cx + hx; y = cy + rand(0, sy); z = cz + rand(-hz, hz); }
+          else if (f < 0.84) { z = cz - hz; y = cy + rand(0, sy); x = cx + rand(-hx, hx); }
+          else { z = cz + hz; y = cy + rand(0, sy); x = cx + rand(-hx, hx); }
+          put(x + rand(-0.02, 0.02), y + rand(-0.02, 0.02), z + rand(-0.02, 0.02));
+        }
       }
-      // ambient structure
-      while (i < PT_COUNT) put(rand(-6, 6), rand(0, 3.2), rand(-6, 6));
+      const beamX = (x0, x1, y, z, n) => { for (let k = 0; k < n; k++) { const t = k / n; put(x0 + (x1 - x0) * t, y + rand(-0.06, 0.06), z + rand(-0.06, 0.06)); } };
+      const beamZ = (z0, z1, y, x, n) => { for (let k = 0; k < n; k++) { const t = k / n; put(x + rand(-0.06, 0.06), y + rand(-0.06, 0.06), z0 + (z1 - z0) * t); } };
+      const column = (x, z, y0, y1, n) => { for (let k = 0; k < n; k++) { const t = k / n; put(x + rand(-0.05, 0.05), y0 + (y1 - y0) * t, z + rand(-0.05, 0.05)); } };
+      const cyl = (cx, cz, r, y0, y1, n) => { for (let k = 0; k < n; k++) { const a = rand(0, Math.PI * 2); put(cx + Math.cos(a) * r, rand(y0, y1), cz + Math.sin(a) * r); } };
+      const disc = (cx, cy, cz, r, n) => { for (let k = 0; k < n; k++) { const a = rand(0, Math.PI * 2), rr = Math.sqrt(Math.random()) * r; put(cx + Math.cos(a) * rr, cy + rand(-0.02, 0.02), cz + Math.sin(a) * rr); } };
+
+      // floor + center walkway mat
+      for (let n = 0; n < 1500; n++) put(rand(-6.2, 6.2), rand(0, 0.05), rand(-6.2, 6.2));
+
+      // central assembly / fixture line (runs along z)
+      box(0.6, 0.0, 0.0, 1.2, 0.85, 9.0, 1700);
+      for (let f = -4; f <= 4; f += 1.6) { disc(0.6, 0.95, f, 0.32, 70); cyl(0.6, f, 0.18, 0.85, 1.12, 60); }
+
+      // left machine row (CNC / lathes) + right far machines
+      box(-4.2, 0.0, -3.0, 1.4, 1.5, 1.6, 520);
+      box(-4.2, 0.0, -0.3, 1.4, 1.4, 1.6, 500);
+      box(-4.3, 0.0,  2.6, 1.5, 1.6, 1.7, 540);
+      box( 4.6, 0.0, -1.5, 1.6, 1.3, 1.8, 460);
+      box( 4.7, 0.0,  2.2, 1.5, 1.4, 1.6, 420);
+
+      // drums / barrels
+      cyl(2.3, -1.2, 0.36, 0, 0.95, 240);
+      cyl(-1.6, 1.8, 0.34, 0, 0.90, 220);
+
+      // overhead gantry beams + support columns + hanging hoist chain
+      beamX(-5.5, 5.5, 3.25, -1.6, 380);
+      beamX(-5.5, 5.5, 3.25,  2.2, 380);
+      beamZ(-5.0, 5.0, 3.40, -0.2, 320);
+      column(-5.2, -1.6, 0, 3.25, 120); column(5.2, -1.6, 0, 3.25, 120);
+      column(-5.2,  2.2, 0, 3.25, 120); column(5.2,  2.2, 0, 3.25, 120);
+      column(0.1, 0.0, 1.5, 3.30, 80);
+
+      // ceiling light grid
+      for (let gx = -5; gx <= 5; gx += 2.0)
+        for (let gz = -5; gz <= 5; gz += 2.2) disc(gx, 3.75, gz, 0.45, 26);
+
+      // perimeter curtain walls (translucent)
+      for (let n = 0; n < 700; n++) put(rand(-6.2, 6.2), rand(0, 3.4), -6.3 + rand(-0.1, 0.1));
+      for (let n = 0; n < 520; n++) put(6.3 + rand(-0.1, 0.1), rand(0, 3.4), rand(-6.2, 6.2));
+      for (let n = 0; n < 420; n++) put(-6.3 + rand(-0.1, 0.1), rand(0, 3.4), rand(-2, 6.2));
+
+      // ambient structural haze fill
+      while (i < PT_COUNT) put(rand(-6, 6), rand(0.2, 3.4), rand(-6, 6));
 
       const geo = new THREE.BufferGeometry();
       geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
@@ -833,22 +884,24 @@
       const mat = new THREE.PointsMaterial({ size: 0.045, vertexColors: true, sizeAttenuation: true, transparent: true, opacity: 0.92 });
       points = new THREE.Points(geo, mat);
       scene.add(points);
-      document.getElementById("ptStat").textContent = PT_COUNT.toLocaleString();
-      document.getElementById("ptCount").textContent = PT_COUNT.toLocaleString();
+      document.getElementById("ptStat").textContent = i.toLocaleString();
+      document.getElementById("ptCount").textContent = i.toLocaleString();
     }
 
     function buildTrajectory() {
+      // walk the aisle alongside the assembly line, loop back the far side
       const pts = [
-        new THREE.Vector3(-4.5, 1.4, 4.2),
-        new THREE.Vector3(-2.0, 1.45, 2.0),
-        new THREE.Vector3(0.5, 1.4, 0.5),
-        new THREE.Vector3(2.4, 1.5, -1.6),
-        new THREE.Vector3(2.6, 1.45, -3.0),
-        new THREE.Vector3(0.8, 1.5, -3.4),
-        new THREE.Vector3(-1.4, 1.42, -2.2),
-        new THREE.Vector3(-3.2, 1.48, -0.2),
-        new THREE.Vector3(-3.6, 1.4, 2.4),
-        new THREE.Vector3(-4.5, 1.4, 4.2),
+        new THREE.Vector3(-1.8, 1.5, 4.4),
+        new THREE.Vector3(-1.8, 1.5, 1.5),
+        new THREE.Vector3(-1.8, 1.5, -1.5),
+        new THREE.Vector3(-1.9, 1.5, -4.2),
+        new THREE.Vector3(-0.4, 1.5, -4.9),
+        new THREE.Vector3(1.7, 1.5, -4.0),
+        new THREE.Vector3(1.8, 1.5, -1.0),
+        new THREE.Vector3(1.8, 1.5, 2.0),
+        new THREE.Vector3(1.5, 1.5, 4.2),
+        new THREE.Vector3(-0.1, 1.5, 4.9),
+        new THREE.Vector3(-1.8, 1.5, 4.4),
       ];
       const trajCurve = new THREE.CatmullRomCurve3(pts, true, "catmullrom", 0.5);
       trajSamples = trajCurve.getPoints(220);
@@ -964,6 +1017,51 @@
       gzx.fillStyle = grad; gzx.beginPath(); gzx.arc(gx, gy, 26, 0, Math.PI * 2); gzx.fill();
       gzx.fillStyle = "#ef4444"; gzx.beginPath(); gzx.arc(gx, gy, 3.5, 0, Math.PI * 2); gzx.fill();
     }
+
+    // ── SLAM mono cameras (driven live from the POV footage) ──────────
+    // Four wide-angle global-shutter feeds synthesized from the forward POV
+    // video: each rig camera gets a distinct crop/zoom/mirror + grayscale, so
+    // they track the real footage instead of being frozen stills.
+    const DPR_SLAM = Math.min(2, window.devicePixelRatio || 1);
+    const slamCanvases = Array.from(document.querySelectorAll(".slam-cv")).map((cv) => ({
+      cv, ctx: cv.getContext("2d"), cam: cv.dataset.cam,
+    }));
+    const SLAM_CAMS = {
+      fl: { zoom: 1.18, ox: -0.10, oy: -0.02, mirror: false, bright: 1.00 },
+      fr: { zoom: 1.18, ox:  0.10, oy: -0.02, mirror: true,  bright: 0.96 },
+      sl: { zoom: 1.55, ox: -0.26, oy:  0.05, mirror: false, bright: 0.86 },
+      sr: { zoom: 1.55, ox:  0.26, oy:  0.05, mirror: true,  bright: 0.82 },
+    };
+    function drawSlamCam(s, t) {
+      const cv = s.cv, ctx = s.ctx;
+      const w = cv.width = Math.max(1, Math.round(cv.clientWidth * DPR_SLAM));
+      const h = cv.height = Math.max(1, Math.round(cv.clientHeight * DPR_SLAM));
+      ctx.clearRect(0, 0, w, h);
+      const cfg = SLAM_CAMS[s.cam] || SLAM_CAMS.fl;
+      const vw = povVideo.videoWidth, vh = povVideo.videoHeight;
+      if (!(vw && vh && povVideo.readyState >= 2)) {
+        ctx.fillStyle = "#0a0d0e"; ctx.fillRect(0, 0, w, h);
+        return;
+      }
+      // subtle rolling-shutter wobble (only while time advances) so feeds feel live
+      const jx = Math.sin(t * 5.0 + (cfg.mirror ? 1.7 : 0)) * w * 0.004;
+      const jy = Math.cos(t * 4.3) * h * 0.004;
+      const sw = vw / cfg.zoom, sh = vh / cfg.zoom;
+      let sx = (vw - sw) / 2 + cfg.ox * vw;
+      let sy = (vh - sh) / 2 + cfg.oy * vh;
+      sx = Math.max(0, Math.min(vw - sw, sx));
+      sy = Math.max(0, Math.min(vh - sh, sy));
+      ctx.save();
+      ctx.filter = `grayscale(1) contrast(1.4) brightness(${cfg.bright})`;
+      if (cfg.mirror) { ctx.translate(w, 0); ctx.scale(-1, 1); }
+      ctx.drawImage(povVideo, sx, sy, sw, sh, jx, jy, w, h);
+      ctx.restore();
+      // faint sensor scanlines
+      ctx.globalAlpha = 0.05; ctx.fillStyle = "#fff";
+      for (let yy = 0; yy < h; yy += 3 * DPR_SLAM) ctx.fillRect(0, yy, w, 1);
+      ctx.globalAlpha = 1;
+    }
+    function drawSlam(t) { for (const s of slamCanvases) drawSlamCam(s, t); }
 
     // ── IMU time-series ───────────────────────────────────────────────
     const accelC = document.getElementById("accelCanvas");
@@ -1217,8 +1315,9 @@
         document.getElementById("curTime").textContent = fmt(playT);
         document.getElementById("camTs").textContent = fmt(playT);
 
-        // gaze
+        // gaze + live SLAM mono cameras
         drawGaze(playT);
+        drawSlam(playT);
       } catch (e) {
         if (!warned3D) { console.warn("[synthetic-pov] frame error:", e); warned3D = true; }
       }
