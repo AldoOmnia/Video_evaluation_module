@@ -753,16 +753,20 @@
       if (p) generate({ prompt: p, displayName: "Comer · prompt" }, "Starting generation…");
     });
 
-    // Boot: direct ?splat=<asset url> > world id (?world= or the resumed default).
+    // Local 3DGS reconstruction (COLMAP + splatfacto on the 360 footage),
+    // pruned + SH-deg0 for the web. This is the faithful default splat.
+    const DEFAULT_SPLAT = "/lab/assets/pinion_splat.ply";
+
+    // Boot priority: ?splat=<url> > ?world=<id> > local 3DGS splat.
     (async function initSplat() {
-      let configured = true;
       try {
         const st = await (await fetch("/api/worldlabs/status")).json();
-        configured = !!st.configured;
-        if (!configured) { splatActions.hidden = true; splatHint.textContent = "World Labs not configured on the server."; }
-      } catch { /* assume configured; trackWorld will surface errors */ }
-      if (CONFIG.splatUrl) { renderSplat(CONFIG.splatUrl); return; } // direct .spz/.ply URL
-      if (configured && WORLD_ID) { trackWorld(WORLD_ID); return; }
+        if (!st.configured) splatHint.textContent = "World Labs not configured — showing local 3DGS splat.";
+      } catch { /* status is best-effort */ }
+      if (CONFIG.splatUrl) { renderSplat(CONFIG.splatUrl); return; }   // direct .spz/.ply URL
+      if (params.has("world")) { trackWorld(params.get("world")); return; } // explicit Marble world
+      renderSplat(DEFAULT_SPLAT);                                       // faithful local reconstruction
+      setStatus(null);
     })();
 
     // ── POV video ─────────────────────────────────────────────────────
@@ -799,12 +803,51 @@
 
     function rand(a, b) { return a + Math.random() * (b - a); }
 
-    // Hand-modeled to echo the actual Pinion Guide Station seen in the POV
-    // footage: a long central assembly/fixture line, flanking CNC machines,
-    // overhead gantry crane + hoist, ceiling light grid, drums, and the
-    // translucent curtain walls. (Placeholder for the COLMAP sparse cloud,
-    // which will replace this with measured geometry once SfM runs.)
-    function buildPointCloud() {
+    // Shared height-gradient coloring so both the measured and the fallback
+    // clouds keep the World-View look (floor=green → mid=cyan → top=white).
+    function colorFor(y) {
+      const cLow = new THREE.Color(0x00e5a0), cMid = new THREE.Color(0x38bdf8), cHigh = new THREE.Color(0xeaf6f1);
+      const h = Math.min(1, Math.max(0, y / 3.6));
+      return h < 0.5 ? cLow.clone().lerp(cMid, h * 2) : cMid.clone().lerp(cHigh, (h - 0.5) * 2);
+    }
+
+    function buildCloudFromGeometry(positions, colors, count) {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+      const mat = new THREE.PointsMaterial({ size: 0.035, vertexColors: true, sizeAttenuation: true, transparent: true, opacity: 0.92 });
+      points = new THREE.Points(geo, mat);
+      scene.add(points);
+      document.getElementById("ptStat").textContent = count.toLocaleString();
+      document.getElementById("ptCount").textContent = count.toLocaleString();
+    }
+
+    // Primary: measured geometry baked from the COLMAP + splatfacto reconstruction
+    // (downsampled, opacity-weighted Gaussian centers, PCA-oriented upright).
+    // Falls back to the hand-modeled cloud if the bake can't be fetched.
+    async function buildPointCloud() {
+      try {
+        const data = await (await fetch("/lab/assets/pinion_points.json")).json();
+        const p = data.pts;
+        const n = (p.length / 3) | 0;
+        const positions = new Float32Array(p);
+        const colors = new Float32Array(n * 3);
+        for (let k = 0; k < n; k++) {
+          const c = colorFor(positions[k * 3 + 1]);
+          const jit = 0.82 + Math.random() * 0.18;
+          colors[k * 3] = c.r * jit; colors[k * 3 + 1] = c.g * jit; colors[k * 3 + 2] = c.b * jit;
+        }
+        buildCloudFromGeometry(positions, colors, n);
+      } catch (e) {
+        console.warn("[synthetic-pov] point bake unavailable, using procedural cloud:", e);
+        buildProceduralCloud();
+      }
+    }
+
+    // Hand-modeled fallback that echoes the Pinion Guide Station: a long central
+    // assembly/fixture line, flanking CNC machines, overhead gantry crane + hoist,
+    // ceiling light grid, drums, and the translucent curtain walls.
+    function buildProceduralCloud() {
       const positions = new Float32Array(PT_COUNT * 3);
       const colors = new Float32Array(PT_COUNT * 3);
       const cLow = new THREE.Color(0x00e5a0);
