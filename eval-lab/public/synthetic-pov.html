@@ -806,7 +806,7 @@
     const hasThree = typeof THREE !== "undefined";
     let renderer, scene, camera, points, trajLine, frustum, deviceDot, trajSamples = [], trajLengthM = 0;
     let camAzimuth = 0.7, camElev = 0.5, camDist = 14;
-    const PT_COUNT = 11000;
+    const PT_COUNT = 20000;
 
     function rand(a, b) { return a + Math.random() * (b - a); }
 
@@ -863,6 +863,8 @@
       const cLow = new THREE.Color(0x00e5a0);
       const cMid = new THREE.Color(0x38bdf8);
       const cHigh = new THREE.Color(0xeaf6f1);
+      const D = 1.8;                          // density multiplier (more dots on surfaces)
+      const nn = (n) => Math.round(n * D);
       let i = 0;
       function put(x, y, z) {
         if (i >= PT_COUNT) return;
@@ -894,41 +896,41 @@
       const disc = (cx, cy, cz, r, n) => { for (let k = 0; k < n; k++) { const a = rand(0, Math.PI * 2), rr = Math.sqrt(Math.random()) * r; put(cx + Math.cos(a) * rr, cy + rand(-0.02, 0.02), cz + Math.sin(a) * rr); } };
 
       // floor + center walkway mat
-      for (let n = 0; n < 1500; n++) put(rand(-6.2, 6.2), rand(0, 0.05), rand(-6.2, 6.2));
+      for (let n = 0; n < nn(1500); n++) put(rand(-6.2, 6.2), rand(0, 0.05), rand(-6.2, 6.2));
 
       // central assembly / fixture line (runs along z)
-      box(0.6, 0.0, 0.0, 1.2, 0.85, 9.0, 1700);
-      for (let f = -4; f <= 4; f += 1.6) { disc(0.6, 0.95, f, 0.32, 70); cyl(0.6, f, 0.18, 0.85, 1.12, 60); }
+      box(0.6, 0.0, 0.0, 1.2, 0.85, 9.0, nn(1700));
+      for (let f = -4; f <= 4; f += 1.6) { disc(0.6, 0.95, f, 0.32, nn(70)); cyl(0.6, f, 0.18, 0.85, 1.12, nn(60)); }
 
       // left machine row (CNC / lathes) + right far machines
-      box(-4.2, 0.0, -3.0, 1.4, 1.5, 1.6, 520);
-      box(-4.2, 0.0, -0.3, 1.4, 1.4, 1.6, 500);
-      box(-4.3, 0.0,  2.6, 1.5, 1.6, 1.7, 540);
-      box( 4.6, 0.0, -1.5, 1.6, 1.3, 1.8, 460);
-      box( 4.7, 0.0,  2.2, 1.5, 1.4, 1.6, 420);
+      box(-4.2, 0.0, -3.0, 1.4, 1.5, 1.6, nn(520));
+      box(-4.2, 0.0, -0.3, 1.4, 1.4, 1.6, nn(500));
+      box(-4.3, 0.0,  2.6, 1.5, 1.6, 1.7, nn(540));
+      box( 4.6, 0.0, -1.5, 1.6, 1.3, 1.8, nn(460));
+      box( 4.7, 0.0,  2.2, 1.5, 1.4, 1.6, nn(420));
 
       // drums / barrels
-      cyl(2.3, -1.2, 0.36, 0, 0.95, 240);
-      cyl(-1.6, 1.8, 0.34, 0, 0.90, 220);
+      cyl(2.3, -1.2, 0.36, 0, 0.95, nn(240));
+      cyl(-1.6, 1.8, 0.34, 0, 0.90, nn(220));
 
       // overhead gantry beams + support columns + hanging hoist chain
-      beamX(-5.5, 5.5, 3.25, -1.6, 380);
-      beamX(-5.5, 5.5, 3.25,  2.2, 380);
-      beamZ(-5.0, 5.0, 3.40, -0.2, 320);
-      column(-5.2, -1.6, 0, 3.25, 120); column(5.2, -1.6, 0, 3.25, 120);
-      column(-5.2,  2.2, 0, 3.25, 120); column(5.2,  2.2, 0, 3.25, 120);
-      column(0.1, 0.0, 1.5, 3.30, 80);
+      beamX(-5.5, 5.5, 3.25, -1.6, nn(380));
+      beamX(-5.5, 5.5, 3.25,  2.2, nn(380));
+      beamZ(-5.0, 5.0, 3.40, -0.2, nn(320));
+      column(-5.2, -1.6, 0, 3.25, nn(120)); column(5.2, -1.6, 0, 3.25, nn(120));
+      column(-5.2,  2.2, 0, 3.25, nn(120)); column(5.2,  2.2, 0, 3.25, nn(120));
+      column(0.1, 0.0, 1.5, 3.30, nn(80));
 
       // ceiling light grid
       for (let gx = -5; gx <= 5; gx += 2.0)
-        for (let gz = -5; gz <= 5; gz += 2.2) disc(gx, 3.75, gz, 0.45, 26);
+        for (let gz = -5; gz <= 5; gz += 2.2) disc(gx, 3.75, gz, 0.45, nn(26));
 
       // perimeter curtain walls (translucent)
-      for (let n = 0; n < 700; n++) put(rand(-6.2, 6.2), rand(0, 3.4), -6.3 + rand(-0.1, 0.1));
-      for (let n = 0; n < 520; n++) put(6.3 + rand(-0.1, 0.1), rand(0, 3.4), rand(-6.2, 6.2));
-      for (let n = 0; n < 420; n++) put(-6.3 + rand(-0.1, 0.1), rand(0, 3.4), rand(-2, 6.2));
+      for (let n = 0; n < nn(700); n++) put(rand(-6.2, 6.2), rand(0, 3.4), -6.3 + rand(-0.1, 0.1));
+      for (let n = 0; n < nn(520); n++) put(6.3 + rand(-0.1, 0.1), rand(0, 3.4), rand(-6.2, 6.2));
+      for (let n = 0; n < nn(420); n++) put(-6.3 + rand(-0.1, 0.1), rand(0, 3.4), rand(-2, 6.2));
 
-      // ambient structural haze fill
+      // tiny ambient fill only if the structural points underflow PT_COUNT
       while (i < PT_COUNT) put(rand(-6, 6), rand(0.2, 3.4), rand(-6, 6));
 
       const geo = new THREE.BufferGeometry();
