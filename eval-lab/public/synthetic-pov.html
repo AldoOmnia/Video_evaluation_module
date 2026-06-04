@@ -753,19 +753,26 @@
       if (p) generate({ prompt: p, displayName: "Comer · prompt" }, "Starting generation…");
     });
 
-    // Local 3DGS reconstruction (COLMAP + splatfacto on the 360 footage),
-    // pruned + SH-deg0 for the web. This is the faithful default splat.
+    // Local 3DGS reconstruction (COLMAP + splatfacto), pruned + SH-deg0 for web.
     const DEFAULT_SPLAT = "/lab/assets/pinion_splat.ply";
+    // The video-based local splat had moving-object artifacts; default back to
+    // the World Labs world while the pano-based reconstruction is retrained.
+    // Flip to true (or pass ?splat=/lab/assets/pinion_splat.ply) to use the local one.
+    const USE_LOCAL_SPLAT = false;
 
-    // Boot priority: ?splat=<url> > ?world=<id> > local 3DGS splat.
+    // Boot priority: ?splat=<url> > ?world=<id> > default (World Labs or local).
     (async function initSplat() {
+      let configured = true;
       try {
         const st = await (await fetch("/api/worldlabs/status")).json();
-        if (!st.configured) splatHint.textContent = "World Labs not configured — showing local 3DGS splat.";
+        configured = !!st.configured;
+        if (!configured) splatHint.textContent = "World Labs not configured.";
       } catch { /* status is best-effort */ }
       if (CONFIG.splatUrl) { renderSplat(CONFIG.splatUrl); return; }   // direct .spz/.ply URL
       if (params.has("world")) { trackWorld(params.get("world")); return; } // explicit Marble world
-      renderSplat(DEFAULT_SPLAT);                                       // faithful local reconstruction
+      if (USE_LOCAL_SPLAT) { renderSplat(DEFAULT_SPLAT); setStatus(null); return; }
+      if (configured) { trackWorld(DEFAULT_WORLD); return; }            // restored World Labs splat
+      renderSplat(DEFAULT_SPLAT);                                       // fallback if WL unconfigured
       setStatus(null);
     })();
 
