@@ -806,7 +806,7 @@
     const hasThree = typeof THREE !== "undefined";
     let renderer, scene, camera, points, trajLine, frustum, deviceDot, trajSamples = [], trajLengthM = 0;
     let camAzimuth = 0.7, camElev = 0.5, camDist = 14;
-    const PT_COUNT = 11000;
+    const PT_COUNT = 15000;
 
     function rand(a, b) { return a + Math.random() * (b - a); }
 
@@ -829,10 +829,13 @@
       document.getElementById("ptCount").textContent = count.toLocaleString();
     }
 
-    // Primary: measured geometry baked from the COLMAP + splatfacto reconstruction
-    // (downsampled, opacity-weighted Gaussian centers, PCA-oriented upright).
-    // Falls back to the hand-modeled cloud if the bake can't be fetched.
+    // The baked cloud came from the artifact-ridden video splat, so default back
+    // to the hand-modeled station cloud. Set USE_BAKED_POINTS = true once the new
+    // pano-based splat is wired in to show measured geometry instead.
+    const USE_BAKED_POINTS = false;
+
     async function buildPointCloud() {
+      if (!USE_BAKED_POINTS) { buildProceduralCloud(); return; }
       try {
         const data = await (await fetch("/lab/assets/pinion_points.json")).json();
         const p = data.pts;
