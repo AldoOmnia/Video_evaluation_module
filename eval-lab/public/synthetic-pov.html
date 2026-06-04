@@ -806,7 +806,7 @@
     const hasThree = typeof THREE !== "undefined";
     let renderer, scene, camera, points, trajLine, frustum, deviceDot, trajSamples = [], trajLengthM = 0;
     let camAzimuth = 0.7, camElev = 0.5, camDist = 14;
-    const PT_COUNT = 20000;
+    const PT_COUNT = 31000;
 
     function rand(a, b) { return a + Math.random() * (b - a); }
 
@@ -863,7 +863,7 @@
       const cLow = new THREE.Color(0x00e5a0);
       const cMid = new THREE.Color(0x38bdf8);
       const cHigh = new THREE.Color(0xeaf6f1);
-      const D = 1.8;                          // density multiplier (more dots on surfaces)
+      const D = 2.8;                          // density multiplier (more dots on surfaces)
       const nn = (n) => Math.round(n * D);
       let i = 0;
       function put(x, y, z) {
