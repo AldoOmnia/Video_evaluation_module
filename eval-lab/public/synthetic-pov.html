@@ -327,7 +327,8 @@
     /* RGB POV camera */
     .cam-body { position: relative; background: #000; aspect-ratio: 16/10; overflow: hidden; }
     .cam-body video, .cam-body img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .cam-hud { position: absolute; inset: 0; pointer-events: none; }
+    .cam-hud { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+    .pov-hud { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
     .cam-ts {
       position: absolute; top: 6px; left: 8px; font-family: var(--mono); font-size: 10px;
       color: var(--primary); text-shadow: 0 0 4px #000;
@@ -491,10 +492,10 @@
           <div class="panel-head"><span class="grip">⠿</span><span class="pi" style="color:var(--violet)">●</span> RGB · worker POV <span class="tag">2400×1800</span></div>
           <div class="q-body cam-body" id="camBody">
             <video id="povVideo" poster="/lab/assets/phase8_frame.jpg" muted loop playsinline></video>
+            <canvas id="povHud" class="pov-hud"></canvas>
             <div class="cam-hud">
               <div class="cam-ts" id="camTs">00:00.0</div>
               <div class="cam-rec"><span class="rd"></span>REC</div>
-              <div class="cam-cross"></div>
             </div>
           </div>
         </div>
@@ -1058,19 +1059,172 @@
     // ── Eye gaze canvas ───────────────────────────────────────────────
     const gz = document.getElementById("gazeCanvas");
     const gzx = gz.getContext("2d");
+    // Shared gaze signal (fraction of frame, 0..1) so the POV reticle and the
+    // eye-tracking panel always point at the same place.
+    function gazeFrac(t) {
+      return {
+        x: 0.5 + Math.sin(t * 1.7) * 0.3 + Math.sin(t * 0.6) * 0.08,
+        y: 0.5 + Math.cos(t * 1.1) * 0.28,
+      };
+    }
     function drawGaze(t) {
       const w = gz.width = gz.clientWidth * 2, h = gz.height = gz.clientHeight * 2;
       gzx.clearRect(0, 0, w, h);
       // crosshair guides
       gzx.strokeStyle = "rgba(93,104,100,0.35)"; gzx.lineWidth = 1;
       gzx.beginPath(); gzx.moveTo(w / 2, 0); gzx.lineTo(w / 2, h); gzx.moveTo(0, h / 2); gzx.lineTo(w, h / 2); gzx.stroke();
-      // gaze point (lissajous-ish wander)
-      const gx = w / 2 + Math.sin(t * 1.7) * w * 0.3 + Math.sin(t * 0.6) * w * 0.08;
-      const gy = h / 2 + Math.cos(t * 1.1) * h * 0.28;
+      // gaze point (shared signal)
+      const gf = gazeFrac(t);
+      const gx = gf.x * w;
+      const gy = gf.y * h;
       const grad = gzx.createRadialGradient(gx, gy, 0, gx, gy, 26);
       grad.addColorStop(0, "rgba(239,68,68,0.9)"); grad.addColorStop(1, "rgba(239,68,68,0)");
       gzx.fillStyle = grad; gzx.beginPath(); gzx.arc(gx, gy, 26, 0, Math.PI * 2); gzx.fill();
       gzx.fillStyle = "#ef4444"; gzx.beginPath(); gzx.arc(gx, gy, 3.5, 0, Math.PI * 2); gzx.fill();
+    }
+
+    // ── POV AR HUD (smart-glasses overlay, synced to the shared clock) ────
+    // Everything here is driven by the SAME signals as the other panels:
+    //  • gaze reticle      → gazeFrac(t)         (matches the eye panel)
+    //  • artificial horizon→ seriesAt()          (matches the IMU tracks)
+    //  • compass heading   → device trajectory    (matches the World View walk)
+    //  • task bar / clock  → playT / DURATION     (matches the timeline)
+    const povHud = document.getElementById("povHud");
+    const povHudX = povHud.getContext("2d");
+    const HUD_C = { primary: "#00e5a0", blue: "#38bdf8", amber: "#f59e0b", err: "#ef4444", ink: "rgba(234,246,241,0.92)" };
+    const POV_STEPS = [
+      "Align pinion housing on fixture",
+      "Seat bearing cup — press to stop",
+      "Insert pinion shaft · hand-tight",
+      "Torque crown bolts → 45 Nm",
+      "Verify backlash 0.10–0.15 mm",
+      "Stake lock washer · final check",
+      "Scan part barcode to log build",
+    ];
+    // AR detections (normalized frame coords + gentle drift so they feel tracked)
+    const POV_DETS = [
+      { x: 0.50, y: 0.60, w: 0.30, h: 0.30, dx: 0.012, dy: 0.010, fx: 0.5, fy: 0.7, label: "PINION HOUSING", color: HUD_C.primary, conf: 0.93 },
+      { x: 0.27, y: 0.52, w: 0.17, h: 0.22, dx: 0.018, dy: 0.012, fx: 0.9, fy: 1.3, label: "TORQUE TOOL", color: HUD_C.blue, conf: 0.88 },
+      { x: 0.74, y: 0.44, w: 0.15, h: 0.18, dx: 0.014, dy: 0.016, fx: 1.2, fy: 0.6, label: "FIXTURE CLAMP", color: HUD_C.primary, conf: 0.81 },
+    ];
+    function povHeadingDeg(frac) {
+      if (trajSamples && trajSamples.length > 1) {
+        const N = trajSamples.length;
+        const idx = Math.floor(frac * N) % N;
+        const a = trajSamples[idx], b = trajSamples[(idx + 1) % N];
+        return (Math.atan2(b.x - a.x, b.z - a.z) * 180 / Math.PI + 360) % 360;
+      }
+      return (frac * 360) % 360;
+    }
+    function bracket(ctx, x, y, w, h, color, len) {
+      ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
+      const c = [[x, y, 1, 1], [x + w, y, -1, 1], [x, y + h, 1, -1], [x + w, y + h, -1, -1]];
+      for (const [cx, cy, sx, sy] of c) {
+        ctx.moveTo(cx + sx * len, cy); ctx.lineTo(cx, cy); ctx.lineTo(cx, cy + sy * len);
+      }
+      ctx.stroke();
+    }
+    function drawPovHud(t) {
+      const cv = povHud;
+      const DPR = Math.min(2, window.devicePixelRatio || 1);
+      const w = cv.width = Math.max(1, Math.round(cv.clientWidth * DPR));
+      const h = cv.height = Math.max(1, Math.round(cv.clientHeight * DPR));
+      const ctx = povHudX;
+      ctx.clearRect(0, 0, w, h);
+      ctx.font = `${Math.round(9 * DPR)}px ui-monospace, monospace`;
+      ctx.textBaseline = "alphabetic";
+      const frac = DURATION ? (t / DURATION) : 0;
+
+      // ── compass strip (top) ──
+      const heading = povHeadingDeg(frac);
+      const stripH = 14 * DPR, cxC = w / 2;
+      ctx.save();
+      ctx.fillStyle = "rgba(4,8,9,0.45)"; ctx.fillRect(w * 0.18, 4 * DPR, w * 0.64, stripH);
+      ctx.beginPath(); ctx.rect(w * 0.18, 4 * DPR, w * 0.64, stripH); ctx.clip();
+      const pxPerDeg = (w * 0.64) / 90;
+      for (let d = -50; d <= 50; d += 10) {
+        const deg = heading + d;
+        const x = cxC + d * pxPerDeg;
+        const card = { 0: "N", 90: "E", 180: "S", 270: "W" }[((Math.round(deg / 10) * 10) % 360 + 360) % 360];
+        ctx.strokeStyle = "rgba(0,229,160,0.5)"; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x, 4 * DPR + stripH - (card ? 7 * DPR : 4 * DPR)); ctx.lineTo(x, 4 * DPR + stripH); ctx.stroke();
+        if (card) { ctx.fillStyle = HUD_C.primary; ctx.textAlign = "center"; ctx.fillText(card, x, 4 * DPR + stripH - 8 * DPR); }
+      }
+      ctx.restore();
+      ctx.fillStyle = HUD_C.primary; ctx.textAlign = "center";
+      ctx.fillText(`${Math.round(heading).toString().padStart(3, "0")}°`, cxC, 4 * DPR + stripH + 11 * DPR);
+      ctx.strokeStyle = HUD_C.primary; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(cxC, 4 * DPR + stripH); ctx.lineTo(cxC - 4 * DPR, 4 * DPR + stripH + 5 * DPR); ctx.lineTo(cxC + 4 * DPR, 4 * DPR + stripH + 5 * DPR); ctx.closePath(); ctx.fill();
+
+      // ── artificial horizon (IMU-driven, subtle, center) ──
+      const roll = seriesAt(0.5, 1.4, t) * 7 * Math.PI / 180;     // gyro-ish
+      const pitch = seriesAt(0, 2.1, t) * 0.045 * h;              // accel-ish
+      ctx.save();
+      ctx.translate(w / 2, h / 2 + pitch);
+      ctx.rotate(roll);
+      ctx.globalAlpha = 0.5; ctx.strokeStyle = HUD_C.primary; ctx.lineWidth = 1;
+      const horW = w * 0.16, gap = 14 * DPR;
+      ctx.beginPath();
+      ctx.moveTo(-horW, 0); ctx.lineTo(-gap, 0); ctx.moveTo(gap, 0); ctx.lineTo(horW, 0);
+      ctx.moveTo(-gap, 0); ctx.lineTo(-gap, 4 * DPR); ctx.moveTo(gap, 0); ctx.lineTo(gap, 4 * DPR);
+      ctx.stroke();
+      for (const py of [-22 * DPR, 22 * DPR]) {
+        ctx.beginPath(); ctx.moveTo(-18 * DPR, py); ctx.lineTo(18 * DPR, py); ctx.stroke();
+      }
+      ctx.globalAlpha = 1; ctx.restore();
+
+      // ── AR detection brackets ──
+      ctx.textAlign = "left";
+      for (const d of POV_DETS) {
+        const cx = (d.x + Math.sin(t * d.fx) * d.dx) * w;
+        const cy = (d.y + Math.cos(t * d.fy) * d.dy) * h;
+        const bw = d.w * w, bh = d.h * h;
+        const x = cx - bw / 2, y = cy - bh / 2;
+        bracket(ctx, x, y, bw, bh, d.color, Math.min(bw, bh) * 0.22);
+        const conf = Math.round((d.conf + Math.sin(t * 0.9 + d.fx) * 0.03) * 100);
+        const lab = `${d.label} ${conf}%`;
+        const tw = ctx.measureText(lab).width + 8 * DPR;
+        ctx.fillStyle = d.color; ctx.fillRect(x, y - 13 * DPR, tw, 12 * DPR);
+        ctx.fillStyle = "#021"; ctx.fillText(lab, x + 4 * DPR, y - 3.5 * DPR);
+      }
+
+      // ── gaze reticle (shared signal) ──
+      const gf = gazeFrac(t);
+      const gx = gf.x * w, gy = gf.y * h, r = 11 * DPR;
+      ctx.strokeStyle = HUD_C.err; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.95;
+      ctx.beginPath(); ctx.arc(gx, gy, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(gx - r - 4 * DPR, gy); ctx.lineTo(gx - r + 2 * DPR, gy);
+      ctx.moveTo(gx + r - 2 * DPR, gy); ctx.lineTo(gx + r + 4 * DPR, gy);
+      ctx.moveTo(gx, gy - r - 4 * DPR); ctx.lineTo(gx, gy - r + 2 * DPR);
+      ctx.moveTo(gx, gy + r - 2 * DPR); ctx.lineTo(gx, gy + r + 4 * DPR);
+      ctx.stroke();
+      ctx.fillStyle = HUD_C.err; ctx.beginPath(); ctx.arc(gx, gy, 1.6 * DPR, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = HUD_C.err; ctx.textAlign = "left";
+      ctx.fillText("GAZE", gx + r + 4 * DPR, gy - r + 1 * DPR);
+
+      // ── tracking chip (bottom-left) ──
+      const conf6 = 96 + Math.round(seriesAt(1.1, 0.7, t) * 3);
+      ctx.fillStyle = "rgba(4,8,9,0.5)"; ctx.fillRect(8 * DPR, h - 22 * DPR, 132 * DPR, 15 * DPR);
+      ctx.fillStyle = HUD_C.primary; ctx.beginPath(); ctx.arc(15 * DPR, h - 14.5 * DPR, 3 * DPR, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = HUD_C.ink; ctx.fillText(`6DoF TRACKING · ${conf6}%`, 22 * DPR, h - 11 * DPR);
+
+      // ── task / work-instruction bar (bottom) ──
+      const step = Math.min(POV_STEPS.length - 1, Math.floor(frac * POV_STEPS.length));
+      const barY = h - 40 * DPR, barX = 8 * DPR, barW = w - 16 * DPR, barH = 14 * DPR;
+      ctx.fillStyle = "rgba(4,8,9,0.55)"; ctx.fillRect(barX, barY, barW, barH);
+      ctx.fillStyle = HUD_C.amber; ctx.fillRect(barX, barY, 3 * DPR, barH);
+      ctx.fillStyle = HUD_C.amber; ctx.textAlign = "left";
+      ctx.fillText(`STEP ${step + 1}/${POV_STEPS.length}`, barX + 8 * DPR, barY + 10 * DPR);
+      ctx.fillStyle = HUD_C.ink;
+      ctx.fillText(POV_STEPS[step], barX + 56 * DPR, barY + 10 * DPR);
+      // step progress underline
+      const sp = (frac * POV_STEPS.length) % 1;
+      ctx.strokeStyle = "rgba(245,158,11,0.35)"; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(barX, barY + barH); ctx.lineTo(barX + barW, barY + barH); ctx.stroke();
+      ctx.strokeStyle = HUD_C.amber;
+      ctx.beginPath(); ctx.moveTo(barX, barY + barH); ctx.lineTo(barX + barW * sp, barY + barH); ctx.stroke();
     }
 
     // ── SLAM mono cameras (driven live from the POV footage) ──────────
@@ -1370,9 +1524,10 @@
         document.getElementById("curTime").textContent = fmt(playT);
         document.getElementById("camTs").textContent = fmt(playT);
 
-        // gaze + live SLAM mono cameras
+        // gaze + live SLAM mono cameras + POV AR HUD (all on the shared clock)
         drawGaze(playT);
         drawSlam(playT);
+        drawPovHud(playT);
       } catch (e) {
         if (!warned3D) { console.warn("[synthetic-pov] frame error:", e); warned3D = true; }
       }
