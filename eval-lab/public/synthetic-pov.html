@@ -755,9 +755,10 @@
 
     // Local 3DGS reconstruction (COLMAP + splatfacto), pruned + SH-deg0 for web.
     const DEFAULT_SPLAT = "/lab/assets/pinion_splat.ply";
-    // Pano-based 3DGS reconstruction (clean, 2.6M-gaussian splatfacto-big run),
-    // web-optimized to ~90 MB. This is the faithful default splat.
-    const USE_LOCAL_SPLAT = true;
+    // Pano-based 3DGS reconstruction exists at DEFAULT_SPLAT (web-optimized to
+    // ~90 MB), but it's capture-limited (8 positions → gaps). Keeping the World
+    // Labs world as the demo splat for now; flip true to use the local one.
+    const USE_LOCAL_SPLAT = false;
 
     // Boot priority: ?splat=<url> > ?world=<id> > default (World Labs or local).
     (async function initSplat() {
