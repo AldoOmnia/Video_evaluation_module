@@ -708,6 +708,7 @@
 
     // ── Config (URL-overridable for live demos) ───────────────────────
     const params = new URLSearchParams(location.search);
+    const IS_SPLAT_DEV = location.hostname === "localhost" || location.hostname === "127.0.0.1";
     const CONFIG = {
       // Worker POV footage (web transcode of Phase_8_Video.MP4). Override
       // with ?video=<url> or pass ?video= (empty) to fall back to the still.
@@ -774,6 +775,10 @@
     const splatCalReset = document.getElementById("splatCalReset");
     const splatCalHint = document.getElementById("splatCalHint");
     let splatHudMeta = {};
+    if (!IS_SPLAT_DEV) {
+      document.getElementById("splatCal")?.setAttribute("hidden", "");
+      splatOpen?.setAttribute("hidden", "");
+    }
     const genPov = document.getElementById("genPov");
     const genPrompt = document.getElementById("genPrompt");
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -781,6 +786,7 @@
 
     /** Pull browser-saved origin (from Calibrate → Set origin) into tour config at runtime. */
     function mergeStoredOriginIntoTour() {
+      if (!IS_SPLAT_DEV) return;
       SPLAT_TOUR.forEach((zone, idx) => {
         if (!zone.spz) return;
         const key = LS_ORIGIN + idx + ":" + zone.spz;
@@ -899,35 +905,43 @@
       if (origin) refreshSplatHud(origin);
     });
 
-    splatCalToggle?.addEventListener("click", () => {
-      const on = window.SplatViewer?.toggleCalibrate?.();
-      splatCalToggle.classList.toggle("active", !!on);
-      splatCalSet.hidden = !on;
-      splatCalReset.hidden = !on;
-      splatCalHint.hidden = !on;
-      splatCalToggle.textContent = on ? "Calibrating…" : "Calibrate origin";
-    });
-    splatCalSet?.addEventListener("click", () => {
-      const ok = window.SplatViewer?.saveOrigin?.();
-      if (ok) {
-        splatCalToggle.classList.remove("active");
-        splatCalSet.hidden = true;
-        splatCalReset.hidden = true;
-        splatCalHint.hidden = true;
-        splatCalToggle.textContent = "Calibrate origin";
-        window.SplatViewer?.setCalibrate?.(false);
-        setStatus("Origin saved for this zone", false);
-        setTimeout(() => setStatus(null), 2000);
-      }
-    });
-    splatCalReset?.addEventListener("click", () => {
-      window.SplatViewer?.clearSavedOrigin?.();
-      const idx = parseInt(localStorage.getItem(LS_TOUR) || "0", 10);
-      selectTourZone(idx);
-    });
+    if (IS_SPLAT_DEV) {
+      splatCalToggle?.addEventListener("click", () => {
+        const on = window.SplatViewer?.toggleCalibrate?.();
+        splatCalToggle.classList.toggle("active", !!on);
+        splatCalSet.hidden = !on;
+        splatCalReset.hidden = !on;
+        splatCalHint.hidden = !on;
+        splatCalToggle.textContent = on ? "Calibrating…" : "Calibrate origin";
+      });
+      splatCalSet?.addEventListener("click", () => {
+        const ok = window.SplatViewer?.saveOrigin?.();
+        if (ok) {
+          splatCalToggle.classList.remove("active");
+          splatCalSet.hidden = true;
+          splatCalReset.hidden = true;
+          splatCalHint.hidden = true;
+          splatCalToggle.textContent = "Calibrate origin";
+          window.SplatViewer?.setCalibrate?.(false);
+          setStatus("Origin saved for this zone", false);
+          setTimeout(() => setStatus(null), 2000);
+        }
+      });
+      splatCalReset?.addEventListener("click", () => {
+        window.SplatViewer?.clearSavedOrigin?.();
+        const idx = parseInt(localStorage.getItem(LS_TOUR) || "0", 10);
+        selectTourZone(idx);
+      });
 
-    if (params.get("cal") === "1") {
-      setTimeout(() => splatCalToggle?.click(), 500);
+      if (params.get("cal") === "1") {
+        setTimeout(() => splatCalToggle?.click(), 500);
+      }
+    }
+
+    function showSplatOpen(href) {
+      if (!IS_SPLAT_DEV || !splatOpen) return;
+      splatOpen.href = href;
+      splatOpen.hidden = false;
     }
 
     window.addEventListener("splat-load", (ev) => {
@@ -940,7 +954,7 @@
         setStatus(`Loaded · ${(numSplats || 0).toLocaleString()} splats`, false);
         setTimeout(() => setStatus(null), 2500);
       } else {
-        if (splatHint) splatHint.textContent = "Splat failed to load — open in Marble ↗";
+        if (splatHint) splatHint.textContent = IS_SPLAT_DEV ? "Splat failed to load — open in Marble ↗" : "Splat failed to load";
         if (splatPh) splatPh.style.display = "";
         setStatus(error || "Splat failed to load", false);
       }
@@ -962,8 +976,7 @@
       splatTourTier.textContent = zone.tier === "core" ? "Station" : "Perimeter";
       const url = zoneMarbleUrl(zone);
       splatTourLaunch.href = url;
-      splatOpen.href = url;
-      splatOpen.hidden = false;
+      showSplatOpen(url);
       splatTourFb.hidden = false;
     }
 
@@ -990,8 +1003,7 @@
           zoneIndex: idx,
           capture: buildCaptureOpts(zone),
         });
-        splatOpen.href = zoneMarbleUrl(zone);
-        splatOpen.hidden = false;
+        showSplatOpen(zoneMarbleUrl(zone));
         return;
       }
 
@@ -1003,8 +1015,7 @@
     async function trackWorld(id, fromTour) {
       if (!id || worldPolling) return;
       worldPolling = true;
-      splatOpen.href = `https://marble.worldlabs.ai/world/${id}`;
-      splatOpen.hidden = false;
+      showSplatOpen(`https://marble.worldlabs.ai/world/${id}`);
       if (!fromTour) setStatus("Checking world…", true);
       const started = Date.now();
       while (worldPolling) {
