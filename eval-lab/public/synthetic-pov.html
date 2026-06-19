@@ -323,6 +323,14 @@
       border-radius: 4px; padding: 3px 8px; text-decoration: none; backdrop-filter: blur(4px);
     }
     .wl-open:hover { background: rgba(0,229,160,0.16); }
+    .splat-src {
+      position: absolute; top: 7px; left: 9px; z-index: 3;
+      font-family: var(--mono); font-size: 9px; color: var(--ink-2);
+      background: rgba(0,0,0,0.55); border: 1px solid var(--line-2);
+      padding: 3px 6px; border-radius: 4px; max-width: 92%;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      pointer-events: none;
+    }
 
     /* Splat hotspot tour (Matterport-style zone picker) */
     .splat-tour-rail {
@@ -537,7 +545,7 @@
             <div class="splat-ph" id="splatPh">
               <div class="splat-anim"></div>
               <div class="wl-badge"><b>World Labs</b> · Gaussian splat</div>
-              <div class="wl-hint" id="splatHint">Pick a zone below · loads in Marble or in-panel when API-accessible.</div>
+              <div class="wl-hint" id="splatHint">Pick a zone below · hosted .spz loads in-panel.</div>
               <div class="wl-actions" id="splatActions" hidden>
                 <button class="wl-cta" id="genPov">From worker POV</button>
                 <button class="wl-cta ghost" id="genPrompt">From prompt</button>
@@ -553,6 +561,7 @@
               <a class="wl-cta" id="splatTourLaunch" href="#" target="_blank" rel="noopener">Launch 3D view ↗</a>
             </div>
             <div class="splat-tour-rail" id="splatTourRail"></div>
+            <div class="splat-src" id="splatSrc" hidden></div>
             <a class="wl-open" id="splatOpen" href="#" target="_blank" rel="noopener" hidden>open in Marble ↗</a>
           </div>
         </div>
@@ -673,20 +682,21 @@
     let speed = 1;
     let lastNow = performance.now();
 
-    // ── World Labs splat — 7-zone hotspot tour ───────────────────────
-    // Marble web splats (user's best captures) aren't reachable via our API
-    // proxy (404 — web app vs Platform API). Marble also blocks iframes
-    // (X-Frame-Options: DENY), so each zone opens in Marble or loads in-panel
-    // only when GET /api/worldlabs/world/{id} succeeds (API-generated worlds).
-    // June18 panos → API worlds (reconstruction/june18_zone_worlds.json)
+    // ── World Labs splat — 7-zone tour (hosted .spz from Marble web exports) ──
     const SPLAT_TOUR = [
-      { id: "871ee6f3-b346-4615-b775-91a3f8f9e4b3", label: "Station 1", tier: "core" },
-      { id: "cf4c6c6b-ac4f-4770-b960-28c6cfc9693c", label: "Station 2", tier: "core" },
-      { id: "c93b0bcd-eb59-434e-a8e0-44d59272f463", label: "Station 3", tier: "core" },
-      { id: "cb8a8fb9-a0a4-4284-b8da-130cbbd42238", label: "Station 4", tier: "core" },
-      { id: "1d343be2-7141-4daf-973c-b43c5e59ea5f", label: "Perimeter 5", tier: "outer" },
-      { id: "439f737b-e3e0-4e06-822a-e42017aa0775", label: "Perimeter 6", tier: "outer" },
-      { id: "f8a49a66-8132-4d5c-a94b-b565e2f9d5ae", label: "Perimeter 7", tier: "outer" },
+      {
+        label: "Station 1", tier: "core",
+        spz: "/lab/assets/marble_zone_01.spz",
+        flipY: false, // web-export SPZ (API exports need flipY: true)
+        lod: false,   // full 2M+ splats — match Marble fidelity (slower load)
+        marbleUrl: "https://marble.worldlabs.ai/world/1eb37df2-f3e6-473e-b24a-548705c8c924",
+      },
+      { label: "Station 2", tier: "core", marbleUrl: "https://marble.worldlabs.ai/world/77974502-7970-4cbb-89cd-ba406531410a" },
+      { label: "Station 3", tier: "core", marbleUrl: "https://marble.worldlabs.ai/world/47b82d4f-fad3-44d8-a0b2-35c0896d3f52" },
+      { label: "Station 4", tier: "core", marbleUrl: "https://marble.worldlabs.ai/world/02c3a78d-1da1-4593-a694-547c90d83c15" },
+      { label: "Perimeter 5", tier: "outer", marbleUrl: "https://marble.worldlabs.ai/world/47b9440e-2901-4f01-98dd-2d0a5812c022" },
+      { label: "Perimeter 6", tier: "outer", marbleUrl: "https://marble.worldlabs.ai/world/51b1ef90-8bb4-4524-8f11-c06135dc9073" },
+      { label: "Perimeter 7", tier: "outer", marbleUrl: "https://marble.worldlabs.ai/world/c63cdbb8-f8b0-4993-bbf9-6b4b7242b060" },
     ];
     const LS_TOUR = "syntheticPov.tourZone";
     const splatBody = document.getElementById("splatBody");
@@ -701,12 +711,14 @@
     const splatTourTitle = document.getElementById("splatTourTitle");
     const splatTourTier = document.getElementById("splatTourTier");
     const splatTourLaunch = document.getElementById("splatTourLaunch");
+    const splatSrc = document.getElementById("splatSrc");
     const genPov = document.getElementById("genPov");
     const genPrompt = document.getElementById("genPrompt");
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-    function marbleUrlFor(id) { return `https://marble.worldlabs.ai/world/${id}`; }
+    function zoneMarbleUrl(zone) { return zone.marbleUrl || (zone.id ? `https://marble.worldlabs.ai/world/${zone.id}` : "#"); }
     function splatProxyFor(id) { return `/api/worldlabs/world/${encodeURIComponent(id)}/splat`; }
+    function splatUrlFor(zone) { return zone.spz ? encodeURI(zone.spz) : null; }
 
     function hideSparkCanvas() {
       const cv = splatBody?.querySelector("canvas");
@@ -719,13 +731,33 @@
     }
 
     // Hand a splat URL to the Spark module (queue if it hasn't loaded yet).
-    function renderSplat(url, fileType) {
-      if (splatPh) splatPh.style.display = "none";
+    function renderSplat(url, fileType, opts) {
       if (splatTourFb) splatTourFb.hidden = true;
       showSparkCanvas();
-      window.__splatPending = { url, fileType };
-      if (window.SplatViewer) window.SplatViewer.mount(url, fileType);
+      if (splatPh) splatPh.style.display = "";
+      if (splatSrc) { splatSrc.hidden = false; splatSrc.textContent = "Loading… " + decodeURI(url).split("/").pop(); }
+      window.__splatPending = { url, fileType, opts: opts || {} };
+      if (window.SplatViewer) window.SplatViewer.mount(url, fileType, opts || {});
     }
+
+    window.addEventListener("splat-load-progress", (ev) => {
+      const { pct } = ev.detail || {};
+      if (pct != null) setStatus(`Loading splat… ${pct}%`, true);
+    });
+    window.addEventListener("splat-load", (ev) => {
+      const { ok, url, numSplats, radius, error } = ev.detail || {};
+      if (ok) {
+        if (splatPh) splatPh.style.display = "none";
+        const name = decodeURI(url || "").split("/").pop();
+        if (splatSrc) splatSrc.textContent = `${name} · ${(numSplats || 0).toLocaleString()} splats`;
+        setStatus(`Loaded · ${(numSplats || 0).toLocaleString()} splats`, false);
+        setTimeout(() => setStatus(null), 2500);
+      } else {
+        if (splatHint) splatHint.textContent = "Splat failed to load — open in Marble ↗";
+        if (splatPh) splatPh.style.display = "";
+        setStatus(error || "Splat failed to load", false);
+      }
+    });
 
     function setStatus(text, busy) {
       if (text == null) { splatStatus.hidden = true; return; }
@@ -741,7 +773,7 @@
       setStatus(null);
       splatTourTitle.textContent = zone.label;
       splatTourTier.textContent = zone.tier === "core" ? "Station" : "Perimeter";
-      const url = marbleUrlFor(zone.id);
+      const url = zoneMarbleUrl(zone);
       splatTourLaunch.href = url;
       splatOpen.href = url;
       splatOpen.hidden = false;
@@ -751,34 +783,47 @@
     function buildTourRail() {
       if (!splatTourRail) return;
       splatTourRail.innerHTML = "";
-      for (const z of SPLAT_TOUR) {
+      SPLAT_TOUR.forEach((z, i) => {
         const b = document.createElement("button");
         b.type = "button";
         b.className = "tour-z" + (z.tier === "core" ? " core" : "");
-        b.dataset.id = z.id;
+        b.dataset.idx = String(i);
         b.textContent = z.label;
-        b.title = marbleUrlFor(z.id);
-        b.addEventListener("click", () => selectTourZone(z));
+        b.title = z.spz ? "In-panel splat" : zoneMarbleUrl(z);
+        b.addEventListener("click", () => selectTourZone(i));
         splatTourRail.appendChild(b);
-      }
-    }
-
-    function setActiveTourButton(id) {
-      splatTourRail?.querySelectorAll(".tour-z").forEach((b) => {
-        b.classList.toggle("active", b.dataset.id === id);
       });
     }
 
-    // Try API (Spark in-panel); fall back to Marble launch card for web-only worlds.
+    function setActiveTourButton(idx) {
+      splatTourRail?.querySelectorAll(".tour-z").forEach((b) => {
+        b.classList.toggle("active", b.dataset.idx === String(idx));
+      });
+    }
+
     let worldPolling = false;
-    async function selectTourZone(zone) {
+    async function selectTourZone(idx) {
+      const zone = SPLAT_TOUR[idx];
       if (!zone) return;
       worldPolling = false;
-      localStorage.setItem(LS_TOUR, zone.id);
-      setActiveTourButton(zone.id);
-      setStatus("Checking zone…", true);
+      localStorage.setItem(LS_TOUR, String(idx));
+      setActiveTourButton(idx);
       splatTourFb.hidden = true;
 
+      const local = splatUrlFor(zone);
+      if (local) {
+        setStatus("Loading splat…", true);
+        renderSplat(local, "spz", { flipY: zone.flipY !== false, lod: zone.lod !== false });
+        splatOpen.href = zoneMarbleUrl(zone);
+        splatOpen.hidden = false;
+        return;
+      }
+
+      setStatus("Checking zone…", true);
+      if (!zone.id) {
+        showMarbleFallback(zone);
+        return;
+      }
       try {
         const s = await (await fetch(`/api/worldlabs/world/${encodeURIComponent(zone.id)}`)).json();
         if (s.error) {
@@ -788,11 +833,10 @@
         if (s.done && s.spz) {
           setStatus(null);
           renderSplat(splatProxyFor(zone.id), "spz");
-          splatOpen.href = marbleUrlFor(zone.id);
+          splatOpen.href = zoneMarbleUrl(zone);
           splatOpen.hidden = false;
           return;
         }
-        // Rare: still generating — poll briefly then fallback.
         if (s.worldId || zone.id) {
           await trackWorld(zone.id, true);
           return;
@@ -807,7 +851,7 @@
     async function trackWorld(id, fromTour) {
       if (!id || worldPolling) return;
       worldPolling = true;
-      splatOpen.href = marbleUrlFor(id);
+      splatOpen.href = `https://marble.worldlabs.ai/world/${id}`;
       splatOpen.hidden = false;
       if (!fromTour) setStatus("Checking world…", true);
       const started = Date.now();
@@ -817,8 +861,8 @@
           s = await (await fetch(`/api/worldlabs/world/${encodeURIComponent(id)}`)).json();
         } catch { await sleep(6000); continue; }
         if (s.error) {
-          const z = SPLAT_TOUR.find((t) => t.id === id);
-          if (z) showMarbleFallback(z);
+          const zi = SPLAT_TOUR.findIndex((t) => t.id === id);
+          if (zi >= 0) showMarbleFallback(SPLAT_TOUR[zi]);
           else setStatus("Error: " + s.error, false);
           worldPolling = false;
           return;
@@ -902,16 +946,26 @@
       if (params.has("world")) { trackWorld(params.get("world")); return; }
       if (USE_LOCAL_SPLAT) { renderSplat(DEFAULT_SPLAT); setStatus(null); return; }
       const zParam = params.get("zone");
-      let zone = SPLAT_TOUR[0];
+      let idx = 0;
       if (zParam) {
         const n = parseInt(zParam, 10);
-        if (n >= 1 && n <= SPLAT_TOUR.length) zone = SPLAT_TOUR[n - 1];
-        else zone = SPLAT_TOUR.find((z) => z.id === zParam) || zone;
+        if (n >= 1 && n <= SPLAT_TOUR.length) idx = n - 1;
+        else {
+          const byId = SPLAT_TOUR.findIndex((z) => z.id === zParam);
+          if (byId >= 0) idx = byId;
+        }
       } else {
         const saved = localStorage.getItem(LS_TOUR);
-        if (saved) zone = SPLAT_TOUR.find((z) => z.id === saved) || zone;
+        if (saved != null) {
+          const n = parseInt(saved, 10);
+          if (n >= 0 && n < SPLAT_TOUR.length) idx = n;
+          else {
+            const byId = SPLAT_TOUR.findIndex((z) => z.id === saved);
+            if (byId >= 0) idx = byId;
+          }
+        }
       }
-      await selectTourZone(zone);
+      await selectTourZone(idx);
     })();
 
     // ── POV video ─────────────────────────────────────────────────────
@@ -1578,54 +1632,82 @@
     }
 
     function frameToSplat(splat) {
-      try {
-        splat.updateMatrixWorld(true);
-        const box = splat.getBoundingBox(true);
-        if (!box || box.isEmpty()) return;
-        box.applyMatrix4(splat.matrixWorld); // account for the Y-flip below
-        const center = box.getCenter(new THREE.Vector3());
-        const sphere = box.getBoundingSphere(new THREE.Sphere());
-        const r = sphere.radius || 2;
-        const dist = (r / Math.tan((camera.fov * Math.PI) / 360)) * 1.3;
-        controls.target.copy(center);
-        camera.position.set(center.x, center.y + r * 0.25, center.z + dist);
-        camera.near = Math.max(dist / 1000, 0.01);
-        camera.far = dist * 1000;
-        camera.updateProjectionMatrix();
-        controls.update();
-      } catch { /* keep default framing */ }
+      splat.updateMatrixWorld(true);
+      let box;
+      try { box = splat.getBoundingBox(false); }
+      catch {
+        try { box = splat.getBoundingBox(true); }
+        catch (e) { console.warn("[splat] bounding box failed", e); return null; }
+      }
+      if (!box || box.isEmpty()) return null;
+      box.applyMatrix4(splat.matrixWorld);
+      const center = box.getCenter(new THREE.Vector3());
+      const sphere = box.getBoundingSphere(new THREE.Sphere());
+      const r = Math.max(sphere.radius, 0.5);
+      const dist = (r / Math.tan((camera.fov * Math.PI) / 360)) * 1.2;
+      controls.target.copy(center);
+      camera.position.set(center.x, center.y + r * 0.12, center.z + dist);
+      camera.near = Math.max(dist / 5000, 0.001);
+      camera.far = Math.max(dist * 20, r * 50, 10000);
+      camera.updateProjectionMatrix();
+      controls.update();
+      return { center, radius: r, numSplats: splat.numSplats ?? splat.packedSplats?.numSplats };
     }
 
-    async function mount(url, fileType) {
+    async function mount(url, fileType, opts = {}) {
       init();
       if (current) { scene.remove(current); current.dispose?.(); current = null; }
-      const opts = { url };
-      if (fileType) opts.fileType = fileType; // proxy URL has no .spz extension
+      const meshOpts = {
+        url,
+        lod: opts.lod !== false,
+        onProgress: (ev) => {
+          if (ev.lengthComputable && ev.total > 0) {
+            const pct = Math.round((ev.loaded / ev.total) * 100);
+            window.dispatchEvent(new CustomEvent("splat-load-progress", { detail: { url, pct } }));
+          }
+        },
+      };
+      if (fileType) meshOpts.fileType = fileType;
       let splat;
       try {
-        splat = new SplatMesh(opts);
-      } catch (e) { showError(e); return; }
-      // Marble/3DGS assets are Y-down; flip 180° about X to stand them upright.
-      splat.quaternion.set(1, 0, 0, 0);
+        splat = new SplatMesh(meshOpts);
+      } catch (e) { showError(e, url); return; }
+      if (opts.flipY !== false) splat.quaternion.set(1, 0, 0, 0);
       scene.add(splat);
       current = splat;
       try {
         await splat.initialized;
-        frameToSplat(splat);
-      } catch (e) { showError(e); return; }
+        let framed = frameToSplat(splat);
+        if (!framed && opts.flipY === false) {
+          splat.quaternion.set(1, 0, 0, 0);
+          framed = frameToSplat(splat);
+        } else if (!framed && opts.flipY !== false) {
+          splat.quaternion.set(0, 0, 0, 1);
+          framed = frameToSplat(splat);
+        }
+        const numSplats = splat.numSplats ?? splat.packedSplats?.numSplats ?? 0;
+        console.info("[splat] loaded", { url, numSplats, framed });
+        window.dispatchEvent(new CustomEvent("splat-load", {
+          detail: { ok: true, url, numSplats, radius: framed?.radius ?? null },
+        }));
+      } catch (e) {
+        showError(e, url);
+        window.dispatchEvent(new CustomEvent("splat-load", { detail: { ok: false, url, error: e?.message || String(e) } }));
+        return;
+      }
       size();
     }
 
-    function showError(e) {
-      console.error("[synthetic-pov] splat load failed:", e);
-      const ph = document.getElementById("splatPh");
-      const hint = document.getElementById("splatHint");
-      if (ph) ph.style.display = "";
-      if (hint) hint.textContent = "Splat failed to load — open in Marble ↗";
+    function showError(e, url) {
+      console.error("[synthetic-pov] splat load failed:", url, e);
+      window.dispatchEvent(new CustomEvent("splat-load", { detail: { ok: false, url, error: e?.message || String(e) } }));
     }
 
     window.SplatViewer = { mount, isReady: () => ready };
-    if (window.__splatPending) mount(window.__splatPending.url, window.__splatPending.fileType);
+    if (window.__splatPending) {
+      const p = window.__splatPending;
+      mount(p.url, p.fileType, p.opts || {});
+    }
   </script>
 </body>
 </html>
