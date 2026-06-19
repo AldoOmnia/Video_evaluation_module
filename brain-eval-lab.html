@@ -2249,13 +2249,36 @@ function updateGraphStats() {
 /* ════════════════════════════════════════════════════════════════════════════
    NODE SELECTION + DETAIL PANEL
    ════════════════════════════════════════════════════════════════════════════ */
+function liveVideoUrlForFileName(fileName) {
+  if (!fileName) return null;
+  return state.brain.videoFiles?.[fileName]?.url || null;
+}
+
 function resolveVideoUrl(raw) {
   if (!raw) return null;
-  if (raw.videoUrl) return raw.videoUrl;
-  const byName = raw.fileName && state.brain.videoFiles?.[raw.fileName]?.url;
+  const byName = liveVideoUrlForFileName(raw.fileName);
   if (byName) return byName;
   if (state.brain.videoFile && raw.fileName === state.brain.videoFile.name) return state.brain.videoUrl;
   return state.brain.videoUrl || null;
+}
+
+async function ensureVideoUrlForSegment(raw) {
+  let url = resolveVideoUrl(raw);
+  if (url) return url;
+  if (!raw?.fileName) return null;
+  const rec = await loadVideoBlob(raw.fileName);
+  if (!rec?.blob) return null;
+  const file = rec.blob instanceof File
+    ? rec.blob
+    : new File([rec.blob], raw.fileName, { type: rec.mimeType || 'video/mp4' });
+  url = URL.createObjectURL(file);
+  registerVideoFile(file, url, rec.addedAt || Date.now(), true);
+  if (!state.brain.videoUrl) {
+    state.brain.videoFile = file;
+    state.brain.videoUrl = url;
+  }
+  updateVideoSourceBar();
+  return url;
 }
 
 function selectNode(data) {
@@ -2264,8 +2287,10 @@ function selectNode(data) {
   renderRightPanel();
 
   if (data.type === 'VideoSegment' && data.raw) {
-    const url = resolveVideoUrl(data.raw);
-    if (url) openVideoPlayer(url, data.raw.fileName, data.raw);
+    ensureVideoUrlForSegment(data.raw).then(url => {
+      if (url) openVideoPlayer(url, data.raw.fileName, data.raw);
+      else toast(`Video not in browser storage — re-drop ${data.raw.fileName || 'the recording'}`);
+    });
   }
 }
 
@@ -2771,6 +2796,8 @@ const MAX_VIDEO_BYTES = 512 * 1024 * 1024;       // ~512 MB — streamed via blo
 const STORAGE_KEY = 'brain.artifacts.v1';
 const VIDEO_DB_NAME = 'brain.videos.v1';
 const VIDEO_STORE = 'files';
+const VIDEO_CACHE_NAME = 'brain-videos-v1';
+const VIDEO_INDEX_KEY = 'brain.videos.index.v1';
 
 function openVideoDb() {
   return new Promise((resolve, reject) => {
@@ -2786,36 +2813,116 @@ function openVideoDb() {
   });
 }
 
+function videoCacheRequest(fileName) {
+  return new Request(`${location.origin}/__brain_video__/${encodeURIComponent(fileName)}`);
+}
+
+function readVideoIndex() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(VIDEO_INDEX_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function upsertVideoIndex(meta) {
+  const index = readVideoIndex().filter(m => m.fileName !== meta.fileName);
+  index.push({
+    fileName: meta.fileName,
+    size: meta.size,
+    mimeType: meta.mimeType,
+    addedAt: meta.addedAt,
+    store: meta.store,
+  });
+  localStorage.setItem(VIDEO_INDEX_KEY, JSON.stringify(index));
+}
+
+function removeVideoIndexEntry(fileName) {
+  const index = readVideoIndex().filter(m => m.fileName !== fileName);
+  localStorage.setItem(VIDEO_INDEX_KEY, JSON.stringify(index));
+}
+
 async function persistVideoBlob(file) {
+  const meta = {
+    fileName: file.name,
+    size: file.size,
+    mimeType: file.type || 'video/mp4',
+    addedAt: Date.now(),
+  };
+
+  // Cache API handles large POV files more reliably than IndexedDB on some browsers.
+  if ('caches' in window) {
+    try {
+      const cache = await caches.open(VIDEO_CACHE_NAME);
+      await cache.put(
+        videoCacheRequest(file.name),
+        new Response(file, { headers: { 'Content-Type': meta.mimeType } }),
+      );
+      upsertVideoIndex({ ...meta, store: 'cache' });
+      return 'cache';
+    } catch (e) {
+      console.warn('cache video persist failed, trying IndexedDB', e);
+    }
+  }
+
   const db = await openVideoDb();
   await new Promise((resolve, reject) => {
     const tx = db.transaction(VIDEO_STORE, 'readwrite');
-    tx.objectStore(VIDEO_STORE).put({
-      fileName: file.name,
-      blob: file,
-      size: file.size,
-      mimeType: file.type || 'video/mp4',
-      addedAt: Date.now(),
-    });
+    tx.objectStore(VIDEO_STORE).put({ ...meta, store: 'idb', blob: file });
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
   db.close();
+  upsertVideoIndex({ ...meta, store: 'idb' });
+  return 'idb';
 }
 
 async function loadVideoBlob(fileName) {
+  const meta = readVideoIndex().find(m => m.fileName === fileName);
+
+  if ((!meta || meta.store === 'cache') && 'caches' in window) {
+    try {
+      const cache = await caches.open(VIDEO_CACHE_NAME);
+      const res = await cache.match(videoCacheRequest(fileName));
+      if (res) {
+        const blob = await res.blob();
+        return {
+          fileName,
+          blob,
+          mimeType: res.headers.get('Content-Type') || meta?.mimeType || 'video/mp4',
+          size: meta?.size,
+          addedAt: meta?.addedAt,
+          store: 'cache',
+        };
+      }
+    } catch (e) {
+      console.warn('cache video load failed', e);
+    }
+  }
+
   const db = await openVideoDb();
   const rec = await new Promise((resolve, reject) => {
     const tx = db.transaction(VIDEO_STORE, 'readonly');
     const req = tx.objectStore(VIDEO_STORE).get(fileName);
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
+    tx.onerror = () => reject(tx.error);
   });
   db.close();
   return rec;
 }
 
 async function deleteVideoBlob(fileName) {
+  removeVideoIndexEntry(fileName);
+  if ('caches' in window) {
+    try {
+      const cache = await caches.open(VIDEO_CACHE_NAME);
+      await cache.delete(videoCacheRequest(fileName));
+    } catch (e) {
+      console.warn('cache video delete failed', e);
+    }
+  }
   const db = await openVideoDb();
   await new Promise((resolve, reject) => {
     const tx = db.transaction(VIDEO_STORE, 'readwrite');
@@ -2827,15 +2934,23 @@ async function deleteVideoBlob(fileName) {
 }
 
 async function listStoredVideoNames() {
-  const db = await openVideoDb();
-  const names = await new Promise((resolve, reject) => {
-    const tx = db.transaction(VIDEO_STORE, 'readonly');
-    const req = tx.objectStore(VIDEO_STORE).getAllKeys();
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => reject(req.error);
-  });
-  db.close();
-  return names;
+  const names = new Set(readVideoIndex().map(m => m.fileName));
+  if (!window.indexedDB) return [...names];
+  try {
+    const db = await openVideoDb();
+    const keys = await new Promise((resolve, reject) => {
+      const tx = db.transaction(VIDEO_STORE, 'readonly');
+      const req = tx.objectStore(VIDEO_STORE).getAllKeys();
+      tx.oncomplete = () => resolve(req.result || []);
+      tx.onerror = () => reject(tx.error);
+      req.onerror = () => reject(req.error);
+    });
+    db.close();
+    for (const k of keys) names.add(String(k));
+  } catch (e) {
+    console.warn('list stored videos failed', e);
+  }
+  return [...names];
 }
 
 function registerVideoFile(file, url, addedAt, persisted) {
@@ -2850,7 +2965,7 @@ function registerVideoFile(file, url, addedAt, persisted) {
 }
 
 async function restoreVideosFromStorage() {
-  if (!window.indexedDB) return 0;
+  if (!window.indexedDB && !('caches' in window)) return 0;
   try {
     const names = new Set(await listStoredVideoNames());
     for (const a of state.brain.artifacts) {
@@ -2878,6 +2993,7 @@ async function restoreVideosFromStorage() {
       state.brain.videoUrl = newest.url;
     }
     updateVideoSourceBar();
+    if (restored > 0) onArtifactChanged();
     return restored;
   } catch (e) {
     console.warn('video restore failed', e);
@@ -3077,7 +3193,7 @@ function buildCsvSummary(headers, rows) {
   return `${head}\nrows (first ${Math.min(rows.length, 10)}):\n${sample}`;
 }
 
-function ingestVideo(file) {
+async function ingestVideo(file) {
   if (!file.type.startsWith('video/')) {
     toast(`${file.name} doesn't look like a video file`);
     return;
@@ -3090,16 +3206,25 @@ function ingestVideo(file) {
   state.brain.videoFile = file;
   state.brain.videoUrl = url;
   registerVideoFile(file, url, Date.now(), false);
-  persistVideoBlob(file).catch(e => console.warn('video persist failed', e));
 
   const linked = state.brain.artifacts.filter(
-    a => a.type === 'VideoSegment' && a.fileName === file.name && a.videoLinked
+    a => a.type === 'VideoSegment' && a.fileName === file.name
   ).length;
+  toast(linked > 0
+    ? `Saving ${file.name} locally…`
+    : `Saving ${file.name} — survives refresh · scrub, set IN/OUT, Save`);
+
+  try {
+    await persistVideoBlob(file);
+    state.brain.videoFiles[file.name].persisted = true;
+  } catch (e) {
+    console.warn('video persist failed', e);
+    toast(`Video plays this session only — browser storage failed (${formatBytes(file.size)}). Free disk space or try again.`);
+  }
+
   if (linked > 0) {
     onArtifactChanged();
-    toast(`${file.name} saved locally — linked to ${linked} clip${linked === 1 ? '' : 's'}`);
-  } else {
-    toast(`Video saved locally — survives refresh · scrub, set IN/OUT, Save`);
+    toast(`${file.name} saved — linked to ${linked} clip${linked === 1 ? '' : 's'}`);
   }
   updateVideoSourceBar();
   requestAnimationFrame(() => openVideoPlayer(url, file.name));
@@ -3224,8 +3349,8 @@ function onArtifactChanged() {
 function persistArtifacts() {
   try {
     const safe = state.brain.artifacts.map(a => {
-      // strip blob URLs / non-serializable bits; keep extracted text/rows
-      const { ...rest } = a;
+      // Blob URLs die on reload — linkage is restored from browser storage by fileName.
+      const { videoUrl, ...rest } = a;
       return rest;
     });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
@@ -3246,6 +3371,11 @@ function restoreArtifacts() {
       if (a.parseStatus === 'parsing') {
         a.parseStatus = 'error';
         a.parseError = 'previous tab closed before parse finished';
+      }
+      // Stale blob URLs from older builds — never trust them after reload.
+      if (a.videoUrl) {
+        delete a.videoUrl;
+        a.videoLinked = false;
       }
     }
     state.brain.artifacts = parsed;
@@ -3810,8 +3940,10 @@ function renderSavedTags() {
   list.querySelectorAll('.tag-row').forEach(el => {
     el.onclick = () => {
       const seg = state.brain.artifacts.find(a => a.id === el.dataset.id);
-      const url = resolveVideoUrl(seg);
-      if (url) openVideoPlayer(url, seg?.fileName, seg);
+      ensureVideoUrlForSegment(seg).then(url => {
+        if (url) openVideoPlayer(url, seg?.fileName, seg);
+        else toast(`Video not in browser storage — re-drop ${seg?.fileName || 'the recording'}`);
+      });
       const node = state.graph.getElementById(el.dataset.id);
       if (node && !node.empty()) selectNode(node.data());
     };
@@ -4599,7 +4731,10 @@ document.getElementById('vp-close').onclick = closeVideoPlayer;
 document.getElementById('tag-start').onclick = tagInPoint;
 document.getElementById('tag-end').onclick = tagOutPoint;
 document.getElementById('tag-save').onclick = saveTagAsSegment;
-document.getElementById('vs-open-player').onclick = () => {
+document.getElementById('vs-open-player').onclick = async () => {
+  if (!state.brain.videoUrl) {
+    await restoreVideosFromStorage();
+  }
   if (!state.brain.videoUrl) {
     toast('No video loaded — drop a recording first');
     return;
@@ -4737,7 +4872,13 @@ window.addEventListener('load', () => {
   restoreVideosFromStorage().then(count => {
     if (count > 0) {
       toast(`Restored ${count} video${count === 1 ? '' : 's'} from browser storage — open tagging panel or click a clip`);
-      renderArtifactList();
+    } else {
+      const needsVideo = state.brain.artifacts.some(
+        a => a.type === 'VideoSegment' && a.fileName && !liveVideoUrlForFileName(a.fileName)
+      );
+      if (needsVideo) {
+        toast('Clip tags restored but video file missing — re-drop the recording (same filename)');
+      }
     }
   });
 
