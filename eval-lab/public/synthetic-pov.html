@@ -715,7 +715,7 @@
         flipY: false,
         lod: false,
         // Spark renders web SPZ Y-up; eye height is on Y (Three.js vertical)
-        capture: { up: "y", eyeHeight: 2.0, floorQuantile: 0.02, stationPull: 0.85 },
+        capture: { up: "y", eyeHeight: 1.9, floorQuantile: 0.02, stationPull: 0.85, stationBack: 0.75 },
         marbleUrl: "https://marble.worldlabs.ai/world/1eb37df2-f3e6-473e-b24a-548705c8c924",
       },
       { label: "Station 2", tier: "core", marbleUrl: "https://marble.worldlabs.ai/world/77974502-7970-4cbb-89cd-ba406531410a" },
@@ -752,7 +752,7 @@
       const up = cap.up || "z";
       const eye = cap.eyeHeight != null ? cap.eyeHeight : "—";
       const pull = cap.stationPull != null ? cap.stationPull : 0;
-      const floor = cap.floorQuantile != null ? cap.floorQuantile : 0.06;
+      const back = cap.stationBack != null ? cap.stationBack : 0;
       const eyeOvr = params.has("eye") ? " (?eye URL)" : "";
       const upIdx = up === "z" ? 2 : 1;
       const floorVal = floorV != null ? Number(floorV).toFixed(2) : "?";
@@ -761,7 +761,7 @@
       const lines = [
         `${zoneLabel || name}${numSplats ? ` · ${Number(numSplats).toLocaleString()} splats` : ""}`,
         `<span class="cap-eye">eye ${eye}m</span> · up ${upLabel}${eyeOvr}`,
-        `floor ${floorVal} + eye → ${upLabel} ${totalVal} · pull ${pull}`,
+        `floor ${floorVal} + eye → ${upLabel} ${totalVal} · pull ${pull} · back ${back}m`,
       ];
       if (origin && origin.length === 3) {
         lines.push(`origin [${origin.map((v) => Number(v).toFixed(2)).join(", ")}]`);
@@ -1740,19 +1740,34 @@
         }
       }
 
-      const origin = new THREE.Vector3(sx / total, sy / total, sz / total);
+      const prePull = new THREE.Vector3(sx / total, sy / total, sz / total);
+      const origin = prePull.clone();
 
       // Pull horizontal position toward peak cell (machine / capture focal point).
       const pull = capture.stationPull ?? 0;
+      const peakX = peak.sx / peak.n;
+      const peakY = peak.sy / peak.n;
+      const peakZ = peak.sz / peak.n;
       if (pull > 0) {
-        const peakX = peak.sx / peak.n;
-        const peakY = peak.sy / peak.n;
         if (up === "z") {
           origin.x += (peakX - origin.x) * pull;
           origin.y += (peakY - origin.y) * pull;
         } else {
           origin.x += (peakX - origin.x) * pull;
-          origin.z += (peak.sz / peak.n - origin.z) * pull;
+          origin.z += (peakZ - origin.z) * pull;
+        }
+      }
+
+      // Step back from station (horizontal, away from peak density).
+      const back = capture.stationBack ?? 0;
+      if (back > 0) {
+        const peakPt = new THREE.Vector3(peakX, peakY, peakZ);
+        const away = new THREE.Vector3().subVectors(prePull, peakPt);
+        if (up === "y") away.y = 0;
+        else if (up === "z") away.z = 0;
+        if (away.lengthSq() > 1e-8) {
+          away.normalize().multiplyScalar(back);
+          origin.add(away);
         }
       }
 
@@ -1912,6 +1927,7 @@
           up,
           eyeHeight: capture.eyeHeight ?? 1.55,
           stationPull: capture.stationPull ?? 0,
+          stationBack: capture.stationBack ?? 0,
           floorQuantile: capture.floorQuantile ?? 0.06,
         };
         console.info("[splat] panorama origin", { ...captureUsed, floorV, origin: origin.toArray() });
