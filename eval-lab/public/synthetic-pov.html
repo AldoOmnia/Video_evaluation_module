@@ -332,25 +332,47 @@
       pointer-events: none;
     }
 
-    /* Splat hotspot tour (Matterport-style zone picker) */
-    .splat-tour-rail {
-      position: absolute; left: 0; right: 0; bottom: 0; z-index: 4;
-      display: flex; gap: 3px; padding: 5px 6px;
-      background: linear-gradient(transparent, rgba(6,8,9,0.92) 35%);
-      overflow-x: auto; scrollbar-width: none;
+    /* Bottom station rail retired — navigation is in-scene hotspots */
+    .splat-tour-rail { display: none !important; }
+
+    /* In-scene hotspot portals (Marble-style) */
+    .splat-hotspots {
+      position: absolute; inset: 0; z-index: 5; pointer-events: none; overflow: hidden;
     }
-    .splat-tour-rail::-webkit-scrollbar { display: none; }
-    .tour-z {
-      flex: 0 0 auto; font-family: var(--mono); font-size: 9px; letter-spacing: 0.04em;
-      color: var(--ink-2); border: 1px solid var(--line-2); border-radius: 4px;
-      padding: 4px 8px; background: rgba(6,8,9,0.75); cursor: pointer;
-      white-space: nowrap; transition: border-color 0.15s, color 0.15s, background 0.15s;
+    .splat-hotspot {
+      position: absolute; transform: translate(-50%, -50%);
+      pointer-events: auto; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      background: none; border: none; padding: 0;
+      transition: transform 0.12s ease, opacity 0.12s ease;
     }
-    .tour-z.core { border-color: rgba(0,229,160,0.25); }
-    .tour-z:hover { color: var(--ink-1); border-color: var(--ink-3); }
-    .tour-z.active {
-      color: var(--primary); border-color: var(--primary-dim);
-      background: rgba(0,229,160,0.12); box-shadow: 0 0 0 1px rgba(0,229,160,0.08);
+    .splat-hotspot[hidden] { display: none !important; }
+    .splat-hotspot:hover { transform: translate(-50%, -50%) scale(1.08); }
+    .splat-hotspot .hs-ring {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 2px solid rgba(0,229,160,0.85);
+      background: rgba(0,229,160,0.18);
+      box-shadow: 0 0 14px rgba(0,229,160,0.45), inset 0 0 8px rgba(0,229,160,0.2);
+      animation: hs-pulse 2.2s ease-in-out infinite;
+    }
+    .splat-hotspot.core .hs-ring {
+      border-color: rgba(0,229,160,1);
+      background: rgba(0,229,160,0.28);
+    }
+    .splat-hotspot.pending .hs-ring {
+      border-color: rgba(56,189,248,0.6);
+      background: rgba(56,189,248,0.12);
+      box-shadow: 0 0 10px rgba(56,189,248,0.3);
+    }
+    .splat-hotspot .hs-label {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.04em;
+      color: #fff; text-shadow: 0 1px 4px #000;
+      background: rgba(6,8,9,0.72); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 4px; padding: 2px 6px; white-space: nowrap;
+    }
+    @keyframes hs-pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.12); opacity: 0.82; }
     }
     .splat-tour-fb {
       position: absolute; inset: 0; z-index: 2;
@@ -540,12 +562,12 @@
 
         <!-- Q2 top-right: World Labs splat (top view) -->
         <div class="quad" data-quad="splat">
-          <div class="panel-head"><span class="grip">⠿</span><span class="pi" style="color:var(--primary)">●</span> World Labs · splat <span class="tag">7-zone tour</span></div>
+          <div class="panel-head"><span class="grip">⠿</span><span class="pi" style="color:var(--primary)">●</span> World Labs · splat <span class="tag" id="splatZoneTag">hotspot tour</span></div>
           <div class="q-body splat-body" id="splatBody">
             <div class="splat-ph" id="splatPh">
               <div class="splat-anim"></div>
               <div class="wl-badge"><b>World Labs</b> · Gaussian splat</div>
-              <div class="wl-hint" id="splatHint">Pick a zone below · hosted .spz loads in-panel.</div>
+              <div class="wl-hint" id="splatHint">Look around · click glowing portals to jump zones</div>
               <div class="wl-actions" id="splatActions" hidden>
                 <button class="wl-cta" id="genPov">From worker POV</button>
                 <button class="wl-cta ghost" id="genPrompt">From prompt</button>
@@ -560,7 +582,8 @@
               <div class="wl-hint" style="max-width:260px">Tap below to open this capture in World Labs Marble — full 3D navigator (best quality from your web splats).</div>
               <a class="wl-cta" id="splatTourLaunch" href="#" target="_blank" rel="noopener">Launch 3D view ↗</a>
             </div>
-            <div class="splat-tour-rail" id="splatTourRail"></div>
+            <div class="splat-tour-rail" id="splatTourRail" hidden></div>
+            <div class="splat-hotspots" id="splatHotspots"></div>
             <div class="splat-src" id="splatSrc" hidden></div>
             <a class="wl-open" id="splatOpen" href="#" target="_blank" rel="noopener" hidden>open in Marble ↗</a>
           </div>
@@ -712,9 +735,12 @@
     const splatTourTier = document.getElementById("splatTourTier");
     const splatTourLaunch = document.getElementById("splatTourLaunch");
     const splatSrc = document.getElementById("splatSrc");
+    const splatHotspots = document.getElementById("splatHotspots");
+    const splatZoneTag = document.getElementById("splatZoneTag");
     const genPov = document.getElementById("genPov");
     const genPrompt = document.getElementById("genPrompt");
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    window.__SPLAT_TOUR = SPLAT_TOUR;
 
     function zoneMarbleUrl(zone) { return zone.marbleUrl || (zone.id ? `https://marble.worldlabs.ai/world/${zone.id}` : "#"); }
     function splatProxyFor(id) { return `/api/worldlabs/world/${encodeURIComponent(id)}/splat`; }
@@ -735,21 +761,29 @@
       if (splatTourFb) splatTourFb.hidden = true;
       showSparkCanvas();
       if (splatPh) splatPh.style.display = "";
+      if (splatHotspots) splatHotspots.innerHTML = "";
       if (splatSrc) { splatSrc.hidden = false; splatSrc.textContent = "Loading… " + decodeURI(url).split("/").pop(); }
-      window.__splatPending = { url, fileType, opts: opts || {} };
-      if (window.SplatViewer) window.SplatViewer.mount(url, fileType, opts || {});
+      const mountOpts = { ...(opts || {}), tour: SPLAT_TOUR };
+      window.__splatPending = { url, fileType, opts: mountOpts };
+      if (window.SplatViewer) window.SplatViewer.mount(url, fileType, mountOpts);
     }
+
+    window.addEventListener("splat-hotspot-jump", (ev) => {
+      const idx = ev.detail?.idx;
+      if (idx != null) selectTourZone(idx);
+    });
 
     window.addEventListener("splat-load-progress", (ev) => {
       const { pct } = ev.detail || {};
       if (pct != null) setStatus(`Loading splat… ${pct}%`, true);
     });
     window.addEventListener("splat-load", (ev) => {
-      const { ok, url, numSplats, radius, error } = ev.detail || {};
+      const { ok, url, numSplats, zoneIndex, zoneLabel, error } = ev.detail || {};
       if (ok) {
         if (splatPh) splatPh.style.display = "none";
         const name = decodeURI(url || "").split("/").pop();
-        if (splatSrc) splatSrc.textContent = `${name} · ${(numSplats || 0).toLocaleString()} splats`;
+        if (splatSrc) splatSrc.textContent = `${zoneLabel || name} · ${(numSplats || 0).toLocaleString()} splats`;
+        if (splatZoneTag) splatZoneTag.textContent = zoneLabel || "hotspot tour";
         setStatus(`Loaded · ${(numSplats || 0).toLocaleString()} splats`, false);
         setTimeout(() => setStatus(null), 2500);
       } else {
@@ -780,25 +814,10 @@
       splatTourFb.hidden = false;
     }
 
-    function buildTourRail() {
-      if (!splatTourRail) return;
-      splatTourRail.innerHTML = "";
-      SPLAT_TOUR.forEach((z, i) => {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "tour-z" + (z.tier === "core" ? " core" : "");
-        b.dataset.idx = String(i);
-        b.textContent = z.label;
-        b.title = z.spz ? "In-panel splat" : zoneMarbleUrl(z);
-        b.addEventListener("click", () => selectTourZone(i));
-        splatTourRail.appendChild(b);
-      });
-    }
-
-    function setActiveTourButton(idx) {
-      splatTourRail?.querySelectorAll(".tour-z").forEach((b) => {
-        b.classList.toggle("active", b.dataset.idx === String(idx));
-      });
+    function setZoneUi(idx) {
+      localStorage.setItem(LS_TOUR, String(idx));
+      const zone = SPLAT_TOUR[idx];
+      if (zone && splatZoneTag) splatZoneTag.textContent = zone.label;
     }
 
     let worldPolling = false;
@@ -806,45 +825,20 @@
       const zone = SPLAT_TOUR[idx];
       if (!zone) return;
       worldPolling = false;
-      localStorage.setItem(LS_TOUR, String(idx));
-      setActiveTourButton(idx);
+      setZoneUi(idx);
       splatTourFb.hidden = true;
 
       const local = splatUrlFor(zone);
       if (local) {
         setStatus("Loading splat…", true);
-        renderSplat(local, "spz", { flipY: zone.flipY !== false, lod: zone.lod !== false });
+        renderSplat(local, "spz", { flipY: zone.flipY !== false, lod: zone.lod !== false, zoneIndex: idx });
         splatOpen.href = zoneMarbleUrl(zone);
         splatOpen.hidden = false;
         return;
       }
 
-      setStatus("Checking zone…", true);
-      if (!zone.id) {
-        showMarbleFallback(zone);
-        return;
-      }
-      try {
-        const s = await (await fetch(`/api/worldlabs/world/${encodeURIComponent(zone.id)}`)).json();
-        if (s.error) {
-          showMarbleFallback(zone);
-          return;
-        }
-        if (s.done && s.spz) {
-          setStatus(null);
-          renderSplat(splatProxyFor(zone.id), "spz");
-          splatOpen.href = zoneMarbleUrl(zone);
-          splatOpen.hidden = false;
-          return;
-        }
-        if (s.worldId || zone.id) {
-          await trackWorld(zone.id, true);
-          return;
-        }
-      } catch {
-        showMarbleFallback(zone);
-        return;
-      }
+      setStatus(`${zone.label} — export .spz to enable in-scene jump`, false);
+      setTimeout(() => setStatus(null), 3500);
       showMarbleFallback(zone);
     }
 
@@ -941,7 +935,6 @@
 
     // Boot: ?splat= > ?world= > 7-zone tour (default) > local .ply fallback.
     (async function initSplat() {
-      buildTourRail();
       if (CONFIG.splatUrl) { renderSplat(CONFIG.splatUrl); return; }
       if (params.has("world")) { trackWorld(params.get("world")); return; }
       if (USE_LOCAL_SPLAT) { renderSplat(DEFAULT_SPLAT); setStatus(null); return; }
@@ -1581,22 +1574,24 @@
   })();
   </script>
 
-  <!-- Spark splat viewer: renders the World Labs world (.spz) in the top-right
-       quad. Module-scoped (own three@0.180), exposes window.SplatViewer. -->
+  <!-- Spark splat viewer: panorama origin + in-scene hotspot portals -->
   <script type="module">
     import * as THREE from "three";
     import { OrbitControls } from "three/addons/controls/OrbitControls.js";
     import { SparkRenderer, SplatMesh } from "@sparkjsdev/spark";
 
     const host = document.getElementById("splatBody");
-    let renderer, scene, camera, controls, current, raf, ready = false;
+    const hotspotLayer = document.getElementById("splatHotspots");
+    let renderer, scene, camera, controls, current, ready = false;
+    let captureOrigin = new THREE.Vector3();
+    let hotspotEls = [];
 
     function init() {
       if (ready || !host) return;
       ready = true;
       scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(60, 1, 0.01, 1000);
-      camera.position.set(0, 0.6, 3);
+      camera = new THREE.PerspectiveCamera(72, 1, 0.01, 2000);
+      camera.position.set(0, 1.6, 0);
 
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -1610,8 +1605,13 @@
 
       controls = new OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
-      controls.dampingFactor = 0.08;
-      controls.target.set(0, 0, 0);
+      controls.dampingFactor = 0.06;
+      controls.rotateSpeed = 0.35;
+      controls.enablePan = false;
+      controls.enableZoom = false;
+      controls.minDistance = 0.01;
+      controls.maxDistance = 0.01;
+      controls.target.set(0, 1.6, 0);
 
       const ro = new ResizeObserver(size);
       ro.observe(host);
@@ -1619,6 +1619,7 @@
 
       renderer.setAnimationLoop(() => {
         controls.update();
+        updateHotspotProjections();
         renderer.render(scene, camera);
       });
     }
@@ -1631,32 +1632,172 @@
       camera.updateProjectionMatrix();
     }
 
-    function frameToSplat(splat) {
-      splat.updateMatrixWorld(true);
-      let box;
-      try { box = splat.getBoundingBox(false); }
-      catch {
-        try { box = splat.getBoundingBox(true); }
-        catch (e) { console.warn("[splat] bounding box failed", e); return null; }
+    /** Peak splat density ≈ 360° capture position (Marble-style origin). */
+    function findCaptureOrigin(splat, stride = 24) {
+      const cols = new Map();
+      let cell = 0.35;
+      let n = 0;
+      let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+
+      splat.forEachSplat((idx, center) => {
+        if (idx % stride !== 0) return;
+        n++;
+        minX = Math.min(minX, center.x); maxX = Math.max(maxX, center.x);
+        minZ = Math.min(minZ, center.z); maxZ = Math.max(maxZ, center.z);
+        const gx = Math.floor(center.x / cell);
+        const gz = Math.floor(center.z / cell);
+        const key = gx + "," + gz;
+        let bucket = cols.get(key);
+        if (!bucket) {
+          bucket = { count: 0, sx: 0, sy: 0, sz: 0, ys: [] };
+          cols.set(key, bucket);
+        }
+        bucket.count++;
+        bucket.sx += center.x;
+        bucket.sy += center.y;
+        bucket.sz += center.z;
+        bucket.ys.push(center.y);
+      });
+
+      if (!n) return new THREE.Vector3(0, 1.6, 0);
+
+      const span = Math.max(maxX - minX, maxZ - minZ, 1);
+      cell = Math.max(0.25, Math.min(0.5, span / 24));
+
+      cols.clear();
+      splat.forEachSplat((idx, center) => {
+        if (idx % stride !== 0) return;
+        const gx = Math.floor(center.x / cell);
+        const gz = Math.floor(center.z / cell);
+        const key = gx + "," + gz;
+        let bucket = cols.get(key);
+        if (!bucket) {
+          bucket = { count: 0, sx: 0, sy: 0, sz: 0, ys: [] };
+          cols.set(key, bucket);
+        }
+        bucket.count++;
+        bucket.sx += center.x;
+        bucket.sy += center.y;
+        bucket.sz += center.z;
+        bucket.ys.push(center.y);
+      });
+
+      let best = null;
+      for (const bucket of cols.values()) {
+        if (!best || bucket.count > best.count) best = bucket;
       }
-      if (!box || box.isEmpty()) return null;
-      box.applyMatrix4(splat.matrixWorld);
-      const center = box.getCenter(new THREE.Vector3());
-      const sphere = box.getBoundingSphere(new THREE.Sphere());
-      const r = Math.max(sphere.radius, 0.5);
-      const dist = (r / Math.tan((camera.fov * Math.PI) / 360)) * 1.2;
-      controls.target.copy(center);
-      camera.position.set(center.x, center.y + r * 0.12, center.z + dist);
-      camera.near = Math.max(dist / 5000, 0.001);
-      camera.far = Math.max(dist * 20, r * 50, 10000);
-      camera.updateProjectionMatrix();
+      if (!best) return new THREE.Vector3(0, 1.6, 0);
+
+      // Refine: centroid of top density cells near peak column.
+      const peakGx = Math.floor((best.sx / best.count) / cell);
+      const peakGz = Math.floor((best.sz / best.count) / cell);
+      let sx = 0, sy = 0, sz = 0, total = 0;
+      for (const [key, bucket] of cols) {
+        const [gx, gz] = key.split(",").map(Number);
+        if (Math.abs(gx - peakGx) <= 1 && Math.abs(gz - peakGz) <= 1) {
+          sx += bucket.sx; sy += bucket.sy; sz += bucket.sz; total += bucket.count;
+        }
+      }
+      const origin = new THREE.Vector3(sx / total, sy / total, sz / total);
+
+      // Eye height: densest Y band in the peak column (where the camera was).
+      const yBuckets = new Map();
+      splat.forEachSplat((idx, center) => {
+        if (idx % stride !== 0) return;
+        const gx = Math.floor(center.x / cell);
+        const gz = Math.floor(center.z / cell);
+        if (Math.abs(gx - peakGx) > 1 || Math.abs(gz - peakGz) > 1) return;
+        const gy = Math.floor(center.y / 0.2);
+        yBuckets.set(gy, (yBuckets.get(gy) || 0) + 1);
+      });
+      let bestY = null, bestYC = 0;
+      for (const [gy, count] of yBuckets) {
+        if (count > bestYC) { bestYC = count; bestY = gy; }
+      }
+      if (bestY != null) origin.y = (bestY + 0.5) * 0.2;
+
+      return origin;
+    }
+
+    function applyPanoramaView(origin) {
+      captureOrigin.copy(origin);
+      controls.target.copy(origin);
+      camera.position.copy(origin);
+      controls.minDistance = 0.01;
+      controls.maxDistance = 0.01;
+      controls.enablePan = false;
+      controls.enableZoom = false;
       controls.update();
-      return { center, radius: r, numSplats: splat.numSplats ?? splat.packedSplats?.numSplats };
+    }
+
+    function portalPositions(origin, tour, currentIdx) {
+      const portals = [];
+      const others = tour.map((z, i) => ({ ...z, idx: i })).filter((z) => z.idx !== currentIdx);
+      const radius = 3.2;
+      others.forEach((z, n) => {
+        const manual = tour[currentIdx]?.portals?.[z.idx];
+        if (manual && manual.length === 3) {
+          portals.push({
+            idx: z.idx, label: z.label, core: z.tier === "core", ready: !!z.spz,
+            position: new THREE.Vector3(manual[0], manual[1], manual[2]),
+          });
+          return;
+        }
+        const angle = (n / others.length) * Math.PI * 2 - Math.PI / 2;
+        portals.push({
+          idx: z.idx, label: z.label, core: z.tier === "core", ready: !!z.spz,
+          position: new THREE.Vector3(
+            origin.x + Math.sin(angle) * radius,
+            origin.y,
+            origin.z + Math.cos(angle) * radius,
+          ),
+        });
+      });
+      return portals;
+    }
+
+    function buildHotspots(portals) {
+      if (!hotspotLayer) return;
+      hotspotLayer.innerHTML = "";
+      hotspotEls = [];
+      for (const p of portals) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "splat-hotspot" + (p.core ? " core" : "") + (p.ready ? "" : " pending");
+        btn.innerHTML = `<span class="hs-ring"></span><span class="hs-label">${p.label}</span>`;
+        btn.title = p.ready ? `Jump to ${p.label}` : `${p.label} — .spz export pending`;
+        btn.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          window.dispatchEvent(new CustomEvent("splat-hotspot-jump", { detail: { idx: p.idx } }));
+        });
+        hotspotLayer.appendChild(btn);
+        hotspotEls.push({ btn, pos: p.position });
+      }
+    }
+
+    function updateHotspotProjections() {
+      if (!camera || !host || !hotspotEls.length) return;
+      const w = host.clientWidth || 1, h = host.clientHeight || 1;
+      const tmp = new THREE.Vector3();
+      for (const { btn, pos } of hotspotEls) {
+        tmp.copy(pos);
+        tmp.project(camera);
+        const behind = tmp.z > 1;
+        const off = tmp.x < -1.05 || tmp.x > 1.05 || tmp.y < -1.05 || tmp.y > 1.05;
+        btn.hidden = behind || off;
+        if (!behind && !off) {
+          btn.style.left = `${(tmp.x * 0.5 + 0.5) * w}px`;
+          btn.style.top = `${(-tmp.y * 0.5 + 0.5) * h}px`;
+        }
+      }
     }
 
     async function mount(url, fileType, opts = {}) {
       init();
       if (current) { scene.remove(current); current.dispose?.(); current = null; }
+      if (hotspotLayer) hotspotLayer.innerHTML = "";
+      hotspotEls = [];
+
       const meshOpts = {
         url,
         lod: opts.lod !== false,
@@ -1668,6 +1809,7 @@
         },
       };
       if (fileType) meshOpts.fileType = fileType;
+
       let splat;
       try {
         splat = new SplatMesh(meshOpts);
@@ -1675,24 +1817,36 @@
       if (opts.flipY !== false) splat.quaternion.set(1, 0, 0, 0);
       scene.add(splat);
       current = splat;
+
+      const tour = opts.tour || window.__SPLAT_TOUR || [];
+      const zoneIndex = opts.zoneIndex ?? 0;
+      const zoneLabel = tour[zoneIndex]?.label;
+
       try {
         await splat.initialized;
-        let framed = frameToSplat(splat);
-        if (!framed && opts.flipY === false) {
-          splat.quaternion.set(1, 0, 0, 0);
-          framed = frameToSplat(splat);
-        } else if (!framed && opts.flipY !== false) {
-          splat.quaternion.set(0, 0, 0, 1);
-          framed = frameToSplat(splat);
+        let origin = findCaptureOrigin(splat);
+        applyPanoramaView(origin);
+
+        // Retry with Y-flip if origin looks degenerate.
+        if (!Number.isFinite(origin.x)) {
+          splat.quaternion.set(opts.flipY === false ? 1 : 0, 0, 0, opts.flipY === false ? 0 : 1);
+          origin = findCaptureOrigin(splat);
+          applyPanoramaView(origin);
         }
+
+        const portals = portalPositions(origin, tour, zoneIndex);
+        buildHotspots(portals);
+
         const numSplats = splat.numSplats ?? splat.packedSplats?.numSplats ?? 0;
-        console.info("[splat] loaded", { url, numSplats, framed });
+        console.info("[splat] panorama origin", origin.toArray(), "portals", portals.length);
         window.dispatchEvent(new CustomEvent("splat-load", {
-          detail: { ok: true, url, numSplats, radius: framed?.radius ?? null },
+          detail: { ok: true, url, numSplats, zoneIndex, zoneLabel, origin: origin.toArray() },
         }));
       } catch (e) {
         showError(e, url);
-        window.dispatchEvent(new CustomEvent("splat-load", { detail: { ok: false, url, error: e?.message || String(e) } }));
+        window.dispatchEvent(new CustomEvent("splat-load", {
+          detail: { ok: false, url, error: e?.message || String(e) },
+        }));
         return;
       }
       size();
@@ -1700,7 +1854,9 @@
 
     function showError(e, url) {
       console.error("[synthetic-pov] splat load failed:", url, e);
-      window.dispatchEvent(new CustomEvent("splat-load", { detail: { ok: false, url, error: e?.message || String(e) } }));
+      window.dispatchEvent(new CustomEvent("splat-load", {
+        detail: { ok: false, url, error: e?.message || String(e) },
+      }));
     }
 
     window.SplatViewer = { mount, isReady: () => ready };
