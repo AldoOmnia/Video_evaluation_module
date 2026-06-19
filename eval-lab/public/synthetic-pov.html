@@ -710,8 +710,11 @@
       {
         label: "Station 1", tier: "core",
         spz: "/lab/assets/marble_zone_01.spz",
-        flipY: false, // web-export SPZ (API exports need flipY: true)
-        lod: false,   // full 2M+ splats — match Marble fidelity (slower load)
+        pano: "R0010104.JPG",
+        flipY: false,
+        lod: false,
+        // Marble web SPZ: Z-up, eye ~1.55 m above floor (Ricoh Theta height at press station)
+        capture: { up: "z", eyeHeight: 1.55, floorQuantile: 0.06 },
         marbleUrl: "https://marble.worldlabs.ai/world/1eb37df2-f3e6-473e-b24a-548705c8c924",
       },
       { label: "Station 2", tier: "core", marbleUrl: "https://marble.worldlabs.ai/world/77974502-7970-4cbb-89cd-ba406531410a" },
@@ -741,6 +744,13 @@
     const genPrompt = document.getElementById("genPrompt");
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     window.__SPLAT_TOUR = SPLAT_TOUR;
+
+    function buildCaptureOpts(zone) {
+      const cap = { ...(zone.capture || {}) };
+      const eye = params.get("eye");
+      if (eye != null && eye !== "" && !Number.isNaN(parseFloat(eye))) cap.eyeHeight = parseFloat(eye);
+      return cap;
+    }
 
     function zoneMarbleUrl(zone) { return zone.marbleUrl || (zone.id ? `https://marble.worldlabs.ai/world/${zone.id}` : "#"); }
     function splatProxyFor(id) { return `/api/worldlabs/world/${encodeURIComponent(id)}/splat`; }
@@ -831,7 +841,12 @@
       const local = splatUrlFor(zone);
       if (local) {
         setStatus("Loading splat…", true);
-        renderSplat(local, "spz", { flipY: zone.flipY !== false, lod: zone.lod !== false, zoneIndex: idx });
+        renderSplat(local, "spz", {
+          flipY: zone.flipY !== false,
+          lod: zone.lod !== false,
+          zoneIndex: idx,
+          capture: buildCaptureOpts(zone),
+        });
         splatOpen.href = zoneMarbleUrl(zone);
         splatOpen.hidden = false;
         return;
@@ -1632,89 +1647,82 @@
       camera.updateProjectionMatrix();
     }
 
-    /** Peak splat density ≈ 360° capture position (Marble-style origin). */
-    function findCaptureOrigin(splat, stride = 24) {
+    /** Pano capture origin: peak horizontal density + floor + eye height on up axis. */
+    function findCaptureOrigin(splat, stride = 24, capture = {}) {
+      const up = capture.up || (capture.flipY === false ? "z" : "y");
+      const eyeHeight = capture.eyeHeight ?? 1.55;
+      const floorQ = capture.floorQuantile ?? 0.06;
+      const hA = up === "z" ? "x" : "x";
+      const hB = up === "z" ? "y" : "z";
+      const samples = [];
+
+      splat.forEachSplat((idx, center) => {
+        if (idx % stride !== 0) return;
+        samples.push({ x: center.x, y: center.y, z: center.z });
+      });
+      if (!samples.length) {
+        const o = new THREE.Vector3();
+        if (up === "z") o.z = eyeHeight;
+        else o.y = eyeHeight;
+        return o;
+      }
+
+      let minHA = Infinity, maxHA = -Infinity, minHB = Infinity, maxHB = -Infinity;
+      for (const s of samples) {
+        minHA = Math.min(minHA, s[hA]); maxHA = Math.max(maxHA, s[hA]);
+        minHB = Math.min(minHB, s[hB]); maxHB = Math.max(maxHB, s[hB]);
+      }
+      const span = Math.max(maxHA - minHA, maxHB - minHB, 1);
+      const cell = Math.max(0.25, Math.min(0.5, span / 24));
+
       const cols = new Map();
-      let cell = 0.35;
-      let n = 0;
-      let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
-
-      splat.forEachSplat((idx, center) => {
-        if (idx % stride !== 0) return;
-        n++;
-        minX = Math.min(minX, center.x); maxX = Math.max(maxX, center.x);
-        minZ = Math.min(minZ, center.z); maxZ = Math.max(maxZ, center.z);
-        const gx = Math.floor(center.x / cell);
-        const gz = Math.floor(center.z / cell);
-        const key = gx + "," + gz;
-        let bucket = cols.get(key);
-        if (!bucket) {
-          bucket = { count: 0, sx: 0, sy: 0, sz: 0, ys: [] };
-          cols.set(key, bucket);
-        }
-        bucket.count++;
-        bucket.sx += center.x;
-        bucket.sy += center.y;
-        bucket.sz += center.z;
-        bucket.ys.push(center.y);
-      });
-
-      if (!n) return new THREE.Vector3(0, 1.6, 0);
-
-      const span = Math.max(maxX - minX, maxZ - minZ, 1);
-      cell = Math.max(0.25, Math.min(0.5, span / 24));
-
-      cols.clear();
-      splat.forEachSplat((idx, center) => {
-        if (idx % stride !== 0) return;
-        const gx = Math.floor(center.x / cell);
-        const gz = Math.floor(center.z / cell);
-        const key = gx + "," + gz;
-        let bucket = cols.get(key);
-        if (!bucket) {
-          bucket = { count: 0, sx: 0, sy: 0, sz: 0, ys: [] };
-          cols.set(key, bucket);
-        }
-        bucket.count++;
-        bucket.sx += center.x;
-        bucket.sy += center.y;
-        bucket.sz += center.z;
-        bucket.ys.push(center.y);
-      });
-
-      let best = null;
-      for (const bucket of cols.values()) {
-        if (!best || bucket.count > best.count) best = bucket;
+      for (const s of samples) {
+        const key = `${Math.floor(s[hA] / cell)},${Math.floor(s[hB] / cell)}`;
+        let b = cols.get(key);
+        if (!b) b = { n: 0, sx: 0, sy: 0, sz: 0, vs: [] };
+        b.n++;
+        b.sx += s.x; b.sy += s.y; b.sz += s.z;
+        b.vs.push(s[up]);
+        cols.set(key, b);
       }
-      if (!best) return new THREE.Vector3(0, 1.6, 0);
 
-      // Refine: centroid of top density cells near peak column.
-      const peakGx = Math.floor((best.sx / best.count) / cell);
-      const peakGz = Math.floor((best.sz / best.count) / cell);
+      let peak = null;
+      for (const b of cols.values()) {
+        if (!peak || b.n > peak.n) peak = b;
+      }
+      if (!peak) {
+        const o = new THREE.Vector3();
+        if (up === "z") o.z = eyeHeight;
+        else o.y = eyeHeight;
+        return o;
+      }
+
+      const pA = Math.floor((peak.sx / peak.n) / cell);
+      const pB = Math.floor((peak[up === "z" ? "sy" : "sz"] / peak.n) / cell);
+
       let sx = 0, sy = 0, sz = 0, total = 0;
-      for (const [key, bucket] of cols) {
-        const [gx, gz] = key.split(",").map(Number);
-        if (Math.abs(gx - peakGx) <= 1 && Math.abs(gz - peakGz) <= 1) {
-          sx += bucket.sx; sy += bucket.sy; sz += bucket.sz; total += bucket.count;
+      const floorSamples = [];
+      for (const [key, b] of cols) {
+        const [gA, gB] = key.split(",").map(Number);
+        if (Math.abs(gA - pA) <= 1 && Math.abs(gB - pB) <= 1) {
+          sx += b.sx; sy += b.sy; sz += b.sz; total += b.n;
+          floorSamples.push(...b.vs);
         }
       }
+
       const origin = new THREE.Vector3(sx / total, sy / total, sz / total);
 
-      // Eye height: densest Y band in the peak column (where the camera was).
-      const yBuckets = new Map();
-      splat.forEachSplat((idx, center) => {
-        if (idx % stride !== 0) return;
-        const gx = Math.floor(center.x / cell);
-        const gz = Math.floor(center.z / cell);
-        if (Math.abs(gx - peakGx) > 1 || Math.abs(gz - peakGz) > 1) return;
-        const gy = Math.floor(center.y / 0.2);
-        yBuckets.set(gy, (yBuckets.get(gy) || 0) + 1);
-      });
-      let bestY = null, bestYC = 0;
-      for (const [gy, count] of yBuckets) {
-        if (count > bestYC) { bestYC = count; bestY = gy; }
+      floorSamples.sort((a, b) => a - b);
+      const floorV = floorSamples.length
+        ? floorSamples[Math.floor(floorSamples.length * floorQ)]
+        : 0;
+      origin[up] = floorV + eyeHeight;
+
+      if (Array.isArray(capture.originOffset) && capture.originOffset.length === 3) {
+        origin.x += capture.originOffset[0];
+        origin.y += capture.originOffset[1];
+        origin.z += capture.originOffset[2];
       }
-      if (bestY != null) origin.y = (bestY + 0.5) * 0.2;
 
       return origin;
     }
@@ -1730,7 +1738,7 @@
       controls.update();
     }
 
-    function portalPositions(origin, tour, currentIdx) {
+    function portalPositions(origin, tour, currentIdx, up = "z") {
       const portals = [];
       const others = tour.map((z, i) => ({ ...z, idx: i })).filter((z) => z.idx !== currentIdx);
       const radius = 3.2;
@@ -1744,13 +1752,23 @@
           return;
         }
         const angle = (n / others.length) * Math.PI * 2 - Math.PI / 2;
-        portals.push({
-          idx: z.idx, label: z.label, core: z.tier === "core", ready: !!z.spz,
-          position: new THREE.Vector3(
+        const pos = new THREE.Vector3();
+        if (up === "z") {
+          pos.set(
+            origin.x + Math.sin(angle) * radius,
+            origin.y + Math.cos(angle) * radius,
+            origin.z,
+          );
+        } else {
+          pos.set(
             origin.x + Math.sin(angle) * radius,
             origin.y,
             origin.z + Math.cos(angle) * radius,
-          ),
+          );
+        }
+        portals.push({
+          idx: z.idx, label: z.label, core: z.tier === "core", ready: !!z.spz,
+          position: pos,
         });
       });
       return portals;
@@ -1821,24 +1839,29 @@
       const tour = opts.tour || window.__SPLAT_TOUR || [];
       const zoneIndex = opts.zoneIndex ?? 0;
       const zoneLabel = tour[zoneIndex]?.label;
+      const capture = {
+        ...(tour[zoneIndex]?.capture || {}),
+        ...(opts.capture || {}),
+        flipY: opts.flipY,
+      };
 
       try {
         await splat.initialized;
-        let origin = findCaptureOrigin(splat);
+        let origin = findCaptureOrigin(splat, 24, capture);
         applyPanoramaView(origin);
 
-        // Retry with Y-flip if origin looks degenerate.
-        if (!Number.isFinite(origin.x)) {
+        if (!Number.isFinite(origin.x + origin.y + origin.z)) {
           splat.quaternion.set(opts.flipY === false ? 1 : 0, 0, 0, opts.flipY === false ? 0 : 1);
-          origin = findCaptureOrigin(splat);
+          origin = findCaptureOrigin(splat, 24, capture);
           applyPanoramaView(origin);
         }
 
-        const portals = portalPositions(origin, tour, zoneIndex);
+        const up = capture.up || "z";
+        const portals = portalPositions(origin, tour, zoneIndex, up);
         buildHotspots(portals);
 
         const numSplats = splat.numSplats ?? splat.packedSplats?.numSplats ?? 0;
-        console.info("[splat] panorama origin", origin.toArray(), "portals", portals.length);
+        console.info("[splat] panorama origin", { up, eyeHeight: capture.eyeHeight, origin: origin.toArray() });
         window.dispatchEvent(new CustomEvent("splat-load", {
           detail: { ok: true, url, numSplats, zoneIndex, zoneLabel, origin: origin.toArray() },
         }));
