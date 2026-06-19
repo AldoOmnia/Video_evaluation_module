@@ -714,8 +714,8 @@
         pano: "R0010104.JPG",
         flipY: false,
         lod: false,
-        // Marble web SPZ: Z-up, Ricoh Theta at press station (R0010104)
-        capture: { up: "z", eyeHeight: 2.0, floorQuantile: 0.06, stationPull: 0.85 },
+        // Spark renders web SPZ Y-up; eye height is on Y (Three.js vertical)
+        capture: { up: "y", eyeHeight: 2.0, floorQuantile: 0.02, stationPull: 0.85 },
         marbleUrl: "https://marble.worldlabs.ai/world/1eb37df2-f3e6-473e-b24a-548705c8c924",
       },
       { label: "Station 2", tier: "core", marbleUrl: "https://marble.worldlabs.ai/world/77974502-7970-4cbb-89cd-ba406531410a" },
@@ -757,10 +757,11 @@
       const upIdx = up === "z" ? 2 : 1;
       const floorVal = floorV != null ? Number(floorV).toFixed(2) : "?";
       const totalVal = origin && origin.length === 3 ? Number(origin[upIdx]).toFixed(2) : "?";
+      const upLabel = up === "z" ? "z" : "y";
       const lines = [
         `${zoneLabel || name}${numSplats ? ` · ${Number(numSplats).toLocaleString()} splats` : ""}`,
-        `<span class="cap-eye">eye ${eye}m</span> · up ${up}${eyeOvr}`,
-        `floor ${floorVal} + eye → ${up} ${totalVal} · pull ${pull}`,
+        `<span class="cap-eye">eye ${eye}m</span> · up ${upLabel}${eyeOvr}`,
+        `floor ${floorVal} + eye → ${upLabel} ${totalVal} · pull ${pull}`,
       ];
       if (origin && origin.length === 3) {
         lines.push(`origin [${origin.map((v) => Number(v).toFixed(2)).join(", ")}]`);
@@ -1678,7 +1679,7 @@
 
     /** Pano capture origin: peak horizontal density + floor + eye height on up axis. */
     function findCaptureOrigin(splat, stride = 24, capture = {}) {
-      const up = capture.up || (capture.flipY === false ? "z" : "y");
+      const up = capture.up || "y";
       const eyeHeight = capture.eyeHeight ?? 1.55;
       const floorQ = capture.floorQuantile ?? 0.06;
       const hA = up === "z" ? "x" : "x";
@@ -1759,7 +1760,9 @@
       const floorV = floorSamples.length
         ? floorSamples[Math.floor(floorSamples.length * floorQ)]
         : 0;
-      origin[up] = floorV + eyeHeight;
+      // Use lowest splats in column as floor reference (avoid locking to machine mid-height).
+      const floorMin = floorSamples.length ? Math.min(...floorSamples) : floorV;
+      origin[up] = floorMin + eyeHeight;
 
       if (Array.isArray(capture.originOffset) && capture.originOffset.length === 3) {
         origin.x += capture.originOffset[0];
@@ -1767,13 +1770,11 @@
         origin.z += capture.originOffset[2];
       }
 
-      return { origin, floorV };
+      return { origin, floorV: floorMin };
     }
 
-    function applyPanoramaView(origin, up = "z") {
-      // Marble web SPZ is Z-up; Three.js defaults to Y-up — align or eye height won't move "up".
-      if (up === "z") camera.up.set(0, 0, 1);
-      else camera.up.set(0, 1, 0);
+    function applyPanoramaView(origin) {
+      camera.up.set(0, 1, 0);
       captureOrigin.copy(origin);
       controls.target.copy(origin);
       camera.position.copy(origin);
@@ -1784,7 +1785,7 @@
       controls.update();
     }
 
-    function portalPositions(origin, tour, currentIdx, up = "z") {
+    function portalPositions(origin, tour, currentIdx, up = "y") {
       const portals = [];
       const others = tour.map((z, i) => ({ ...z, idx: i })).filter((z) => z.idx !== currentIdx);
       const radius = 3.2;
@@ -1893,14 +1894,14 @@
 
       try {
         await splat.initialized;
-        const up = capture.up || "z";
+        const up = capture.up || "y";
         let { origin, floorV } = findCaptureOrigin(splat, 24, capture);
-        applyPanoramaView(origin, up);
+        applyPanoramaView(origin);
 
         if (!Number.isFinite(origin.x + origin.y + origin.z)) {
-          splat.quaternion.set(opts.flipY === false ? 1 : 0, 0, 0, opts.flipY === false ? 0 : 1);
+          splat.quaternion.set(1, 0, 0, 0);
           ({ origin, floorV } = findCaptureOrigin(splat, 24, capture));
-          applyPanoramaView(origin, up);
+          applyPanoramaView(origin);
         }
 
         const portals = portalPositions(origin, tour, zoneIndex, up);
