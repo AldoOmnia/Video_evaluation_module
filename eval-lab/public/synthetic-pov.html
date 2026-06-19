@@ -332,6 +332,19 @@
       pointer-events: none;
     }
     .splat-src .cap-eye { color: var(--primary); font-weight: 600; }
+    .splat-cal {
+      position: absolute; bottom: 7px; left: 9px; z-index: 6;
+      display: flex; flex-wrap: wrap; gap: 4px; max-width: 70%;
+    }
+    .splat-cal .wl-cta { font-size: 9px; padding: 3px 7px; }
+    .splat-cal .wl-cta.active {
+      color: var(--primary); border-color: var(--primary-dim);
+      background: rgba(0,229,160,0.14);
+    }
+    .splat-cal-hint {
+      flex: 1 1 100%; font-family: var(--mono); font-size: 8px;
+      color: var(--ink-3); line-height: 1.35; pointer-events: none;
+    }
 
     /* Bottom station rail retired — navigation is in-scene hotspots */
     .splat-tour-rail { display: none !important; }
@@ -586,6 +599,14 @@
             <div class="splat-tour-rail" id="splatTourRail" hidden></div>
             <div class="splat-hotspots" id="splatHotspots"></div>
             <div class="splat-src" id="splatSrc" hidden></div>
+            <div class="splat-cal" id="splatCal">
+              <button type="button" class="wl-cta ghost" id="splatCalToggle">Calibrate origin</button>
+              <button type="button" class="wl-cta" id="splatCalSet" hidden>Set origin</button>
+              <button type="button" class="wl-cta ghost" id="splatCalReset" hidden>Reset</button>
+              <span class="splat-cal-hint" id="splatCalHint" hidden>
+                Drag orbit · right-drag pan · ↑↓←→ nudge XZ · +/- height · Set origin
+              </span>
+            </div>
             <a class="wl-open" id="splatOpen" href="#" target="_blank" rel="noopener" hidden>open in Marble ↗</a>
           </div>
         </div>
@@ -714,8 +735,14 @@
         pano: "R0010104.JPG",
         flipY: false,
         lod: false,
-        // Spark renders web SPZ Y-up; eye height is on Y (Three.js vertical)
-        capture: { up: "y", eyeHeight: 1.9, floorQuantile: 0.02, stationPull: 0.85, stationBack: 0.75 },
+        // Calibrated pano origin (R0010104 / Station 1); yaw defaults to station center.
+        capture: {
+          up: "y",
+          eyeHeight: 1.85,
+          floorQuantile: 0.02,
+          stationPull: 0.85,
+          origin: [0.2030, 1.1064, -0.0863],
+        },
         marbleUrl: "https://marble.worldlabs.ai/world/1eb37df2-f3e6-473e-b24a-548705c8c924",
       },
       { label: "Station 2", tier: "core", marbleUrl: "https://marble.worldlabs.ai/world/77974502-7970-4cbb-89cd-ba406531410a" },
@@ -741,30 +768,64 @@
     const splatSrc = document.getElementById("splatSrc");
     const splatHotspots = document.getElementById("splatHotspots");
     const splatZoneTag = document.getElementById("splatZoneTag");
+    const LS_ORIGIN = "syntheticPov.savedOrigin.";
+    const splatCalToggle = document.getElementById("splatCalToggle");
+    const splatCalSet = document.getElementById("splatCalSet");
+    const splatCalReset = document.getElementById("splatCalReset");
+    const splatCalHint = document.getElementById("splatCalHint");
+    let splatHudMeta = {};
     const genPov = document.getElementById("genPov");
     const genPrompt = document.getElementById("genPrompt");
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     window.__SPLAT_TOUR = SPLAT_TOUR;
 
-    function formatSplatHud({ zoneLabel, url, numSplats, capture, origin, floorV }) {
+    /** Pull browser-saved origin (from Calibrate → Set origin) into tour config at runtime. */
+    function mergeStoredOriginIntoTour() {
+      SPLAT_TOUR.forEach((zone, idx) => {
+        if (!zone.spz) return;
+        const key = LS_ORIGIN + idx + ":" + zone.spz;
+        try {
+          const raw = localStorage.getItem(key);
+          if (!raw) return;
+          const data = JSON.parse(raw);
+          const o = Array.isArray(data) ? data : data.origin;
+          if (!Array.isArray(o) || o.length !== 3) return;
+          zone.capture = { ...(zone.capture || {}), origin: o.map((v) => Number(v)) };
+          if (data.yaw != null) zone.capture.yaw = Number(data.yaw);
+          if (data.pitch != null) zone.capture.pitch = Number(data.pitch);
+          console.info("[splat] using stored origin for", zone.label, zone.capture);
+          if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+            fetch("/api/dev/capture-origin", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ zone: zone.label, idx, capture: zone.capture }),
+            }).catch(() => {});
+          }
+        } catch { /* ignore */ }
+      });
+    }
+    mergeStoredOriginIntoTour();
+
+    function formatSplatHud({ zoneLabel, url, numSplats, capture, origin, floorV, savedOrigin }) {
       const name = decodeURI(url || "").split("/").pop();
       const cap = capture || {};
-      const up = cap.up || "z";
+      const up = cap.up || "y";
       const eye = cap.eyeHeight != null ? cap.eyeHeight : "—";
       const pull = cap.stationPull != null ? cap.stationPull : 0;
-      const back = cap.stationBack != null ? cap.stationBack : 0;
       const eyeOvr = params.has("eye") ? " (?eye URL)" : "";
       const upIdx = up === "z" ? 2 : 1;
       const floorVal = floorV != null ? Number(floorV).toFixed(2) : "?";
       const totalVal = origin && origin.length === 3 ? Number(origin[upIdx]).toFixed(2) : "?";
       const upLabel = up === "z" ? "z" : "y";
       const lines = [
-        `${zoneLabel || name}${numSplats ? ` · ${Number(numSplats).toLocaleString()} splats` : ""}`,
-        `<span class="cap-eye">eye ${eye}m</span> · up ${upLabel}${eyeOvr}`,
-        `floor ${floorVal} + eye → ${upLabel} ${totalVal} · pull ${pull} · back ${back}m`,
+        `${zoneLabel || name}${numSplats ? ` · ${Number(numSplats).toLocaleString()} splats` : ""}${savedOrigin ? " · saved origin" : ""}`,
+        `<span class="cap-eye">eye ${eye}m</span> · up ${upLabel}${eyeOvr} · pull ${pull}`,
       ];
+      if (!savedOrigin) {
+        lines.push(`floor ${floorVal} + eye → ${upLabel} ${totalVal}`);
+      }
       if (origin && origin.length === 3) {
-        lines.push(`origin [${origin.map((v) => Number(v).toFixed(2)).join(", ")}]`);
+        lines.push(`origin [${origin.map((v) => Number(v).toFixed(3)).join(", ")}]`);
       }
       return lines.join("\n");
     }
@@ -779,6 +840,8 @@
       const cap = { ...(zone.capture || {}) };
       const eye = params.get("eye");
       if (eye != null && eye !== "" && !Number.isNaN(parseFloat(eye))) cap.eyeHeight = parseFloat(eye);
+      const pull = params.get("pull");
+      if (pull != null && pull !== "" && !Number.isNaN(parseFloat(pull))) cap.stationPull = parseFloat(pull);
       return cap;
     }
 
@@ -807,6 +870,15 @@
       const mountOpts = { ...(opts || {}), tour: SPLAT_TOUR, zoneIndex: opts?.zoneIndex ?? 0 };
       window.__splatPending = { url, fileType, opts: mountOpts };
       if (window.SplatViewer) window.SplatViewer.mount(url, fileType, mountOpts);
+      else {
+        clearTimeout(window.__splatMountWatch);
+        window.__splatMountWatch = setTimeout(() => {
+          if (window.__splatPending && !window.SplatViewer) {
+            setStatus("Spark viewer failed to load — hard refresh (Cmd+Shift+R)", false);
+            if (splatHint) splatHint.textContent = "Spark module did not start — check browser console";
+          }
+        }, 4000);
+      }
     }
 
     window.addEventListener("splat-hotspot-jump", (ev) => {
@@ -818,11 +890,52 @@
       const { pct } = ev.detail || {};
       if (pct != null) setStatus(`Loading splat… ${pct}%`, true);
     });
-    window.addEventListener("splat-load", (ev) => {
-      const { ok, url, numSplats, zoneIndex, zoneLabel, capture, origin, error } = ev.detail || {};
+    function refreshSplatHud(origin) {
+      setSplatHud(formatSplatHud({ ...splatHudMeta, origin: origin || splatHudMeta.origin }));
+    }
+
+    window.addEventListener("splat-origin-move", (ev) => {
+      const origin = ev.detail?.origin;
+      if (origin) refreshSplatHud(origin);
+    });
+
+    splatCalToggle?.addEventListener("click", () => {
+      const on = window.SplatViewer?.toggleCalibrate?.();
+      splatCalToggle.classList.toggle("active", !!on);
+      splatCalSet.hidden = !on;
+      splatCalReset.hidden = !on;
+      splatCalHint.hidden = !on;
+      splatCalToggle.textContent = on ? "Calibrating…" : "Calibrate origin";
+    });
+    splatCalSet?.addEventListener("click", () => {
+      const ok = window.SplatViewer?.saveOrigin?.();
       if (ok) {
+        splatCalToggle.classList.remove("active");
+        splatCalSet.hidden = true;
+        splatCalReset.hidden = true;
+        splatCalHint.hidden = true;
+        splatCalToggle.textContent = "Calibrate origin";
+        window.SplatViewer?.setCalibrate?.(false);
+        setStatus("Origin saved for this zone", false);
+        setTimeout(() => setStatus(null), 2000);
+      }
+    });
+    splatCalReset?.addEventListener("click", () => {
+      window.SplatViewer?.clearSavedOrigin?.();
+      const idx = parseInt(localStorage.getItem(LS_TOUR) || "0", 10);
+      selectTourZone(idx);
+    });
+
+    if (params.get("cal") === "1") {
+      setTimeout(() => splatCalToggle?.click(), 500);
+    }
+
+    window.addEventListener("splat-load", (ev) => {
+      const { ok, url, numSplats, zoneIndex, zoneLabel, capture, origin, error, savedOrigin } = ev.detail || {};
+      if (ok) {
+        splatHudMeta = { zoneLabel, url, numSplats, capture, origin, floorV: ev.detail?.floorV, savedOrigin };
         if (splatPh) splatPh.style.display = "none";
-        setSplatHud(formatSplatHud({ zoneLabel, url, numSplats, capture, origin, floorV: ev.detail?.floorV }));
+        setSplatHud(formatSplatHud(splatHudMeta));
         if (splatZoneTag) splatZoneTag.textContent = zoneLabel || "hotspot tour";
         setStatus(`Loaded · ${(numSplats || 0).toLocaleString()} splats`, false);
         setTimeout(() => setStatus(null), 2500);
@@ -1630,6 +1743,69 @@
     let renderer, scene, camera, controls, current, ready = false;
     let captureOrigin = new THREE.Vector3();
     let hotspotEls = [];
+    let calibrateMode = false;
+    let currentOriginKey = "";
+    let lastTour = [];
+    let lastZoneIndex = 0;
+    let lastUp = "y";
+    let lastCapture = {};
+    const LS_ORIGIN = "syntheticPov.savedOrigin.";
+    const NUDGE = 0.05;
+
+    function originKey(zoneIndex, url) {
+      return `${zoneIndex}:${url || ""}`;
+    }
+
+    function loadSavedOrigin(key) {
+      try {
+        const raw = localStorage.getItem(LS_ORIGIN + key);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        if (Array.isArray(data) && data.length === 3) {
+          return { origin: new THREE.Vector3(...data) };
+        }
+        if (data && Array.isArray(data.origin) && data.origin.length === 3) {
+          return {
+            origin: new THREE.Vector3(...data.origin),
+            yaw: data.yaw,
+            pitch: data.pitch,
+          };
+        }
+      } catch { /* ignore */ }
+      return null;
+    }
+
+    function emitOriginMove() {
+      window.dispatchEvent(new CustomEvent("splat-origin-move", {
+        detail: { origin: camera.position.toArray() },
+      }));
+    }
+
+    function onCalibrateKey(ev) {
+      if (!calibrateMode || !camera || !controls) return;
+      const tag = ev.target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+      let dx = 0, dy = 0, dz = 0;
+      switch (ev.key) {
+        case "ArrowLeft": dx = -NUDGE; break;
+        case "ArrowRight": dx = NUDGE; break;
+        case "ArrowUp": dz = -NUDGE; break;
+        case "ArrowDown": dz = NUDGE; break;
+        case "+": case "=": dy = NUDGE; break;
+        case "-": case "_": dy = -NUDGE; break;
+        default: return;
+      }
+      ev.preventDefault();
+      camera.position.x += dx;
+      camera.position.y += dy;
+      camera.position.z += dz;
+      controls.target.copy(camera.position);
+      captureOrigin.copy(camera.position);
+      emitOriginMove();
+    }
+
+    window.addEventListener("keydown", onCalibrateKey);
 
     function init() {
       if (ready || !host) return;
@@ -1694,7 +1870,7 @@
         const o = new THREE.Vector3();
         if (up === "z") o.z = eyeHeight;
         else o.y = eyeHeight;
-        return { origin: o, floorV: 0 };
+        return { origin: o, floorV: 0, stationCenter: o.clone() };
       }
 
       let minHA = Infinity, maxHA = -Infinity, minHB = Infinity, maxHB = -Infinity;
@@ -1724,7 +1900,7 @@
         const o = new THREE.Vector3();
         if (up === "z") o.z = eyeHeight;
         else o.y = eyeHeight;
-        return { origin: o, floorV: 0 };
+        return { origin: o, floorV: 0, stationCenter: o.clone() };
       }
 
       const pA = Math.floor((peak.sx / peak.n) / cell);
@@ -1785,19 +1961,141 @@
         origin.z += capture.originOffset[2];
       }
 
-      return { origin, floorV: floorMin };
+      return { origin, floorV: floorMin, stationCenter: new THREE.Vector3(peakX, peakY, peakZ) };
     }
 
-    function applyPanoramaView(origin) {
+    function cameraAngles(cam) {
+      const dir = new THREE.Vector3();
+      cam.getWorldDirection(dir);
+      return {
+        yaw: Math.atan2(dir.x, -dir.z),
+        pitch: Math.asin(THREE.MathUtils.clamp(dir.y, -1, 1)),
+      };
+    }
+
+    function lookTargetFromAngles(origin, yaw, pitch, dist = 2) {
+      const cp = Math.cos(pitch), sp = Math.sin(pitch);
+      const cy = Math.cos(yaw), sy = Math.sin(yaw);
+      const dir = new THREE.Vector3(sy * cp, sp, -cy * cp);
+      return origin.clone().add(dir.multiplyScalar(dist));
+    }
+
+    /** Eye-level look toward a world point (horizontal bearing, no floor tilt). */
+    function horizontalLookTarget(origin, toward, up = "y", dist = 2) {
+      const dir = new THREE.Vector3().subVectors(toward, origin);
+      if (up === "y") dir.y = 0;
+      else if (up === "z") dir.z = 0;
+      if (dir.lengthSq() < 1e-6) dir.set(0, 0, -1);
+      else dir.normalize();
+      return origin.clone().add(dir.multiplyScalar(dist));
+    }
+
+    function resolveViewOpts(capture, hints, up) {
+      if (hints.yaw != null && hints.pitch != null) {
+        return { yaw: hints.yaw, pitch: hints.pitch };
+      }
+      if (capture.yaw != null && capture.pitch != null) {
+        return { yaw: capture.yaw, pitch: capture.pitch };
+      }
+      if (Array.isArray(capture.lookAt) && capture.lookAt.length === 3) {
+        return { lookAt: new THREE.Vector3(...capture.lookAt) };
+      }
+      if (hints.stationCenter) {
+        return { toward: hints.stationCenter, up };
+      }
+      return { yaw: 0, pitch: 0 };
+    }
+
+    function applyPanoramaView(origin, view = {}) {
       camera.up.set(0, 1, 0);
       captureOrigin.copy(origin);
-      controls.target.copy(origin);
+      const orbitDist = 0.01;
+      let target;
+      if (view.lookAt) {
+        target = view.lookAt.clone();
+      } else if (view.yaw != null && view.pitch != null) {
+        target = lookTargetFromAngles(origin, view.yaw, view.pitch, orbitDist);
+      } else if (view.toward) {
+        target = horizontalLookTarget(origin, view.toward, view.up || "y", orbitDist);
+      } else {
+        target = lookTargetFromAngles(origin, 0, 0, orbitDist);
+      }
       camera.position.copy(origin);
-      controls.minDistance = 0.01;
-      controls.maxDistance = 0.01;
-      controls.enablePan = false;
+      controls.target.copy(target);
+      controls.minDistance = orbitDist;
+      controls.maxDistance = orbitDist;
+      const unlockPan = view.unlockPan === true;
+      controls.enablePan = unlockPan;
       controls.enableZoom = false;
+      if (unlockPan) {
+        controls.mouseButtons = {
+          LEFT: THREE.MOUSE.ROTATE,
+          RIGHT: THREE.MOUSE.PAN,
+          MIDDLE: THREE.MOUSE.DOLLY,
+        };
+        controls.screenSpacePanning = true;
+      } else {
+        controls.mouseButtons = {
+          LEFT: THREE.MOUSE.ROTATE,
+          MIDDLE: THREE.MOUSE.DOLLY,
+          RIGHT: THREE.MOUSE.PAN,
+        };
+      }
       controls.update();
+    }
+
+    function setCalibrate(on) {
+      calibrateMode = !!on;
+      if (!controls || !camera) return;
+      if (calibrateMode) {
+        const { yaw, pitch } = cameraAngles(camera);
+        applyPanoramaView(camera.position.clone(), { yaw, pitch, unlockPan: true });
+      } else {
+        const { yaw, pitch } = cameraAngles(camera);
+        applyPanoramaView(camera.position.clone(), { yaw, pitch });
+      }
+    }
+
+    function toggleCalibrate() {
+      setCalibrate(!calibrateMode);
+      return calibrateMode;
+    }
+
+    function saveOrigin() {
+      if (!currentOriginKey || !camera) return false;
+      const arr = camera.position.toArray();
+      const { yaw, pitch } = cameraAngles(camera);
+      const payload = {
+        origin: arr.map((v) => Number(v.toFixed(4))),
+        yaw: Number(yaw.toFixed(4)),
+        pitch: Number(pitch.toFixed(4)),
+      };
+      localStorage.setItem(LS_ORIGIN + currentOriginKey, JSON.stringify(payload));
+      const origin = camera.position.clone();
+      captureOrigin.copy(origin);
+      setCalibrate(false);
+      const portals = portalPositions(origin, lastTour, lastZoneIndex, lastUp);
+      buildHotspots(portals);
+      const numSplats = current?.numSplats ?? current?.packedSplats?.numSplats ?? 0;
+      console.info("[splat] saved origin — paste into SPLAT_TOUR capture:", payload);
+      window.dispatchEvent(new CustomEvent("splat-load", {
+        detail: {
+          ok: true,
+          url: currentOriginKey.split(":").slice(1).join(":"),
+          numSplats,
+          zoneIndex: lastZoneIndex,
+          zoneLabel: lastTour[lastZoneIndex]?.label,
+          origin: arr,
+          floorV: null,
+          capture: lastCapture,
+          savedOrigin: true,
+        },
+      }));
+      return true;
+    }
+
+    function clearSavedOrigin() {
+      if (currentOriginKey) localStorage.removeItem(LS_ORIGIN + currentOriginKey);
     }
 
     function portalPositions(origin, tour, currentIdx, up = "y") {
@@ -1906,17 +2204,47 @@
         ...(opts.capture || {}),
         flipY: opts.flipY,
       };
+      lastTour = tour;
+      lastZoneIndex = zoneIndex;
+      lastUp = capture.up || "y";
+      lastCapture = capture;
+      currentOriginKey = originKey(zoneIndex, url);
+      const forceRecalc = new URLSearchParams(location.search).get("recalc") === "1";
 
       try {
         await splat.initialized;
-        const up = capture.up || "y";
-        let { origin, floorV } = findCaptureOrigin(splat, 24, capture);
-        applyPanoramaView(origin);
+        const up = lastUp;
+        const auto = findCaptureOrigin(splat, 24, capture);
+        let origin;
+        let floorV = auto.floorV;
+        let savedOrigin = false;
+        let viewHints = { stationCenter: auto.stationCenter };
+
+        if (Array.isArray(capture.origin) && capture.origin.length === 3 && !forceRecalc) {
+          origin = new THREE.Vector3(...capture.origin);
+        } else {
+          const saved = loadSavedOrigin(currentOriginKey);
+          if (saved && !forceRecalc) {
+            origin = saved.origin;
+            savedOrigin = true;
+            if (saved.yaw != null && saved.pitch != null) {
+              viewHints = { yaw: saved.yaw, pitch: saved.pitch };
+            }
+          } else {
+            origin = auto.origin;
+            viewHints = { stationCenter: auto.stationCenter };
+          }
+        }
+
+        applyPanoramaView(origin, resolveViewOpts(capture, viewHints, up));
 
         if (!Number.isFinite(origin.x + origin.y + origin.z)) {
           splat.quaternion.set(1, 0, 0, 0);
-          ({ origin, floorV } = findCaptureOrigin(splat, 24, capture));
-          applyPanoramaView(origin);
+          const retry = findCaptureOrigin(splat, 24, capture);
+          origin = retry.origin;
+          floorV = retry.floorV;
+          savedOrigin = false;
+          applyPanoramaView(origin, resolveViewOpts(capture, { stationCenter: retry.stationCenter }, up));
         }
 
         const portals = portalPositions(origin, tour, zoneIndex, up);
@@ -1927,14 +2255,13 @@
           up,
           eyeHeight: capture.eyeHeight ?? 1.55,
           stationPull: capture.stationPull ?? 0,
-          stationBack: capture.stationBack ?? 0,
           floorQuantile: capture.floorQuantile ?? 0.06,
         };
-        console.info("[splat] panorama origin", { ...captureUsed, floorV, origin: origin.toArray() });
+        console.info("[splat] panorama origin", { ...captureUsed, floorV, savedOrigin, origin: origin.toArray() });
         window.dispatchEvent(new CustomEvent("splat-load", {
           detail: {
             ok: true, url, numSplats, zoneIndex, zoneLabel,
-            origin: origin.toArray(), floorV, capture: captureUsed,
+            origin: origin.toArray(), floorV, capture: captureUsed, savedOrigin,
           },
         }));
       } catch (e) {
@@ -1954,9 +2281,18 @@
       }));
     }
 
-    window.SplatViewer = { mount, isReady: () => ready };
+    window.SplatViewer = {
+      mount,
+      isReady: () => ready,
+      setCalibrate,
+      toggleCalibrate,
+      saveOrigin,
+      clearSavedOrigin,
+    };
     if (window.__splatPending) {
+      clearTimeout(window.__splatMountWatch);
       const p = window.__splatPending;
+      window.__splatPending = null;
       mount(p.url, p.fileType, p.opts || {});
     }
   </script>
