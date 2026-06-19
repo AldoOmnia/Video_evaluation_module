@@ -678,14 +678,15 @@
     // proxy (404 — web app vs Platform API). Marble also blocks iframes
     // (X-Frame-Options: DENY), so each zone opens in Marble or loads in-panel
     // only when GET /api/worldlabs/world/{id} succeeds (API-generated worlds).
+    // June18 panos → API worlds (reconstruction/june18_zone_worlds.json)
     const SPLAT_TOUR = [
-      { id: "1eb37df2-f3e6-473e-b24a-548705c8c924", label: "Station 1", tier: "core" },
-      { id: "77974502-7970-4cbb-89cd-ba406531410a", label: "Station 2", tier: "core" },
-      { id: "47b82d4f-fad3-44d8-a0b2-35c0896d3f52", label: "Station 3", tier: "core" },
-      { id: "02c3a78d-1da1-4593-a694-547c90d83c15", label: "Station 4", tier: "core" },
-      { id: "47b9440e-2901-4f01-98dd-2d0a5812c022", label: "Perimeter 5", tier: "outer" },
-      { id: "51b1ef90-8bb4-4524-8f11-c06135dc9073", label: "Perimeter 6", tier: "outer" },
-      { id: "c63cdbb8-f8b0-4993-bbf9-6b4b7242b060", label: "Perimeter 7", tier: "outer" },
+      { id: "871ee6f3-b346-4615-b775-91a3f8f9e4b3", label: "Station 1", tier: "core" },
+      { id: "cf4c6c6b-ac4f-4770-b960-28c6cfc9693c", label: "Station 2", tier: "core" },
+      { id: "c93b0bcd-eb59-434e-a8e0-44d59272f463", label: "Station 3", tier: "core" },
+      { id: "cb8a8fb9-a0a4-4284-b8da-130cbbd42238", label: "Station 4", tier: "core" },
+      { id: "1d343be2-7141-4daf-973c-b43c5e59ea5f", label: "Perimeter 5", tier: "outer" },
+      { id: "439f737b-e3e0-4e06-822a-e42017aa0775", label: "Perimeter 6", tier: "outer" },
+      { id: "f8a49a66-8132-4d5c-a94b-b565e2f9d5ae", label: "Perimeter 7", tier: "outer" },
     ];
     const LS_TOUR = "syntheticPov.tourZone";
     const splatBody = document.getElementById("splatBody");
