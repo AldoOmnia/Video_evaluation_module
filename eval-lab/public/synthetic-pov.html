@@ -713,8 +713,8 @@
         pano: "R0010104.JPG",
         flipY: false,
         lod: false,
-        // Marble web SPZ: Z-up, eye ~1.55 m above floor (Ricoh Theta height at press station)
-        capture: { up: "z", eyeHeight: 1.65, floorQuantile: 0.06 },
+        // Marble web SPZ: Z-up, Ricoh Theta at press station (R0010104)
+        capture: { up: "z", eyeHeight: 1.75, floorQuantile: 0.06, stationPull: 0.65 },
         marbleUrl: "https://marble.worldlabs.ai/world/1eb37df2-f3e6-473e-b24a-548705c8c924",
       },
       { label: "Station 2", tier: "core", marbleUrl: "https://marble.worldlabs.ai/world/77974502-7970-4cbb-89cd-ba406531410a" },
@@ -1711,6 +1711,21 @@
       }
 
       const origin = new THREE.Vector3(sx / total, sy / total, sz / total);
+
+      // Pull horizontal position toward peak cell (machine / capture focal point).
+      const pull = capture.stationPull ?? 0;
+      if (pull > 0) {
+        const peakX = peak.sx / peak.n;
+        const peakY = peak.sy / peak.n;
+        const peakH = up === "z" ? peakY : peak.sz / peak.n;
+        if (up === "z") {
+          origin.x += (peakX - origin.x) * pull;
+          origin.y += (peakY - origin.y) * pull;
+        } else {
+          origin.x += (peakX - origin.x) * pull;
+          origin.z += (peak.sz / peak.n - origin.z) * pull;
+        }
+      }
 
       floorSamples.sort((a, b) => a - b);
       const floorV = floorSamples.length
