@@ -327,10 +327,11 @@
       position: absolute; top: 7px; left: 9px; z-index: 3;
       font-family: var(--mono); font-size: 9px; color: var(--ink-2);
       background: rgba(0,0,0,0.55); border: 1px solid var(--line-2);
-      padding: 3px 6px; border-radius: 4px; max-width: 92%;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      padding: 4px 7px; border-radius: 4px; max-width: 92%;
+      white-space: pre-line; line-height: 1.4;
       pointer-events: none;
     }
+    .splat-src .cap-eye { color: var(--primary); font-weight: 600; }
 
     /* Bottom station rail retired — navigation is in-scene hotspots */
     .splat-tour-rail { display: none !important; }
@@ -745,6 +746,31 @@
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     window.__SPLAT_TOUR = SPLAT_TOUR;
 
+    function formatSplatHud({ zoneLabel, url, numSplats, capture, origin }) {
+      const name = decodeURI(url || "").split("/").pop();
+      const cap = capture || {};
+      const up = cap.up || "z";
+      const eye = cap.eyeHeight != null ? cap.eyeHeight : "—";
+      const pull = cap.stationPull != null ? cap.stationPull : 0;
+      const floor = cap.floorQuantile != null ? cap.floorQuantile : 0.06;
+      const eyeOvr = params.has("eye") ? " (?eye URL)" : "";
+      const lines = [
+        `${zoneLabel || name}${numSplats ? ` · ${Number(numSplats).toLocaleString()} splats` : ""}`,
+        `<span class="cap-eye">eye ${eye}m</span> · up ${up}${eyeOvr}`,
+        `pull ${pull} · floor q${floor}`,
+      ];
+      if (origin && origin.length === 3) {
+        lines.push(`origin [${origin.map((v) => Number(v).toFixed(2)).join(", ")}]`);
+      }
+      return lines.join("\n");
+    }
+
+    function setSplatHud(html) {
+      if (!splatSrc) return;
+      splatSrc.hidden = false;
+      splatSrc.innerHTML = html;
+    }
+
     function buildCaptureOpts(zone) {
       const cap = { ...(zone.capture || {}) };
       const eye = params.get("eye");
@@ -772,8 +798,9 @@
       showSparkCanvas();
       if (splatPh) splatPh.style.display = "";
       if (splatHotspots) splatHotspots.innerHTML = "";
-      if (splatSrc) { splatSrc.hidden = false; splatSrc.textContent = "Loading… " + decodeURI(url).split("/").pop(); }
-      const mountOpts = { ...(opts || {}), tour: SPLAT_TOUR };
+      const cap = buildCaptureOpts(opts?.zoneIndex != null ? SPLAT_TOUR[opts.zoneIndex] : SPLAT_TOUR[0]);
+      setSplatHud(formatSplatHud({ zoneLabel: SPLAT_TOUR[opts?.zoneIndex ?? 0]?.label, url, capture: cap }));
+      const mountOpts = { ...(opts || {}), tour: SPLAT_TOUR, zoneIndex: opts?.zoneIndex ?? 0 };
       window.__splatPending = { url, fileType, opts: mountOpts };
       if (window.SplatViewer) window.SplatViewer.mount(url, fileType, mountOpts);
     }
@@ -788,11 +815,10 @@
       if (pct != null) setStatus(`Loading splat… ${pct}%`, true);
     });
     window.addEventListener("splat-load", (ev) => {
-      const { ok, url, numSplats, zoneIndex, zoneLabel, error } = ev.detail || {};
+      const { ok, url, numSplats, zoneIndex, zoneLabel, capture, origin, error } = ev.detail || {};
       if (ok) {
         if (splatPh) splatPh.style.display = "none";
-        const name = decodeURI(url || "").split("/").pop();
-        if (splatSrc) splatSrc.textContent = `${zoneLabel || name} · ${(numSplats || 0).toLocaleString()} splats`;
+        setSplatHud(formatSplatHud({ zoneLabel, url, numSplats, capture, origin }));
         if (splatZoneTag) splatZoneTag.textContent = zoneLabel || "hotspot tour";
         setStatus(`Loaded · ${(numSplats || 0).toLocaleString()} splats`, false);
         setTimeout(() => setStatus(null), 2500);
@@ -1875,9 +1901,18 @@
         buildHotspots(portals);
 
         const numSplats = splat.numSplats ?? splat.packedSplats?.numSplats ?? 0;
-        console.info("[splat] panorama origin", { up, eyeHeight: capture.eyeHeight, origin: origin.toArray() });
+        const captureUsed = {
+          up: capture.up || "z",
+          eyeHeight: capture.eyeHeight ?? 1.55,
+          stationPull: capture.stationPull ?? 0,
+          floorQuantile: capture.floorQuantile ?? 0.06,
+        };
+        console.info("[splat] panorama origin", { ...captureUsed, origin: origin.toArray() });
         window.dispatchEvent(new CustomEvent("splat-load", {
-          detail: { ok: true, url, numSplats, zoneIndex, zoneLabel, origin: origin.toArray() },
+          detail: {
+            ok: true, url, numSplats, zoneIndex, zoneLabel,
+            origin: origin.toArray(), capture: captureUsed,
+          },
         }));
       } catch (e) {
         showError(e, url);
