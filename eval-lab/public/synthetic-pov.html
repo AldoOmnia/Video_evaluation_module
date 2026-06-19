@@ -715,7 +715,7 @@
         flipY: false,
         lod: false,
         // Marble web SPZ: Z-up, Ricoh Theta at press station (R0010104)
-        capture: { up: "z", eyeHeight: 2.0, floorQuantile: 0.06, stationPull: 0.65 },
+        capture: { up: "z", eyeHeight: 2.0, floorQuantile: 0.06, stationPull: 0.85 },
         marbleUrl: "https://marble.worldlabs.ai/world/1eb37df2-f3e6-473e-b24a-548705c8c924",
       },
       { label: "Station 2", tier: "core", marbleUrl: "https://marble.worldlabs.ai/world/77974502-7970-4cbb-89cd-ba406531410a" },
@@ -746,7 +746,7 @@
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     window.__SPLAT_TOUR = SPLAT_TOUR;
 
-    function formatSplatHud({ zoneLabel, url, numSplats, capture, origin }) {
+    function formatSplatHud({ zoneLabel, url, numSplats, capture, origin, floorV }) {
       const name = decodeURI(url || "").split("/").pop();
       const cap = capture || {};
       const up = cap.up || "z";
@@ -754,10 +754,13 @@
       const pull = cap.stationPull != null ? cap.stationPull : 0;
       const floor = cap.floorQuantile != null ? cap.floorQuantile : 0.06;
       const eyeOvr = params.has("eye") ? " (?eye URL)" : "";
+      const upIdx = up === "z" ? 2 : 1;
+      const floorVal = floorV != null ? Number(floorV).toFixed(2) : "?";
+      const totalVal = origin && origin.length === 3 ? Number(origin[upIdx]).toFixed(2) : "?";
       const lines = [
         `${zoneLabel || name}${numSplats ? ` · ${Number(numSplats).toLocaleString()} splats` : ""}`,
         `<span class="cap-eye">eye ${eye}m</span> · up ${up}${eyeOvr}`,
-        `pull ${pull} · floor q${floor}`,
+        `floor ${floorVal} + eye → ${up} ${totalVal} · pull ${pull}`,
       ];
       if (origin && origin.length === 3) {
         lines.push(`origin [${origin.map((v) => Number(v).toFixed(2)).join(", ")}]`);
@@ -818,7 +821,7 @@
       const { ok, url, numSplats, zoneIndex, zoneLabel, capture, origin, error } = ev.detail || {};
       if (ok) {
         if (splatPh) splatPh.style.display = "none";
-        setSplatHud(formatSplatHud({ zoneLabel, url, numSplats, capture, origin }));
+        setSplatHud(formatSplatHud({ zoneLabel, url, numSplats, capture, origin, floorV: ev.detail?.floorV }));
         if (splatZoneTag) splatZoneTag.textContent = zoneLabel || "hotspot tour";
         setStatus(`Loaded · ${(numSplats || 0).toLocaleString()} splats`, false);
         setTimeout(() => setStatus(null), 2500);
@@ -1690,7 +1693,7 @@
         const o = new THREE.Vector3();
         if (up === "z") o.z = eyeHeight;
         else o.y = eyeHeight;
-        return o;
+        return { origin: o, floorV: 0 };
       }
 
       let minHA = Infinity, maxHA = -Infinity, minHB = Infinity, maxHB = -Infinity;
@@ -1720,7 +1723,7 @@
         const o = new THREE.Vector3();
         if (up === "z") o.z = eyeHeight;
         else o.y = eyeHeight;
-        return o;
+        return { origin: o, floorV: 0 };
       }
 
       const pA = Math.floor((peak.sx / peak.n) / cell);
@@ -1764,10 +1767,13 @@
         origin.z += capture.originOffset[2];
       }
 
-      return origin;
+      return { origin, floorV };
     }
 
-    function applyPanoramaView(origin) {
+    function applyPanoramaView(origin, up = "z") {
+      // Marble web SPZ is Z-up; Three.js defaults to Y-up — align or eye height won't move "up".
+      if (up === "z") camera.up.set(0, 0, 1);
+      else camera.up.set(0, 1, 0);
       captureOrigin.copy(origin);
       controls.target.copy(origin);
       camera.position.copy(origin);
@@ -1887,31 +1893,31 @@
 
       try {
         await splat.initialized;
-        let origin = findCaptureOrigin(splat, 24, capture);
-        applyPanoramaView(origin);
+        const up = capture.up || "z";
+        let { origin, floorV } = findCaptureOrigin(splat, 24, capture);
+        applyPanoramaView(origin, up);
 
         if (!Number.isFinite(origin.x + origin.y + origin.z)) {
           splat.quaternion.set(opts.flipY === false ? 1 : 0, 0, 0, opts.flipY === false ? 0 : 1);
-          origin = findCaptureOrigin(splat, 24, capture);
-          applyPanoramaView(origin);
+          ({ origin, floorV } = findCaptureOrigin(splat, 24, capture));
+          applyPanoramaView(origin, up);
         }
 
-        const up = capture.up || "z";
         const portals = portalPositions(origin, tour, zoneIndex, up);
         buildHotspots(portals);
 
         const numSplats = splat.numSplats ?? splat.packedSplats?.numSplats ?? 0;
         const captureUsed = {
-          up: capture.up || "z",
+          up,
           eyeHeight: capture.eyeHeight ?? 1.55,
           stationPull: capture.stationPull ?? 0,
           floorQuantile: capture.floorQuantile ?? 0.06,
         };
-        console.info("[splat] panorama origin", { ...captureUsed, origin: origin.toArray() });
+        console.info("[splat] panorama origin", { ...captureUsed, floorV, origin: origin.toArray() });
         window.dispatchEvent(new CustomEvent("splat-load", {
           detail: {
             ok: true, url, numSplats, zoneIndex, zoneLabel,
-            origin: origin.toArray(), capture: captureUsed,
+            origin: origin.toArray(), floorV, capture: captureUsed,
           },
         }));
       } catch (e) {
