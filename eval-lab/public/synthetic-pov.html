@@ -1717,7 +1717,6 @@
       if (pull > 0) {
         const peakX = peak.sx / peak.n;
         const peakY = peak.sy / peak.n;
-        const peakH = up === "z" ? peakY : peak.sz / peak.n;
         if (up === "z") {
           origin.x += (peakX - origin.x) * pull;
           origin.y += (peakY - origin.y) * pull;
