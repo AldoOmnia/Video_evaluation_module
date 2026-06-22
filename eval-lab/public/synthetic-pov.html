@@ -375,6 +375,11 @@
       box-shadow: 0 0 14px rgba(0,229,160,0.45), inset 0 0 8px rgba(0,229,160,0.2);
       animation: hs-pulse 2.2s ease-in-out infinite;
     }
+    .splat-hotspot.editing .hs-ring {
+      border-color: rgba(56,189,248,1);
+      background: rgba(56,189,248,0.22);
+      box-shadow: 0 0 14px rgba(56,189,248,0.55), inset 0 0 8px rgba(56,189,248,0.25);
+    }
     .splat-hotspot.core .hs-ring {
       border-color: rgba(0,229,160,1);
       background: rgba(0,229,160,0.28);
@@ -611,6 +616,7 @@
                 <button type="button" class="wl-cta ghost active" id="splatCalModeOrigin">Origin</button>
                 <button type="button" class="wl-cta ghost" id="splatCalModePortal">Portals</button>
               </div>
+              <select id="splatCalPortalSource" hidden aria-label="Portal source zone"></select>
               <select id="splatCalPortalTarget" hidden aria-label="Portal target zone"></select>
               <button type="button" class="wl-cta" id="splatCalSet" hidden>Set origin</button>
               <button type="button" class="wl-cta" id="splatCalSetPortal" hidden>Set portal</button>
@@ -618,7 +624,7 @@
               <button type="button" class="wl-cta ghost" id="splatCalExport" hidden>Export tour</button>
               <span class="splat-cal-hint" id="splatCalHint" hidden>
                 Origin: drag/right-drag pan · ↑↓←→ nudge · +/- height · Set origin<br>
-                Portals: pick zone · ↑↓←→ move blue dot · Set portal · Export tour when done
+                Portals: From zone · To zone · ↑↓←→ move dot · Set portal · Export tour when done
               </span>
             </div>
             <a class="wl-open" id="splatOpen" href="#" target="_blank" rel="noopener" hidden>open in Marble ↗</a>
@@ -763,7 +769,7 @@
           origin: [0.2030, 1.1064, -0.0863],
         },
         portalOffsets: {
-          1: [-0.0889, 0.6108, 0.4527],
+          1: [0.0192, -0.0410, 0.0171],
           2: [-0.2963, -0.6000, 0.0970],
           3: [0.0106, 0.2575, -0.0490],
           4: [-0.3376, -0.2825, 0.0609],
@@ -786,7 +792,7 @@
         },
         portalOffsets: {
           0: [0.0889, -0.6108, -0.4527],
-          2: [-0.2074, -1.2108, -0.3557],
+          2: [0.6426, -0.4108, -1.1557],
           3: [0.0995, -0.3533, -0.5017],
           4: [-0.2487, -0.8933, -0.3918],
           5: [-0.2097, -0.1764, 0.4105],
@@ -809,7 +815,7 @@
         portalOffsets: {
           0: [0.2963, 0.6000, -0.0970],
           1: [0.2074, 1.2108, 0.3557],
-          3: [0.3069, 0.8575, -0.1460],
+          3: [0.1069, -0.0425, -0.0960],
           4: [-0.0413, 0.3175, -0.0361],
           5: [-0.0023, 1.0344, 0.7662],
           6: [-2.1289, 1.1394, 0.7093],
@@ -830,10 +836,10 @@
         },
         portalOffsets: {
           0: [-0.0106, -0.2575, 0.0490],
-          1: [-0.0995, 0.3533, 0.5017],
-          2: [-0.3069, -0.8575, 0.1460],
-          4: [-0.3482, -0.5400, 0.1099],
-          5: [-0.3092, 0.1769, 0.9122],
+          1: [-1.0995, -0.2967, -0.1483],
+          2: [-0.0569, -0.0575, -0.0540],
+          4: [-0.8482, -0.2900, -0.7901],
+          5: [-2.7592, -0.4731, 0.9622],
           6: [-2.4358, 0.2819, 0.8553],
         },
         marbleUrl: "https://marble.worldlabs.ai/world/02c3a78d-1da1-4593-a694-547c90d83c15",
@@ -878,7 +884,7 @@
           2: [0.0023, -1.0344, -0.7662],
           3: [0.3092, -0.1769, -0.9122],
           4: [-0.0390, -0.7169, -0.8023],
-          6: [-2.1266, 0.1050, -0.0569],
+          6: [-1.1266, -0.3950, 0.0431],
         },
         marbleUrl: "https://marble.worldlabs.ai/world/51b1ef90-8bb4-4524-8f11-c06135dc9073",
       },
@@ -896,11 +902,11 @@
         },
         portalOffsets: {
           0: [2.4252, -0.5394, -0.8063],
-          1: [2.3363, 0.0714, -0.3536],
-          2: [2.1289, -1.1394, -0.7093],
-          3: [2.4358, -0.2819, -0.8553],
-          4: [2.0876, -0.8219, -0.7454],
-          5: [2.1266, -0.1050, 0.0569],
+          1: [1.5863, -0.8786, -3.4536],
+          2: [3.0789, -1.1394, -6.0593],
+          3: [1.8858, -0.5319, -2.7053],
+          4: [0.6876, -0.8219, -4.1454],
+          5: [0.3266, -0.1550, 0.0069],
         },
         marbleUrl: "https://marble.worldlabs.ai/world/c63cdbb8-f8b0-4993-bbf9-6b4b7242b060",
       },
@@ -927,6 +933,7 @@
     const splatCalModes = document.getElementById("splatCalModes");
     const splatCalModeOrigin = document.getElementById("splatCalModeOrigin");
     const splatCalModePortal = document.getElementById("splatCalModePortal");
+    const splatCalPortalSource = document.getElementById("splatCalPortalSource");
     const splatCalPortalTarget = document.getElementById("splatCalPortalTarget");
     const splatCalSet = document.getElementById("splatCalSet");
     const splatCalSetPortal = document.getElementById("splatCalSetPortal");
@@ -1058,16 +1065,40 @@
       setTimeout(() => dumpAllCalibrationFromStorage(), 300);
     }
 
-    function populatePortalTargetSelect(currentIdx) {
+    function populatePortalSourceSelect(selectedIdx) {
+      if (!splatCalPortalSource) return;
+      splatCalPortalSource.innerHTML = "";
+      SPLAT_TOUR.forEach((z, i) => {
+        const opt = document.createElement("option");
+        opt.value = String(i);
+        opt.textContent = z.label;
+        if (i === selectedIdx) opt.selected = true;
+        splatCalPortalSource.appendChild(opt);
+      });
+    }
+
+    function populatePortalTargetSelect(sourceIdx) {
       if (!splatCalPortalTarget) return;
       splatCalPortalTarget.innerHTML = "";
       SPLAT_TOUR.forEach((z, i) => {
-        if (i === currentIdx) return;
+        if (i === sourceIdx) return;
         const opt = document.createElement("option");
         opt.value = String(i);
         opt.textContent = z.label;
         splatCalPortalTarget.appendChild(opt);
       });
+    }
+
+    function syncPortalCalibrateSelects(sourceIdx, targetIdx) {
+      populatePortalSourceSelect(sourceIdx);
+      populatePortalTargetSelect(sourceIdx);
+      if (splatCalPortalTarget && splatCalPortalTarget.options.length) {
+        const hasTarget = [...splatCalPortalTarget.options].some((o) => o.value === String(targetIdx));
+        splatCalPortalTarget.value = hasTarget ? String(targetIdx) : splatCalPortalTarget.options[0].value;
+      }
+      window.SplatViewer?.setPortalSource?.(sourceIdx);
+      const t = parseInt(splatCalPortalTarget?.value || "0", 10);
+      if (!Number.isNaN(t)) window.SplatViewer?.setPortalTarget?.(t);
     }
 
     function exportTourCalibration() {
@@ -1105,6 +1136,7 @@
       splatCalModePortal?.classList.toggle("active", portal);
       splatCalSet.hidden = portal;
       splatCalSetPortal.hidden = !portal;
+      splatCalPortalSource.hidden = !portal;
       splatCalPortalTarget.hidden = !portal;
     }
 
@@ -1207,10 +1239,8 @@
         setCalibrateUiVisible(!!on);
         if (on) {
           const idx = parseInt(localStorage.getItem(LS_TOUR) || "0", 10);
-          populatePortalTargetSelect(idx);
-          if (splatCalPortalTarget?.value) {
-            window.SplatViewer?.setPortalTarget?.(parseInt(splatCalPortalTarget.value, 10));
-          }
+          const target = parseInt(splatCalPortalTarget?.value || "1", 10);
+          syncPortalCalibrateSelects(idx, target);
         }
       });
       splatCalModeOrigin?.addEventListener("click", () => {
@@ -1220,8 +1250,14 @@
       splatCalModePortal?.addEventListener("click", () => {
         window.SplatViewer?.setCalibrateKind?.("portal");
         updateCalibrateModeUi("portal");
+        const src = parseInt(splatCalPortalSource?.value ?? localStorage.getItem(LS_TOUR) ?? "0", 10);
         const t = parseInt(splatCalPortalTarget?.value || "1", 10);
-        window.SplatViewer?.setPortalTarget?.(t);
+        syncPortalCalibrateSelects(src, t);
+      });
+      splatCalPortalSource?.addEventListener("change", () => {
+        const src = parseInt(splatCalPortalSource.value, 10);
+        const t = parseInt(splatCalPortalTarget?.value || "1", 10);
+        if (!Number.isNaN(src)) syncPortalCalibrateSelects(src, t);
       });
       splatCalPortalTarget?.addEventListener("change", () => {
         const t = parseInt(splatCalPortalTarget.value, 10);
@@ -2080,6 +2116,7 @@
     let calibrateMode = false;
     let calibrateKind = "origin";
     let portalEditIdx = 1;
+    let portalSourceIdx = 0;
     let portalDraft = new THREE.Vector3();
     let currentOriginKey = "";
     let lastTour = [];
@@ -2119,30 +2156,54 @@
       }));
     }
 
+    function sourceOriginVec(sourceIdx) {
+      const cap = lastTour[sourceIdx]?.capture;
+      if (Array.isArray(cap?.origin) && cap.origin.length === 3) {
+        return new THREE.Vector3(...cap.origin);
+      }
+      return captureOrigin.clone();
+    }
+
     function rebuildCalibrateHotspots() {
+      if (calibrateMode && calibrateKind === "portal" && portalSourceIdx !== lastZoneIndex) {
+        const src = lastTour[portalSourceIdx];
+        const tgt = lastTour[portalEditIdx];
+        buildHotspots([{
+          idx: portalEditIdx,
+          label: `${src?.label || "?"} → ${tgt?.label || "?"}`,
+          core: tgt?.tier === "core",
+          ready: true,
+          position: portalDraft.clone(),
+          editing: true,
+        }]);
+        return;
+      }
       const origin = captureOrigin.clone();
       const portals = portalPositions(origin, lastTour, lastZoneIndex, lastUp);
       if (calibrateMode && calibrateKind === "portal") {
         const editing = portals.find((p) => p.idx === portalEditIdx);
-        if (editing) editing.position.copy(portalDraft);
+        if (editing) {
+          editing.position.copy(portalDraft);
+          editing.editing = true;
+        }
       }
       buildHotspots(portals);
     }
 
     function initPortalDraft(targetIdx) {
       portalEditIdx = targetIdx;
-      const origin = captureOrigin.clone();
-      const off = lastTour[lastZoneIndex]?.portalOffsets?.[targetIdx]
-        ?? lastTour[lastZoneIndex]?.portalOffsets?.[String(targetIdx)];
+      const origin = sourceOriginVec(portalSourceIdx);
+      const off = lastTour[portalSourceIdx]?.portalOffsets?.[targetIdx]
+        ?? lastTour[portalSourceIdx]?.portalOffsets?.[String(targetIdx)];
       if (Array.isArray(off) && off.length === 3) {
         portalDraft.set(origin.x + off[0], origin.y + off[1], origin.z + off[2]);
       } else {
-        const manual = lastTour[lastZoneIndex]?.portals?.[targetIdx]
-          ?? lastTour[lastZoneIndex]?.portals?.[String(targetIdx)];
+        const manual = lastTour[portalSourceIdx]?.portals?.[targetIdx]
+          ?? lastTour[portalSourceIdx]?.portals?.[String(targetIdx)];
         if (Array.isArray(manual) && manual.length === 3) {
           portalDraft.set(manual[0], manual[1], manual[2]);
         } else {
-          const portals = portalPositions(origin, lastTour, lastZoneIndex, lastUp);
+          const portals = portalPositions(origin, lastTour, portalSourceIdx, lastUp);
           const p = portals.find((x) => x.idx === targetIdx);
           portalDraft.copy(p ? p.position : origin);
         }
@@ -2425,45 +2486,65 @@
 
     function setCalibrateKind(kind) {
       calibrateKind = kind === "portal" ? "portal" : "origin";
-      if (calibrateMode && calibrateKind === "portal") initPortalDraft(portalEditIdx);
+      if (calibrateMode && calibrateKind === "portal") {
+        if (portalEditIdx === portalSourceIdx) {
+          portalEditIdx = lastTour.findIndex((_, i) => i !== portalSourceIdx);
+          if (portalEditIdx < 0) portalEditIdx = 0;
+        }
+        initPortalDraft(portalEditIdx);
+      }
     }
 
     function getCalibrateKind() {
       return calibrateKind;
     }
 
+    function setPortalSource(sourceIdx) {
+      portalSourceIdx = sourceIdx;
+      if (portalEditIdx === portalSourceIdx) {
+        portalEditIdx = lastTour.findIndex((_, i) => i !== portalSourceIdx);
+        if (portalEditIdx < 0) portalEditIdx = 0;
+      }
+      if (calibrateMode && calibrateKind === "portal") initPortalDraft(portalEditIdx);
+    }
+
     function setPortalTarget(targetIdx) {
+      if (targetIdx === portalSourceIdx) return;
       initPortalDraft(targetIdx);
     }
 
     function savePortal() {
-      if (!currentOriginKey) return false;
-      const lsKey = LS_PORTALS + currentOriginKey;
+      const srcIdx = portalSourceIdx;
+      const zone = lastTour[srcIdx];
+      if (!zone?.spz) return false;
+      const srcKey = originKey(srcIdx, zone.spz);
+      const lsKey = LS_PORTALS + srcKey;
       let map = {};
       try { map = JSON.parse(localStorage.getItem(lsKey) || "{}"); } catch { /* ignore */ }
       const abs = portalDraft.toArray().map((v) => Number(v.toFixed(4)));
-      const rel = abs.map((v, i) => Number((v - captureOrigin.getComponent(i)).toFixed(4)));
+      const srcOrigin = sourceOriginVec(srcIdx);
+      const rel = abs.map((v, i) => Number((v - srcOrigin.getComponent(i)).toFixed(4)));
       map[String(portalEditIdx)] = abs;
       localStorage.setItem(lsKey, JSON.stringify(map));
-      if (lastTour[lastZoneIndex]) {
-        lastTour[lastZoneIndex].portals = {
-          ...(lastTour[lastZoneIndex].portals || {}),
+      if (lastTour[srcIdx]) {
+        lastTour[srcIdx].portals = {
+          ...(lastTour[srcIdx].portals || {}),
           [portalEditIdx]: abs,
         };
-        lastTour[lastZoneIndex].portalOffsets = {
-          ...(lastTour[lastZoneIndex].portalOffsets || {}),
+        lastTour[srcIdx].portalOffsets = {
+          ...(lastTour[srcIdx].portalOffsets || {}),
           [portalEditIdx]: rel,
         };
       }
       rebuildCalibrateHotspots();
       console.info("[splat] saved portal (offset from origin):", {
-        zone: lastTour[lastZoneIndex]?.label,
-        zoneIndex: lastZoneIndex,
+        zone: lastTour[srcIdx]?.label,
+        zoneIndex: srcIdx,
         target: portalEditIdx,
         targetLabel: lastTour[portalEditIdx]?.label,
         absolute: abs,
         offset: rel,
-        allOffsets: lastTour[lastZoneIndex]?.portalOffsets,
+        allOffsets: lastTour[srcIdx]?.portalOffsets,
       });
       return true;
     }
@@ -2471,6 +2552,7 @@
     function setCalibrate(on) {
       calibrateMode = !!on;
       if (!controls || !camera) return;
+      if (calibrateMode) portalSourceIdx = lastZoneIndex;
       if (calibrateMode) {
         const { yaw, pitch } = cameraAngles(camera);
         applyPanoramaView(camera.position.clone(), { yaw, pitch, unlockPan: true });
@@ -2585,11 +2667,18 @@
         btn.type = "button";
         btn.className = "splat-hotspot" + (p.core ? " core" : "") + (p.ready ? "" : " pending");
         btn.innerHTML = `<span class="hs-ring"></span><span class="hs-label">${p.label}</span>`;
-        btn.title = p.ready ? `Jump to ${p.label}` : `${p.label} — .spz export pending`;
-        btn.addEventListener("click", (ev) => {
-          ev.stopPropagation();
-          window.dispatchEvent(new CustomEvent("splat-hotspot-jump", { detail: { idx: p.idx } }));
-        });
+        btn.title = p.editing
+          ? `Editing portal position`
+          : (p.ready ? `Jump to ${p.label}` : `${p.label} — .spz export pending`);
+        if (p.editing) {
+          btn.classList.add("editing");
+          btn.style.pointerEvents = "none";
+        } else {
+          btn.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            window.dispatchEvent(new CustomEvent("splat-hotspot-jump", { detail: { idx: p.idx } }));
+          });
+        }
         hotspotLayer.appendChild(btn);
         hotspotEls.push({ btn, pos: p.position });
       }
@@ -2730,6 +2819,7 @@
       toggleCalibrate,
       setCalibrateKind,
       getCalibrateKind,
+      setPortalSource,
       setPortalTarget,
       saveOrigin,
       savePortal,
