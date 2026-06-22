@@ -1,5 +1,7 @@
 import express from "express";
 import cors from "cors";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { config, stubMode } from "./config.js";
 import { specs } from "./services/specs.js";
@@ -60,6 +62,48 @@ app.use("/api/eval", evalRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/worldlabs", worldLabsRouter);
 app.use("/query", queryRouter); // Rokid APK compatibility
+
+// Dev-only: browser posts calibrated splat capture from localStorage (localhost).
+const CAPTURE_DUMP = join(EVAL_LAB_PUBLIC, ".station1_capture.json");
+const TOUR_DUMP = join(EVAL_LAB_PUBLIC, ".station_tour_calibration.json");
+app.post("/api/dev/capture-origin", (req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    res.status(404).end();
+    return;
+  }
+  writeFileSync(CAPTURE_DUMP, JSON.stringify(req.body, null, 2));
+  res.json({ ok: true });
+});
+app.get("/api/dev/capture-origin", (_req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    res.status(404).end();
+    return;
+  }
+  if (!existsSync(CAPTURE_DUMP)) {
+    res.status(404).json({ error: "none" });
+    return;
+  }
+  res.type("json").send(readFileSync(CAPTURE_DUMP, "utf8"));
+});
+app.post("/api/dev/capture-tour", (req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    res.status(404).end();
+    return;
+  }
+  writeFileSync(TOUR_DUMP, JSON.stringify(req.body, null, 2));
+  res.json({ ok: true, path: ".station_tour_calibration.json" });
+});
+app.get("/api/dev/capture-tour", (_req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    res.status(404).end();
+    return;
+  }
+  if (!existsSync(TOUR_DUMP)) {
+    res.status(404).json({ error: "none" });
+    return;
+  }
+  res.type("json").send(readFileSync(TOUR_DUMP, "utf8"));
+});
 
 // Serve the eval lab HTML directly so a single `npm run dev` is enough
 // to open http://localhost:3001/lab/ and demo the whole thing.

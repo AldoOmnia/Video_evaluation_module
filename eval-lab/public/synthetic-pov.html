@@ -323,6 +323,92 @@
       border-radius: 4px; padding: 3px 8px; text-decoration: none; backdrop-filter: blur(4px);
     }
     .wl-open:hover { background: rgba(0,229,160,0.16); }
+    .splat-src {
+      position: absolute; top: 7px; left: 9px; z-index: 3;
+      font-family: var(--mono); font-size: 9px; color: var(--ink-2);
+      background: rgba(0,0,0,0.55); border: 1px solid var(--line-2);
+      padding: 4px 7px; border-radius: 4px; max-width: 92%;
+      white-space: pre-line; line-height: 1.4;
+      pointer-events: none;
+    }
+    .splat-src .cap-eye { color: var(--primary); font-weight: 600; }
+    .splat-cal {
+      position: absolute; bottom: 7px; left: 9px; z-index: 6;
+      display: flex; flex-wrap: wrap; gap: 4px; max-width: 70%;
+    }
+    .splat-cal .wl-cta { font-size: 9px; padding: 3px 7px; }
+    .splat-cal .wl-cta.active {
+      color: var(--primary); border-color: var(--primary-dim);
+      background: rgba(0,229,160,0.14);
+    }
+    .splat-cal-hint {
+      flex: 1 1 100%; font-family: var(--mono); font-size: 8px;
+      color: var(--ink-3); line-height: 1.35; pointer-events: none;
+    }
+    .splat-cal select {
+      font-family: var(--mono); font-size: 9px; color: var(--ink-1);
+      background: rgba(0,0,0,0.55); border: 1px solid var(--line-2);
+      border-radius: 4px; padding: 3px 5px; max-width: 120px;
+    }
+    .splat-cal .mode-row { display: flex; gap: 4px; flex-wrap: wrap; }
+
+    /* Bottom station rail retired — navigation is in-scene hotspots */
+    .splat-tour-rail { display: none !important; }
+
+    /* In-scene hotspot portals (Marble-style) */
+    .splat-hotspots {
+      position: absolute; inset: 0; z-index: 5; pointer-events: none; overflow: hidden;
+    }
+    .splat-hotspot {
+      position: absolute; transform: translate(-50%, -50%);
+      pointer-events: auto; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      background: none; border: none; padding: 0;
+      transition: transform 0.12s ease, opacity 0.12s ease;
+    }
+    .splat-hotspot[hidden] { display: none !important; }
+    .splat-hotspot:hover { transform: translate(-50%, -50%) scale(1.08); }
+    .splat-hotspot .hs-ring {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 2px solid rgba(0,229,160,0.85);
+      background: rgba(0,229,160,0.18);
+      box-shadow: 0 0 14px rgba(0,229,160,0.45), inset 0 0 8px rgba(0,229,160,0.2);
+      animation: hs-pulse 2.2s ease-in-out infinite;
+    }
+    .splat-hotspot.editing .hs-ring {
+      border-color: rgba(56,189,248,1);
+      background: rgba(56,189,248,0.22);
+      box-shadow: 0 0 14px rgba(56,189,248,0.55), inset 0 0 8px rgba(56,189,248,0.25);
+    }
+    .splat-hotspot.core .hs-ring {
+      border-color: rgba(0,229,160,1);
+      background: rgba(0,229,160,0.28);
+    }
+    .splat-hotspot.pending .hs-ring {
+      border-color: rgba(56,189,248,0.6);
+      background: rgba(56,189,248,0.12);
+      box-shadow: 0 0 10px rgba(56,189,248,0.3);
+    }
+    .splat-hotspot .hs-label {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.04em;
+      color: #fff; text-shadow: 0 1px 4px #000;
+      background: rgba(6,8,9,0.72); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 4px; padding: 2px 6px; white-space: nowrap;
+    }
+    @keyframes hs-pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.12); opacity: 0.82; }
+    }
+    .splat-tour-fb {
+      position: absolute; inset: 0; z-index: 2;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 10px; text-align: center; padding: 12px 14px 36px;
+      background:
+        radial-gradient(circle at 35% 30%, rgba(0,229,160,0.14), transparent 55%),
+        radial-gradient(circle at 70% 75%, rgba(56,189,248,0.12), transparent 55%),
+        #07090a;
+    }
+    .splat-tour-fb[hidden] { display: none !important; }
 
     /* RGB POV camera */
     .cam-body { position: relative; background: #000; aspect-ratio: 16/10; overflow: hidden; }
@@ -501,13 +587,13 @@
 
         <!-- Q2 top-right: World Labs splat (top view) -->
         <div class="quad" data-quad="splat">
-          <div class="panel-head"><span class="grip">⠿</span><span class="pi" style="color:var(--primary)">●</span> World Labs · splat <span class="tag">top view · 3DGS</span></div>
+          <div class="panel-head"><span class="grip">⠿</span><span class="pi" style="color:var(--primary)">●</span> World Labs · splat <span class="tag" id="splatZoneTag">hotspot tour</span></div>
           <div class="q-body splat-body" id="splatBody">
             <div class="splat-ph" id="splatPh">
               <div class="splat-anim"></div>
               <div class="wl-badge"><b>World Labs</b> · Gaussian splat</div>
-              <div class="wl-hint" id="splatHint">360° camera → reconstruction lands here.</div>
-              <div class="wl-actions" id="splatActions">
+              <div class="wl-hint" id="splatHint">Look around · click glowing portals to jump zones</div>
+              <div class="wl-actions" id="splatActions" hidden>
                 <button class="wl-cta" id="genPov">From worker POV</button>
                 <button class="wl-cta ghost" id="genPrompt">From prompt</button>
               </div>
@@ -515,6 +601,31 @@
                 <span class="wl-spin"></span>
                 <span id="splatStatusText">Starting…</span>
               </div>
+            </div>
+            <div class="splat-tour-fb" id="splatTourFb" hidden>
+              <div class="wl-badge"><b id="splatTourTier">Station</b> · <span id="splatTourTitle">Zone 1</span></div>
+              <div class="wl-hint" style="max-width:260px">Tap below to open this capture in World Labs Marble — full 3D navigator (best quality from your web splats).</div>
+              <a class="wl-cta" id="splatTourLaunch" href="#" target="_blank" rel="noopener">Launch 3D view ↗</a>
+            </div>
+            <div class="splat-tour-rail" id="splatTourRail" hidden></div>
+            <div class="splat-hotspots" id="splatHotspots"></div>
+            <div class="splat-src" id="splatSrc" hidden></div>
+            <div class="splat-cal" id="splatCal">
+              <button type="button" class="wl-cta ghost" id="splatCalToggle">Calibrate</button>
+              <div class="mode-row" id="splatCalModes" hidden>
+                <button type="button" class="wl-cta ghost active" id="splatCalModeOrigin">Origin</button>
+                <button type="button" class="wl-cta ghost" id="splatCalModePortal">Portals</button>
+              </div>
+              <select id="splatCalPortalSource" hidden aria-label="Portal source zone"></select>
+              <select id="splatCalPortalTarget" hidden aria-label="Portal target zone"></select>
+              <button type="button" class="wl-cta" id="splatCalSet" hidden>Set origin</button>
+              <button type="button" class="wl-cta" id="splatCalSetPortal" hidden>Set portal</button>
+              <button type="button" class="wl-cta ghost" id="splatCalReset" hidden>Reset origin</button>
+              <button type="button" class="wl-cta ghost" id="splatCalExport" hidden>Export tour</button>
+              <span class="splat-cal-hint" id="splatCalHint" hidden>
+                Origin: drag/right-drag pan · ↑↓←→ nudge · +/- height · Set origin<br>
+                Portals: From zone · To zone · ↑↓←→ move dot · Set portal (or Export saves dot) · Export tour when done
+              </span>
             </div>
             <a class="wl-open" id="splatOpen" href="#" target="_blank" rel="noopener" hidden>open in Marble ↗</a>
           </div>
@@ -617,6 +728,7 @@
 
     // ── Config (URL-overridable for live demos) ───────────────────────
     const params = new URLSearchParams(location.search);
+    const IS_SPLAT_DEV = location.hostname === "localhost" || location.hostname === "127.0.0.1";
     const CONFIG = {
       // Worker POV footage (web transcode of Phase_8_Video.MP4). Override
       // with ?video=<url> or pass ?video= (empty) to fall back to the still.
@@ -636,13 +748,170 @@
     let speed = 1;
     let lastNow = performance.now();
 
-    // ── World Labs splat (rendered in-page with Spark) ────────────────
-    // The API key lives server-side; this page only talks to /api/worldlabs/*.
-    // Marble worlds can't be iframed (X-Frame-Options: DENY), so we poll the
-    // world by id and render its exported .spz with Spark (window.SplatViewer).
-    const DEFAULT_WORLD = "470aa29b-a1f9-40a5-885e-1f7232ba109c"; // pinion guide station — single-pano reconstruction (marble-1.1-plus)
-    const WORLD_ID = params.get("world") || DEFAULT_WORLD;        // ?world=<id> override
-    const LS_WORLD = "syntheticPov.worldId";
+    const SPLAT_CAPTURE_DEFAULT = {
+      up: "y",
+      eyeHeight: 1.85,
+      floorQuantile: 0.02,
+      stationPull: 0.85,
+    };
+
+    // ── World Labs splat — 7-zone tour (hosted .spz from Marble web exports) ──
+    // Drop exports into eval-lab/public/assets/ as marble_zone_0N.spz (see README below).
+    const SPLAT_TOUR = [
+      {
+        label: "Station 1", tier: "core",
+        spz: "/lab/assets/marble_zone_01.spz",
+        pano: "R0010104.JPG",
+        flipY: false,
+        lod: false,
+        capture: {
+          ...SPLAT_CAPTURE_DEFAULT,
+          origin: [0.2030, 1.1064, -0.0863],
+        },
+        portalOffsets: {
+          1: [-0.1308, -0.4410, 0.9671],
+          2: [0.3037, -0.3500, -0.2030],
+          3: [1.9106, -0.6925, -0.4990],
+          4: [-0.3376, -0.2825, 0.0609],
+          5: [0.3014, -0.1156, 0.8632],
+          6: [-1.1252, -0.4606, 3.4063],
+        },
+        marbleUrl: "https://marble.worldlabs.ai/world/1eb37df2-f3e6-473e-b24a-548705c8c924",
+      },
+      {
+        label: "Station 2", tier: "core",
+        spz: "/lab/assets/marble_zone_02.spz",
+        pano: "R0010102.JPG",
+        flipY: false,
+        lod: false,
+        capture: {
+          ...SPLAT_CAPTURE_DEFAULT,
+          origin: [0.1141, 1.7172, 0.3664],
+          yaw: 0.0824,
+          pitch: -0.1980,
+        },
+        portalOffsets: {
+          0: [-0.0611, -0.2108, -0.4527],
+          2: [0.6426, -0.4108, -1.1557],
+          3: [0.5995, -0.2533, -0.5017],
+          4: [-0.4487, -0.3433, -0.3918],
+          5: [0.1403, -0.1764, 0.4105],
+          6: [-1.8363, -1.2214, 3.9536],
+        },
+        marbleUrl: "https://marble.worldlabs.ai/world/77974502-7970-4cbb-89cd-ba406531410a",
+      },
+      {
+        label: "Station 3", tier: "core",
+        spz: "/lab/assets/marble_zone_03.spz",
+        pano: "R0010103.JPG",
+        flipY: false,
+        lod: false,
+        capture: {
+          ...SPLAT_CAPTURE_DEFAULT,
+          origin: [-0.0933, 0.5064, 0.0107],
+          yaw: -0.2647,
+          pitch: -0.2108,
+        },
+        portalOffsets: {
+          0: [-0.0537, -0.0500, 0.0030],
+          1: [0.0074, -0.0392, 0.1557],
+          3: [0.1069, -0.0425, -0.0960],
+          4: [-0.0913, -0.0325, 0.1139],
+          5: [0.4977, -0.1156, 0.7662],
+          6: [-1.5289, -1.3106, 11.1093],
+        },
+        marbleUrl: "https://marble.worldlabs.ai/world/47b82d4f-fad3-44d8-a0b2-35c0896d3f52",
+      },
+      {
+        label: "Station 4", tier: "core",
+        spz: "/lab/assets/marble_zone_04.spz",
+        pano: "R0010101.JPG",
+        flipY: false,
+        lod: false,
+        capture: {
+          ...SPLAT_CAPTURE_DEFAULT,
+          origin: [0.2136, 1.3639, -0.1353],
+          yaw: 0.3537,
+          pitch: -0.1585,
+        },
+        portalOffsets: {
+          0: [-0.2606, -0.1575, -0.3010],
+          1: [-1.0995, -0.2967, -0.1483],
+          2: [-0.0569, -0.0575, -0.0540],
+          4: [-0.8482, -0.2900, -0.7901],
+          5: [-2.7592, -0.4731, 0.9622],
+          6: [-3.8358, -0.3681, -0.1947],
+        },
+        marbleUrl: "https://marble.worldlabs.ai/world/02c3a78d-1da1-4593-a694-547c90d83c15",
+      },
+      {
+        label: "Perimeter 5", tier: "outer",
+        spz: "/lab/assets/marble_zone_05.spz",
+        pano: "R0010105.JPG",
+        flipY: false,
+        lod: false,
+        capture: {
+          ...SPLAT_CAPTURE_DEFAULT,
+          origin: [-0.1346, 0.8239, -0.0254],
+          yaw: 1.6050,
+          pitch: -0.3283,
+        },
+        portalOffsets: {
+          0: [0.2376, -0.1675, 0.1391],
+          1: [-0.0513, -0.0567, 0.0918],
+          2: [0.1913, -0.1175, 0.3361],
+          3: [0.1982, -0.1100, 0.3901],
+          5: [-1.0110, -0.3331, 0.8023],
+          6: [-2.1876, -0.6281, 0.3954],
+        },
+        marbleUrl: "https://marble.worldlabs.ai/world/47b9440e-2901-4f01-98dd-2d0a5812c022",
+      },
+      {
+        label: "Perimeter 6", tier: "outer",
+        spz: "/lab/assets/marble_zone_06.spz?v=2",
+        pano: "R0010111.JPG",
+        flipY: false,
+        lod: false,
+        capture: {
+          ...SPLAT_CAPTURE_DEFAULT,
+          origin: [-0.0956, 1.5408, 0.7769],
+          yaw: 0.0935,
+          pitch: -0.1113,
+        },
+        portalOffsets: {
+          0: [-0.2014, -0.2344, -1.2132],
+          1: [-0.0903, -0.1236, -0.3605],
+          2: [0.3023, -0.4844, -2.7662],
+          3: [0.3092, -0.1769, -0.9122],
+          4: [-0.9390, -0.4169, -2.0023],
+          6: [-1.1266, -0.3950, 0.0431],
+        },
+        marbleUrl: "https://marble.worldlabs.ai/world/51b1ef90-8bb4-4524-8f11-c06135dc9073",
+      },
+      {
+        label: "Perimeter 7", tier: "outer",
+        spz: "/lab/assets/marble_zone_07.spz",
+        pano: "R0010112.JPG",
+        flipY: false,
+        lod: false,
+        capture: {
+          ...SPLAT_CAPTURE_DEFAULT,
+          origin: [-2.2222, 1.6458, 0.7200],
+          yaw: 0.4074,
+          pitch: -0.1822,
+        },
+        portalOffsets: {
+          0: [0.4752, -0.3394, -1.5563],
+          1: [1.5863, -0.8786, -3.4536],
+          2: [3.0789, -1.1394, -6.0593],
+          3: [1.8858, -0.5319, -2.7053],
+          4: [0.6876, -0.8219, -4.1454],
+          5: [0.3266, -0.1550, 0.0069],
+        },
+        marbleUrl: "https://marble.worldlabs.ai/world/c63cdbb8-f8b0-4993-bbf9-6b4b7242b060",
+      },
+    ];
+    const LS_TOUR = "syntheticPov.tourZone";
     const splatBody = document.getElementById("splatBody");
     const splatPh = document.getElementById("splatPh");
     const splatHint = document.getElementById("splatHint");
@@ -650,44 +919,480 @@
     const splatStatus = document.getElementById("splatStatus");
     const splatStatusText = document.getElementById("splatStatusText");
     const splatOpen = document.getElementById("splatOpen");
+    const splatTourRail = document.getElementById("splatTourRail");
+    const splatTourFb = document.getElementById("splatTourFb");
+    const splatTourTitle = document.getElementById("splatTourTitle");
+    const splatTourTier = document.getElementById("splatTourTier");
+    const splatTourLaunch = document.getElementById("splatTourLaunch");
+    const splatSrc = document.getElementById("splatSrc");
+    const splatHotspots = document.getElementById("splatHotspots");
+    const splatZoneTag = document.getElementById("splatZoneTag");
+    const LS_ORIGIN = "syntheticPov.savedOrigin.";
+    const LS_PORTALS = "syntheticPov.savedPortals.";
+    const splatCalToggle = document.getElementById("splatCalToggle");
+    const splatCalModes = document.getElementById("splatCalModes");
+    const splatCalModeOrigin = document.getElementById("splatCalModeOrigin");
+    const splatCalModePortal = document.getElementById("splatCalModePortal");
+    const splatCalPortalSource = document.getElementById("splatCalPortalSource");
+    const splatCalPortalTarget = document.getElementById("splatCalPortalTarget");
+    const splatCalSet = document.getElementById("splatCalSet");
+    const splatCalSetPortal = document.getElementById("splatCalSetPortal");
+    const splatCalReset = document.getElementById("splatCalReset");
+    const splatCalExport = document.getElementById("splatCalExport");
+    const splatCalHint = document.getElementById("splatCalHint");
+    let splatHudMeta = {};
+    if (!IS_SPLAT_DEV) {
+      document.getElementById("splatCal")?.setAttribute("hidden", "");
+      splatOpen?.setAttribute("hidden", "");
+    }
     const genPov = document.getElementById("genPov");
     const genPrompt = document.getElementById("genPrompt");
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    window.__SPLAT_TOUR = SPLAT_TOUR;
 
-    function marbleUrlFor(id) { return `https://marble.worldlabs.ai/world/${id}`; }
-    function splatProxyFor(id) { return `/api/worldlabs/world/${encodeURIComponent(id)}/splat`; }
+    /** Pull browser-saved origin (from Calibrate → Set origin) into tour config at runtime. */
+    function mergeStoredOriginIntoTour() {
+      if (!IS_SPLAT_DEV) return;
+      SPLAT_TOUR.forEach((zone, idx) => {
+        if (!zone.spz) return;
+        const key = LS_ORIGIN + idx + ":" + zone.spz;
+        try {
+          const data = readStorageJson(originStorageKeys(idx, zone.spz));
+          if (!data) return;
+          const o = Array.isArray(data) ? data : data.origin;
+          if (!Array.isArray(o) || o.length !== 3) return;
+          zone.capture = { ...(zone.capture || {}), origin: o.map((v) => Number(v)) };
+          if (data.yaw != null) zone.capture.yaw = Number(data.yaw);
+          if (data.pitch != null) zone.capture.pitch = Number(data.pitch);
+          console.info("[splat] using stored origin for", zone.label, zone.capture);
+          if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+            fetch("/api/dev/capture-origin", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ zone: zone.label, idx, capture: zone.capture }),
+            }).catch(() => {});
+          }
+        } catch { /* ignore */ }
+      });
+    }
+    mergeStoredOriginIntoTour();
 
-    // Hand a splat URL to the Spark module (queue if it hasn't loaded yet).
-    function renderSplat(url, fileType) {
-      if (splatPh) splatPh.style.display = "none";
-      window.__splatPending = { url, fileType };
-      if (window.SplatViewer) window.SplatViewer.mount(url, fileType);
+    function portalStorageKeys(idx, spz) {
+      const base = spz ? spz.split("?")[0] : "";
+      return [
+        LS_PORTALS + idx + ":" + spz,
+        LS_PORTALS + idx + ":" + base,
+      ];
     }
 
+    function originStorageKeys(idx, spz) {
+      const base = spz ? spz.split("?")[0] : "";
+      return [
+        LS_ORIGIN + idx + ":" + spz,
+        LS_ORIGIN + idx + ":" + base,
+      ];
+    }
+
+    function readStorageJson(keys) {
+      for (const key of keys) {
+        try {
+          const raw = localStorage.getItem(key);
+          if (raw) return JSON.parse(raw);
+        } catch { /* ignore */ }
+      }
+      return null;
+    }
+
+    function mergeStoredPortalsIntoTour() {
+      if (!IS_SPLAT_DEV) return;
+      SPLAT_TOUR.forEach((zone, idx) => {
+        if (!zone.spz) return;
+        const data = readStorageJson(portalStorageKeys(idx, zone.spz));
+        if (!data || typeof data !== "object") return;
+        zone.portals = { ...(zone.portals || {}), ...data };
+        console.info("[splat] using stored portals for", zone.label, zone.portals);
+      });
+    }
+    mergeStoredPortalsIntoTour();
+
+    /** Convert absolute portal positions → offsets from zone origin (stable when origin is baked). */
+    function applyPortalOffsetsFromTour() {
+      SPLAT_TOUR.forEach((zone) => {
+        const origin = zone.capture?.origin;
+        if (!origin || origin.length !== 3) return;
+        const offsets = { ...(zone.portalOffsets || {}) };
+        for (const [k, pos] of Object.entries(zone.portals || {})) {
+          if (!Array.isArray(pos) || pos.length !== 3) continue;
+          offsets[k] = pos.map((v, i) => Number((v - origin[i]).toFixed(4)));
+        }
+        if (Object.keys(offsets).length) zone.portalOffsets = offsets;
+      });
+    }
+    applyPortalOffsetsFromTour();
+
+    function dumpAllCalibrationFromStorage() {
+      const dump = SPLAT_TOUR.map((zone, idx) => {
+        const oData = readStorageJson(originStorageKeys(idx, zone.spz));
+        const pData = readStorageJson(portalStorageKeys(idx, zone.spz));
+        const capture = { ...(zone.capture || {}) };
+        if (oData) {
+          const o = Array.isArray(oData) ? oData : oData.origin;
+          if (Array.isArray(o)) capture.origin = o.map(Number);
+          if (oData.yaw != null) capture.yaw = Number(oData.yaw);
+          if (oData.pitch != null) capture.pitch = Number(oData.pitch);
+        }
+        const portals = pData || zone.portals || {};
+        const portalOffsets = { ...(zone.portalOffsets || {}) };
+        if (capture.origin && capture.origin.length === 3) {
+          for (const [k, pos] of Object.entries(portals)) {
+            if (Array.isArray(pos) && pos.length === 3) {
+              portalOffsets[k] = pos.map((v, i) => Number((v - capture.origin[i]).toFixed(4)));
+            }
+          }
+        }
+        return { label: zone.label, idx, capture, portals, portalOffsets };
+      });
+      console.info("[splat] full tour dump:", dump);
+      fetch("/api/dev/capture-tour", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dump),
+      }).catch(() => {});
+      return dump;
+    }
+
+    if (IS_SPLAT_DEV && params.get("dump") === "1") {
+      setTimeout(() => dumpAllCalibrationFromStorage(), 300);
+    }
+
+    function populatePortalSourceSelect(selectedIdx) {
+      if (!splatCalPortalSource) return;
+      splatCalPortalSource.innerHTML = "";
+      SPLAT_TOUR.forEach((z, i) => {
+        const opt = document.createElement("option");
+        opt.value = String(i);
+        opt.textContent = z.label;
+        if (i === selectedIdx) opt.selected = true;
+        splatCalPortalSource.appendChild(opt);
+      });
+    }
+
+    function populatePortalTargetSelect(sourceIdx) {
+      if (!splatCalPortalTarget) return;
+      splatCalPortalTarget.innerHTML = "";
+      SPLAT_TOUR.forEach((z, i) => {
+        if (i === sourceIdx) return;
+        const opt = document.createElement("option");
+        opt.value = String(i);
+        opt.textContent = z.label;
+        splatCalPortalTarget.appendChild(opt);
+      });
+    }
+
+    function syncPortalCalibrateSelects(sourceIdx, targetIdx) {
+      populatePortalSourceSelect(sourceIdx);
+      populatePortalTargetSelect(sourceIdx);
+      if (splatCalPortalTarget && splatCalPortalTarget.options.length) {
+        const hasTarget = [...splatCalPortalTarget.options].some((o) => o.value === String(targetIdx));
+        splatCalPortalTarget.value = hasTarget ? String(targetIdx) : splatCalPortalTarget.options[0].value;
+      }
+      window.SplatViewer?.setPortalSource?.(sourceIdx);
+      const t = parseInt(splatCalPortalTarget?.value || "0", 10);
+      if (!Number.isNaN(t)) window.SplatViewer?.setPortalTarget?.(t);
+    }
+
+    function exportTourCalibration() {
+      if (window.SplatViewer?.isCalibrating?.() && window.SplatViewer?.getCalibrateKind?.() === "portal") {
+        window.SplatViewer?.savePortal?.();
+      }
+      mergeStoredPortalsIntoTour();
+      applyPortalOffsetsFromTour();
+      const payload = SPLAT_TOUR.map((z) => ({
+        label: z.label,
+        capture: z.capture,
+        portalOffsets: z.portalOffsets || {},
+      }));
+      console.info("[splat] tour calibration — paste portals + capture into SPLAT_TOUR:", payload);
+      if (IS_SPLAT_DEV) {
+        fetch("/api/dev/capture-tour", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }).catch(() => {});
+      }
+      setStatus("Tour config logged to console (+ dev file)", false);
+      setTimeout(() => setStatus(null), 2500);
+    }
+
+    function setCalibrateUiVisible(on) {
+      splatCalToggle?.classList.toggle("active", !!on);
+      splatCalModes.hidden = !on;
+      splatCalHint.hidden = !on;
+      splatCalReset.hidden = !on;
+      splatCalExport.hidden = !on;
+      splatCalToggle.textContent = on ? "Calibrating…" : "Calibrate";
+      updateCalibrateModeUi(window.SplatViewer?.getCalibrateKind?.() || "origin");
+    }
+
+    function updateCalibrateModeUi(kind) {
+      const portal = kind === "portal";
+      splatCalModeOrigin?.classList.toggle("active", !portal);
+      splatCalModePortal?.classList.toggle("active", portal);
+      splatCalSet.hidden = portal;
+      splatCalSetPortal.hidden = !portal;
+      splatCalPortalSource.hidden = !portal;
+      splatCalPortalTarget.hidden = !portal;
+    }
+
+    function formatSplatHud({ zoneLabel, url, numSplats, capture, origin, floorV, savedOrigin }) {
+      const name = decodeURI(url || "").split("/").pop();
+      const cap = capture || {};
+      const up = cap.up || "y";
+      const eye = cap.eyeHeight != null ? cap.eyeHeight : "—";
+      const pull = cap.stationPull != null ? cap.stationPull : 0;
+      const eyeOvr = params.has("eye") ? " (?eye URL)" : "";
+      const upIdx = up === "z" ? 2 : 1;
+      const floorVal = floorV != null ? Number(floorV).toFixed(2) : "?";
+      const totalVal = origin && origin.length === 3 ? Number(origin[upIdx]).toFixed(2) : "?";
+      const upLabel = up === "z" ? "z" : "y";
+      const lines = [
+        `${zoneLabel || name}${numSplats ? ` · ${Number(numSplats).toLocaleString()} splats` : ""}${savedOrigin ? " · saved origin" : ""}`,
+        `<span class="cap-eye">eye ${eye}m</span> · up ${upLabel}${eyeOvr} · pull ${pull}`,
+      ];
+      if (!savedOrigin) {
+        lines.push(`floor ${floorVal} + eye → ${upLabel} ${totalVal}`);
+      }
+      if (origin && origin.length === 3) {
+        lines.push(`origin [${origin.map((v) => Number(v).toFixed(3)).join(", ")}]`);
+      }
+      return lines.join("\n");
+    }
+
+    function setSplatHud(html) {
+      if (!splatSrc) return;
+      splatSrc.hidden = false;
+      splatSrc.innerHTML = html;
+    }
+
+    function buildCaptureOpts(zone) {
+      const cap = { ...(zone.capture || {}) };
+      const eye = params.get("eye");
+      if (eye != null && eye !== "" && !Number.isNaN(parseFloat(eye))) cap.eyeHeight = parseFloat(eye);
+      const pull = params.get("pull");
+      if (pull != null && pull !== "" && !Number.isNaN(parseFloat(pull))) cap.stationPull = parseFloat(pull);
+      return cap;
+    }
+
+    function zoneMarbleUrl(zone) { return zone.marbleUrl || (zone.id ? `https://marble.worldlabs.ai/world/${zone.id}` : "#"); }
+    function splatProxyFor(id) { return `/api/worldlabs/world/${encodeURIComponent(id)}/splat`; }
+    function splatUrlFor(zone) { return zone.spz ? encodeURI(zone.spz) : null; }
+
+    function hideSparkCanvas() {
+      const cv = splatBody?.querySelector("canvas");
+      if (cv) cv.style.display = "none";
+    }
+
+    function showSparkCanvas() {
+      const cv = splatBody?.querySelector("canvas");
+      if (cv) cv.style.display = "block";
+    }
+
+    // Hand a splat URL to the Spark module (queue if it hasn't loaded yet).
+    function renderSplat(url, fileType, opts) {
+      if (splatTourFb) splatTourFb.hidden = true;
+      showSparkCanvas();
+      if (splatPh) splatPh.style.display = "";
+      if (splatHotspots) splatHotspots.innerHTML = "";
+      const cap = buildCaptureOpts(opts?.zoneIndex != null ? SPLAT_TOUR[opts.zoneIndex] : SPLAT_TOUR[0]);
+      setSplatHud(formatSplatHud({ zoneLabel: SPLAT_TOUR[opts?.zoneIndex ?? 0]?.label, url, capture: cap }));
+      const mountOpts = { ...(opts || {}), tour: SPLAT_TOUR, zoneIndex: opts?.zoneIndex ?? 0 };
+      window.__splatPending = { url, fileType, opts: mountOpts };
+      if (window.SplatViewer) window.SplatViewer.mount(url, fileType, mountOpts);
+      else {
+        clearTimeout(window.__splatMountWatch);
+        window.__splatMountWatch = setTimeout(() => {
+          if (window.__splatPending && !window.SplatViewer) {
+            setStatus("Spark viewer failed to load — hard refresh (Cmd+Shift+R)", false);
+            if (splatHint) splatHint.textContent = "Spark module did not start — check browser console";
+          }
+        }, 4000);
+      }
+    }
+
+    window.addEventListener("splat-hotspot-jump", (ev) => {
+      const idx = ev.detail?.idx;
+      if (idx != null) selectTourZone(idx);
+    });
+
+    window.addEventListener("splat-load-progress", (ev) => {
+      const { pct } = ev.detail || {};
+      if (pct != null) setStatus(`Loading splat… ${pct}%`, true);
+    });
+    function refreshSplatHud(origin) {
+      setSplatHud(formatSplatHud({ ...splatHudMeta, origin: origin || splatHudMeta.origin }));
+    }
+
+    window.addEventListener("splat-origin-move", (ev) => {
+      const origin = ev.detail?.origin;
+      if (origin) refreshSplatHud(origin);
+    });
+
+    if (IS_SPLAT_DEV) {
+      splatCalToggle?.addEventListener("click", () => {
+        const on = window.SplatViewer?.toggleCalibrate?.();
+        setCalibrateUiVisible(!!on);
+        if (on) {
+          const idx = parseInt(localStorage.getItem(LS_TOUR) || "0", 10);
+          const target = parseInt(splatCalPortalTarget?.value || "1", 10);
+          syncPortalCalibrateSelects(idx, target);
+        }
+      });
+      splatCalModeOrigin?.addEventListener("click", () => {
+        window.SplatViewer?.setCalibrateKind?.("origin");
+        updateCalibrateModeUi("origin");
+      });
+      splatCalModePortal?.addEventListener("click", () => {
+        window.SplatViewer?.setCalibrateKind?.("portal");
+        updateCalibrateModeUi("portal");
+        const src = parseInt(splatCalPortalSource?.value ?? localStorage.getItem(LS_TOUR) ?? "0", 10);
+        const t = parseInt(splatCalPortalTarget?.value || "1", 10);
+        syncPortalCalibrateSelects(src, t);
+      });
+      splatCalPortalSource?.addEventListener("change", () => {
+        const src = parseInt(splatCalPortalSource.value, 10);
+        const t = parseInt(splatCalPortalTarget?.value || "1", 10);
+        if (!Number.isNaN(src)) syncPortalCalibrateSelects(src, t);
+      });
+      splatCalPortalTarget?.addEventListener("change", () => {
+        const t = parseInt(splatCalPortalTarget.value, 10);
+        if (!Number.isNaN(t)) window.SplatViewer?.setPortalTarget?.(t);
+      });
+      splatCalSet?.addEventListener("click", () => {
+        const ok = window.SplatViewer?.saveOrigin?.();
+        if (ok) {
+          setCalibrateUiVisible(false);
+          window.SplatViewer?.setCalibrate?.(false);
+          setStatus("Origin saved for this zone", false);
+          setTimeout(() => setStatus(null), 2000);
+        }
+      });
+      splatCalSetPortal?.addEventListener("click", () => {
+        const ok = window.SplatViewer?.savePortal?.();
+        if (ok) {
+          setStatus("Portal saved — pick next zone or Export tour", false);
+          setTimeout(() => setStatus(null), 2000);
+        }
+      });
+      splatCalReset?.addEventListener("click", () => {
+        window.SplatViewer?.clearSavedOrigin?.();
+        const idx = parseInt(localStorage.getItem(LS_TOUR) || "0", 10);
+        selectTourZone(idx);
+      });
+      splatCalExport?.addEventListener("click", () => exportTourCalibration());
+
+      if (params.get("cal") === "1" || params.get("cal") === "origin") {
+        setTimeout(() => splatCalToggle?.click(), 800);
+      }
+      if (params.get("cal") === "portal") {
+        setTimeout(() => {
+          splatCalToggle?.click();
+          splatCalModePortal?.click();
+        }, 800);
+      }
+    }
+
+    function showSplatOpen(href) {
+      if (!IS_SPLAT_DEV || !splatOpen) return;
+      splatOpen.href = href;
+      splatOpen.hidden = false;
+    }
+
+    window.addEventListener("splat-load", (ev) => {
+      const { ok, url, numSplats, zoneIndex, zoneLabel, capture, origin, error, savedOrigin } = ev.detail || {};
+      if (ok) {
+        splatHudMeta = { zoneLabel, url, numSplats, capture, origin, floorV: ev.detail?.floorV, savedOrigin };
+        if (splatPh) splatPh.style.display = "none";
+        setSplatHud(formatSplatHud(splatHudMeta));
+        if (splatZoneTag) splatZoneTag.textContent = zoneLabel || "hotspot tour";
+        setStatus(`Loaded · ${(numSplats || 0).toLocaleString()} splats`, false);
+        setTimeout(() => setStatus(null), 2500);
+      } else {
+        if (splatHint) splatHint.textContent = IS_SPLAT_DEV ? "Splat failed to load — open in Marble ↗" : "Splat failed to load";
+        if (splatPh) splatPh.style.display = "";
+        setStatus(error || "Splat failed to load", false);
+      }
+    });
+
     function setStatus(text, busy) {
-      if (text == null) { splatStatus.hidden = true; splatActions.hidden = false; return; }
-      splatActions.hidden = true;
+      if (text == null) { splatStatus.hidden = true; return; }
       splatStatus.hidden = false;
       splatStatus.querySelector(".wl-spin").style.visibility = busy ? "visible" : "hidden";
       splatStatusText.textContent = text;
     }
 
-    // Poll a world until its splat assets are ready, then render with Spark.
+    function showMarbleFallback(zone) {
+      worldPolling = false;
+      hideSparkCanvas();
+      if (splatPh) splatPh.style.display = "none";
+      setStatus(null);
+      splatTourTitle.textContent = zone.label;
+      splatTourTier.textContent = zone.tier === "core" ? "Station" : "Perimeter";
+      const url = zoneMarbleUrl(zone);
+      splatTourLaunch.href = url;
+      showSplatOpen(url);
+      splatTourFb.hidden = false;
+    }
+
+    function setZoneUi(idx) {
+      localStorage.setItem(LS_TOUR, String(idx));
+      const zone = SPLAT_TOUR[idx];
+      if (zone && splatZoneTag) splatZoneTag.textContent = zone.label;
+    }
+
     let worldPolling = false;
-    async function trackWorld(id) {
+    async function selectTourZone(idx) {
+      const zone = SPLAT_TOUR[idx];
+      if (!zone) return;
+      worldPolling = false;
+      setZoneUi(idx);
+      splatTourFb.hidden = true;
+
+      const local = splatUrlFor(zone);
+      if (local) {
+        setStatus("Loading splat…", true);
+        renderSplat(local, "spz", {
+          flipY: zone.flipY !== false,
+          lod: zone.lod !== false,
+          zoneIndex: idx,
+          capture: buildCaptureOpts(zone),
+        });
+        showSplatOpen(zoneMarbleUrl(zone));
+        return;
+      }
+
+      setStatus(`${zone.label} — export .spz to enable in-scene jump`, false);
+      setTimeout(() => setStatus(null), 3500);
+      showMarbleFallback(zone);
+    }
+
+    async function trackWorld(id, fromTour) {
       if (!id || worldPolling) return;
       worldPolling = true;
-      localStorage.setItem(LS_WORLD, id);
-      splatOpen.href = marbleUrlFor(id);
-      splatOpen.hidden = false;
+      showSplatOpen(`https://marble.worldlabs.ai/world/${id}`);
+      if (!fromTour) setStatus("Checking world…", true);
       const started = Date.now();
-      setStatus("Checking world…", true);
       while (worldPolling) {
         let s;
         try {
           s = await (await fetch(`/api/worldlabs/world/${encodeURIComponent(id)}`)).json();
         } catch { await sleep(6000); continue; }
-        if (s.error) { setStatus("Error: " + s.error, false); worldPolling = false; return; }
+        if (s.error) {
+          const zi = SPLAT_TOUR.findIndex((t) => t.id === id);
+          if (zi >= 0) showMarbleFallback(SPLAT_TOUR[zi]);
+          else setStatus("Error: " + s.error, false);
+          worldPolling = false;
+          return;
+        }
         if (s.done) {
           setStatus(null);
           renderSplat(splatProxyFor(id), "spz");
@@ -753,16 +1458,39 @@
       if (p) generate({ prompt: p, displayName: "Comer · prompt" }, "Starting generation…");
     });
 
-    // Boot: direct ?splat=<asset url> > world id (?world= or the resumed default).
+    // Local 3DGS reconstruction (COLMAP + splatfacto), pruned + SH-deg0 for web.
+    const DEFAULT_SPLAT = "/lab/assets/pinion_splat.ply";
+    // Pano-based 3DGS reconstruction exists at DEFAULT_SPLAT (web-optimized to
+    // ~90 MB), but it's capture-limited (8 positions → gaps). Keeping the World
+    // Labs world as the demo splat for now; flip true to use the local one.
+    const USE_LOCAL_SPLAT = false;
+
+    // Boot: ?splat= > ?world= > 7-zone tour (default) > local .ply fallback.
     (async function initSplat() {
-      let configured = true;
-      try {
-        const st = await (await fetch("/api/worldlabs/status")).json();
-        configured = !!st.configured;
-        if (!configured) { splatActions.hidden = true; splatHint.textContent = "World Labs not configured on the server."; }
-      } catch { /* assume configured; trackWorld will surface errors */ }
-      if (CONFIG.splatUrl) { renderSplat(CONFIG.splatUrl); return; } // direct .spz/.ply URL
-      if (configured && WORLD_ID) { trackWorld(WORLD_ID); return; }
+      if (CONFIG.splatUrl) { renderSplat(CONFIG.splatUrl); return; }
+      if (params.has("world")) { trackWorld(params.get("world")); return; }
+      if (USE_LOCAL_SPLAT) { renderSplat(DEFAULT_SPLAT); setStatus(null); return; }
+      const zParam = params.get("zone");
+      let idx = 0;
+      if (zParam) {
+        const n = parseInt(zParam, 10);
+        if (n >= 1 && n <= SPLAT_TOUR.length) idx = n - 1;
+        else {
+          const byId = SPLAT_TOUR.findIndex((z) => z.id === zParam);
+          if (byId >= 0) idx = byId;
+        }
+      } else {
+        const saved = localStorage.getItem(LS_TOUR);
+        if (saved != null) {
+          const n = parseInt(saved, 10);
+          if (n >= 0 && n < SPLAT_TOUR.length) idx = n;
+          else {
+            const byId = SPLAT_TOUR.findIndex((z) => z.id === saved);
+            if (byId >= 0) idx = byId;
+          }
+        }
+      }
+      await selectTourZone(idx);
     })();
 
     // ── POV video ─────────────────────────────────────────────────────
@@ -795,21 +1523,65 @@
     const hasThree = typeof THREE !== "undefined";
     let renderer, scene, camera, points, trajLine, frustum, deviceDot, trajSamples = [], trajLengthM = 0;
     let camAzimuth = 0.7, camElev = 0.5, camDist = 14;
-    const PT_COUNT = 11000;
+    const PT_COUNT = 31000;
 
     function rand(a, b) { return a + Math.random() * (b - a); }
 
-    // Hand-modeled to echo the actual Pinion Guide Station seen in the POV
-    // footage: a long central assembly/fixture line, flanking CNC machines,
-    // overhead gantry crane + hoist, ceiling light grid, drums, and the
-    // translucent curtain walls. (Placeholder for the COLMAP sparse cloud,
-    // which will replace this with measured geometry once SfM runs.)
-    function buildPointCloud() {
+    // Shared height-gradient coloring so both the measured and the fallback
+    // clouds keep the World-View look (floor=green → mid=cyan → top=white).
+    function colorFor(y) {
+      const cLow = new THREE.Color(0x00e5a0), cMid = new THREE.Color(0x38bdf8), cHigh = new THREE.Color(0xeaf6f1);
+      const h = Math.min(1, Math.max(0, y / 3.6));
+      return h < 0.5 ? cLow.clone().lerp(cMid, h * 2) : cMid.clone().lerp(cHigh, (h - 0.5) * 2);
+    }
+
+    function buildCloudFromGeometry(positions, colors, count) {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+      const mat = new THREE.PointsMaterial({ size: 0.035, vertexColors: true, sizeAttenuation: true, transparent: true, opacity: 0.92 });
+      points = new THREE.Points(geo, mat);
+      scene.add(points);
+      document.getElementById("ptStat").textContent = count.toLocaleString();
+      document.getElementById("ptCount").textContent = count.toLocaleString();
+    }
+
+    // The baked cloud came from the artifact-ridden video splat, so default back
+    // to the hand-modeled station cloud. Set USE_BAKED_POINTS = true once the new
+    // pano-based splat is wired in to show measured geometry instead.
+    const USE_BAKED_POINTS = false;
+
+    async function buildPointCloud() {
+      if (!USE_BAKED_POINTS) { buildProceduralCloud(); return; }
+      try {
+        const data = await (await fetch("/lab/assets/pinion_points.json")).json();
+        const p = data.pts;
+        const n = (p.length / 3) | 0;
+        const positions = new Float32Array(p);
+        const colors = new Float32Array(n * 3);
+        for (let k = 0; k < n; k++) {
+          const c = colorFor(positions[k * 3 + 1]);
+          const jit = 0.82 + Math.random() * 0.18;
+          colors[k * 3] = c.r * jit; colors[k * 3 + 1] = c.g * jit; colors[k * 3 + 2] = c.b * jit;
+        }
+        buildCloudFromGeometry(positions, colors, n);
+      } catch (e) {
+        console.warn("[synthetic-pov] point bake unavailable, using procedural cloud:", e);
+        buildProceduralCloud();
+      }
+    }
+
+    // Hand-modeled fallback that echoes the Pinion Guide Station: a long central
+    // assembly/fixture line, flanking CNC machines, overhead gantry crane + hoist,
+    // ceiling light grid, drums, and the translucent curtain walls.
+    function buildProceduralCloud() {
       const positions = new Float32Array(PT_COUNT * 3);
       const colors = new Float32Array(PT_COUNT * 3);
       const cLow = new THREE.Color(0x00e5a0);
       const cMid = new THREE.Color(0x38bdf8);
       const cHigh = new THREE.Color(0xeaf6f1);
+      const D = 2.8;                          // density multiplier (more dots on surfaces)
+      const nn = (n) => Math.round(n * D);
       let i = 0;
       function put(x, y, z) {
         if (i >= PT_COUNT) return;
@@ -841,41 +1613,41 @@
       const disc = (cx, cy, cz, r, n) => { for (let k = 0; k < n; k++) { const a = rand(0, Math.PI * 2), rr = Math.sqrt(Math.random()) * r; put(cx + Math.cos(a) * rr, cy + rand(-0.02, 0.02), cz + Math.sin(a) * rr); } };
 
       // floor + center walkway mat
-      for (let n = 0; n < 1500; n++) put(rand(-6.2, 6.2), rand(0, 0.05), rand(-6.2, 6.2));
+      for (let n = 0; n < nn(1500); n++) put(rand(-6.2, 6.2), rand(0, 0.05), rand(-6.2, 6.2));
 
       // central assembly / fixture line (runs along z)
-      box(0.6, 0.0, 0.0, 1.2, 0.85, 9.0, 1700);
-      for (let f = -4; f <= 4; f += 1.6) { disc(0.6, 0.95, f, 0.32, 70); cyl(0.6, f, 0.18, 0.85, 1.12, 60); }
+      box(0.6, 0.0, 0.0, 1.2, 0.85, 9.0, nn(1700));
+      for (let f = -4; f <= 4; f += 1.6) { disc(0.6, 0.95, f, 0.32, nn(70)); cyl(0.6, f, 0.18, 0.85, 1.12, nn(60)); }
 
       // left machine row (CNC / lathes) + right far machines
-      box(-4.2, 0.0, -3.0, 1.4, 1.5, 1.6, 520);
-      box(-4.2, 0.0, -0.3, 1.4, 1.4, 1.6, 500);
-      box(-4.3, 0.0,  2.6, 1.5, 1.6, 1.7, 540);
-      box( 4.6, 0.0, -1.5, 1.6, 1.3, 1.8, 460);
-      box( 4.7, 0.0,  2.2, 1.5, 1.4, 1.6, 420);
+      box(-4.2, 0.0, -3.0, 1.4, 1.5, 1.6, nn(520));
+      box(-4.2, 0.0, -0.3, 1.4, 1.4, 1.6, nn(500));
+      box(-4.3, 0.0,  2.6, 1.5, 1.6, 1.7, nn(540));
+      box( 4.6, 0.0, -1.5, 1.6, 1.3, 1.8, nn(460));
+      box( 4.7, 0.0,  2.2, 1.5, 1.4, 1.6, nn(420));
 
       // drums / barrels
-      cyl(2.3, -1.2, 0.36, 0, 0.95, 240);
-      cyl(-1.6, 1.8, 0.34, 0, 0.90, 220);
+      cyl(2.3, -1.2, 0.36, 0, 0.95, nn(240));
+      cyl(-1.6, 1.8, 0.34, 0, 0.90, nn(220));
 
       // overhead gantry beams + support columns + hanging hoist chain
-      beamX(-5.5, 5.5, 3.25, -1.6, 380);
-      beamX(-5.5, 5.5, 3.25,  2.2, 380);
-      beamZ(-5.0, 5.0, 3.40, -0.2, 320);
-      column(-5.2, -1.6, 0, 3.25, 120); column(5.2, -1.6, 0, 3.25, 120);
-      column(-5.2,  2.2, 0, 3.25, 120); column(5.2,  2.2, 0, 3.25, 120);
-      column(0.1, 0.0, 1.5, 3.30, 80);
+      beamX(-5.5, 5.5, 3.25, -1.6, nn(380));
+      beamX(-5.5, 5.5, 3.25,  2.2, nn(380));
+      beamZ(-5.0, 5.0, 3.40, -0.2, nn(320));
+      column(-5.2, -1.6, 0, 3.25, nn(120)); column(5.2, -1.6, 0, 3.25, nn(120));
+      column(-5.2,  2.2, 0, 3.25, nn(120)); column(5.2,  2.2, 0, 3.25, nn(120));
+      column(0.1, 0.0, 1.5, 3.30, nn(80));
 
       // ceiling light grid
       for (let gx = -5; gx <= 5; gx += 2.0)
-        for (let gz = -5; gz <= 5; gz += 2.2) disc(gx, 3.75, gz, 0.45, 26);
+        for (let gz = -5; gz <= 5; gz += 2.2) disc(gx, 3.75, gz, 0.45, nn(26));
 
       // perimeter curtain walls (translucent)
-      for (let n = 0; n < 700; n++) put(rand(-6.2, 6.2), rand(0, 3.4), -6.3 + rand(-0.1, 0.1));
-      for (let n = 0; n < 520; n++) put(6.3 + rand(-0.1, 0.1), rand(0, 3.4), rand(-6.2, 6.2));
-      for (let n = 0; n < 420; n++) put(-6.3 + rand(-0.1, 0.1), rand(0, 3.4), rand(-2, 6.2));
+      for (let n = 0; n < nn(700); n++) put(rand(-6.2, 6.2), rand(0, 3.4), -6.3 + rand(-0.1, 0.1));
+      for (let n = 0; n < nn(520); n++) put(6.3 + rand(-0.1, 0.1), rand(0, 3.4), rand(-6.2, 6.2));
+      for (let n = 0; n < nn(420); n++) put(-6.3 + rand(-0.1, 0.1), rand(0, 3.4), rand(-2, 6.2));
 
-      // ambient structural haze fill
+      // tiny ambient fill only if the structural points underflow PT_COUNT
       while (i < PT_COUNT) put(rand(-6, 6), rand(0.2, 3.4), rand(-6, 6));
 
       const geo = new THREE.BufferGeometry();
@@ -1334,22 +2106,157 @@
   })();
   </script>
 
-  <!-- Spark splat viewer: renders the World Labs world (.spz) in the top-right
-       quad. Module-scoped (own three@0.180), exposes window.SplatViewer. -->
+  <!-- Spark splat viewer: panorama origin + in-scene hotspot portals -->
   <script type="module">
     import * as THREE from "three";
     import { OrbitControls } from "three/addons/controls/OrbitControls.js";
     import { SparkRenderer, SplatMesh } from "@sparkjsdev/spark";
 
     const host = document.getElementById("splatBody");
-    let renderer, scene, camera, controls, current, raf, ready = false;
+    const hotspotLayer = document.getElementById("splatHotspots");
+    let renderer, scene, camera, controls, current, ready = false;
+    let captureOrigin = new THREE.Vector3();
+    let hotspotEls = [];
+    let calibrateMode = false;
+    let calibrateKind = "origin";
+    let portalEditIdx = 1;
+    let portalSourceIdx = 0;
+    let portalDraft = new THREE.Vector3();
+    let currentOriginKey = "";
+    let lastTour = [];
+    let lastZoneIndex = 0;
+    let lastUp = "y";
+    let lastCapture = {};
+    const LS_ORIGIN = "syntheticPov.savedOrigin.";
+    const LS_PORTALS = "syntheticPov.savedPortals.";
+    const NUDGE = 0.05;
+
+    function originKey(zoneIndex, url) {
+      return `${zoneIndex}:${url || ""}`;
+    }
+
+    function loadSavedOrigin(key) {
+      try {
+        const raw = localStorage.getItem(LS_ORIGIN + key);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        if (Array.isArray(data) && data.length === 3) {
+          return { origin: new THREE.Vector3(...data) };
+        }
+        if (data && Array.isArray(data.origin) && data.origin.length === 3) {
+          return {
+            origin: new THREE.Vector3(...data.origin),
+            yaw: data.yaw,
+            pitch: data.pitch,
+          };
+        }
+      } catch { /* ignore */ }
+      return null;
+    }
+
+    function emitOriginMove() {
+      window.dispatchEvent(new CustomEvent("splat-origin-move", {
+        detail: { origin: camera.position.toArray() },
+      }));
+    }
+
+    function sourceOriginVec(sourceIdx) {
+      const cap = lastTour[sourceIdx]?.capture;
+      if (Array.isArray(cap?.origin) && cap.origin.length === 3) {
+        return new THREE.Vector3(...cap.origin);
+      }
+      return captureOrigin.clone();
+    }
+
+    function rebuildCalibrateHotspots() {
+      if (calibrateMode && calibrateKind === "portal" && portalSourceIdx !== lastZoneIndex) {
+        const src = lastTour[portalSourceIdx];
+        const tgt = lastTour[portalEditIdx];
+        buildHotspots([{
+          idx: portalEditIdx,
+          label: `${src?.label || "?"} → ${tgt?.label || "?"}`,
+          core: tgt?.tier === "core",
+          ready: true,
+          position: portalDraft.clone(),
+          editing: true,
+        }]);
+        return;
+      }
+      const origin = captureOrigin.clone();
+      const portals = portalPositions(origin, lastTour, lastZoneIndex, lastUp);
+      if (calibrateMode && calibrateKind === "portal") {
+        const editing = portals.find((p) => p.idx === portalEditIdx);
+        if (editing) {
+          editing.position.copy(portalDraft);
+          editing.editing = true;
+        }
+      }
+      buildHotspots(portals);
+    }
+
+    function initPortalDraft(targetIdx) {
+      portalEditIdx = targetIdx;
+      const origin = sourceOriginVec(portalSourceIdx);
+      const off = lastTour[portalSourceIdx]?.portalOffsets?.[targetIdx]
+        ?? lastTour[portalSourceIdx]?.portalOffsets?.[String(targetIdx)];
+      if (Array.isArray(off) && off.length === 3) {
+        portalDraft.set(origin.x + off[0], origin.y + off[1], origin.z + off[2]);
+      } else {
+        const manual = lastTour[portalSourceIdx]?.portals?.[targetIdx]
+          ?? lastTour[portalSourceIdx]?.portals?.[String(targetIdx)];
+        if (Array.isArray(manual) && manual.length === 3) {
+          portalDraft.set(manual[0], manual[1], manual[2]);
+        } else {
+          const portals = portalPositions(origin, lastTour, portalSourceIdx, lastUp);
+          const p = portals.find((x) => x.idx === targetIdx);
+          portalDraft.copy(p ? p.position : origin);
+        }
+      }
+      rebuildCalibrateHotspots();
+    }
+
+    function onCalibrateKey(ev) {
+      if (!calibrateMode || !camera || !controls) return;
+      const tag = ev.target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+      let dx = 0, dy = 0, dz = 0;
+      switch (ev.key) {
+        case "ArrowLeft": dx = -NUDGE; break;
+        case "ArrowRight": dx = NUDGE; break;
+        case "ArrowUp": dz = -NUDGE; break;
+        case "ArrowDown": dz = NUDGE; break;
+        case "+": case "=": dy = NUDGE; break;
+        case "-": case "_": dy = -NUDGE; break;
+        default: return;
+      }
+      ev.preventDefault();
+
+      if (calibrateKind === "portal") {
+        portalDraft.x += dx;
+        portalDraft.y += dy;
+        portalDraft.z += dz;
+        rebuildCalibrateHotspots();
+        return;
+      }
+
+      camera.position.x += dx;
+      camera.position.y += dy;
+      camera.position.z += dz;
+      const { yaw, pitch } = cameraAngles(camera);
+      controls.target.copy(lookTargetFromAngles(camera.position, yaw, pitch, 0.01));
+      captureOrigin.copy(camera.position);
+      emitOriginMove();
+    }
+
+    window.addEventListener("keydown", onCalibrateKey);
 
     function init() {
       if (ready || !host) return;
       ready = true;
       scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(60, 1, 0.01, 1000);
-      camera.position.set(0, 0.6, 3);
+      camera = new THREE.PerspectiveCamera(72, 1, 0.01, 2000);
+      camera.position.set(0, 1.6, 0);
 
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -1363,8 +2270,13 @@
 
       controls = new OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
-      controls.dampingFactor = 0.08;
-      controls.target.set(0, 0, 0);
+      controls.dampingFactor = 0.06;
+      controls.rotateSpeed = 0.35;
+      controls.enablePan = false;
+      controls.enableZoom = false;
+      controls.minDistance = 0.01;
+      controls.maxDistance = 0.01;
+      controls.target.set(0, 1.6, 0);
 
       const ro = new ResizeObserver(size);
       ro.observe(host);
@@ -1372,6 +2284,7 @@
 
       renderer.setAnimationLoop(() => {
         controls.update();
+        updateHotspotProjections();
         renderer.render(scene, camera);
       });
     }
@@ -1384,55 +2297,545 @@
       camera.updateProjectionMatrix();
     }
 
-    function frameToSplat(splat) {
-      try {
-        splat.updateMatrixWorld(true);
-        const box = splat.getBoundingBox(true);
-        if (!box || box.isEmpty()) return;
-        box.applyMatrix4(splat.matrixWorld); // account for the Y-flip below
-        const center = box.getCenter(new THREE.Vector3());
-        const sphere = box.getBoundingSphere(new THREE.Sphere());
-        const r = sphere.radius || 2;
-        const dist = (r / Math.tan((camera.fov * Math.PI) / 360)) * 1.3;
-        controls.target.copy(center);
-        camera.position.set(center.x, center.y + r * 0.25, center.z + dist);
-        camera.near = Math.max(dist / 1000, 0.01);
-        camera.far = dist * 1000;
-        camera.updateProjectionMatrix();
-        controls.update();
-      } catch { /* keep default framing */ }
+    /** Pano capture origin: peak horizontal density + floor + eye height on up axis. */
+    function findCaptureOrigin(splat, stride = 24, capture = {}) {
+      const up = capture.up || "y";
+      const eyeHeight = capture.eyeHeight ?? 1.55;
+      const floorQ = capture.floorQuantile ?? 0.06;
+      const hA = up === "z" ? "x" : "x";
+      const hB = up === "z" ? "y" : "z";
+      const samples = [];
+
+      splat.forEachSplat((idx, center) => {
+        if (idx % stride !== 0) return;
+        samples.push({ x: center.x, y: center.y, z: center.z });
+      });
+      if (!samples.length) {
+        const o = new THREE.Vector3();
+        if (up === "z") o.z = eyeHeight;
+        else o.y = eyeHeight;
+        return { origin: o, floorV: 0, stationCenter: o.clone() };
+      }
+
+      let minHA = Infinity, maxHA = -Infinity, minHB = Infinity, maxHB = -Infinity;
+      for (const s of samples) {
+        minHA = Math.min(minHA, s[hA]); maxHA = Math.max(maxHA, s[hA]);
+        minHB = Math.min(minHB, s[hB]); maxHB = Math.max(maxHB, s[hB]);
+      }
+      const span = Math.max(maxHA - minHA, maxHB - minHB, 1);
+      const cell = Math.max(0.25, Math.min(0.5, span / 24));
+
+      const cols = new Map();
+      for (const s of samples) {
+        const key = `${Math.floor(s[hA] / cell)},${Math.floor(s[hB] / cell)}`;
+        let b = cols.get(key);
+        if (!b) b = { n: 0, sx: 0, sy: 0, sz: 0, vs: [] };
+        b.n++;
+        b.sx += s.x; b.sy += s.y; b.sz += s.z;
+        b.vs.push(s[up]);
+        cols.set(key, b);
+      }
+
+      let peak = null;
+      for (const b of cols.values()) {
+        if (!peak || b.n > peak.n) peak = b;
+      }
+      if (!peak) {
+        const o = new THREE.Vector3();
+        if (up === "z") o.z = eyeHeight;
+        else o.y = eyeHeight;
+        return { origin: o, floorV: 0, stationCenter: o.clone() };
+      }
+
+      const pA = Math.floor((peak.sx / peak.n) / cell);
+      const pB = Math.floor((peak[up === "z" ? "sy" : "sz"] / peak.n) / cell);
+
+      let sx = 0, sy = 0, sz = 0, total = 0;
+      const floorSamples = [];
+      for (const [key, b] of cols) {
+        const [gA, gB] = key.split(",").map(Number);
+        if (Math.abs(gA - pA) <= 1 && Math.abs(gB - pB) <= 1) {
+          sx += b.sx; sy += b.sy; sz += b.sz; total += b.n;
+          floorSamples.push(...b.vs);
+        }
+      }
+
+      const prePull = new THREE.Vector3(sx / total, sy / total, sz / total);
+      const origin = prePull.clone();
+
+      // Pull horizontal position toward peak cell (machine / capture focal point).
+      const pull = capture.stationPull ?? 0;
+      const peakX = peak.sx / peak.n;
+      const peakY = peak.sy / peak.n;
+      const peakZ = peak.sz / peak.n;
+      if (pull > 0) {
+        if (up === "z") {
+          origin.x += (peakX - origin.x) * pull;
+          origin.y += (peakY - origin.y) * pull;
+        } else {
+          origin.x += (peakX - origin.x) * pull;
+          origin.z += (peakZ - origin.z) * pull;
+        }
+      }
+
+      // Step back from station (horizontal, away from peak density).
+      const back = capture.stationBack ?? 0;
+      if (back > 0) {
+        const peakPt = new THREE.Vector3(peakX, peakY, peakZ);
+        const away = new THREE.Vector3().subVectors(prePull, peakPt);
+        if (up === "y") away.y = 0;
+        else if (up === "z") away.z = 0;
+        if (away.lengthSq() > 1e-8) {
+          away.normalize().multiplyScalar(back);
+          origin.add(away);
+        }
+      }
+
+      floorSamples.sort((a, b) => a - b);
+      const floorV = floorSamples.length
+        ? floorSamples[Math.floor(floorSamples.length * floorQ)]
+        : 0;
+      // Use lowest splats in column as floor reference (avoid locking to machine mid-height).
+      const floorMin = floorSamples.length ? Math.min(...floorSamples) : floorV;
+      origin[up] = floorMin + eyeHeight;
+
+      if (Array.isArray(capture.originOffset) && capture.originOffset.length === 3) {
+        origin.x += capture.originOffset[0];
+        origin.y += capture.originOffset[1];
+        origin.z += capture.originOffset[2];
+      }
+
+      return { origin, floorV: floorMin, stationCenter: new THREE.Vector3(peakX, peakY, peakZ) };
     }
 
-    async function mount(url, fileType) {
+    function cameraAngles(cam) {
+      const dir = new THREE.Vector3();
+      cam.getWorldDirection(dir);
+      return {
+        yaw: Math.atan2(dir.x, -dir.z),
+        pitch: Math.asin(THREE.MathUtils.clamp(dir.y, -1, 1)),
+      };
+    }
+
+    function lookTargetFromAngles(origin, yaw, pitch, dist = 2) {
+      const cp = Math.cos(pitch), sp = Math.sin(pitch);
+      const cy = Math.cos(yaw), sy = Math.sin(yaw);
+      const dir = new THREE.Vector3(sy * cp, sp, -cy * cp);
+      return origin.clone().add(dir.multiplyScalar(dist));
+    }
+
+    /** Eye-level look toward a world point (horizontal bearing, no floor tilt). */
+    function horizontalLookTarget(origin, toward, up = "y", dist = 2) {
+      const dir = new THREE.Vector3().subVectors(toward, origin);
+      if (up === "y") dir.y = 0;
+      else if (up === "z") dir.z = 0;
+      if (dir.lengthSq() < 1e-6) dir.set(0, 0, -1);
+      else dir.normalize();
+      return origin.clone().add(dir.multiplyScalar(dist));
+    }
+
+    function resolveViewOpts(capture, hints, up) {
+      if (hints.yaw != null && hints.pitch != null) {
+        return { yaw: hints.yaw, pitch: hints.pitch };
+      }
+      if (capture.yaw != null && capture.pitch != null) {
+        return { yaw: capture.yaw, pitch: capture.pitch };
+      }
+      if (Array.isArray(capture.lookAt) && capture.lookAt.length === 3) {
+        return { lookAt: new THREE.Vector3(...capture.lookAt) };
+      }
+      if (hints.stationCenter) {
+        return { toward: hints.stationCenter, up };
+      }
+      return { yaw: 0, pitch: 0 };
+    }
+
+    function applyPanoramaView(origin, view = {}) {
+      camera.up.set(0, 1, 0);
+      captureOrigin.copy(origin);
+      const orbitDist = 0.01;
+      let target;
+      if (view.lookAt) {
+        target = view.lookAt.clone();
+      } else if (view.yaw != null && view.pitch != null) {
+        target = lookTargetFromAngles(origin, view.yaw, view.pitch, orbitDist);
+      } else if (view.toward) {
+        target = horizontalLookTarget(origin, view.toward, view.up || "y", orbitDist);
+      } else {
+        target = lookTargetFromAngles(origin, 0, 0, orbitDist);
+      }
+      camera.position.copy(origin);
+      controls.target.copy(target);
+      controls.minDistance = orbitDist;
+      controls.maxDistance = orbitDist;
+      const unlockPan = view.unlockPan === true;
+      controls.enablePan = unlockPan;
+      controls.enableZoom = false;
+      if (unlockPan) {
+        controls.mouseButtons = {
+          LEFT: THREE.MOUSE.ROTATE,
+          RIGHT: THREE.MOUSE.PAN,
+          MIDDLE: THREE.MOUSE.DOLLY,
+        };
+        controls.screenSpacePanning = true;
+      } else {
+        controls.mouseButtons = {
+          LEFT: THREE.MOUSE.ROTATE,
+          MIDDLE: THREE.MOUSE.DOLLY,
+          RIGHT: THREE.MOUSE.PAN,
+        };
+      }
+      controls.update();
+    }
+
+    function setCalibrateKind(kind) {
+      calibrateKind = kind === "portal" ? "portal" : "origin";
+      if (calibrateMode && calibrateKind === "portal") {
+        if (portalEditIdx === portalSourceIdx) {
+          portalEditIdx = lastTour.findIndex((_, i) => i !== portalSourceIdx);
+          if (portalEditIdx < 0) portalEditIdx = 0;
+        }
+        initPortalDraft(portalEditIdx);
+      }
+    }
+
+    function getCalibrateKind() {
+      return calibrateKind;
+    }
+
+    function setPortalSource(sourceIdx) {
+      portalSourceIdx = sourceIdx;
+      if (portalEditIdx === portalSourceIdx) {
+        portalEditIdx = lastTour.findIndex((_, i) => i !== portalSourceIdx);
+        if (portalEditIdx < 0) portalEditIdx = 0;
+      }
+      if (calibrateMode && calibrateKind === "portal") initPortalDraft(portalEditIdx);
+    }
+
+    function setPortalTarget(targetIdx) {
+      if (targetIdx === portalSourceIdx) return;
+      initPortalDraft(targetIdx);
+    }
+
+    function savePortal() {
+      const srcIdx = portalSourceIdx;
+      const zone = lastTour[srcIdx];
+      if (!zone?.spz) return false;
+      const srcKey = originKey(srcIdx, zone.spz);
+      const lsKey = LS_PORTALS + srcKey;
+      let map = {};
+      try { map = JSON.parse(localStorage.getItem(lsKey) || "{}"); } catch { /* ignore */ }
+      const abs = portalDraft.toArray().map((v) => Number(v.toFixed(4)));
+      const srcOrigin = sourceOriginVec(srcIdx);
+      const rel = abs.map((v, i) => Number((v - srcOrigin.getComponent(i)).toFixed(4)));
+      map[String(portalEditIdx)] = abs;
+      localStorage.setItem(lsKey, JSON.stringify(map));
+      if (lastTour[srcIdx]) {
+        lastTour[srcIdx].portals = {
+          ...(lastTour[srcIdx].portals || {}),
+          [portalEditIdx]: abs,
+        };
+        lastTour[srcIdx].portalOffsets = {
+          ...(lastTour[srcIdx].portalOffsets || {}),
+          [portalEditIdx]: rel,
+        };
+      }
+      rebuildCalibrateHotspots();
+      console.info("[splat] saved portal (offset from origin):", {
+        zone: lastTour[srcIdx]?.label,
+        zoneIndex: srcIdx,
+        target: portalEditIdx,
+        targetLabel: lastTour[portalEditIdx]?.label,
+        absolute: abs,
+        offset: rel,
+        allOffsets: lastTour[srcIdx]?.portalOffsets,
+      });
+      return true;
+    }
+
+    function setCalibrate(on) {
+      calibrateMode = !!on;
+      if (!controls || !camera) return;
+      if (calibrateMode) portalSourceIdx = lastZoneIndex;
+      if (calibrateMode) {
+        const { yaw, pitch } = cameraAngles(camera);
+        applyPanoramaView(camera.position.clone(), { yaw, pitch, unlockPan: true });
+      } else {
+        const { yaw, pitch } = cameraAngles(camera);
+        applyPanoramaView(camera.position.clone(), { yaw, pitch });
+      }
+    }
+
+    function toggleCalibrate() {
+      setCalibrate(!calibrateMode);
+      return calibrateMode;
+    }
+
+    function saveOrigin() {
+      if (!currentOriginKey || !camera) return false;
+      const arr = camera.position.toArray();
+      const { yaw, pitch } = cameraAngles(camera);
+      const payload = {
+        origin: arr.map((v) => Number(v.toFixed(4))),
+        yaw: Number(yaw.toFixed(4)),
+        pitch: Number(pitch.toFixed(4)),
+      };
+      localStorage.setItem(LS_ORIGIN + currentOriginKey, JSON.stringify(payload));
+      const origin = camera.position.clone();
+      captureOrigin.copy(origin);
+      setCalibrate(false);
+      const portals = portalPositions(origin, lastTour, lastZoneIndex, lastUp);
+      buildHotspots(portals);
+      const numSplats = current?.numSplats ?? current?.packedSplats?.numSplats ?? 0;
+      console.info("[splat] saved origin — paste into SPLAT_TOUR capture:", payload);
+      window.dispatchEvent(new CustomEvent("splat-load", {
+        detail: {
+          ok: true,
+          url: currentOriginKey.split(":").slice(1).join(":"),
+          numSplats,
+          zoneIndex: lastZoneIndex,
+          zoneLabel: lastTour[lastZoneIndex]?.label,
+          origin: arr,
+          floorV: null,
+          capture: lastCapture,
+          savedOrigin: true,
+        },
+      }));
+      return true;
+    }
+
+    function clearSavedOrigin() {
+      if (currentOriginKey) localStorage.removeItem(LS_ORIGIN + currentOriginKey);
+    }
+
+    function resolvePortalPosition(origin, tour, currentIdx, targetIdx) {
+      const off = tour[currentIdx]?.portalOffsets?.[targetIdx]
+        ?? tour[currentIdx]?.portalOffsets?.[String(targetIdx)];
+      if (Array.isArray(off) && off.length === 3) {
+        return new THREE.Vector3(
+          origin.x + off[0],
+          origin.y + off[1],
+          origin.z + off[2],
+        );
+      }
+      const manual = tour[currentIdx]?.portals?.[targetIdx]
+        ?? tour[currentIdx]?.portals?.[String(targetIdx)];
+      if (Array.isArray(manual) && manual.length === 3) {
+        return new THREE.Vector3(manual[0], manual[1], manual[2]);
+      }
+      return null;
+    }
+
+    function portalPositions(origin, tour, currentIdx, up = "y") {
+      const portals = [];
+      const others = tour.map((z, i) => ({ ...z, idx: i })).filter((z) => z.idx !== currentIdx);
+      const radius = 3.2;
+      others.forEach((z, n) => {
+        const resolved = resolvePortalPosition(origin, tour, currentIdx, z.idx);
+        if (resolved) {
+          portals.push({
+            idx: z.idx, label: z.label, core: z.tier === "core", ready: !!z.spz,
+            position: resolved,
+          });
+          return;
+        }
+        const angle = (n / others.length) * Math.PI * 2 - Math.PI / 2;
+        const pos = new THREE.Vector3();
+        if (up === "z") {
+          pos.set(
+            origin.x + Math.sin(angle) * radius,
+            origin.y + Math.cos(angle) * radius,
+            origin.z,
+          );
+        } else {
+          pos.set(
+            origin.x + Math.sin(angle) * radius,
+            origin.y,
+            origin.z + Math.cos(angle) * radius,
+          );
+        }
+        portals.push({
+          idx: z.idx, label: z.label, core: z.tier === "core", ready: !!z.spz,
+          position: pos,
+        });
+      });
+      return portals;
+    }
+
+    function buildHotspots(portals) {
+      if (!hotspotLayer) return;
+      hotspotLayer.innerHTML = "";
+      hotspotEls = [];
+      for (const p of portals) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "splat-hotspot" + (p.core ? " core" : "") + (p.ready ? "" : " pending");
+        btn.innerHTML = `<span class="hs-ring"></span><span class="hs-label">${p.label}</span>`;
+        btn.title = p.editing
+          ? `Editing portal position`
+          : (p.ready ? `Jump to ${p.label}` : `${p.label} — .spz export pending`);
+        if (p.editing) {
+          btn.classList.add("editing");
+          btn.style.pointerEvents = "none";
+        } else {
+          btn.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            window.dispatchEvent(new CustomEvent("splat-hotspot-jump", { detail: { idx: p.idx } }));
+          });
+        }
+        hotspotLayer.appendChild(btn);
+        hotspotEls.push({ btn, pos: p.position });
+      }
+    }
+
+    function updateHotspotProjections() {
+      if (!camera || !host || !hotspotEls.length) return;
+      const w = host.clientWidth || 1, h = host.clientHeight || 1;
+      const tmp = new THREE.Vector3();
+      for (const { btn, pos } of hotspotEls) {
+        tmp.copy(pos);
+        tmp.project(camera);
+        const behind = tmp.z > 1;
+        const off = tmp.x < -1.05 || tmp.x > 1.05 || tmp.y < -1.05 || tmp.y > 1.05;
+        btn.hidden = behind || off;
+        if (!behind && !off) {
+          btn.style.left = `${(tmp.x * 0.5 + 0.5) * w}px`;
+          btn.style.top = `${(-tmp.y * 0.5 + 0.5) * h}px`;
+        }
+      }
+    }
+
+    async function mount(url, fileType, opts = {}) {
       init();
       if (current) { scene.remove(current); current.dispose?.(); current = null; }
-      const opts = { url };
-      if (fileType) opts.fileType = fileType; // proxy URL has no .spz extension
+      if (hotspotLayer) hotspotLayer.innerHTML = "";
+      hotspotEls = [];
+
+      const meshOpts = {
+        url,
+        lod: opts.lod !== false,
+        onProgress: (ev) => {
+          if (ev.lengthComputable && ev.total > 0) {
+            const pct = Math.round((ev.loaded / ev.total) * 100);
+            window.dispatchEvent(new CustomEvent("splat-load-progress", { detail: { url, pct } }));
+          }
+        },
+      };
+      if (fileType) meshOpts.fileType = fileType;
+
       let splat;
       try {
-        splat = new SplatMesh(opts);
-      } catch (e) { showError(e); return; }
-      // Marble/3DGS assets are Y-down; flip 180° about X to stand them upright.
-      splat.quaternion.set(1, 0, 0, 0);
+        splat = new SplatMesh(meshOpts);
+      } catch (e) { showError(e, url); return; }
+      if (opts.flipY !== false) splat.quaternion.set(1, 0, 0, 0);
       scene.add(splat);
       current = splat;
+
+      const tour = opts.tour || window.__SPLAT_TOUR || [];
+      const zoneIndex = opts.zoneIndex ?? 0;
+      const zoneLabel = tour[zoneIndex]?.label;
+      const capture = {
+        ...(tour[zoneIndex]?.capture || {}),
+        ...(opts.capture || {}),
+        flipY: opts.flipY,
+      };
+      lastTour = tour;
+      lastZoneIndex = zoneIndex;
+      lastUp = capture.up || "y";
+      lastCapture = capture;
+      currentOriginKey = originKey(zoneIndex, url);
+      const forceRecalc = new URLSearchParams(location.search).get("recalc") === "1";
+
       try {
         await splat.initialized;
-        frameToSplat(splat);
-      } catch (e) { showError(e); return; }
+        const up = lastUp;
+        const auto = findCaptureOrigin(splat, 24, capture);
+        let origin;
+        let floorV = auto.floorV;
+        let savedOrigin = false;
+        let viewHints = { stationCenter: auto.stationCenter };
+
+        if (Array.isArray(capture.origin) && capture.origin.length === 3 && !forceRecalc) {
+          origin = new THREE.Vector3(...capture.origin);
+        } else {
+          const saved = loadSavedOrigin(currentOriginKey);
+          if (saved && !forceRecalc) {
+            origin = saved.origin;
+            savedOrigin = true;
+            if (saved.yaw != null && saved.pitch != null) {
+              viewHints = { yaw: saved.yaw, pitch: saved.pitch };
+            }
+          } else {
+            origin = auto.origin;
+            viewHints = { stationCenter: auto.stationCenter };
+          }
+        }
+
+        applyPanoramaView(origin, resolveViewOpts(capture, viewHints, up));
+
+        if (!Number.isFinite(origin.x + origin.y + origin.z)) {
+          splat.quaternion.set(1, 0, 0, 0);
+          const retry = findCaptureOrigin(splat, 24, capture);
+          origin = retry.origin;
+          floorV = retry.floorV;
+          savedOrigin = false;
+          applyPanoramaView(origin, resolveViewOpts(capture, { stationCenter: retry.stationCenter }, up));
+        }
+
+        const portals = portalPositions(origin, tour, zoneIndex, up);
+        buildHotspots(portals);
+
+        const numSplats = splat.numSplats ?? splat.packedSplats?.numSplats ?? 0;
+        const captureUsed = {
+          up,
+          eyeHeight: capture.eyeHeight ?? 1.55,
+          stationPull: capture.stationPull ?? 0,
+          floorQuantile: capture.floorQuantile ?? 0.06,
+        };
+        console.info("[splat] panorama origin", { ...captureUsed, floorV, savedOrigin, origin: origin.toArray() });
+        window.dispatchEvent(new CustomEvent("splat-load", {
+          detail: {
+            ok: true, url, numSplats, zoneIndex, zoneLabel,
+            origin: origin.toArray(), floorV, capture: captureUsed, savedOrigin,
+          },
+        }));
+      } catch (e) {
+        showError(e, url);
+        window.dispatchEvent(new CustomEvent("splat-load", {
+          detail: { ok: false, url, error: e?.message || String(e) },
+        }));
+        return;
+      }
       size();
     }
 
-    function showError(e) {
-      console.error("[synthetic-pov] splat load failed:", e);
-      const ph = document.getElementById("splatPh");
-      const hint = document.getElementById("splatHint");
-      if (ph) ph.style.display = "";
-      if (hint) hint.textContent = "Splat failed to load — open in Marble ↗";
+    function showError(e, url) {
+      console.error("[synthetic-pov] splat load failed:", url, e);
+      window.dispatchEvent(new CustomEvent("splat-load", {
+        detail: { ok: false, url, error: e?.message || String(e) },
+      }));
     }
 
-    window.SplatViewer = { mount, isReady: () => ready };
-    if (window.__splatPending) mount(window.__splatPending.url, window.__splatPending.fileType);
+    window.SplatViewer = {
+      mount,
+      isReady: () => ready,
+      setCalibrate,
+      toggleCalibrate,
+      setCalibrateKind,
+      getCalibrateKind,
+      isCalibrating: () => calibrateMode,
+      setPortalSource,
+      setPortalTarget,
+      saveOrigin,
+      savePortal,
+      clearSavedOrigin,
+    };
+    if (window.__splatPending) {
+      clearTimeout(window.__splatMountWatch);
+      const p = window.__splatPending;
+      window.__splatPending = null;
+      mount(p.url, p.fileType, p.opts || {});
+    }
   </script>
 </body>
 </html>

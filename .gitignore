@@ -47,3 +47,15 @@ Thumbs.db
 *.MP4
 # …but DO ship the small web POV clip (case-insensitive FS makes *.MP4 match it).
 !eval-lab/public/assets/phase8_pov.mp4
+
+# 3DGS reconstruction working files + raw 360 captures (large, local-only).
+/reconstruction/
+/360_World_Labs_Pinion_Guide/
+/pinion_guide_station.JPG
+eval-lab/public/assets/pgs_pano_*.jpg
+eval-lab/public/assets/june18_pano_*.jpg
+eval-lab/public/assets/pinion_guide_station.jpg
+eval-lab/public/.station1_capture.json
+eval-lab/public/.station_tour_calibration.json
+eval-lab/public/assets/Industrial Machine Shop Interior 1.spz
+June18_Panos/_previews/
