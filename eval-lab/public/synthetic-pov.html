@@ -1575,71 +1575,72 @@
     const TOUR_ANCHOR = new THREE.Vector3(0.6, 0, 0);
     const POV_AISLE_X = -1.8;
     const POV_EYE_Y = 1.5;
-    const TOUR_LAYOUT_SCALE = 2.2;
+    const POV_WORK_DIST = 2.4;
     const STATION_PT_COUNT = 4800;
-    const DEFAULT_POV_YAW = Math.PI / 2; // west aisle looking east toward assembly
+    const DEFAULT_POV_YAW = Math.PI / 2;
+    const DEFAULT_POV_PITCH = -0.18;
+
+    // POV walk order + aisle Z stops aligned to assembly-line fixtures and phase8 footage.
+    const WORLD_POV_WALK = [
+      { zoneIdx: 0, aisleZ:  4.4 },
+      { zoneIdx: 4, aisleZ:  3.2 },
+      { zoneIdx: 1, aisleZ:  2.4 },
+      { zoneIdx: 2, aisleZ:  0.8 },
+      { zoneIdx: 3, aisleZ: -0.8 },
+      { zoneIdx: 5, aisleZ: -2.4 },
+      { zoneIdx: 6, aisleZ: -4.4 },
+    ];
 
     function zoneCaptureYaw(zone) {
       const y = zone.capture?.yaw;
       return y != null ? y : DEFAULT_POV_YAW;
     }
 
-    // Portal graph → factory floor positions on the assembly line, rotated so
-    // the tour walk matches the POV video direction (+Z → −Z down the line).
+    function zoneCapturePitch(zone) {
+      const p = zone.capture?.pitch;
+      return p != null ? p : DEFAULT_POV_PITCH;
+    }
+
+    // Project each splat zone from the POV aisle along its calibrated look vector.
     function solveTourLayout(tour) {
-      const n = tour.length;
-      const raw = Array(n).fill(null);
-      raw[0] = new THREE.Vector3(0, 0, 0);
-      let changed = true;
-      while (changed) {
-        changed = false;
-        for (let zi = 0; zi < n; zi++) {
-          if (!raw[zi]) continue;
-          const offs = tour[zi].portalOffsets || {};
-          for (const [key, off] of Object.entries(offs)) {
-            const zj = parseInt(key, 10);
-            if (raw[zj] || !Array.isArray(off) || off.length !== 3) continue;
-            raw[zj] = raw[zi].clone().add(new THREE.Vector3(off[0], off[1], off[2]));
-            changed = true;
-          }
+      const slots = new Array(tour.length);
+      for (const stop of WORLD_POV_WALK) {
+        const zone = tour[stop.zoneIdx];
+        if (!zone) continue;
+        const yaw = zoneCaptureYaw(zone);
+        const pitch = zoneCapturePitch(zone);
+        const povZ = stop.aisleZ;
+        const cp = Math.cos(pitch);
+        let x = POV_AISLE_X + Math.sin(yaw) * POV_WORK_DIST * cp;
+        let z = povZ + (-Math.cos(yaw)) * POV_WORK_DIST * cp;
+        if (zone.tier !== "core") {
+          x = THREE.MathUtils.clamp(x, TOUR_ANCHOR.x - 0.9, TOUR_ANCHOR.x + 0.9);
+          z = THREE.MathUtils.clamp(z, -5.2, 4.8);
         }
+        const face = Math.atan2(POV_AISLE_X - x, povZ - z);
+        slots[stop.zoneIdx] = { x, z, yaw, pitch, face, povZ, label: zone.label };
       }
-      for (let zi = 0; zi < n; zi++) {
-        if (!raw[zi]) raw[zi] = new THREE.Vector3(rand(-1, 1), 0, rand(-1, 1));
-      }
-
-      let cx = 0, cz = 0;
-      for (const p of raw) { cx += p.x; cz += p.z; }
-      cx /= n; cz /= n;
-      const centered = raw.map((p) => new THREE.Vector3(p.x - cx, 0, p.z - cz));
-
-      let farIdx = 0, farDist = 0;
-      for (let i = 1; i < n; i++) {
-        const d = centered[i].length();
-        if (d > farDist) { farDist = d; farIdx = i; }
-      }
-      const dx = centered[farIdx].x;
-      const dz = centered[farIdx].z;
-      const rot = Math.PI - Math.atan2(dx, dz);
-      const cosR = Math.cos(rot), sinR = Math.sin(rot);
-
-      return centered.map((p, i) => {
-        const rx = p.x * cosR - p.z * sinR;
-        const rz = p.x * sinR + p.z * cosR;
-        return {
-          x: TOUR_ANCHOR.x + rx * TOUR_LAYOUT_SCALE,
-          z: TOUR_ANCHOR.z + rz * TOUR_LAYOUT_SCALE,
-          yaw: zoneCaptureYaw(tour[i]),
-          label: tour[i].label,
-        };
+      return slots.map((s, i) => s || {
+        x: TOUR_ANCHOR.x,
+        z: 0,
+        yaw: DEFAULT_POV_YAW,
+        pitch: DEFAULT_POV_PITCH,
+        face: -Math.PI / 2,
+        povZ: 0,
+        label: tour[i]?.label || `Zone ${i}`,
       });
     }
 
-    function povLookTarget(fromX, fromZ, yaw, dist = 2.4) {
-      const cp = Math.cos(0);
+    function povLookTarget(fromX, fromZ, yaw, pitch, dist = POV_WORK_DIST) {
+      const cp = Math.cos(pitch ?? 0);
+      const sp = Math.sin(pitch ?? 0);
       const fx = Math.sin(yaw) * cp;
       const fz = -Math.cos(yaw) * cp;
-      return new THREE.Vector3(fromX + fx * dist, POV_EYE_Y, fromZ + fz * dist);
+      return new THREE.Vector3(
+        fromX + fx * dist,
+        POV_EYE_Y + sp * dist * 0.35,
+        fromZ + fz * dist,
+      );
     }
 
     // Hand-modeled fallback that echoes the Pinion Guide Station: a long central
@@ -1775,8 +1776,7 @@
         put(midX + Math.cos(t) * bx * 0.98, 0.07, midZ + Math.sin(t) * bz * 0.98);
       }
 
-      function stationCell(zone, cx, cz, yaw) {
-        const face = Math.atan2(Math.sin(yaw), -Math.cos(yaw));
+      function stationCell(zone, cx, cz, face) {
         const cos = Math.cos(face), sin = Math.sin(face);
         const putL = (lx, y, lz) => {
           put(cx + lx * cos - lz * sin, y, cz + lx * sin + lz * cos);
@@ -1850,21 +1850,20 @@
 
       SPLAT_TOUR.forEach((zone, zi) => {
         const slot = tourLayout[zi];
-        stationCell(zone, slot.x, slot.z, slot.yaw);
+        stationCell(zone, slot.x, slot.z, slot.face);
       });
 
-      const linked = new Set();
-      SPLAT_TOUR.forEach((zone, zi) => {
-        const a = tourLayout[zi];
-        for (const key of Object.keys(zone.portalOffsets || {})) {
-          const zj = parseInt(key, 10);
-          const edge = zi < zj ? `${zi}-${zj}` : `${zj}-${zi}`;
-          if (linked.has(edge)) continue;
-          linked.add(edge);
-          const b = tourLayout[zj];
-          if (b) corridor(a.x, a.z, b.x, b.z, 0.35, 28);
-        }
+      WORLD_POV_WALK.forEach((stop) => {
+        const slot = tourLayout[stop.zoneIdx];
+        corridor(POV_AISLE_X, stop.aisleZ, slot.x, slot.z, 0.22, 12);
       });
+      for (let w = 0; w < WORLD_POV_WALK.length - 1; w++) {
+        corridor(
+          POV_AISLE_X, WORLD_POV_WALK[w].aisleZ,
+          POV_AISLE_X, WORLD_POV_WALK[w + 1].aisleZ,
+          0.30, 24,
+        );
+      }
 
       while (i < STATION_PT_COUNT) put(rand(minX, maxX), rand(0.08, 2.4), rand(minZ, maxZ));
 
@@ -1882,24 +1881,25 @@
       if (!tourLayout.length) return null;
       let best = tourLayout[0], bestD = Infinity;
       for (const s of tourLayout) {
-        const d = Math.abs(s.z - z);
+        const ref = s.povZ ?? s.z;
+        const d = Math.abs(ref - z);
         if (d < bestD) { bestD = d; best = s; }
       }
       return best;
     }
 
     function buildTrajectory() {
-      const layout = tourLayout.length ? tourLayout : solveTourLayout(SPLAT_TOUR);
-      const sorted = [...layout].sort((a, b) => b.z - a.z);
-      const pts = sorted.map((slot) => new THREE.Vector3(POV_AISLE_X, POV_EYE_Y, slot.z));
-      if (sorted.length) {
-        const last = sorted[sorted.length - 1];
-        const first = sorted[0];
-        pts.push(new THREE.Vector3(-0.4, POV_EYE_Y, last.z - 0.7));
-        pts.push(new THREE.Vector3(TOUR_ANCHOR.x, POV_EYE_Y, (last.z + first.z) / 2));
-        pts.push(new THREE.Vector3(-0.1, POV_EYE_Y, first.z + 0.5));
-        pts.push(new THREE.Vector3(POV_AISLE_X, POV_EYE_Y, first.z));
-      }
+      const walkPts = WORLD_POV_WALK.map((stop) => new THREE.Vector3(POV_AISLE_X, POV_EYE_Y, stop.aisleZ));
+      const pts = [
+        ...walkPts,
+        new THREE.Vector3(-0.4, POV_EYE_Y, -4.9),
+        new THREE.Vector3(1.7, POV_EYE_Y, -4.0),
+        new THREE.Vector3(1.8, POV_EYE_Y, -1.0),
+        new THREE.Vector3(1.8, POV_EYE_Y, 2.0),
+        new THREE.Vector3(1.5, POV_EYE_Y, 4.2),
+        new THREE.Vector3(-0.1, POV_EYE_Y, 4.9),
+        walkPts[0].clone(),
+      ];
       const trajCurve = new THREE.CatmullRomCurve3(pts, true, "catmullrom", 0.5);
       trajSamples = trajCurve.getPoints(220);
       trajLengthM = trajCurve.getLength();
@@ -1991,7 +1991,7 @@
         frustum.position.copy(p);
         const slot = nearestTourSlot(p.z);
         const look = slot
-          ? povLookTarget(p.x, p.z, slot.yaw)
+          ? povLookTarget(p.x, p.z, slot.yaw, slot.pitch)
           : new THREE.Vector3(TOUR_ANCHOR.x, POV_EYE_Y, p.z);
         frustum.lookAt(look);
         // reveal trajectory progressively
