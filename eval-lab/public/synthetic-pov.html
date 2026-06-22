@@ -624,7 +624,7 @@
               <button type="button" class="wl-cta ghost" id="splatCalExport" hidden>Export tour</button>
               <span class="splat-cal-hint" id="splatCalHint" hidden>
                 Origin: drag/right-drag pan · ↑↓←→ nudge · +/- height · Set origin<br>
-                Portals: From zone · To zone · ↑↓←→ move dot · Set portal · Export tour when done
+                Portals: From zone · To zone · ↑↓←→ move dot · Set portal (or Export saves dot) · Export tour when done
               </span>
             </div>
             <a class="wl-open" id="splatOpen" href="#" target="_blank" rel="noopener" hidden>open in Marble ↗</a>
@@ -1042,7 +1042,7 @@
           if (oData.pitch != null) capture.pitch = Number(oData.pitch);
         }
         const portals = pData || zone.portals || {};
-        const portalOffsets = {};
+        const portalOffsets = { ...(zone.portalOffsets || {}) };
         if (capture.origin && capture.origin.length === 3) {
           for (const [k, pos] of Object.entries(portals)) {
             if (Array.isArray(pos) && pos.length === 3) {
@@ -1102,6 +1102,9 @@
     }
 
     function exportTourCalibration() {
+      if (window.SplatViewer?.isCalibrating?.() && window.SplatViewer?.getCalibrateKind?.() === "portal") {
+        window.SplatViewer?.savePortal?.();
+      }
       mergeStoredPortalsIntoTour();
       applyPortalOffsetsFromTour();
       const payload = SPLAT_TOUR.map((z) => ({
@@ -2820,6 +2823,7 @@
       toggleCalibrate,
       setCalibrateKind,
       getCalibrateKind,
+      isCalibrating: () => calibrateMode,
       setPortalSource,
       setPortalTarget,
       saveOrigin,
