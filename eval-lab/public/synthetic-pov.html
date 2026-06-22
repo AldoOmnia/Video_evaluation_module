@@ -1601,7 +1601,8 @@
       return p != null ? p : DEFAULT_POV_PITCH;
     }
 
-    // Project each splat zone from the POV aisle along its calibrated look vector.
+    // Place station overlay at the POV camera positions (west aisle extremity),
+    // oriented to face along each zone's calibrated look vector toward the work.
     function solveTourLayout(tour) {
       const slots = new Array(tour.length);
       for (const stop of WORLD_POV_WALK) {
@@ -1610,22 +1611,23 @@
         const yaw = zoneCaptureYaw(zone);
         const pitch = zoneCapturePitch(zone);
         const povZ = stop.aisleZ;
-        const cp = Math.cos(pitch);
-        let x = POV_AISLE_X + Math.sin(yaw) * POV_WORK_DIST * cp;
-        let z = povZ + (-Math.cos(yaw)) * POV_WORK_DIST * cp;
-        if (zone.tier !== "core") {
-          x = THREE.MathUtils.clamp(x, TOUR_ANCHOR.x - 0.9, TOUR_ANCHOR.x + 0.9);
-          z = THREE.MathUtils.clamp(z, -5.2, 4.8);
-        }
-        const face = Math.atan2(POV_AISLE_X - x, povZ - z);
-        slots[stop.zoneIdx] = { x, z, yaw, pitch, face, povZ, label: zone.label };
+        const face = Math.atan2(Math.sin(yaw), -Math.cos(yaw));
+        slots[stop.zoneIdx] = {
+          x: POV_AISLE_X,
+          z: povZ,
+          yaw,
+          pitch,
+          face,
+          povZ,
+          label: zone.label,
+        };
       }
       return slots.map((s, i) => s || {
-        x: TOUR_ANCHOR.x,
+        x: POV_AISLE_X,
         z: 0,
         yaw: DEFAULT_POV_YAW,
         pitch: DEFAULT_POV_PITCH,
-        face: -Math.PI / 2,
+        face: Math.atan2(Math.sin(DEFAULT_POV_YAW), -Math.cos(DEFAULT_POV_YAW)),
         povZ: 0,
         label: tour[i]?.label || `Zone ${i}`,
       });
@@ -1855,7 +1857,10 @@
 
       WORLD_POV_WALK.forEach((stop) => {
         const slot = tourLayout[stop.zoneIdx];
-        corridor(POV_AISLE_X, stop.aisleZ, slot.x, slot.z, 0.22, 12);
+        const cp = Math.cos(slot.pitch ?? 0);
+        const tx = slot.x + Math.sin(slot.yaw) * POV_WORK_DIST * cp;
+        const tz = slot.z + (-Math.cos(slot.yaw)) * POV_WORK_DIST * cp;
+        corridor(slot.x, slot.z, tx, tz, 0.20, 16);
       });
       for (let w = 0; w < WORLD_POV_WALK.length - 1; w++) {
         corridor(
