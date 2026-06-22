@@ -1571,16 +1571,46 @@
       }
     }
 
-    // Hand-modeled fallback that echoes the Pinion Guide Station: a long central
-    // assembly/fixture line, flanking CNC machines, overhead gantry crane + hoist,
-    // ceiling light grid, drums, and the translucent curtain walls.
+    let tourLayout = [];
+
+    function solveTourLayout(tour) {
+      const n = tour.length;
+      const pos = Array(n).fill(null);
+      pos[0] = new THREE.Vector3(0, 0, 0);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (let zi = 0; zi < n; zi++) {
+          if (!pos[zi]) continue;
+          const offs = tour[zi].portalOffsets || {};
+          for (const [key, off] of Object.entries(offs)) {
+            const zj = parseInt(key, 10);
+            if (pos[zj] || !Array.isArray(off) || off.length !== 3) continue;
+            pos[zj] = pos[zi].clone().add(new THREE.Vector3(off[0], off[1], off[2]));
+            changed = true;
+          }
+        }
+      }
+      for (let zi = 0; zi < n; zi++) {
+        if (!pos[zi]) pos[zi] = new THREE.Vector3(rand(-1, 1), 0, rand(-1, 1));
+      }
+      let cx = 0, cz = 0;
+      for (const p of pos) { cx += p.x; cz += p.z; }
+      cx /= n; cz /= n;
+      const LAYOUT_SCALE = 3.0;
+      return pos.map((p) => new THREE.Vector3((p.x - cx) * LAYOUT_SCALE, 0, (p.z - cz) * LAYOUT_SCALE));
+    }
+
+    // Tour-aware reconstruction: seven zone footprints derived from calibrated
+    // portal graph (same layout as the Marble splat tour), with defined floor
+    // pads, cell boundaries, equipment volumes, and connecting aisles.
     function buildProceduralCloud() {
       const positions = new Float32Array(PT_COUNT * 3);
       const colors = new Float32Array(PT_COUNT * 3);
       const cLow = new THREE.Color(0x00e5a0);
       const cMid = new THREE.Color(0x38bdf8);
       const cHigh = new THREE.Color(0xeaf6f1);
-      const D = 2.8;                          // density multiplier (more dots on surfaces)
+      const D = 2.8;
       const nn = (n) => Math.round(n * D);
       let i = 0;
       function put(x, y, z) {
@@ -1592,7 +1622,6 @@
         colors[i * 3] = c.r * jit; colors[i * 3 + 1] = c.g * jit; colors[i * 3 + 2] = c.b * jit;
         i++;
       }
-      // points on the visible faces of a box (machines, benches)
       function box(cx, cy, cz, sx, sy, sz, n) {
         const hx = sx / 2, hz = sz / 2;
         for (let k = 0; k < n; k++) {
@@ -1611,44 +1640,105 @@
       const column = (x, z, y0, y1, n) => { for (let k = 0; k < n; k++) { const t = k / n; put(x + rand(-0.05, 0.05), y0 + (y1 - y0) * t, z + rand(-0.05, 0.05)); } };
       const cyl = (cx, cz, r, y0, y1, n) => { for (let k = 0; k < n; k++) { const a = rand(0, Math.PI * 2); put(cx + Math.cos(a) * r, rand(y0, y1), cz + Math.sin(a) * r); } };
       const disc = (cx, cy, cz, r, n) => { for (let k = 0; k < n; k++) { const a = rand(0, Math.PI * 2), rr = Math.sqrt(Math.random()) * r; put(cx + Math.cos(a) * rr, cy + rand(-0.02, 0.02), cz + Math.sin(a) * rr); } };
+      const corridor = (x0, z0, x1, z1, width, n) => {
+        const steps = nn(n);
+        for (let k = 0; k <= steps; k++) {
+          const t = k / steps;
+          disc(x0 + (x1 - x0) * t, 0.018, z0 + (z1 - z0) * t, width, nn(10));
+        }
+      };
+      const wallLine = (x0, z0, x1, z1, n) => {
+        for (let k = 0; k < nn(n); k++) {
+          const t = k / nn(n);
+          put(x0 + (x1 - x0) * t + rand(-0.04, 0.04), rand(0.05, 3.15), z0 + (z1 - z0) * t + rand(-0.04, 0.04));
+        }
+      };
 
-      // floor + center walkway mat
-      for (let n = 0; n < nn(1500); n++) put(rand(-6.2, 6.2), rand(0, 0.05), rand(-6.2, 6.2));
+      tourLayout = solveTourLayout(SPLAT_TOUR);
+      let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+      for (const p of tourLayout) {
+        minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+        minZ = Math.min(minZ, p.z); maxZ = Math.max(maxZ, p.z);
+      }
+      const pad = 2.4;
+      minX -= pad; maxX += pad; minZ -= pad; maxZ += pad;
+      const midX = (minX + maxX) / 2, midZ = (minZ + maxZ) / 2;
 
-      // central assembly / fixture line (runs along z)
-      box(0.6, 0.0, 0.0, 1.2, 0.85, 9.0, nn(1700));
-      for (let f = -4; f <= 4; f += 1.6) { disc(0.6, 0.95, f, 0.32, nn(70)); cyl(0.6, f, 0.18, 0.85, 1.12, nn(60)); }
+      // station floor within the defined PG-04 envelope
+      for (let n = 0; n < nn(950); n++) put(rand(minX, maxX), rand(0, 0.04), rand(minZ, maxZ));
 
-      // left machine row (CNC / lathes) + right far machines
-      box(-4.2, 0.0, -3.0, 1.4, 1.5, 1.6, nn(520));
-      box(-4.2, 0.0, -0.3, 1.4, 1.4, 1.6, nn(500));
-      box(-4.3, 0.0,  2.6, 1.5, 1.6, 1.7, nn(540));
-      box( 4.6, 0.0, -1.5, 1.6, 1.3, 1.8, nn(460));
-      box( 4.7, 0.0,  2.2, 1.5, 1.4, 1.6, nn(420));
+      // outer boundary ring — defines the station footprint
+      const bx = (maxX - minX) / 2, bz = (maxZ - minZ) / 2;
+      for (let k = 0; k < nn(160); k++) {
+        const t = (k / nn(160)) * Math.PI * 2;
+        put(midX + Math.cos(t) * bx * 0.96, 0.06, midZ + Math.sin(t) * bz * 0.96);
+      }
 
-      // drums / barrels
-      cyl(2.3, -1.2, 0.36, 0, 0.95, nn(240));
-      cyl(-1.6, 1.8, 0.34, 0, 0.90, nn(220));
+      function stationCell(zone, cx, cz) {
+        const core = zone.tier === "core";
+        const sx = core ? 1.55 : 2.05;
+        const sz = core ? 1.35 : 1.85;
+        disc(cx, 0.03, cz, Math.max(sx, sz) * 0.58, nn(core ? 210 : 150));
+        for (let k = 0; k < nn(core ? 120 : 85); k++) {
+          const t = (k / nn(core ? 120 : 85)) * Math.PI * 2;
+          put(cx + Math.cos(t) * sx * 0.54, 0.05, cz + Math.sin(t) * sz * 0.48);
+        }
+        box(cx, 0, cz, sx * 0.74, core ? 0.92 : 0.68, sz * 0.58, nn(core ? 560 : 360));
+        box(cx - sx * 0.04, 0, cz - sz * 0.30, sx * 0.82, core ? 1.52 : 1.02, 0.26, nn(core ? 300 : 175));
+        if (core) {
+          for (let f = -1; f <= 1; f++) {
+            cyl(cx + f * sx * 0.20, cz, 0.12, 0.70, 1.02, nn(58));
+            disc(cx + f * sx * 0.20, 1.02, cz, 0.20, nn(48));
+          }
+          box(cx + sx * 0.36, 0, cz + sz * 0.06, 0.38, 0.76, 0.36, nn(125));
+          column(cx, cz, 1.02, 2.55, nn(48));
+          disc(cx, 2.58, cz, 0.16, nn(32));
+        } else {
+          cyl(cx + sx * 0.22, cz - sz * 0.08, 0.30, 0, 0.82, nn(100));
+          box(cx - sx * 0.26, 0, cz + sz * 0.10, 0.50, 1.05, 0.42, nn(110));
+          beamX(cx - sx * 0.35, cx + sx * 0.35, 2.15, cz, nn(55));
+        }
+      }
 
-      // overhead gantry beams + support columns + hanging hoist chain
-      beamX(-5.5, 5.5, 3.25, -1.6, nn(380));
-      beamX(-5.5, 5.5, 3.25,  2.2, nn(380));
-      beamZ(-5.0, 5.0, 3.40, -0.2, nn(320));
-      column(-5.2, -1.6, 0, 3.25, nn(120)); column(5.2, -1.6, 0, 3.25, nn(120));
-      column(-5.2,  2.2, 0, 3.25, nn(120)); column(5.2,  2.2, 0, 3.25, nn(120));
-      column(0.1, 0.0, 1.5, 3.30, nn(80));
+      SPLAT_TOUR.forEach((zone, zi) => {
+        const p = tourLayout[zi];
+        stationCell(zone, p.x, p.z);
+      });
 
-      // ceiling light grid
-      for (let gx = -5; gx <= 5; gx += 2.0)
-        for (let gz = -5; gz <= 5; gz += 2.2) disc(gx, 3.75, gz, 0.45, nn(26));
+      // aisles along calibrated portal links
+      const linked = new Set();
+      SPLAT_TOUR.forEach((zone, zi) => {
+        const a = tourLayout[zi];
+        for (const key of Object.keys(zone.portalOffsets || {})) {
+          const zj = parseInt(key, 10);
+          const edge = zi < zj ? `${zi}-${zj}` : `${zj}-${zi}`;
+          if (linked.has(edge)) continue;
+          linked.add(edge);
+          const b = tourLayout[zj];
+          if (b) corridor(a.x, a.z, b.x, b.z, 0.42, 38);
+        }
+      });
 
-      // perimeter curtain walls (translucent)
-      for (let n = 0; n < nn(700); n++) put(rand(-6.2, 6.2), rand(0, 3.4), -6.3 + rand(-0.1, 0.1));
-      for (let n = 0; n < nn(520); n++) put(6.3 + rand(-0.1, 0.1), rand(0, 3.4), rand(-6.2, 6.2));
-      for (let n = 0; n < nn(420); n++) put(-6.3 + rand(-0.1, 0.1), rand(0, 3.4), rand(-2, 6.2));
+      // shared overhead structure spanning the station envelope
+      beamX(minX + 0.6, maxX - 0.6, 3.22, midZ - bz * 0.35, nn(320));
+      beamX(minX + 0.6, maxX - 0.6, 3.22, midZ + bz * 0.35, nn(320));
+      beamZ(minZ + 0.6, maxZ - 0.6, 3.35, midX, nn(280));
+      column(minX + 0.3, minZ + 0.3, 0, 3.22, nn(105));
+      column(maxX - 0.3, minZ + 0.3, 0, 3.22, nn(105));
+      column(minX + 0.3, maxZ - 0.3, 0, 3.22, nn(105));
+      column(maxX - 0.3, maxZ - 0.3, 0, 3.22, nn(105));
 
-      // tiny ambient fill only if the structural points underflow PT_COUNT
-      while (i < PT_COUNT) put(rand(-6, 6), rand(0.2, 3.4), rand(-6, 6));
+      // ceiling light grid over the defined area
+      for (let gx = minX + 0.8; gx <= maxX - 0.8; gx += 1.8)
+        for (let gz = minZ + 0.8; gz <= maxZ - 0.8; gz += 2.0) disc(gx, 3.68, gz, 0.38, nn(24));
+
+      // perimeter curtain walls on the station envelope
+      wallLine(minX, minZ, maxX, minZ, 180);
+      wallLine(minX, maxZ, maxX, maxZ, 180);
+      wallLine(minX, minZ, minX, maxZ, 140);
+      wallLine(maxX, minZ, maxX, maxZ, 140);
+
+      while (i < PT_COUNT) put(rand(minX, maxX), rand(0.15, 3.2), rand(minZ, maxZ));
 
       const geo = new THREE.BufferGeometry();
       geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
@@ -1661,20 +1751,10 @@
     }
 
     function buildTrajectory() {
-      // walk the aisle alongside the assembly line, loop back the far side
-      const pts = [
-        new THREE.Vector3(-1.8, 1.5, 4.4),
-        new THREE.Vector3(-1.8, 1.5, 1.5),
-        new THREE.Vector3(-1.8, 1.5, -1.5),
-        new THREE.Vector3(-1.9, 1.5, -4.2),
-        new THREE.Vector3(-0.4, 1.5, -4.9),
-        new THREE.Vector3(1.7, 1.5, -4.0),
-        new THREE.Vector3(1.8, 1.5, -1.0),
-        new THREE.Vector3(1.8, 1.5, 2.0),
-        new THREE.Vector3(1.5, 1.5, 4.2),
-        new THREE.Vector3(-0.1, 1.5, 4.9),
-        new THREE.Vector3(-1.8, 1.5, 4.4),
-      ];
+      const layout = tourLayout.length ? tourLayout : solveTourLayout(SPLAT_TOUR);
+      const eyeY = 1.52;
+      const pts = layout.map((p) => new THREE.Vector3(p.x, eyeY, p.z));
+      if (pts.length) pts.push(pts[0].clone());
       const trajCurve = new THREE.CatmullRomCurve3(pts, true, "catmullrom", 0.5);
       trajSamples = trajCurve.getPoints(220);
       trajLengthM = trajCurve.getLength();
@@ -1703,7 +1783,17 @@
     }
 
     function buildGrid() {
-      const grid = new THREE.GridHelper(13, 26, 0x1d2120, 0x141716);
+      const layout = solveTourLayout(SPLAT_TOUR);
+      let span = 14;
+      if (layout.length) {
+        let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+        for (const p of layout) {
+          minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+          minZ = Math.min(minZ, p.z); maxZ = Math.max(maxZ, p.z);
+        }
+        span = Math.max(maxX - minX, maxZ - minZ) + 6;
+      }
+      const grid = new THREE.GridHelper(span, Math.round(span * 2), 0x1d2120, 0x141716);
       grid.position.y = 0;
       scene.add(grid);
     }
@@ -1714,8 +1804,8 @@
       scene = new THREE.Scene();
       scene.fog = new THREE.FogExp2(0x050606, 0.045);
       camera = new THREE.PerspectiveCamera(55, 1, 0.1, 200);
-      buildGrid();
       buildPointCloud();
+      buildGrid();
       buildTrajectory();
       resizeThree();
       window.addEventListener("resize", resizeThree);
@@ -1775,19 +1865,12 @@
     // ── Eye gaze canvas ───────────────────────────────────────────────
     const gz = document.getElementById("gazeCanvas");
     const gzx = gz.getContext("2d");
-    function drawGaze(t) {
+    function drawGaze() {
       const w = gz.width = gz.clientWidth * 2, h = gz.height = gz.clientHeight * 2;
       gzx.clearRect(0, 0, w, h);
       // crosshair guides
       gzx.strokeStyle = "rgba(93,104,100,0.35)"; gzx.lineWidth = 1;
       gzx.beginPath(); gzx.moveTo(w / 2, 0); gzx.lineTo(w / 2, h); gzx.moveTo(0, h / 2); gzx.lineTo(w, h / 2); gzx.stroke();
-      // gaze point (lissajous-ish wander)
-      const gx = w / 2 + Math.sin(t * 1.7) * w * 0.3 + Math.sin(t * 0.6) * w * 0.08;
-      const gy = h / 2 + Math.cos(t * 1.1) * h * 0.28;
-      const grad = gzx.createRadialGradient(gx, gy, 0, gx, gy, 26);
-      grad.addColorStop(0, "rgba(239,68,68,0.9)"); grad.addColorStop(1, "rgba(239,68,68,0)");
-      gzx.fillStyle = grad; gzx.beginPath(); gzx.arc(gx, gy, 26, 0, Math.PI * 2); gzx.fill();
-      gzx.fillStyle = "#ef4444"; gzx.beginPath(); gzx.arc(gx, gy, 3.5, 0, Math.PI * 2); gzx.fill();
     }
 
     // ── SLAM mono cameras (driven live from the POV footage) ──────────
@@ -2088,7 +2171,7 @@
         document.getElementById("camTs").textContent = fmt(playT);
 
         // gaze + live SLAM mono cameras
-        drawGaze(playT);
+        drawGaze();
         drawSlam(playT);
       } catch (e) {
         if (!warned3D) { console.warn("[synthetic-pov] frame error:", e); warned3D = true; }
