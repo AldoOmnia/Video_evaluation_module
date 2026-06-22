@@ -1579,6 +1579,9 @@
     const STATION_PT_COUNT = 4800;
     const DEFAULT_POV_YAW = Math.PI / 2;
     const DEFAULT_POV_PITCH = -0.18;
+    // Rotate station cells 90° so the Unicomm-style screen plane runs along the
+    // aisle (±Z), perpendicular to the central assembly structure (runs on Z at x≈0.6).
+    const STATION_FACE_OFFSET = Math.PI / 2;
 
     // POV walk order + aisle Z stops aligned to assembly-line fixtures and phase8 footage.
     const WORLD_POV_WALK = [
@@ -1611,7 +1614,7 @@
         const yaw = zoneCaptureYaw(zone);
         const pitch = zoneCapturePitch(zone);
         const povZ = stop.aisleZ;
-        const face = Math.atan2(Math.sin(yaw), -Math.cos(yaw));
+        const face = Math.atan2(Math.sin(yaw), -Math.cos(yaw)) + STATION_FACE_OFFSET;
         slots[stop.zoneIdx] = {
           x: POV_AISLE_X,
           z: povZ,
@@ -1627,7 +1630,7 @@
         z: 0,
         yaw: DEFAULT_POV_YAW,
         pitch: DEFAULT_POV_PITCH,
-        face: Math.atan2(Math.sin(DEFAULT_POV_YAW), -Math.cos(DEFAULT_POV_YAW)),
+        face: Math.atan2(Math.sin(DEFAULT_POV_YAW), -Math.cos(DEFAULT_POV_YAW)) + STATION_FACE_OFFSET,
         povZ: 0,
         label: tour[i]?.label || `Zone ${i}`,
       });
@@ -1643,6 +1646,12 @@
         POV_EYE_Y + sp * dist * 0.35,
         fromZ + fz * dist,
       );
+    }
+
+    // Station cell local +Z (open face) maps to world (-sin(face), cos(face)); match
+    // that bearing in the povLookTarget yaw convention so glasses aim at the dotted cell.
+    function stationFaceLookYaw(face) {
+      return Math.atan2(-Math.sin(face), -Math.cos(face));
     }
 
     // Hand-modeled fallback that echoes the Pinion Guide Station: a long central
@@ -1856,9 +1865,10 @@
 
       WORLD_POV_WALK.forEach((stop) => {
         const slot = tourLayout[stop.zoneIdx];
+        const lookYaw = stationFaceLookYaw(slot.face);
         const cp = Math.cos(slot.pitch ?? 0);
-        const tx = slot.x + Math.sin(slot.yaw) * POV_WORK_DIST * cp;
-        const tz = slot.z + (-Math.cos(slot.yaw)) * POV_WORK_DIST * cp;
+        const tx = slot.x + Math.sin(lookYaw) * POV_WORK_DIST * cp;
+        const tz = slot.z + (-Math.cos(lookYaw)) * POV_WORK_DIST * cp;
         corridor(slot.x, slot.z, tx, tz, 0.20, 16);
       });
       for (let w = 0; w < WORLD_POV_WALK.length - 1; w++) {
@@ -1995,7 +2005,7 @@
         frustum.position.copy(p);
         const slot = nearestTourSlot(p.z);
         const look = slot
-          ? povLookTarget(p.x, p.z, slot.yaw, slot.pitch)
+          ? povLookTarget(p.x, p.z, stationFaceLookYaw(slot.face), slot.pitch)
           : new THREE.Vector3(TOUR_ANCHOR.x, POV_EYE_Y, p.z);
         frustum.lookAt(look);
         // reveal trajectory progressively
