@@ -1577,8 +1577,6 @@
     const POV_EYE_Y = 1.5;
     const POV_WORK_DIST = 2.4;
     const STATION_PT_COUNT = 4800;
-    const USE_ZONE01_SPLAT_DOTS = true;
-    const ZONE01_SPLAT_POINTS = "/lab/assets/marble_zone_01_points.json";
     const DEFAULT_POV_YAW = Math.PI / 2;
     const DEFAULT_POV_PITCH = -0.18;
 
@@ -1718,58 +1716,9 @@
       scene.add(points);
     }
 
-    // Additive overlay: procedural tour cells OR (experimental) splat-derived dots.
-    async function buildZone01SplatOverlay() {
-      const slot = tourLayout[0];
-      const face = slot.face;
-      const cos = Math.cos(face), sin = Math.sin(face);
-      const data = await (await fetch(ZONE01_SPLAT_POINTS)).json();
-      const src = data.pts;
-      const srcCol = data.col;
-      const n = (src.length / 3) | 0;
-      const positions = new Float32Array(n * 3);
-      const colors = new Float32Array(n * 3);
-      const cLow = new THREE.Color(0x00e5a0);
-      const cMid = new THREE.Color(0x38bdf8);
-      const cHigh = new THREE.Color(0xeaf6f1);
-      for (let k = 0; k < n; k++) {
-        const lx = src[k * 3], ly = src[k * 3 + 1], lz = src[k * 3 + 2];
-        positions[k * 3] = slot.x + lx * cos - lz * sin;
-        positions[k * 3 + 1] = ly;
-        positions[k * 3 + 2] = slot.z + lx * sin + lz * cos;
-        if (srcCol && srcCol.length >= (k + 1) * 3) {
-          colors[k * 3] = srcCol[k * 3];
-          colors[k * 3 + 1] = srcCol[k * 3 + 1];
-          colors[k * 3 + 2] = srcCol[k * 3 + 2];
-        } else {
-          const h = Math.min(1, Math.max(0, ly / 3.6));
-          const c = h < 0.5 ? cLow.clone().lerp(cMid, h * 2) : cMid.clone().lerp(cHigh, (h - 0.5) * 2);
-          colors[k * 3] = c.r; colors[k * 3 + 1] = c.g; colors[k * 3 + 2] = c.b;
-        }
-      }
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-      geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-      const mat = new THREE.PointsMaterial({
-        size: 0.038, vertexColors: true, sizeAttenuation: true, transparent: true, opacity: 0.94,
-      });
-      stationPoints = new THREE.Points(geo, mat);
-      scene.add(stationPoints);
-      document.getElementById("ptStat").textContent = (PT_COUNT + n).toLocaleString();
-      document.getElementById("ptCount").textContent = (PT_COUNT + n).toLocaleString();
-      console.info("[world-view] zone01 splat overlay:", n, "pts from", data.source || ZONE01_SPLAT_POINTS);
-    }
-
-    async function buildTourStationOverlay() {
+    // Additive overlay: seven tour station cells at POV camera stops on the west aisle.
+    function buildTourStationOverlay() {
       tourLayout = solveTourLayout(SPLAT_TOUR);
-      if (USE_ZONE01_SPLAT_DOTS) {
-        try {
-          await buildZone01SplatOverlay();
-          return;
-        } catch (e) {
-          console.warn("[world-view] zone01 splat overlay failed, using procedural cells:", e);
-        }
-      }
       const positions = new Float32Array(STATION_PT_COUNT * 3);
       const colors = new Float32Array(STATION_PT_COUNT * 3);
       const cLow = new THREE.Color(0x00e5a0);
@@ -1996,10 +1945,9 @@
       camera = new THREE.PerspectiveCamera(55, 1, 0.1, 200);
       buildGrid();
       buildPointCloud();
-      buildTourStationOverlay().then(() => {
-        buildTrajectory();
-        resizeThree();
-      });
+      buildTourStationOverlay();
+      buildTrajectory();
+      resizeThree();
       window.addEventListener("resize", resizeThree);
       setupOrbit();
     }
