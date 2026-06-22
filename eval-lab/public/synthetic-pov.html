@@ -1102,6 +1102,7 @@
     }
 
     function exportTourCalibration() {
+      mergeStoredPortalsIntoTour();
       applyPortalOffsetsFromTour();
       const payload = SPLAT_TOUR.map((z) => ({
         label: z.label,
