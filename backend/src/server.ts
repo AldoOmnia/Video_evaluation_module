@@ -280,6 +280,20 @@ app.get("/api/dev/capture-tour", (_req, res) => {
   res.type("json").send(readFileSync(TOUR_DUMP, "utf8"));
 });
 
+// Serve large lab assets with long cache (splats, GLBs, video) — HTML stays no-store.
+const LAB_ASSETS_DIR = join(EVAL_LAB_PUBLIC, "assets");
+app.use(
+  "/lab/assets",
+  express.static(LAB_ASSETS_DIR, {
+    maxAge: process.env.NODE_ENV === "production" ? 604_800_000 : 0,
+    setHeaders(res, filePath) {
+      if (/\.(spz|glb|jpe?g|mp4|webp|ply|svg)$/i.test(filePath)) {
+        res.setHeader("Cache-Control", "public, max-age=604800, immutable");
+      }
+    },
+  }),
+);
+
 // Serve the eval lab HTML directly so a single `npm run dev` is enough
 // to open http://localhost:3001/lab/ and demo the whole thing.
 // Path resolution lives in ./paths.ts — works in dev (tsx) and prod

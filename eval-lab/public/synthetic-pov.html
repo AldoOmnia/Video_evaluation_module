@@ -48,6 +48,7 @@
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     [hidden] { display: none !important; }
+    body:not(.splat-dev) .dev-only { display: none !important; }
 
     /* Layout variables driven by the resizers (persisted to localStorage). */
     :root { --sidebar-w: 200px; --qcol: 50%; --qrow: 50%; --timeline-h: 150px; }
@@ -677,8 +678,8 @@
             <div class="splat-ph" id="splatPh">
               <div class="splat-anim"></div>
               <div class="wl-badge"><b>World Labs</b> · Gaussian splat</div>
-              <div class="wl-hint" id="splatHint">WASD moves camera · splat/operator fixed · check mesh for collision floor</div>
-              <div class="wl-actions" id="splatActions" hidden>
+              <div class="wl-hint dev-only" id="splatHint">WASD moves camera · operator world-fixed · ground on Station 1 · jump stations to verify · save pose</div>
+              <div class="wl-actions dev-only" id="splatActions" hidden>
                 <button class="wl-cta" id="genPov">From worker POV</button>
                 <button class="wl-cta ghost" id="genPrompt">From prompt</button>
               </div>
@@ -694,8 +695,8 @@
             </div>
             <div class="splat-tour-rail" id="splatTourRail" hidden></div>
             <div class="splat-hotspots" id="splatHotspots"></div>
-            <div class="splat-src" id="splatSrc" hidden></div>
-            <div class="splat-cal" id="splatCal">
+            <div class="splat-src dev-only" id="splatSrc" hidden></div>
+            <div class="splat-cal dev-only" id="splatCal">
               <button type="button" class="wl-cta ghost" id="splatCalToggle">Calibrate</button>
               <div class="mode-row" id="splatCalModes" hidden>
                 <button type="button" class="wl-cta ghost active" id="splatCalModeOrigin">Origin</button>
@@ -712,8 +713,8 @@
                 Portals: From zone · To zone · ↑↓←→ move dot · Set portal (or Export saves dot) · Export tour when done
               </span>
             </div>
-            <a class="wl-open" id="splatOpen" href="#" target="_blank" rel="noopener" hidden>open in Marble ↗</a>
-            <div class="splat-op-hud" id="splatOpHud">
+            <a class="wl-open dev-only" id="splatOpen" href="#" target="_blank" rel="noopener" hidden>open in Marble ↗</a>
+            <div class="splat-op-hud dev-only" id="splatOpHud">
               <span class="op-num" id="splatOpStep">01 / 12</span>
               <span class="op-lbl" id="splatOpLabel">Inspect Pinion Shaft</span>
               <label class="op-scale-row" title="Operator scale — auto-fit to station mesh clearance (saved locally)">
@@ -723,6 +724,7 @@
                 <span class="op-height-val" id="splatOpHeightVal">—</span>
               </label>
               <div class="op-mesh-actions">
+                <button type="button" id="splatOpGroundFloor" title="Snap feet to mesh/splat floor at Station 1 — resets lift, locks world position">ground to floor</button>
                 <button type="button" id="splatOpFitMesh" title="Optional: load mesh first, then fit operator size to clearance (enables collision clamp)">fit to mesh</button>
               </div>
               <label class="op-scale-row" title="Rotate operator to face the station (saved locally)">
@@ -740,9 +742,9 @@
                 <input type="range" id="splatOpSide" min="-1.5" max="1.5" step="0.02" value="-0.06" />
                 <span class="op-yaw-val" id="splatOpSideVal">-0.06 m</span>
               </label>
-              <label class="op-scale-row" title="Vertical offset — drag down to reach floor, up to reduce clipping (saved locally)">
+              <label class="op-scale-row" title="Vertical offset — drag down to reach floor (down to −250 cm)">
                 <span>lift</span>
-                <input type="range" id="splatOpLift" min="-1" max="0.5" step="0.005" value="0" />
+                <input type="range" id="splatOpLift" min="-2.5" max="0.5" step="0.005" value="0" />
                 <span class="op-yaw-val" id="splatOpLiftVal">0 cm</span>
               </label>
               <div class="op-section">compare / align</div>
@@ -764,7 +766,7 @@
                   <span>ground</span>
                 </label>
               </div>
-              <span class="op-ground-status" id="splatOpGroundStatus">ground: waiting…</span>
+              <span class="op-ground-status" id="splatOpGroundStatus">ground: go to Station 1 → ground to floor → save pose</span>
               <label class="op-scale-row" title="Station mesh uniform scale multiplier">
                 <span>scale</span>
                 <input type="range" id="splatOpMeshScale" min="-3" max="1" step="0.01" value="-2" />
@@ -904,6 +906,7 @@
     // ── Config (URL-overridable for live demos) ───────────────────────
     const params = new URLSearchParams(location.search);
     const IS_SPLAT_DEV = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+    window.__SPLAT_DEV = IS_SPLAT_DEV;
     const LAB_ASSETS = "/lab/assets/";
     const CONFIG = {
       // Worker POV footage (web transcode of Phase_8_Video.MP4). Override
@@ -957,7 +960,7 @@
               show: false,
             },
             operator: {
-              scale: 0.6,
+              scale: 0.91,
               fwd: -0.34,
               side: -0.06,
               lift: 0,
@@ -965,7 +968,7 @@
               anchorX: 0.113,
               anchorZ: 0.243,
               faceYaw: 0.1499,
-              targetHeightM: 1.7,
+              targetHeightM: 1.67,
               shoulderHalfWidthM: 0.22,
               clearanceMarginM: 0.06,
               naturalMaterials: true,
@@ -1147,9 +1150,8 @@
     const splatCalExport = document.getElementById("splatCalExport");
     const splatCalHint = document.getElementById("splatCalHint");
     let splatHudMeta = {};
-    if (!IS_SPLAT_DEV) {
-      document.getElementById("splatCal")?.setAttribute("hidden", "");
-      splatOpen?.setAttribute("hidden", "");
+    if (IS_SPLAT_DEV) {
+      document.body.classList.add("splat-dev");
     }
     const genPov = document.getElementById("genPov");
     const genPrompt = document.getElementById("genPrompt");
@@ -1375,7 +1377,7 @@
     }
 
     function setSplatHud(html) {
-      if (!splatSrc) return;
+      if (!IS_SPLAT_DEV || !splatSrc) return;
       splatSrc.hidden = false;
       splatSrc.innerHTML = html;
     }
@@ -1401,6 +1403,16 @@
     function showSparkCanvas() {
       const cv = document.getElementById("splatMain")?.querySelector("canvas");
       if (cv) cv.style.display = "block";
+    }
+
+    function preloadSplatAsset(url) {
+      if (!url || document.querySelector(`link[rel=preload][href="${CSS.escape(url)}"]`)) return;
+      const link = document.createElement("link");
+      link.rel = "preload";
+      link.as = "fetch";
+      link.href = url;
+      link.crossOrigin = "anonymous";
+      document.head.appendChild(link);
     }
 
     // Hand a splat URL to the Spark module (queue if it hasn't loaded yet).
@@ -1565,10 +1577,11 @@
 
       const local = splatUrlFor(zone);
       if (local) {
+        preloadSplatAsset(local);
         setStatus("Loading splat…", true);
         renderSplat(local, "spz", {
           flipY: zone.flipY !== false,
-          lod: zone.lod !== false,
+          lod: IS_SPLAT_DEV ? zone.lod !== false : true,
           zoneIndex: idx,
           capture: buildCaptureOpts(zone),
         });
@@ -1670,6 +1683,18 @@
     // ~90 MB), but it's capture-limited (8 positions → gaps). Keeping the World
     // Labs world as the demo splat for now; flip true to use the local one.
     const USE_LOCAL_SPLAT = false;
+
+    // Preload default zone splat as early as possible (parallel with module parse).
+    (function preloadBootZone() {
+      const zParam = params.get("zone");
+      let idx = 0;
+      if (zParam) {
+        const n = parseInt(zParam, 10);
+        if (n >= 1 && n <= SPLAT_TOUR.length) idx = n - 1;
+      }
+      const bootUrl = splatUrlFor(SPLAT_TOUR[idx]);
+      if (bootUrl) preloadSplatAsset(bootUrl);
+    })();
 
     // Boot: ?splat= > ?world= > 7-zone tour (default) > local .ply fallback.
     (async function initSplat() {
@@ -2599,7 +2624,9 @@
     let hotspotEls = [];
     let calibrateMode = false;
     let calibrateKind = "origin";
-    let flyNavEnabled = true;
+    const IS_SPLAT_DEV = window.__SPLAT_DEV
+      ?? (location.hostname === "localhost" || location.hostname === "127.0.0.1");
+    let flyNavEnabled = IS_SPLAT_DEV;
     const FLY_SPEED = 0.14;
     const FLY_SPEED_FAST = 0.42;
     const FLY_SCROLL = 0.10;
@@ -2623,7 +2650,7 @@
     const OPERATOR_BESIDE = 0.58;
     const OPERATOR_FWD = 0.42;
     const OPERATOR_HOME_ZONE = 0;
-    const OPERATOR_TARGET_HEIGHT_M = 1.70;
+    const OPERATOR_TARGET_HEIGHT_M = 1.67;
     const OPERATOR_SHOULDER_HALF_M = 0.22;
     const OPERATOR_MESH_CLEARANCE_M = 0.06;
     const LS_OPERATOR_SCALE = "syntheticPov.operatorScale";
@@ -2654,8 +2681,11 @@
     let operatorBakedAnchorX = null;
     let operatorBakedAnchorZ = null;
     let operatorBakedFaceYaw = null;
+    let operatorWorldPoseLocked = false;
     let cachedAutoZone0 = null;
     let repoHadBakedAnchor = false;
+    let operatorScaleFromSavedConfig = false;
+    let operatorSavedConfig = {};
     let operatorSavedMeshFloorY = null;
     let worldSceneOrigin = null;
     let stationAlignBootPromise = null;
@@ -2697,8 +2727,12 @@
       return window.__SPLAT_TOUR?.[OPERATOR_HOME_ZONE]?.capture?.stationMesh?.operator || {};
     }
 
+    function getOperatorConfigMerged() {
+      return { ...getOperatorTourConfig(), ...operatorSavedConfig };
+    }
+
     function getOperatorMeshConfig() {
-      const cfg = getOperatorTourConfig();
+      const cfg = getOperatorConfigMerged();
       return {
         targetHeightM: cfg.targetHeightM ?? OPERATOR_TARGET_HEIGHT_M,
         shoulderHalfWidthM: cfg.shoulderHalfWidthM ?? OPERATOR_SHOULDER_HALF_M,
@@ -2752,6 +2786,61 @@
       operatorBakedAnchorX = null;
       operatorBakedAnchorZ = null;
       operatorBakedFaceYaw = null;
+      operatorWorldPoseLocked = false;
+    }
+
+    function hasFrozenOperatorWorldPose() {
+      return operatorWorldPoseLocked
+        && Number.isFinite(operatorBakedAnchorX)
+        && Number.isFinite(operatorBakedAnchorZ);
+    }
+
+    function operatorWorldFeetY() {
+      if (Number.isFinite(operatorSavedMeshFloorY)) {
+        return operatorSavedMeshFloorY + operatorLiftM;
+      }
+      if (operatorGlobalAnchor) {
+        return resolveOperatorFloorY(operatorLastSplat, operatorGlobalAnchor, operatorLastUp);
+      }
+      if (operatorAnchor) {
+        return operatorAnchor.getWorldPosition(new THREE.Vector3()).y;
+      }
+      return null;
+    }
+
+    function setOperatorWorldPosition(worldPos) {
+      if (!operatorAnchor || !overlayScene) return;
+      if (operatorAnchor.parent !== overlayScene) {
+        if (operatorAnchor.parent) operatorAnchor.parent.remove(operatorAnchor);
+        overlayScene.add(operatorAnchor);
+      }
+      operatorAnchor.position.copy(worldPos);
+      operatorAnchor.updateMatrixWorld(true);
+    }
+
+    function bakeOperatorWorldAnchor() {
+      refreshOperatorAnchorTransform();
+      if (!operatorAnchor) return;
+      const wp = operatorAnchor.getWorldPosition(new THREE.Vector3());
+      operatorBakedAnchorX = wp.x;
+      operatorBakedAnchorZ = wp.z;
+      operatorSavedMeshFloorY = wp.y - operatorLiftM;
+      if (operatorGlobalAnchor) {
+        operatorGlobalAnchor.x = operatorBakedAnchorX;
+        operatorGlobalAnchor.z = operatorBakedAnchorZ;
+        operatorGlobalAnchor.sampledFloor = operatorSavedMeshFloorY;
+        operatorGlobalAnchor.floorSource = "saved";
+        operatorBakedFaceYaw = operatorGlobalAnchor.yaw;
+      }
+      operatorWorldPoseLocked = true;
+      operatorPlacementLocked = true;
+      setOperatorWorldPosition(wp);
+      console.info("[splat] operator world pose frozen", {
+        x: operatorBakedAnchorX,
+        z: operatorBakedAnchorZ,
+        meshFloorY: operatorSavedMeshFloorY,
+        lift: operatorLiftM,
+      });
     }
 
     function setOperatorPosFwd(fwd) {
@@ -2792,17 +2881,152 @@
     }
 
     function setOperatorLiftM(lift) {
-      operatorLiftM = Math.max(-1, Math.min(0.5, lift));
+      operatorLiftM = Math.max(-2.5, Math.min(0.5, lift));
       try { localStorage.setItem(LS_OPERATOR_LIFT, String(operatorLiftM)); } catch { /* ignore */ }
       refreshOperatorAnchorTransform();
       updateOperatorHudControls();
     }
 
+    function syncOperatorVisibility() {
+      if (!operatorAnchor) return;
+      operatorAnchor.visible = operatorVisible;
+    }
+
+    function updateOperatorGroundStatusLine() {
+      const el = document.getElementById("splatOpGroundStatus");
+      if (!el) return;
+      el.classList.remove("ok", "warn", "bad");
+      if (!operatorGlobalAnchor || !operatorAnchor) {
+        el.textContent = "ground: waiting for operator…";
+        return;
+      }
+      const meshFloor = Number.isFinite(operatorSavedMeshFloorY)
+        ? operatorSavedMeshFloorY
+        : (meshGroundReady()
+          ? sampleStationMeshFootprintFloor(operatorGlobalAnchor, operatorLastUp)
+          : operatorGlobalAnchor.sampledFloor);
+      const wp = operatorAnchor.getWorldPosition(new THREE.Vector3());
+      const feetY = wp.y;
+      const src = operatorGlobalAnchor.floorSource || (meshGroundReady() ? "mesh" : "splat");
+      if (meshFloor != null) {
+        const gapCm = Math.round((feetY - meshFloor) * 100);
+        let txt = `floor ${meshFloor.toFixed(3)} m (${src}) · gap ${gapCm >= 0 ? "+" : ""}${gapCm} cm`
+          + (hasFrozenOperatorWorldPose() ? " · world-fixed" : (operatorPlacementLocked ? " · locked" : ""))
+          + " · jump stations to verify";
+        if (lastZoneIndex !== OPERATOR_HOME_ZONE && camera) {
+          const horiz = Math.hypot(wp.x - camera.position.x, wp.z - camera.position.z);
+          txt += ` · ${horiz.toFixed(2)} m from camera`;
+        }
+        el.textContent = txt;
+        if (Math.abs(gapCm) <= 3) el.classList.add("ok");
+        else if (Math.abs(gapCm) <= 12) el.classList.add("warn");
+        else el.classList.add("bad");
+      } else if (lastZoneIndex !== OPERATOR_HOME_ZONE) {
+        let distTxt = "";
+        if (operatorAnchor && camera) {
+          const wp = operatorAnchor.getWorldPosition(new THREE.Vector3());
+          const horiz = Math.hypot(wp.x - camera.position.x, wp.z - camera.position.z);
+          distTxt = ` · ${horiz.toFixed(2)} m from camera`;
+        }
+        el.textContent = "world-fixed at Station 1 — viewing from "
+          + (lastTour[lastZoneIndex]?.label || "station") + distTxt;
+        el.classList.add(hasFrozenOperatorWorldPose() ? "ok" : "warn");
+      } else {
+        el.textContent = "ground: enable mesh → ground to floor → save pose";
+        el.classList.add("warn");
+      }
+    }
+
+    async function groundOperatorToFloor() {
+      if (!operatorReady) return false;
+      if (lastZoneIndex !== OPERATOR_HOME_ZONE) {
+        updateStationMeshHud("switch to Station 1 to ground operator", false);
+        return false;
+      }
+      const anchor = getGlobalOperatorAnchor(cachedAutoZone0);
+      if (!anchor) return false;
+
+      const cfg = stationMeshConfig();
+      if (cfg?.url && !meshGroundReady()) {
+        updateStationMeshHud("station mesh: loading for floor…");
+        stationMeshCfg = { ...cfg, url: normalizeLabAssetUrl(cfg.url) };
+        await ensureStationMesh(stationMeshCfg);
+        if (stationMeshLoadPromise) await stationMeshLoadPromise;
+        await new Promise((r) => setTimeout(r, 80));
+      }
+
+      let floorY = null;
+      let source = "mesh";
+      if (meshGroundReady()) {
+        floorY = sampleStationMeshFootprintFloor(anchor, operatorLastUp);
+      }
+      const splat = operatorLastSplat || current;
+      if (floorY == null && splat) {
+        floorY = sampleOperatorFootprintFloor(splat, anchor, operatorLastUp);
+        source = "splat";
+      }
+      if (floorY == null) {
+        updateOperatorGroundStatusLine();
+        updateStationMeshHud("ground failed — enable mesh checkbox first", false);
+        return false;
+      }
+
+      operatorSavedMeshFloorY = floorY;
+      anchor.sampledFloor = floorY;
+      anchor.floorSource = source;
+      operatorPlacementLocked = true;
+      bakeOperatorWorldAnchor();
+      refreshOperatorAnchorTransform();
+      updateOperatorHudControls();
+      updateOperatorGroundStatusLine();
+      saveStationMeshAlign();
+      syncOperatorPrefsToLocalStorage();
+      updateStationMeshHud(`grounded (${source}) · floor ${floorY.toFixed(3)} m · use lift to fine-tune`, true);
+      console.info("[splat] operator grounded", { floorY, source, anchor: { x: anchor.x, z: anchor.z } });
+      return true;
+    }
+
+    function syncOperatorPrefsFromConfig(op) {
+      if (!op || typeof op !== "object") return;
+      try {
+        if (Number.isFinite(op.lift)) localStorage.setItem(LS_OPERATOR_LIFT, String(op.lift));
+        if (Number.isFinite(op.fwd)) localStorage.setItem(LS_OPERATOR_FWD, String(op.fwd));
+        if (Number.isFinite(op.side)) localStorage.setItem(LS_OPERATOR_SIDE, String(op.side));
+        if (Number.isFinite(op.yaw)) localStorage.setItem(LS_OPERATOR_YAW, String(op.yaw));
+        if (Number.isFinite(op.targetHeightM)) {
+          localStorage.removeItem(LS_OPERATOR_SCALE_MANUAL);
+        } else if (Number.isFinite(op.scale)) {
+          localStorage.setItem(LS_OPERATOR_SCALE, String(op.scale));
+        }
+      } catch { /* ignore */ }
+    }
+
+    function applyOperatorTargetHeightScale(force = false) {
+      if (!operatorReady || !operatorModel) return;
+      measureOperatorBaseHeight();
+      const targetH = getOperatorMeshConfig().targetHeightM;
+      if (!Number.isFinite(targetH) || operatorBaseHeight <= 0) return;
+      const configAuthoritative = Number.isFinite(getOperatorConfigMerged().targetHeightM);
+      if (!force && !configAuthoritative && localStorage.getItem(LS_OPERATOR_SCALE_MANUAL) === "1") return;
+      operatorUserScale = Math.max(0.15, Math.min(2, targetH / operatorBaseHeight));
+      operatorScaleFromMesh = false;
+      operatorScaleFromSavedConfig = false;
+      applyOperatorModelScale();
+      updateOperatorCollisionCapsule();
+      try {
+        localStorage.setItem(LS_OPERATOR_SCALE, String(operatorUserScale));
+        if (configAuthoritative) localStorage.removeItem(LS_OPERATOR_SCALE_MANUAL);
+      } catch { /* ignore */ }
+      updateOperatorHudControls();
+    }
+
     function applyOperatorAlignObject(op, opts = {}) {
       if (!op || typeof op !== "object") return;
-      if (Number.isFinite(op.scale)) {
+      operatorSavedConfig = { ...operatorSavedConfig, ...op };
+      if (Number.isFinite(op.scale) && !Number.isFinite(op.targetHeightM)) {
         operatorUserScale = op.scale;
         operatorScaleFromMesh = false;
+        operatorScaleFromSavedConfig = true;
       }
       if (Number.isFinite(op.fwd)) operatorPosFwd = op.fwd;
       if (Number.isFinite(op.side)) operatorPosSide = op.side;
@@ -2815,6 +3039,26 @@
       if (Number.isFinite(op.anchorX)) operatorBakedAnchorX = op.anchorX;
       if (Number.isFinite(op.anchorZ)) operatorBakedAnchorZ = op.anchorZ;
       if (Number.isFinite(op.faceYaw)) operatorBakedFaceYaw = op.faceYaw;
+      if (Number.isFinite(op.anchorX) && Number.isFinite(op.anchorZ)) {
+        if (!operatorGlobalAnchor) {
+          operatorGlobalAnchor = { sampledFloor: null, floorSource: null };
+        }
+        operatorGlobalAnchor.x = op.anchorX;
+        operatorGlobalAnchor.z = op.anchorZ;
+        if (Number.isFinite(op.faceYaw)) operatorGlobalAnchor.yaw = op.faceYaw;
+        const cap = window.__SPLAT_TOUR?.[OPERATOR_HOME_ZONE]?.capture;
+        const o = cap?.origin;
+        const eyeH = cap?.eyeHeight ?? 1.85;
+        if (Array.isArray(o) && o.length >= 3 && !Number.isFinite(operatorGlobalAnchor.floorY)) {
+          operatorGlobalAnchor.floorY = o[1] - eyeH;
+        }
+        operatorWorldPoseLocked = true;
+        operatorPlacementLocked = true;
+      }
+      if (Number.isFinite(op.meshFloorY)) {
+        operatorPlacementLocked = true;
+      }
+      syncOperatorPrefsFromConfig(op);
       if (opts.applyModel && operatorReady) applyOperatorModelScale();
     }
 
@@ -2841,12 +3085,18 @@
     function applyOperatorPlacementIfReady() {
       if (!operatorReady) return;
       applyOperatorModelScale();
-      if (Number.isFinite(operatorBakedAnchorX) && Number.isFinite(operatorBakedAnchorZ)) {
+      if (hasFrozenOperatorWorldPose()) {
         getGlobalOperatorAnchor(cachedAutoZone0);
+        refreshOperatorAnchorTransform();
+      } else if (Number.isFinite(operatorBakedAnchorX) && Number.isFinite(operatorBakedAnchorZ)) {
+        getGlobalOperatorAnchor(cachedAutoZone0);
+        refreshOperatorAnchorTransform();
       } else if (cachedAutoZone0) {
         getGlobalOperatorAnchor(cachedAutoZone0);
+        refreshOperatorAnchorTransform();
+      } else {
+        refreshOperatorAnchorTransform();
       }
-      refreshOperatorAnchorTransform();
       updateOperatorHudControls();
     }
 
@@ -3077,15 +3327,18 @@
           side: operatorPosSide,
           lift: operatorLiftM,
           yaw: operatorYawOffsetDeg,
+          targetHeightM: getOperatorMeshConfig().targetHeightM,
           naturalMaterials: operatorUseNaturalMaterials,
           collisionWithMesh: operatorMeshCollisionEnabled,
           groundDebug: operatorGroundDebugShow,
-          meshFloorY: meshGroundReady() && operatorGlobalAnchor
-            ? sampleStationMeshFootprintFloor(operatorGlobalAnchor, operatorLastUp)
-            : operatorSavedMeshFloorY,
-          anchorX: operatorGlobalAnchor?.x,
-          anchorZ: operatorGlobalAnchor?.z,
-          faceYaw: operatorGlobalAnchor?.yaw,
+          meshFloorY: Number.isFinite(operatorSavedMeshFloorY)
+            ? operatorSavedMeshFloorY
+            : (meshGroundReady() && operatorGlobalAnchor
+              ? sampleStationMeshFootprintFloor(operatorGlobalAnchor, operatorLastUp)
+              : operatorGlobalAnchor?.sampledFloor),
+          anchorX: Number.isFinite(operatorBakedAnchorX) ? operatorBakedAnchorX : operatorGlobalAnchor?.x,
+          anchorZ: Number.isFinite(operatorBakedAnchorZ) ? operatorBakedAnchorZ : operatorGlobalAnchor?.z,
+          faceYaw: Number.isFinite(operatorBakedFaceYaw) ? operatorBakedFaceYaw : operatorGlobalAnchor?.yaw,
         },
         savedAt: new Date().toISOString(),
       };
@@ -3211,6 +3464,7 @@
     }
 
     function saveMeshAlignPose() {
+      bakeOperatorWorldAnchor();
       saveStationMeshAlign();
       syncOperatorPrefsToLocalStorage();
       const payload = meshAlignPayload();
@@ -3243,30 +3497,35 @@
     function refreshOperatorSurfaceBinding() {
       if (!operatorGlobalAnchor || !operatorAnchor) return;
       const anchor = operatorGlobalAnchor;
-      const up = operatorLastUp;
-      const splat = operatorLastSplat || current;
-      const preferMesh = stationMeshConfigured();
 
-      if (meshGroundReady()) {
-        const meshFloor = sampleStationMeshFootprintFloor(anchor, up);
-        if (meshFloor != null) {
-          anchor.sampledFloor = meshFloor;
-          anchor.floorSource = "mesh";
-          operatorSavedMeshFloorY = meshFloor;
+      if (operatorPlacementLocked) {
+        if (Number.isFinite(operatorSavedMeshFloorY)) {
+          anchor.sampledFloor = operatorSavedMeshFloorY;
+          anchor.floorSource = "saved";
         }
-      } else if (!preferMesh && splat) {
-        const sampled = sampleOperatorFootprintFloor(splat, anchor, up);
-        if (sampled != null) {
-          anchor.sampledFloor = sampled;
-          anchor.floorSource = "splat";
+      } else if (lastZoneIndex === OPERATOR_HOME_ZONE) {
+        const up = operatorLastUp;
+        const splat = operatorLastSplat || current;
+        const preferMesh = stationMeshConfigured();
+        if (meshGroundReady()) {
+          const meshFloor = sampleStationMeshFootprintFloor(anchor, up);
+          if (meshFloor != null) {
+            anchor.sampledFloor = meshFloor;
+            anchor.floorSource = "mesh";
+            operatorSavedMeshFloorY = meshFloor;
+          }
+        } else if (!preferMesh && splat) {
+          const sampled = sampleOperatorFootprintFloor(splat, anchor, up);
+          if (sampled != null) {
+            anchor.sampledFloor = sampled;
+            anchor.floorSource = "splat";
+          }
         }
       }
 
       refreshOperatorAnchorTransform();
       ensureOperatorOnScene();
-      if (lastZoneIndex === OPERATOR_HOME_ZONE) {
-        operatorAnchor.visible = operatorVisible;
-      }
+      syncOperatorVisibility();
     }
 
     function applySplatVisibility() {
@@ -3781,6 +4040,7 @@
     }
 
     function enforceOperatorMeshClearance() {
+      if (hasFrozenOperatorWorldPose()) return;
       if (!meshGroundReady() || !operatorAnchor || !operatorModel) return;
       let pen = measureOperatorMeshPenetration();
       let n = 0;
@@ -3922,9 +4182,7 @@
     function updateOperatorGroundDebug(anchor, feetY, meshFloorY) {
       ensureOperatorGroundDebug();
       if (!operatorGroundDebug) return;
-      const show = operatorGroundDebugShow
-        && operatorVisible
-        && lastZoneIndex === OPERATOR_HOME_ZONE;
+      const show = operatorGroundDebugShow && operatorVisible;
       operatorGroundDebug.visible = show;
       if (!show) return;
 
@@ -4002,6 +4260,12 @@
     }
 
     function resolveOperatorFloorY(splat, anchor, up = "y") {
+      if (operatorPlacementLocked) {
+        if (Number.isFinite(operatorSavedMeshFloorY)) {
+          return operatorSavedMeshFloorY + operatorLiftM;
+        }
+        if (anchor.sampledFloor != null) return anchor.sampledFloor + operatorLiftM;
+      }
       if (meshGroundReady()) {
         const meshFloor = sampleStationMeshFootprintFloor(anchor, up);
         if (meshFloor != null) return meshFloor + operatorLiftM;
@@ -4009,13 +4273,14 @@
       if (Number.isFinite(operatorSavedMeshFloorY)) {
         return operatorSavedMeshFloorY + operatorLiftM;
       }
-      if (!stationMeshConfigured() && splat) {
+      if (!stationMeshConfigured() && splat && lastZoneIndex === OPERATOR_HOME_ZONE) {
         const sampled = sampleOperatorFootprintFloor(splat, anchor, up);
         if (sampled != null) return sampled + operatorLiftM;
       }
       if (anchor.sampledFloor != null) return anchor.sampledFloor + operatorLiftM;
       const base = anchor.floorY;
-      const refined = (!stationMeshConfigured() && splat)
+      if (!Number.isFinite(base)) return null;
+      const refined = (!stationMeshConfigured() && splat && lastZoneIndex === OPERATOR_HOME_ZONE)
         ? refineOperatorFloorY(splat, anchor, base, up)
         : base;
       return refined + operatorLiftM;
@@ -4024,14 +4289,33 @@
     function refreshOperatorAnchorTransform() {
       if (!operatorAnchor || !operatorGlobalAnchor) return;
       const anchor = operatorGlobalAnchor;
-      const meshFloorRaw = meshGroundReady()
-        ? sampleStationMeshFootprintFloor(anchor, operatorLastUp)
-        : null;
+
+      if (hasFrozenOperatorWorldPose()) {
+        getGlobalOperatorAnchor(cachedAutoZone0);
+        anchor.x = operatorBakedAnchorX;
+        anchor.z = operatorBakedAnchorZ;
+        if (Number.isFinite(operatorBakedFaceYaw)) anchor.yaw = operatorBakedFaceYaw;
+        const floorY = resolveOperatorFloorY(operatorLastSplat, anchor, operatorLastUp);
+        if (!Number.isFinite(floorY)) return;
+        const worldPos = new THREE.Vector3(operatorBakedAnchorX, floorY, operatorBakedAnchorZ);
+        operatorAnchor.rotation.set(0, getOperatorFacingYaw(anchor), 0);
+        setOperatorWorldPosition(worldPos);
+        updateOperatorGroundDebug(anchor, floorY, operatorSavedMeshFloorY);
+        updateOperatorGroundStatusLine();
+        return;
+      }
+
+      const meshFloorRaw = Number.isFinite(operatorSavedMeshFloorY)
+        ? operatorSavedMeshFloorY
+        : (meshGroundReady()
+          ? sampleStationMeshFootprintFloor(anchor, operatorLastUp)
+          : null);
       const floorY = resolveOperatorFloorY(operatorLastSplat, anchor, operatorLastUp);
       operatorAnchor.position.set(anchor.x, floorY, anchor.z);
       operatorAnchor.rotation.set(0, getOperatorFacingYaw(anchor), 0);
       operatorAnchor.updateMatrixWorld(true);
       updateOperatorGroundDebug(anchor, floorY, meshFloorRaw);
+      updateOperatorGroundStatusLine();
     }
 
     function povForwardFromCapture(capture) {
@@ -4188,50 +4472,55 @@
 
     function applyGlobalOperatorPlacement(splat, zoneIndex, up = "y", autoZone0 = null) {
       if (!operatorAnchor) return;
-      ensureOperatorOnScene();
-      operatorLastSplat = splat || operatorLastSplat;
-      operatorLastUp = up;
+      if (zoneIndex === OPERATOR_HOME_ZONE) {
+        operatorLastSplat = splat || operatorLastSplat;
+        operatorLastUp = up;
+      }
 
-      if (zoneIndex !== OPERATOR_HOME_ZONE) {
-        operatorAnchor.visible = false;
+      if (hasFrozenOperatorWorldPose()) {
+        getGlobalOperatorAnchor(autoZone0 || cachedAutoZone0);
+        refreshOperatorAnchorTransform();
+        syncOperatorVisibility();
         return;
       }
-      operatorAnchor.visible = operatorVisible;
 
-      const anchor = getGlobalOperatorAnchor(autoZone0);
-      if (!anchor) return;
+      ensureOperatorOnScene();
+      const anchor = getGlobalOperatorAnchor(autoZone0 || cachedAutoZone0);
+      if (!anchor) {
+        syncOperatorVisibility();
+        return;
+      }
 
-      if (!operatorPlacementLocked) {
-        if (meshGroundReady()) {
+      if (zoneIndex === OPERATOR_HOME_ZONE && !operatorPlacementLocked) {
+        if (Number.isFinite(operatorSavedMeshFloorY)) {
+          anchor.sampledFloor = operatorSavedMeshFloorY;
+          anchor.floorSource = "saved";
+          operatorPlacementLocked = true;
+        } else if (meshGroundReady()) {
           const meshFloor = sampleStationMeshFootprintFloor(anchor, up);
           if (meshFloor != null) {
             anchor.sampledFloor = meshFloor;
             anchor.floorSource = "mesh";
             operatorSavedMeshFloorY = meshFloor;
+            operatorPlacementLocked = true;
           }
-        } else if (Number.isFinite(operatorSavedMeshFloorY)) {
-          anchor.sampledFloor = operatorSavedMeshFloorY;
-          anchor.floorSource = "saved";
         } else if (!stationMeshConfigured() && splat) {
           const sampled = sampleOperatorFootprintFloor(splat, anchor, up);
           if (sampled != null) {
             anchor.sampledFloor = sampled;
             anchor.floorSource = "splat";
+            operatorPlacementLocked = true;
           }
-        } else {
-          anchor.sampledFloor = anchor.floorY;
-          anchor.floorSource = "estimate";
         }
-        operatorPlacementLocked = true;
-        console.info("[splat] operator placement locked at Station 1", { ...anchor });
       }
 
-      refreshOperatorAnchorTransform();
-      ensureOperatorOnScene();
-      if (lastZoneIndex === OPERATOR_HOME_ZONE) {
-        operatorAnchor.visible = operatorVisible;
+      if (operatorPlacementLocked || zoneIndex === OPERATOR_HOME_ZONE) {
+        refreshOperatorAnchorTransform();
       }
-      console.info("[splat] operator at", operatorAnchor.position.toArray(), "floor:", anchor.floorSource || "estimate");
+      syncOperatorVisibility();
+      if (zoneIndex === OPERATOR_HOME_ZONE) {
+        console.info("[splat] operator at", operatorAnchor.position.toArray(), "floor:", anchor.floorSource || "estimate");
+      }
     }
 
     function measureOperatorBaseHeight() {
@@ -4364,9 +4653,11 @@
           operatorAnchor.add(operatorModel);
         }
         operatorReady = true;
+        applyOperatorTargetHeightScale(true);
         ensureOperatorOnScene();
         updateOperatorCollisionCapsule();
         applyOperatorPlacementIfReady();
+        syncOperatorVisibility();
         updateOperatorSkeleton();
       })().catch((e) => {
         operatorLoadPromise = null;
@@ -4948,9 +5239,32 @@
       }
     }
 
+    async function finishMountOperator(splat, zoneIndex, up, auto, alignBoot) {
+      await alignBoot;
+      if (zoneIndex === OPERATOR_HOME_ZONE) {
+        cachedAutoZone0 = auto;
+        if (!Number.isFinite(operatorBakedAnchorX) || !Number.isFinite(operatorBakedAnchorZ)) {
+          operatorPlacementLocked = false;
+        }
+      }
+      const autoZone0 = zoneIndex === OPERATOR_HOME_ZONE ? auto : cachedAutoZone0;
+      await ensureInSplatOperator();
+      applyGlobalOperatorPlacement(splat, zoneIndex, up, autoZone0);
+      refreshOperatorSurfaceBinding();
+      applyOperatorPlacementIfReady();
+      updateOperatorGroundStatusLine();
+      if (zoneIndex === OPERATOR_HOME_ZONE && stationMeshConfig()?.url) {
+        stationMeshCfg = {
+          ...stationMeshConfig(),
+          url: normalizeLabAssetUrl(stationMeshConfig().url),
+        };
+        maybeEnsureStationMesh(stationMeshCfg);
+      }
+    }
+
     async function mount(url, fileType, opts = {}) {
-      await startStationAlignBoot();
       init();
+      const alignBoot = startStationAlignBoot();
       if (current) {
         if (operatorAnchor?.parent === current) {
           ensureOperatorOnScene();
@@ -5002,15 +5316,25 @@
       try {
         await splat.initialized;
         const up = lastUp;
-        const auto = findCaptureOrigin(splat, 24, capture);
+        const hasBakedOrigin = Array.isArray(capture.origin) && capture.origin.length === 3 && !forceRecalc;
         let origin;
-        let floorV = auto.floorV;
+        let floorV;
         let savedOrigin = false;
-        let viewHints = { stationCenter: auto.stationCenter };
+        let viewHints = {};
+        let auto = null;
 
-        if (Array.isArray(capture.origin) && capture.origin.length === 3 && !forceRecalc) {
+        if (hasBakedOrigin) {
           origin = new THREE.Vector3(...capture.origin);
+          floorV = origin.y - (capture.eyeHeight ?? 1.85);
+          savedOrigin = true;
+          if (capture.yaw != null && capture.pitch != null) {
+            viewHints = { yaw: capture.yaw, pitch: capture.pitch };
+          }
+          auto = { origin: origin.clone(), floorV, stationCenter: origin.clone() };
         } else {
+          auto = findCaptureOrigin(splat, 48, capture);
+          floorV = auto.floorV;
+          viewHints = { stationCenter: auto.stationCenter };
           const saved = loadSavedOrigin(currentOriginKey);
           if (saved && !forceRecalc) {
             origin = saved.origin;
@@ -5020,44 +5344,10 @@
             }
           } else {
             origin = auto.origin;
-            viewHints = { stationCenter: auto.stationCenter };
           }
         }
 
         applyPanoramaView(origin, resolveViewOpts(capture, viewHints, up));
-
-        if (zoneIndex === OPERATOR_HOME_ZONE) {
-          operatorPlacementLocked = false;
-          cachedAutoZone0 = auto;
-        }
-        const autoZone0 = zoneIndex === OPERATOR_HOME_ZONE ? auto : null;
-        await ensureInSplatOperator();
-        applyGlobalOperatorPlacement(splat, zoneIndex, up, autoZone0);
-        refreshOperatorSurfaceBinding();
-        applyOperatorPlacementIfReady();
-        ensureOperatorAnchorBakedToRepo();
-        if (zoneIndex === OPERATOR_HOME_ZONE && stationMeshConfig()?.url) {
-          stationMeshCfg = {
-            ...stationMeshConfig(),
-            url: normalizeLabAssetUrl(stationMeshConfig().url),
-          };
-          maybeEnsureStationMesh(stationMeshCfg);
-        }
-
-        if (!Number.isFinite(origin.x + origin.y + origin.z)) {
-          splat.quaternion.set(1, 0, 0, 0);
-          const retry = findCaptureOrigin(splat, 24, capture);
-          origin = retry.origin;
-          floorV = retry.floorV;
-          savedOrigin = false;
-          applyPanoramaView(origin, resolveViewOpts(capture, { stationCenter: retry.stationCenter }, up));
-          applyGlobalOperatorPlacement(
-            splat,
-            zoneIndex,
-            up,
-            zoneIndex === OPERATOR_HOME_ZONE ? retry : null,
-          );
-        }
 
         const portals = portalPositions(origin, tour, zoneIndex, up);
         buildHotspots(portals);
@@ -5069,13 +5359,15 @@
           stationPull: capture.stationPull ?? 0,
           floorQuantile: capture.floorQuantile ?? 0.06,
         };
-        console.info("[splat] panorama origin", { ...captureUsed, floorV, savedOrigin, origin: origin.toArray() });
+        console.info("[splat] panorama origin", { ...captureUsed, floorV, savedOrigin, origin: origin.toArray(), fastPath: hasBakedOrigin });
         window.dispatchEvent(new CustomEvent("splat-load", {
           detail: {
             ok: true, url, numSplats, zoneIndex, zoneLabel,
             origin: origin.toArray(), floorV, capture: captureUsed, savedOrigin,
           },
         }));
+
+        void finishMountOperator(splat, zoneIndex, up, auto, alignBoot);
       } catch (e) {
         showError(e, url);
         window.dispatchEvent(new CustomEvent("splat-load", {
@@ -5107,12 +5399,16 @@
       savePortal,
       clearSavedOrigin,
       saveMeshAlignPose,
+      groundOperatorToFloor,
     };
     if (host) init();
 
     const splatOpScale = document.getElementById("splatOpScale");
     splatOpScale?.addEventListener("input", (e) => {
       setOperatorUserScale(parseFloat(e.target.value));
+    });
+    document.getElementById("splatOpGroundFloor")?.addEventListener("click", () => {
+      groundOperatorToFloor();
     });
     document.getElementById("splatOpFitMesh")?.addEventListener("click", async () => {
       try { localStorage.removeItem(LS_OPERATOR_SCALE_MANUAL); } catch { /* ignore */ }
