@@ -1,6 +1,15 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script>
+  (function () {
+    var h = location.hostname;
+    if (h !== "localhost" && h !== "127.0.0.1") {
+      document.documentElement.classList.add("splat-live");
+      window.__SPLAT_DEV = false;
+    }
+  })();
+  </script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Comer Industries · Synthetic POV</title>
@@ -48,6 +57,16 @@
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     [hidden] { display: none !important; }
+    html.splat-live .dev-only,
+    html.splat-live #splatCal,
+    html.splat-live #splatOpHud,
+    html.splat-live #splatOpen,
+    html.splat-live #splatSrc,
+    html.splat-live #splatHint,
+    html.splat-live #splatActions,
+    html.splat-live .splat-cal,
+    html.splat-live .splat-op-hud,
+    html.splat-live .splat-src { display: none !important; }
     body:not(.splat-dev) .dev-only { display: none !important; }
 
     /* Layout variables driven by the resizers (persisted to localStorage). */

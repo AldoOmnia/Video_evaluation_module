@@ -280,6 +280,35 @@ app.get("/api/dev/capture-tour", (_req, res) => {
   res.type("json").send(readFileSync(TOUR_DUMP, "utf8"));
 });
 
+const SPLAT_LIVE_HIDE = `<style id="splat-live-hide">
+html.splat-live .dev-only,html.splat-live #splatCal,html.splat-live #splatOpHud,
+html.splat-live #splatOpen,html.splat-live #splatSrc,html.splat-live #splatHint,
+html.splat-live #splatActions,html.splat-live .splat-cal,html.splat-live .splat-op-hud,
+html.splat-live .splat-src{display:none!important}
+</style>
+<script>document.documentElement.classList.add("splat-live");window.__SPLAT_DEV=false;</script>`;
+
+function sendSyntheticPovHtml(res: express.Response) {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.set("Pragma", "no-cache");
+  res.set("Expires", "0");
+  if (process.env.NODE_ENV === "production") {
+    let html = readFileSync(SYNTHETIC_POV_HTML, "utf8");
+    if (!html.includes("splat-live-hide")) {
+      html = html.replace("<head>", `<head>${SPLAT_LIVE_HIDE}`);
+    }
+    res.type("html").send(html);
+    return;
+  }
+  res.sendFile(SYNTHETIC_POV_HTML);
+}
+
+// Synthetic POV — serve before /lab static so production can strip dev HUD.
+app.get(
+  ["/synthetic-pov", "/synthetic-pov/", "/lab/synthetic-pov.html"],
+  (_req, res) => sendSyntheticPovHtml(res),
+);
+
 // Serve large lab assets with long cache (splats, GLBs, video) — HTML stays no-store.
 const LAB_ASSETS_DIR = join(EVAL_LAB_PUBLIC, "assets");
 app.use(
@@ -311,14 +340,6 @@ app.get(["/", "/login", "/login/"], (_req, res) => {
 app.get(["/welcome", "/welcome/"], (_req, res) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
   res.sendFile(WELCOME_HTML);
-});
-
-// Synthetic POV — Rerun-style multi-panel view: live 3D SLAM viewport,
-// worker POV video, SLAM/eye tiles, and a World Labs splat embed slot.
-// Configurable via query params (?video=, ?splat=, ?dur=).
-app.get(["/synthetic-pov", "/synthetic-pov/"], (_req, res) => {
-  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
-  res.sendFile(SYNTHETIC_POV_HTML);
 });
 
 app.get("/lab/", (_req, res) => {
