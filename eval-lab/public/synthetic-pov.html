@@ -1433,6 +1433,8 @@
       const cv = document.getElementById("splatMain")?.querySelector("canvas");
       if (cv) cv.style.display = "block";
     }
+    window.showSparkCanvas = showSparkCanvas;
+    window.hideSparkCanvas = hideSparkCanvas;
 
     function preloadSplatAsset(url) {
       if (!url) return;
@@ -1474,7 +1476,8 @@
     });
 
     window.addEventListener("splat-load-progress", (ev) => {
-      const { pct } = ev.detail || {};
+      const { pct, mountGen } = ev.detail || {};
+      if (mountGen != null && mountGen !== window.__splatMountGen) return;
       if (pct != null) {
         setStatus(`Loading splat… ${pct}%`, true);
         if (splatPh) splatPh.style.display = "";
@@ -1560,7 +1563,8 @@
     }
 
     window.addEventListener("splat-load", (ev) => {
-      const { ok, url, numSplats, zoneIndex, zoneLabel, capture, origin, error, savedOrigin } = ev.detail || {};
+      const { ok, url, numSplats, zoneIndex, zoneLabel, capture, origin, error, savedOrigin, mountGen } = ev.detail || {};
+      if (mountGen != null && mountGen !== window.__splatMountGen) return;
       if (ok) {
         splatHudMeta = { zoneLabel, url, numSplats, capture, origin, floorV: ev.detail?.floorV, savedOrigin };
         if (splatPh) splatPh.style.display = "none";
@@ -1615,7 +1619,7 @@
         setStatus("Loading splat…", true);
         renderSplat(local, "spz", {
           flipY: zone.flipY !== false,
-          lod: zone.lod !== false,
+          lod: false,
           zoneIndex: idx,
           capture: buildCaptureOpts(zone),
         });
@@ -2724,6 +2728,7 @@
     let worldSceneOrigin = null;
     let stationAlignBootPromise = null;
     let operatorLastSplat = null;
+    let mountGeneration = 0;
     let operatorLastUp = "y";
     let stationMeshRoot = null;
     let stationMeshColliders = [];
@@ -5273,8 +5278,10 @@
       }
     }
 
-    async function finishMountOperator(splat, zoneIndex, up, auto, alignBoot) {
+    async function finishMountOperator(splat, zoneIndex, up, auto, alignBoot, mountGen) {
+      if (mountGen !== mountGeneration) return;
       await alignBoot;
+      if (mountGen !== mountGeneration || current !== splat) return;
       if (zoneIndex === OPERATOR_HOME_ZONE) {
         cachedAutoZone0 = auto;
         if (!Number.isFinite(operatorBakedAnchorX) || !Number.isFinite(operatorBakedAnchorZ)) {
@@ -5297,27 +5304,27 @@
     }
 
     async function mount(url, fileType, opts = {}) {
+      const mountGen = ++mountGeneration;
+      window.__splatMountGen = mountGen;
       init();
       const alignBoot = startStationAlignBoot();
-      if (current) {
-        if (operatorAnchor?.parent === current) {
-          ensureOperatorOnScene();
-        }
-        if (stationMeshRoot?.parent === current) {
-          ensureStationMeshOnOverlay();
-        }
-        scene.remove(current); current.dispose?.(); current = null;
-      }
+      const prevSplat = current;
+
       if (hotspotLayer) hotspotLayer.innerHTML = "";
       hotspotEls = [];
 
+      window.showSparkCanvas?.();
+      const phEl = document.getElementById("splatPh");
+      if (phEl) phEl.style.display = "";
+
       const meshOpts = {
         url,
-        lod: opts.lod !== false,
+        lod: opts.lod === true,
         onProgress: (ev) => {
+          if (mountGen !== mountGeneration) return;
           if (ev.lengthComputable && ev.total > 0) {
             const pct = Math.round((ev.loaded / ev.total) * 100);
-            window.dispatchEvent(new CustomEvent("splat-load-progress", { detail: { url, pct } }));
+            window.dispatchEvent(new CustomEvent("splat-load-progress", { detail: { url, pct, mountGen } }));
           }
         },
       };
@@ -5326,10 +5333,19 @@
       let splat;
       try {
         splat = new SplatMesh(meshOpts);
-      } catch (e) { showError(e, url); return; }
+      } catch (e) {
+        if (mountGen === mountGeneration) showError(e, url);
+        return;
+      }
+      if (mountGen !== mountGeneration) {
+        scene.remove(splat);
+        splat.dispose?.();
+        return;
+      }
       if (opts.flipY !== false) splat.quaternion.set(1, 0, 0, 0);
       scene.add(splat);
       current = splat;
+      if (!IS_SPLAT_DEV) splatVisible = true;
       applySplatVisibility();
 
       const tour = opts.tour || window.__SPLAT_TOUR || [];
@@ -5349,6 +5365,20 @@
 
       try {
         await splat.initialized;
+        if (mountGen !== mountGeneration || current !== splat) {
+          scene.remove(splat);
+          splat.dispose?.();
+          return;
+        }
+
+        if (prevSplat && prevSplat !== splat) {
+          if (operatorAnchor?.parent === prevSplat) ensureOperatorOnScene();
+          if (stationMeshRoot?.parent === prevSplat) ensureStationMeshOnOverlay();
+          scene.remove(prevSplat);
+          prevSplat.dispose?.();
+        }
+
+        operatorLastSplat = splat;
         const up = lastUp;
         const hasBakedOrigin = Array.isArray(capture.origin) && capture.origin.length === 3 && !forceRecalc;
         let origin;
@@ -5396,18 +5426,19 @@
         console.info("[splat] panorama origin", { ...captureUsed, floorV, savedOrigin, origin: origin.toArray(), fastPath: hasBakedOrigin });
         window.dispatchEvent(new CustomEvent("splat-load", {
           detail: {
-            ok: true, url, numSplats, zoneIndex, zoneLabel,
+            ok: true, url, numSplats, zoneIndex, zoneLabel, mountGen,
             origin: origin.toArray(), floorV, capture: captureUsed, savedOrigin,
           },
         }));
 
-        void finishMountOperator(splat, zoneIndex, up, auto, alignBoot).catch((e) => {
+        void finishMountOperator(splat, zoneIndex, up, auto, alignBoot, mountGen).catch((e) => {
           console.warn("[splat] operator mount failed:", e);
         });
       } catch (e) {
+        if (mountGen !== mountGeneration) return;
         showError(e, url);
         window.dispatchEvent(new CustomEvent("splat-load", {
-          detail: { ok: false, url, error: e?.message || String(e) },
+          detail: { ok: false, url, error: e?.message || String(e), mountGen },
         }));
         return;
       }
