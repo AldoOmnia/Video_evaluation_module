@@ -294,7 +294,7 @@ function sendSyntheticPovHtml(res: express.Response) {
   res.set("Expires", "0");
   if (process.env.NODE_ENV === "production") {
     let html = readFileSync(SYNTHETIC_POV_HTML, "utf8");
-    if (!html.includes("splat-live-hide")) {
+    if (!html.includes("splat-live-hide") && !html.includes("splat-live")) {
       html = html.replace("<head>", `<head>${SPLAT_LIVE_HIDE}`);
     }
     res.type("html").send(html);

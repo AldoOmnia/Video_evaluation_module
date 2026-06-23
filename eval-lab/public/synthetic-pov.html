@@ -10,6 +10,16 @@
     }
   })();
   </script>
+  <script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (document.documentElement.classList.contains("splat-live")) {
+      ["splatCal", "splatOpHud", "splatOpen", "splatSrc", "splatHint", "splatActions"].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.setAttribute("hidden", "");
+      });
+    }
+  });
+  </script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Comer Industries · Synthetic POV</title>
@@ -1425,7 +1435,9 @@
     }
 
     function preloadSplatAsset(url) {
-      if (!url || document.querySelector(`link[rel=preload][href="${CSS.escape(url)}"]`)) return;
+      if (!url) return;
+      const esc = url.replace(/"/g, '\\"');
+      if (document.querySelector('link[rel=preload][href="' + esc + '"]')) return;
       const link = document.createElement("link");
       link.rel = "preload";
       link.as = "fetch";
@@ -1463,7 +1475,10 @@
 
     window.addEventListener("splat-load-progress", (ev) => {
       const { pct } = ev.detail || {};
-      if (pct != null) setStatus(`Loading splat… ${pct}%`, true);
+      if (pct != null) {
+        setStatus(`Loading splat… ${pct}%`, true);
+        if (splatPh) splatPh.style.display = "";
+      }
     });
     function refreshSplatHud(origin) {
       setSplatHud(formatSplatHud({ ...splatHudMeta, origin: origin || splatHudMeta.origin }));
@@ -1600,7 +1615,7 @@
         setStatus("Loading splat…", true);
         renderSplat(local, "spz", {
           flipY: zone.flipY !== false,
-          lod: IS_SPLAT_DEV ? zone.lod !== false : true,
+          lod: zone.lod !== false,
           zoneIndex: idx,
           capture: buildCaptureOpts(zone),
         });
@@ -5386,7 +5401,9 @@
           },
         }));
 
-        void finishMountOperator(splat, zoneIndex, up, auto, alignBoot);
+        void finishMountOperator(splat, zoneIndex, up, auto, alignBoot).catch((e) => {
+          console.warn("[splat] operator mount failed:", e);
+        });
       } catch (e) {
         showError(e, url);
         window.dispatchEvent(new CustomEvent("splat-load", {
