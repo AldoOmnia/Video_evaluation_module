@@ -74,6 +74,10 @@ interface StationOperatorPayload {
   side?: number;
   lift?: number;
   yaw?: number;
+  anchorX?: number;
+  anchorZ?: number;
+  faceYaw?: number;
+  meshFloorY?: number;
   targetHeightM?: number;
   shoulderHalfWidthM?: number;
   clearanceMarginM?: number;
@@ -112,13 +116,19 @@ function formatStationMeshAlignBlock(a: StationMeshAlignPayload): string {
 }
 
 function formatStationOperatorBlock(op: StationOperatorPayload): string {
-  return [
+  const lines = [
     "operator: {",
     `              scale: ${roundMesh(op.scale ?? 0.93, 2)},`,
     `              fwd: ${roundMesh(op.fwd ?? 0.42, 4)},`,
     `              side: ${roundMesh(op.side ?? 0.45, 4)},`,
     `              lift: ${roundMesh(op.lift ?? 0, 4)},`,
     `              yaw: ${roundMesh(op.yaw ?? 0, 2)},`,
+  ];
+  if (Number.isFinite(op.anchorX)) lines.push(`              anchorX: ${roundMesh(op.anchorX!, 4)},`);
+  if (Number.isFinite(op.anchorZ)) lines.push(`              anchorZ: ${roundMesh(op.anchorZ!, 4)},`);
+  if (Number.isFinite(op.faceYaw)) lines.push(`              faceYaw: ${roundMesh(op.faceYaw!, 4)},`);
+  if (Number.isFinite(op.meshFloorY)) lines.push(`              meshFloorY: ${roundMesh(op.meshFloorY!, 4)},`);
+  lines.push(
     `              targetHeightM: ${roundMesh(op.targetHeightM ?? 1.70, 2)},`,
     `              shoulderHalfWidthM: ${roundMesh(op.shoulderHalfWidthM ?? 0.22, 2)},`,
     `              clearanceMarginM: ${roundMesh(op.clearanceMarginM ?? 0.06, 2)},`,
@@ -126,7 +136,8 @@ function formatStationOperatorBlock(op: StationOperatorPayload): string {
     `              collisionWithMesh: ${op.collisionWithMesh === true},`,
     `              groundDebug: ${op.groundDebug === true},`,
     "            },",
-  ].join("\n");
+  );
+  return lines.join("\n");
 }
 
 function patchSyntheticPovStationMeshAlign(body: StationMeshAlignPayload): boolean {
@@ -189,11 +200,23 @@ function persistStationMeshAlign(body: StationMeshAlignPayload) {
       collisionWithMesh: op.collisionWithMesh === true,
       groundDebug: op.groundDebug === true,
     };
+    if (Number.isFinite(op.anchorX)) payload.operator.anchorX = roundMesh(op.anchorX!, 4);
+    if (Number.isFinite(op.anchorZ)) payload.operator.anchorZ = roundMesh(op.anchorZ!, 4);
+    if (Number.isFinite(op.faceYaw)) payload.operator.faceYaw = roundMesh(op.faceYaw!, 4);
+    if (Number.isFinite(op.meshFloorY)) payload.operator.meshFloorY = roundMesh(op.meshFloorY!, 4);
   }
   writeFileSync(MESH_ALIGN_DUMP, JSON.stringify(payload, null, 2));
   const patched = patchSyntheticPovStationMeshAlign(payload);
   return { ok: true, path: "station1-mesh-align.json", patchedHtml: patched, operatorSaved: !!payload.operator };
 }
+
+app.get("/station1-mesh-align.json", (_req, res) => {
+  if (!existsSync(MESH_ALIGN_DUMP)) {
+    res.status(404).json({ error: "none" });
+    return;
+  }
+  res.type("json").send(readFileSync(MESH_ALIGN_DUMP, "utf8"));
+});
 
 app.post("/api/dev/mesh-align", (req, res) => {
   if (process.env.NODE_ENV === "production") {

@@ -5,11 +5,11 @@
   "offsetY": 0.45,
   "offsetZ": -0.03,
   "rotYDeg": 0,
-  "savedAt": "2026-06-23T22:00:00.000Z",
+  "savedAt": "2026-06-23T20:49:43.938Z",
   "operator": {
-    "scale": 0.68,
-    "fwd": -0.28,
-    "side": 0.2,
+    "scale": 0.6,
+    "fwd": -0.34,
+    "side": -0.06,
     "lift": 0,
     "yaw": -180,
     "targetHeightM": 1.7,
@@ -17,6 +17,9 @@
     "clearanceMarginM": 0.06,
     "naturalMaterials": true,
     "collisionWithMesh": true,
-    "groundDebug": false
+    "groundDebug": false,
+    "anchorX": 0.113,
+    "anchorZ": 0.243,
+    "faceYaw": 0.1499
   }
 }

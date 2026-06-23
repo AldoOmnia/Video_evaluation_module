@@ -718,8 +718,8 @@
               <span class="op-lbl" id="splatOpLabel">Inspect Pinion Shaft</span>
               <label class="op-scale-row" title="Operator scale — auto-fit to station mesh clearance (saved locally)">
                 <span>scale</span>
-                <input type="range" id="splatOpScale" min="0.15" max="2" step="0.01" value="0.68" />
-                <span class="op-scale-val" id="splatOpScaleVal">0.68×</span>
+                <input type="range" id="splatOpScale" min="0.15" max="2" step="0.01" value="0.60" />
+                <span class="op-scale-val" id="splatOpScaleVal">0.60×</span>
                 <span class="op-height-val" id="splatOpHeightVal">—</span>
               </label>
               <div class="op-mesh-actions">
@@ -732,13 +732,13 @@
               </label>
               <label class="op-scale-row" title="Operator forward offset toward station">
                 <span>op fwd</span>
-                <input type="range" id="splatOpFwd" min="-1.5" max="1.5" step="0.02" value="-0.28" />
-                <span class="op-yaw-val" id="splatOpFwdVal">-0.28 m</span>
+                <input type="range" id="splatOpFwd" min="-1.5" max="1.5" step="0.02" value="-0.34" />
+                <span class="op-yaw-val" id="splatOpFwdVal">-0.34 m</span>
               </label>
               <label class="op-scale-row" title="Operator lateral offset (beside POV)">
                 <span>op side</span>
-                <input type="range" id="splatOpSide" min="-1.5" max="1.5" step="0.02" value="0.20" />
-                <span class="op-yaw-val" id="splatOpSideVal">0.20 m</span>
+                <input type="range" id="splatOpSide" min="-1.5" max="1.5" step="0.02" value="-0.06" />
+                <span class="op-yaw-val" id="splatOpSideVal">-0.06 m</span>
               </label>
               <label class="op-scale-row" title="Vertical offset — drag down to reach floor, up to reduce clipping (saved locally)">
                 <span>lift</span>
@@ -957,12 +957,15 @@
               show: false,
             },
             operator: {
-              scale: 0.68,
-              fwd: -0.28,
-              side: 0.20,
+              scale: 0.6,
+              fwd: -0.34,
+              side: -0.06,
               lift: 0,
               yaw: -180,
-              targetHeightM: 1.70,
+              anchorX: 0.113,
+              anchorZ: 0.243,
+              faceYaw: 0.1499,
+              targetHeightM: 1.7,
               shoulderHalfWidthM: 0.22,
               clearanceMarginM: 0.06,
               naturalMaterials: true,
@@ -2648,6 +2651,11 @@
     let operatorBaseHeight = 0;
     let operatorBaseHeightLocked = false;
     let operatorPlacementLocked = false;
+    let operatorBakedAnchorX = null;
+    let operatorBakedAnchorZ = null;
+    let operatorBakedFaceYaw = null;
+    let cachedAutoZone0 = null;
+    let repoHadBakedAnchor = false;
     let operatorSavedMeshFloorY = null;
     let worldSceneOrigin = null;
     let stationAlignBootPromise = null;
@@ -2740,6 +2748,12 @@
       if (sideRange && document.activeElement !== sideRange) sideRange.value = String(operatorPosSide);
     }
 
+    function invalidateOperatorBakedAnchor() {
+      operatorBakedAnchorX = null;
+      operatorBakedAnchorZ = null;
+      operatorBakedFaceYaw = null;
+    }
+
     function setOperatorPosFwd(fwd) {
       operatorPosFwd = Math.max(-1.5, Math.min(1.5, fwd));
       try { localStorage.setItem(LS_OPERATOR_FWD, String(operatorPosFwd)); } catch { /* ignore */ }
@@ -2798,6 +2812,9 @@
       if (op.collisionWithMesh != null) operatorMeshCollisionEnabled = !!op.collisionWithMesh;
       if (op.groundDebug != null) operatorGroundDebugShow = !!op.groundDebug;
       if (Number.isFinite(op.meshFloorY)) operatorSavedMeshFloorY = op.meshFloorY;
+      if (Number.isFinite(op.anchorX)) operatorBakedAnchorX = op.anchorX;
+      if (Number.isFinite(op.anchorZ)) operatorBakedAnchorZ = op.anchorZ;
+      if (Number.isFinite(op.faceYaw)) operatorBakedFaceYaw = op.faceYaw;
       if (opts.applyModel && operatorReady) applyOperatorModelScale();
     }
 
@@ -2824,7 +2841,11 @@
     function applyOperatorPlacementIfReady() {
       if (!operatorReady) return;
       applyOperatorModelScale();
-      recomputeOperatorAnchorXZ();
+      if (Number.isFinite(operatorBakedAnchorX) && Number.isFinite(operatorBakedAnchorZ)) {
+        getGlobalOperatorAnchor(cachedAutoZone0);
+      } else if (cachedAutoZone0) {
+        getGlobalOperatorAnchor(cachedAutoZone0);
+      }
       refreshOperatorAnchorTransform();
       updateOperatorHudControls();
     }
@@ -2839,7 +2860,7 @@
       if (qSplat === "0" || qSplat === "false") splatVisible = false;
     }
 
-    function mergeLocalStorageStationAlign() {
+    function mergeLocalStorageStationAlign(skipOperator = false) {
       let hadOperator = false;
       try {
         const raw = localStorage.getItem(LS_STATION_MESH);
@@ -2850,7 +2871,7 @@
             stationMeshLogScale = data.logScale;
           }
           applyMeshAlignObject(data);
-          if (data.operator && typeof data.operator === "object") {
+          if (!skipOperator && data.operator && typeof data.operator === "object") {
             applyOperatorAlignObject(data.operator);
             hadOperator = true;
           }
@@ -2895,11 +2916,10 @@
 
     async function bootstrapStationAlign() {
       applyTourStationDefaults();
-      mergeLocalStorageStationAlign();
+      mergeLocalStorageStationAlign(true);
       await loadRepoStationAlign();
       applyMeshAlignUrlOverrides();
       syncMeshScaleFromMult();
-      applyOperatorPlacementIfReady();
       updateOperatorHudControls();
     }
 
@@ -2930,11 +2950,13 @@
 
     async function loadRepoStationAlign() {
       try {
-        const res = await fetch("/station1-mesh-align.json");
+        const res = await fetch("/lab/station1-mesh-align.json");
         if (!res.ok) return;
         const data = await res.json();
         applyMeshAlignObject(data);
         applyOperatorAlignObject(data.operator);
+        const op = data.operator;
+        repoHadBakedAnchor = !!(op && Number.isFinite(op.anchorX) && Number.isFinite(op.anchorZ));
       } catch { /* ignore */ }
     }
 
@@ -3061,6 +3083,9 @@
           meshFloorY: meshGroundReady() && operatorGlobalAnchor
             ? sampleStationMeshFootprintFloor(operatorGlobalAnchor, operatorLastUp)
             : operatorSavedMeshFloorY,
+          anchorX: operatorGlobalAnchor?.x,
+          anchorZ: operatorGlobalAnchor?.z,
+          faceYaw: operatorGlobalAnchor?.yaw,
         },
         savedAt: new Date().toISOString(),
       };
@@ -3167,6 +3192,21 @@
       } catch (e) {
         console.warn("[splat] mesh align repo persist failed:", e);
         return false;
+      }
+    }
+
+    async function ensureOperatorAnchorBakedToRepo() {
+      if (!isLocalDevHost() || repoHadBakedAnchor || lastZoneIndex !== OPERATOR_HOME_ZONE) return;
+      if (!operatorGlobalAnchor) return;
+      operatorBakedAnchorX = operatorGlobalAnchor.x;
+      operatorBakedAnchorZ = operatorGlobalAnchor.z;
+      operatorBakedFaceYaw = operatorGlobalAnchor.yaw;
+      const payload = meshAlignPayload();
+      if (!Number.isFinite(payload.operator?.anchorX)) return;
+      const ok = await persistMeshAlignToRepo(payload);
+      if (ok) {
+        repoHadBakedAnchor = true;
+        console.info("[splat] auto-baked operator world anchor to repo", payload.operator);
       }
     }
 
@@ -4007,23 +4047,36 @@
       const o = cap?.origin;
       if (!Array.isArray(o) || o.length < 3) return null;
       const eyeH = cap.eyeHeight ?? 1.85;
-      let { fx, fz, yaw } = povForwardFromCapture(cap);
-      if (cap.yaw == null && autoZone0?.stationCenter) {
-        yaw = Math.atan2(autoZone0.stationCenter.x - o[0], -(autoZone0.stationCenter.z - o[2]));
-        const cp = Math.cos(cap.pitch ?? -0.15);
-        fx = Math.sin(yaw) * cp;
-        fz = -Math.cos(yaw) * cp;
-      }
-      const ox = o[0] + fx * operatorPosFwd + (-fz * operatorPosSide);
-      const oz = o[2] + fz * operatorPosFwd + (fx * operatorPosSide);
-      const sc = cap.stationCenter || autoZone0?.stationCenter;
-      let faceYaw = yaw ?? Math.atan2(fx, -fz);
-      if (sc) {
-        const sx = sc.x ?? sc[0];
-        const sz = sc.z ?? sc[2];
-        if (Number.isFinite(sx) && Number.isFinite(sz)) {
-          faceYaw = Math.atan2(sx - ox, -(sz - oz));
+      const zone0 = autoZone0 || cachedAutoZone0;
+      let ox;
+      let oz;
+      let faceYaw;
+      if (Number.isFinite(operatorBakedAnchorX) && Number.isFinite(operatorBakedAnchorZ)) {
+        ox = operatorBakedAnchorX;
+        oz = operatorBakedAnchorZ;
+        faceYaw = operatorBakedFaceYaw;
+      } else {
+        let { fx, fz, yaw } = povForwardFromCapture(cap);
+        if (cap.yaw == null && zone0?.stationCenter) {
+          yaw = Math.atan2(zone0.stationCenter.x - o[0], -(zone0.stationCenter.z - o[2]));
+          const cp = Math.cos(cap.pitch ?? -0.15);
+          fx = Math.sin(yaw) * cp;
+          fz = -Math.cos(yaw) * cp;
         }
+        ox = o[0] + fx * operatorPosFwd + (-fz * operatorPosSide);
+        oz = o[2] + fz * operatorPosFwd + (fx * operatorPosSide);
+        const sc = cap.stationCenter || zone0?.stationCenter;
+        faceYaw = yaw ?? Math.atan2(fx, -fz);
+        if (sc) {
+          const sx = sc.x ?? sc[0];
+          const sz = sc.z ?? sc[2];
+          if (Number.isFinite(sx) && Number.isFinite(sz)) {
+            faceYaw = Math.atan2(sx - ox, -(sz - oz));
+          }
+        }
+      }
+      if (!Number.isFinite(faceYaw)) {
+        faceYaw = 0;
       }
       if (!operatorGlobalAnchor) {
         operatorGlobalAnchor = {
@@ -4040,7 +4093,8 @@
     }
 
     function recomputeOperatorAnchorXZ() {
-      getGlobalOperatorAnchor(null);
+      invalidateOperatorBakedAnchor();
+      getGlobalOperatorAnchor(cachedAutoZone0);
     }
 
     function ensureOperatorOnScene() {
@@ -4115,7 +4169,7 @@
             true,
           );
           refreshOperatorSurfaceBinding();
-          applyGlobalOperatorPlacement(operatorLastSplat, lastZoneIndex, operatorLastUp, null);
+          applyGlobalOperatorPlacement(operatorLastSplat, lastZoneIndex, operatorLastUp, cachedAutoZone0);
           applyOperatorPlacementIfReady();
           if (getOperatorTourConfig().collisionWithMesh !== false) {
             operatorMeshCollisionEnabled = true;
@@ -4313,7 +4367,6 @@
         ensureOperatorOnScene();
         updateOperatorCollisionCapsule();
         applyOperatorPlacementIfReady();
-        if (current) applyGlobalOperatorPlacement(current, lastZoneIndex, lastUp, null);
         updateOperatorSkeleton();
       })().catch((e) => {
         operatorLoadPromise = null;
@@ -4973,11 +5026,16 @@
 
         applyPanoramaView(origin, resolveViewOpts(capture, viewHints, up));
 
+        if (zoneIndex === OPERATOR_HOME_ZONE) {
+          operatorPlacementLocked = false;
+          cachedAutoZone0 = auto;
+        }
         const autoZone0 = zoneIndex === OPERATOR_HOME_ZONE ? auto : null;
         await ensureInSplatOperator();
         applyGlobalOperatorPlacement(splat, zoneIndex, up, autoZone0);
         refreshOperatorSurfaceBinding();
         applyOperatorPlacementIfReady();
+        ensureOperatorAnchorBakedToRepo();
         if (zoneIndex === OPERATOR_HOME_ZONE && stationMeshConfig()?.url) {
           stationMeshCfg = {
             ...stationMeshConfig(),
