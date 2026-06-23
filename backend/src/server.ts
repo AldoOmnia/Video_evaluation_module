@@ -66,6 +66,158 @@ app.use("/query", queryRouter); // Rokid APK compatibility
 // Dev-only: browser posts calibrated splat capture from localStorage (localhost).
 const CAPTURE_DUMP = join(EVAL_LAB_PUBLIC, ".station1_capture.json");
 const TOUR_DUMP = join(EVAL_LAB_PUBLIC, ".station_tour_calibration.json");
+const MESH_ALIGN_DUMP = join(EVAL_LAB_PUBLIC, "station1-mesh-align.json");
+
+interface StationOperatorPayload {
+  scale?: number;
+  fwd?: number;
+  side?: number;
+  lift?: number;
+  yaw?: number;
+  targetHeightM?: number;
+  shoulderHalfWidthM?: number;
+  clearanceMarginM?: number;
+  naturalMaterials?: boolean;
+  collisionWithMesh?: boolean;
+  groundDebug?: boolean;
+}
+
+interface StationMeshAlignPayload {
+  show?: boolean;
+  uniformScaleMult: number;
+  offsetX: number;
+  offsetY: number;
+  offsetZ: number;
+  rotYDeg: number;
+  rotY?: number;
+  operator?: StationOperatorPayload;
+  savedAt?: string;
+}
+
+function roundMesh(n: number, digits = 4): number {
+  return Number(n.toFixed(digits));
+}
+
+function formatStationMeshAlignBlock(a: StationMeshAlignPayload): string {
+  return [
+    "align: {",
+    `              uniformScaleMult: ${roundMesh(a.uniformScaleMult, 4)},`,
+    `              offsetX: ${roundMesh(a.offsetX, 4)},`,
+    `              offsetY: ${roundMesh(a.offsetY, 4)},`,
+    `              offsetZ: ${roundMesh(a.offsetZ, 4)},`,
+    `              rotYDeg: ${roundMesh(a.rotYDeg, 2)},`,
+    `              show: ${a.show !== false},`,
+    "            },",
+  ].join("\n");
+}
+
+function formatStationOperatorBlock(op: StationOperatorPayload): string {
+  return [
+    "operator: {",
+    `              scale: ${roundMesh(op.scale ?? 0.93, 2)},`,
+    `              fwd: ${roundMesh(op.fwd ?? 0.42, 4)},`,
+    `              side: ${roundMesh(op.side ?? 0.45, 4)},`,
+    `              lift: ${roundMesh(op.lift ?? 0, 4)},`,
+    `              yaw: ${roundMesh(op.yaw ?? 0, 2)},`,
+    `              targetHeightM: ${roundMesh(op.targetHeightM ?? 1.70, 2)},`,
+    `              shoulderHalfWidthM: ${roundMesh(op.shoulderHalfWidthM ?? 0.22, 2)},`,
+    `              clearanceMarginM: ${roundMesh(op.clearanceMarginM ?? 0.06, 2)},`,
+    `              naturalMaterials: ${op.naturalMaterials !== false},`,
+    `              collisionWithMesh: ${op.collisionWithMesh === true},`,
+    `              groundDebug: ${op.groundDebug === true},`,
+    "            },",
+  ].join("\n");
+}
+
+function patchSyntheticPovStationMeshAlign(body: StationMeshAlignPayload): boolean {
+  const marker = 'url: "/lab/assets/industrial-machine-shop-mesh.glb"';
+  let html = readFileSync(SYNTHETIC_POV_HTML, "utf8");
+  const markerIdx = html.indexOf(marker);
+  if (markerIdx < 0) return false;
+  const portalIdx = html.indexOf("portalOffsets:", markerIdx);
+  if (portalIdx < 0) return false;
+  const before = html.slice(0, markerIdx);
+  let segment = html.slice(markerIdx, portalIdx);
+  const after = html.slice(portalIdx);
+
+  segment = segment.replace(/\s+operator:\s*\{[\s\S]*?\n\s+\},/g, "");
+  if (segment.includes("align:")) {
+    segment = segment.replace(
+      /\s+align:\s*\{[\s\S]*?\n\s+show:\s*[^,\n]+,\s*\n\s+\},/,
+      `\n            ${formatStationMeshAlignBlock(body)}`,
+    );
+  } else {
+    segment = segment.replace(
+      /(scale:\s*[\d.]+,)\s*$/,
+      `$1\n            ${formatStationMeshAlignBlock(body)}`,
+    );
+  }
+  if (body.operator) {
+    segment = segment.replace(
+      /\s+align:\s*\{[\s\S]*?\n\s+show:\s*[^,\n]+,\s*\n\s+\},/,
+      (match) => `${match}\n            ${formatStationOperatorBlock(body.operator!)}`,
+    );
+  }
+
+  html = before + segment + after;
+  writeFileSync(SYNTHETIC_POV_HTML, html);
+  return true;
+}
+
+function persistStationMeshAlign(body: StationMeshAlignPayload) {
+  const payload: StationMeshAlignPayload = {
+    show: body.show !== false,
+    uniformScaleMult: roundMesh(body.uniformScaleMult, 6),
+    offsetX: roundMesh(body.offsetX, 6),
+    offsetY: roundMesh(body.offsetY, 6),
+    offsetZ: roundMesh(body.offsetZ, 6),
+    rotYDeg: roundMesh(body.rotYDeg ?? (body.rotY != null ? body.rotY * 180 / Math.PI : 0), 4),
+    savedAt: body.savedAt ?? new Date().toISOString(),
+  };
+  if (body.operator) {
+    const op = body.operator;
+    payload.operator = {
+      scale: roundMesh(op.scale ?? 0.93, 4),
+      fwd: roundMesh(op.fwd ?? 0.42, 4),
+      side: roundMesh(op.side ?? 0.45, 4),
+      lift: roundMesh(op.lift ?? 0, 4),
+      yaw: roundMesh(op.yaw ?? 0, 2),
+      targetHeightM: roundMesh(op.targetHeightM ?? 1.70, 2),
+      shoulderHalfWidthM: roundMesh(op.shoulderHalfWidthM ?? 0.22, 2),
+      clearanceMarginM: roundMesh(op.clearanceMarginM ?? 0.06, 2),
+      naturalMaterials: op.naturalMaterials !== false,
+      collisionWithMesh: op.collisionWithMesh === true,
+      groundDebug: op.groundDebug === true,
+    };
+  }
+  writeFileSync(MESH_ALIGN_DUMP, JSON.stringify(payload, null, 2));
+  const patched = patchSyntheticPovStationMeshAlign(payload);
+  return { ok: true, path: "station1-mesh-align.json", patchedHtml: patched, operatorSaved: !!payload.operator };
+}
+
+app.post("/api/dev/mesh-align", (req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    res.status(404).end();
+    return;
+  }
+  const body = req.body as StationMeshAlignPayload;
+  if (!body || !Number.isFinite(body.uniformScaleMult)) {
+    res.status(400).json({ error: "invalid mesh align payload" });
+    return;
+  }
+  res.json(persistStationMeshAlign(body));
+});
+app.get("/api/dev/mesh-align", (_req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    res.status(404).end();
+    return;
+  }
+  if (!existsSync(MESH_ALIGN_DUMP)) {
+    res.status(404).json({ error: "none" });
+    return;
+  }
+  res.type("json").send(readFileSync(MESH_ALIGN_DUMP, "utf8"));
+});
 app.post("/api/dev/capture-origin", (req, res) => {
   if (process.env.NODE_ENV === "production") {
     res.status(404).end();

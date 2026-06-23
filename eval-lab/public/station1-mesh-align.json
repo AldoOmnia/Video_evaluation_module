@@ -1,0 +1,22 @@
+{
+  "show": false,
+  "uniformScaleMult": 0.588844,
+  "offsetX": 0.1,
+  "offsetY": 0.45,
+  "offsetZ": -0.03,
+  "rotYDeg": 0,
+  "savedAt": "2026-06-23T22:00:00.000Z",
+  "operator": {
+    "scale": 0.68,
+    "fwd": -0.28,
+    "side": 0.2,
+    "lift": 0,
+    "yaw": -180,
+    "targetHeightM": 1.7,
+    "shoulderHalfWidthM": 0.22,
+    "clearanceMarginM": 0.06,
+    "naturalMaterials": true,
+    "collisionWithMesh": true,
+    "groundDebug": false
+  }
+}
