@@ -282,11 +282,11 @@ app.get("/api/dev/capture-tour", (_req, res) => {
 
 const SPLAT_LIVE_HIDE = `<style id="splat-live-hide">
 html.splat-live .dev-only,html.splat-live #splatCal,html.splat-live #splatOpHud,
-html.splat-live #splatOpen,html.splat-live #splatSrc,html.splat-live #splatHint,
-html.splat-live #splatActions,html.splat-live .splat-cal,html.splat-live .splat-op-hud,
+html.splat-live #splatOpBadge,html.splat-live #splatOpen,html.splat-live #splatSrc,
+html.splat-live #splatHint,html.splat-live #splatActions,html.splat-live .splat-cal,
 html.splat-live .splat-src{display:none!important}
 </style>
-<script>document.documentElement.classList.add("splat-live");window.__SPLAT_DEV=false;</script>`;
+<script>document.documentElement.classList.add("splat-live");window.__SPLAT_DEV=false;window.__SPLAT_OPERATOR_ENABLED=false;</script>`;
 
 function sendSyntheticPovHtml(res: express.Response) {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
@@ -311,6 +311,14 @@ app.get(
 
 // Serve large lab assets with long cache (splats, GLBs, video) — HTML stays no-store.
 const LAB_ASSETS_DIR = join(EVAL_LAB_PUBLIC, "assets");
+const OPERATOR_GLB_RE = /\/operator(?:-[^/]+)?\.glb$/i;
+app.use("/lab/assets", (req, res, next) => {
+  if (process.env.NODE_ENV === "production" && OPERATOR_GLB_RE.test(req.path)) {
+    res.status(404).end();
+    return;
+  }
+  next();
+});
 app.use(
   "/lab/assets",
   express.static(LAB_ASSETS_DIR, {
