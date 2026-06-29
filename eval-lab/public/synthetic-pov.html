@@ -773,7 +773,7 @@
               <div class="op-zone-tag" id="splatOpZoneTag" title="Operator + mesh sliders save to this station">Station 1</div>
               <label class="op-scale-row" title="Operator scale — auto-fit to station mesh clearance (saved per zone)">
                 <span>scale</span>
-                <input type="range" id="splatOpScale" min="0.15" max="2" step="0.01" value="0.60" />
+                <input type="range" id="splatOpScale" min="0.01" max="2" step="0.005" value="0.60" />
                 <span class="op-scale-val" id="splatOpScaleVal">0.60×</span>
                 <span class="op-height-val" id="splatOpHeightVal">—</span>
               </label>
@@ -1014,17 +1014,16 @@
               show: false,
             },
             operator: {
-              scale: 0.5786,
+              glbUrl: "/lab/assets/worker_blender_v5.glb",
+              scale: 0.925,
               fwd: -0.34,
               side: -0.06,
               lift: 0,
               yaw: -180,
-              targetHeightM: 1.08,
-              glbUrl: null,
-              meshGrounded: false,
               anchorX: 0.1437,
               anchorZ: 0.2499,
               faceYaw: 0.1747,
+              targetHeightM: 1.65,
               shoulderHalfWidthM: 0.22,
               clearanceMarginM: 0.06,
               naturalMaterials: true,
@@ -2722,9 +2721,34 @@
     /** Spark viewer perf — keep splat navigation responsive on laptop GPUs. */
     const SPLAT_MAX_PIXEL_RATIO = 1.25;
     const OPERATOR_GLB = `${LAB_ASSETS}operator-worker.glb`;
+    /** Rigged Blender v5 — primary operator (Y-up meters, 101 bones). */
+    const OPERATOR_WORKER_BLENDER_V5 = `${LAB_ASSETS}worker_blender_v5.glb?v=4`;
+    /** Legacy static export — cm fix required; kept as fallback. */
+    const OPERATOR_BLENDER_MODEL_1 = `${LAB_ASSETS}blender_model_1.glb?v=4`;
+    /** cm → m for Blender exports that kept Omniverse/USD units (blender_model_1 only). */
+    const OPERATOR_BLENDER_CM_UNIT = 0.01;
+    /** Halve after meter conversion (~200% oversized in scene). */
+    const OPERATOR_BLENDER_MODEL_1_SIZE_MUL = 0.5;
+    /** Measured bbox heights — v1 used ×0.005 parent fix; v5 is meters-native. */
+    const OPERATOR_BLENDER_V1_BASE_M = 0.89185;
+    const OPERATOR_BLENDER_V5_BASE_M = 1.784;
+    const OPERATOR_SCALE_MIN = 0.01;
+    const OPERATOR_SCALE_MAX = 2;
+    /** Raw Omniverse GLB export — on hold; use blender_model_1.glb from Blender instead. */
+    const OPERATOR_WORKER_GLB = `${LAB_ASSETS}Worker/Worker.glb?v=3`;
+    /** Blender USD→GLB export (no runtime axis/unit fixes). See OPERATOR-OMNIVERSE.md */
+    const OPERATOR_BLENDER_GLB = `${LAB_ASSETS}operator-blender.glb`;
     /** Drop Omniverse/Reallusion export here — see assets/OPERATOR-OMNIVERSE.md */
-    const OPERATOR_OMNIVERSE_GLB = `${LAB_ASSETS}operator-omniverse.glb?v=20250625b`;
+    const OPERATOR_OMNIVERSE_GLB = `${LAB_ASSETS}operator-omniverse.glb?v=20250625e`;
     const OPERATOR_GLB_FALLBACK = "https://static.poly.pizza/3a5f3056-ffe6-42eb-bd52-122afcbd22b2.glb";
+    /** Omniverse/CC USD exports: Z-up, centimeters. Map to scene Y-up meters. */
+    const OPERATOR_OMNIVERSE_UNIT = 0.01;
+    /** User tune — model was ~2× too large after unit fix. */
+    const OPERATOR_OMNIVERSE_SIZE_MUL = 0.5;
+    /** Z-up → Y-up (+90° X); was −90° which left the rig inverted on Y. */
+    const OPERATOR_OMNIVERSE_ROT_X = Math.PI / 2;
+    /** CC/Omniverse export faces −Z after axis fix; +180° to face the station. */
+    const OPERATOR_OMNIVERSE_YAW_OFFSET = Math.PI;
     const OPERATOR_MODEL_YAW = Math.PI;
     /** Mixamo, Poly Pizza, Reallusion CC / Omniverse catalogue rigs. */
     const OP_BONES = {
@@ -2735,8 +2759,10 @@
       head: ["mixamorigHead", "mixamorig:Head", "Head", "CC_Base_Head", "head_01"],
       lArm: ["mixamorigLeftArm", "mixamorig:LeftArm", "UpperArm.L", "CC_Base_L_Upperarm", "L_Upperarm", "LeftArm", "upperarm_l"],
       lForeArm: ["mixamorigLeftForeArm", "mixamorig:LeftForeArm", "LowerArm.L", "CC_Base_L_Forearm", "L_Forearm", "LeftForeArm", "lowerarm_l"],
+      lClavicle: ["mixamorigLeftShoulder", "mixamorig:LeftShoulder", "CC_Base_L_Clavicle", "L_Clavicle", "LeftShoulder", "shoulder_l"],
       rArm: ["mixamorigRightArm", "mixamorig:RightArm", "UpperArm.R", "CC_Base_R_Upperarm", "R_Upperarm", "RightArm", "upperarm_r"],
       rForeArm: ["mixamorigRightForeArm", "mixamorig:RightForeArm", "LowerArm.R", "CC_Base_R_Forearm", "R_Forearm", "RightForeArm", "lowerarm_r"],
+      rClavicle: ["mixamorigRightShoulder", "mixamorig:RightShoulder", "CC_Base_R_Clavicle", "R_Clavicle", "RightShoulder", "shoulder_r"],
     };
 
     const host = document.getElementById("splatMain");
@@ -2767,7 +2793,8 @@
     let lastZoneIndex = 0;
     let lastUp = "y";
     let lastCapture = {};
-    let operatorAnchor, operatorModel, operatorBones = {}, boneRest = {};
+    let operatorAnchor, operatorModel, operatorOuterRoot, operatorScaleNode, operatorExportProfile, operatorPoseProfile;
+    let operatorBones = {}, boneRest = {};
     let operatorReady = false;
     let operatorLoadPromise = null;
     let operatorGlobalAnchor = null;
@@ -2831,6 +2858,7 @@
     let operatorLastUp = "y";
     let operatorLoadedGlbUrl = null;
     let operatorLoadedTriCount = 0;
+    let operatorIsOmniverse = false;
     let stationMeshRoot = null;
     let stationMeshColliders = [];
     let stationMeshReady = false;
@@ -3270,7 +3298,7 @@
     }
 
     function setOperatorUserScale(scale, opts = {}) {
-      operatorUserScale = Math.max(0.15, Math.min(2, scale));
+      operatorUserScale = Math.max(OPERATOR_SCALE_MIN, Math.min(OPERATOR_SCALE_MAX, scale));
       operatorScaleFromMesh = !!opts.fromMesh;
       if (opts.fromMesh) operatorMeshFitScale = operatorUserScale;
       if (!opts.fromMesh) {
@@ -3418,11 +3446,21 @@
     function applyOperatorTargetHeightScale(force = false) {
       if (!operatorReady || !operatorModel) return;
       measureOperatorBaseHeight();
+      const merged = getOperatorConfigMerged();
+      if (Number.isFinite(merged.scale)) {
+        operatorUserScale = Math.max(OPERATOR_SCALE_MIN, Math.min(OPERATOR_SCALE_MAX, merged.scale));
+        operatorScaleFromMesh = false;
+        operatorScaleFromSavedConfig = true;
+        applyOperatorModelScale();
+        updateOperatorCollisionCapsule();
+        updateOperatorHudControls();
+        return;
+      }
       const targetH = getOperatorMeshConfig().targetHeightM;
       if (!Number.isFinite(targetH) || operatorBaseHeight <= 0) return;
       const configAuthoritative = Number.isFinite(getOperatorConfigMerged().targetHeightM);
       if (!force && !configAuthoritative && localStorage.getItem(LS_OPERATOR_SCALE_MANUAL) === "1") return;
-      operatorUserScale = Math.max(0.15, Math.min(2, targetH / operatorBaseHeight));
+      operatorUserScale = Math.max(OPERATOR_SCALE_MIN, Math.min(OPERATOR_SCALE_MAX, targetH / operatorBaseHeight));
       operatorScaleFromMesh = false;
       operatorScaleFromSavedConfig = false;
       applyOperatorModelScale();
@@ -3437,8 +3475,12 @@
     function applyOperatorAlignObject(op, opts = {}) {
       if (!op || typeof op !== "object") return;
       if (!opts.fromZone) operatorSavedConfig = { ...operatorSavedConfig, ...op };
-      if (Number.isFinite(op.scale) && !Number.isFinite(op.targetHeightM)) {
-        operatorUserScale = op.scale;
+      if (Number.isFinite(op.scale)) {
+        let scale = op.scale;
+        if (typeof op.glbUrl === "string" && isWorkerBlenderV5Url(op.glbUrl) && scale >= 1.4) {
+          scale = convertOperatorScaleV1ToV5(scale);
+        }
+        operatorUserScale = scale;
         operatorScaleFromMesh = false;
         operatorScaleFromSavedConfig = true;
       }
@@ -3794,6 +3836,7 @@
           anchorZ: anchor?.z ?? operatorBakedAnchorZ,
           faceYaw: anchor?.yaw ?? operatorBakedFaceYaw,
           targetHeightM: getOperatorMeshConfig().targetHeightM,
+          glbUrl: operatorLoadedGlbUrl || getOperatorGlbUrl(),
           naturalMaterials: operatorUseNaturalMaterials,
           collisionWithMesh: operatorMeshCollisionEnabled,
           groundDebug: operatorGroundDebugShow,
@@ -4175,6 +4218,71 @@
       return out;
     }
 
+    function captureOperatorBoneRest() {
+      if (!operatorModel) return;
+      boneRest = {};
+      operatorModel.traverse((o) => {
+        if (!o.isBone) return;
+        boneRest[o.name] = o.quaternion.clone();
+        const short = o.name.includes("_joint_")
+          ? o.name.split("_joint_").pop()
+          : o.name.split("/").pop();
+        if (short && !boneRest[short]) boneRest[short] = o.quaternion.clone();
+      });
+    }
+
+    /** CC v5 export bind is A-pose — rotate upper arms down to hang at sides. */
+    function applyCcV5StandArmRest() {
+      rotateOperatorBone(OP_BONES.lClavicle, 0.05, 0, 0);
+      rotateOperatorBone(OP_BONES.rClavicle, 0.05, 0, 0);
+      rotateOperatorBone(OP_BONES.lArm, 0, 0, -0.78);
+      rotateOperatorBone(OP_BONES.rArm, 0, 0, 0.78);
+      rotateOperatorBone(OP_BONES.lForeArm, 0.06, 0, 0);
+      rotateOperatorBone(OP_BONES.rForeArm, 0.06, 0, 0);
+      updateOperatorSkeleton();
+    }
+
+    /** Mixamo vs CC/Blender export — arm local axes differ. */
+    function getOperatorPoseProfile(url) {
+      if (isWorkerBlenderV5Url(url)) {
+        return {
+          kind: "cc-blender-v5",
+          /** Rest pose is stand-at-sides (see applyCcV5StandArmRest); skip Mixamo arm keys. */
+          preserveArmBind: true,
+          standArmRest: true,
+          armGain: 0.35,
+        };
+      }
+      return { kind: "mixamo", preserveArmBind: false, armGain: 1 };
+    }
+
+    function applyOperatorArmPose(pose, profile) {
+      if (profile?.preserveArmBind) return;
+      const g = profile?.armGain ?? 1;
+      if (profile?.kind === "cc-blender-v5") {
+        // CC Y-up export: shoulder swing on X, abduction on Y, elbow flex on X.
+        rotateOperatorBone(
+          OP_BONES.lArm,
+          ((pose.lArmX ?? 0) + (pose.lArmFwd ?? 0)) * g,
+          (pose.lArmU ?? 0) * g,
+          0,
+        );
+        rotateOperatorBone(OP_BONES.lForeArm, (pose.lArmL ?? 0) * g, 0, 0);
+        rotateOperatorBone(
+          OP_BONES.rArm,
+          ((pose.rArmX ?? 0) + (pose.rArmFwd ?? 0)) * g,
+          (pose.rArmU ?? 0) * g,
+          0,
+        );
+        rotateOperatorBone(OP_BONES.rForeArm, (pose.rArmL ?? 0) * g, 0, 0);
+        return;
+      }
+      rotateOperatorBone(OP_BONES.lArm, (pose.lArmX ?? 0) + (pose.lArmFwd ?? 0), 0, pose.lArmU ?? 0);
+      rotateOperatorBone(OP_BONES.lForeArm, 0, 0, pose.lArmL ?? 0);
+      rotateOperatorBone(OP_BONES.rArm, (pose.rArmX ?? 0) + (pose.rArmFwd ?? 0), 0, pose.rArmU ?? 0);
+      rotateOperatorBone(OP_BONES.rForeArm, 0, 0, pose.rArmL ?? 0);
+    }
+
     function resetOperatorBones() {
       for (const [name, q] of Object.entries(boneRest)) {
         const b = operatorBones[name];
@@ -4202,10 +4310,7 @@
       rotateOperatorBone(OP_BONES.spine2, lean * 0.30, 0, 0);
       rotateOperatorBone(OP_BONES.neck, (pose.headX ?? 0) * 0.45, (pose.headY ?? 0) + w, 0);
       rotateOperatorBone(OP_BONES.head, (pose.headX ?? 0) * 0.35, 0, 0);
-      rotateOperatorBone(OP_BONES.lArm, (pose.lArmX ?? 0) + (pose.lArmFwd ?? 0), 0, pose.lArmU ?? 0);
-      rotateOperatorBone(OP_BONES.lForeArm, 0, 0, pose.lArmL ?? 0);
-      rotateOperatorBone(OP_BONES.rArm, (pose.rArmX ?? 0) + (pose.rArmFwd ?? 0), 0, pose.rArmU ?? 0);
-      rotateOperatorBone(OP_BONES.rForeArm, 0, 0, pose.rArmL ?? 0);
+      applyOperatorArmPose(pose, operatorPoseProfile);
       updateOperatorSkeleton();
     }
 
@@ -4422,7 +4527,7 @@
       const maxScaleFromAisle = (envelope.minHalfAisleM * 0.92 * targetH)
         / (cfg.shoulderHalfWidthM * baseH);
       scale = Math.min(scale, maxScaleFromAisle);
-      return Math.max(0.15, Math.min(2, scale));
+      return Math.max(OPERATOR_SCALE_MIN, Math.min(OPERATOR_SCALE_MAX, scale));
     }
 
     function updateOperatorCollisionCapsule() {
@@ -4572,7 +4677,7 @@
       setOperatorWorldPosition(new THREE.Vector3(anchor.x, floorY, anchor.z));
       operatorAnchor.updateMatrixWorld(true);
       operatorModel.updateMatrixWorld(true);
-      const bbox = new THREE.Box3().setFromObject(operatorModel);
+      const bbox = new THREE.Box3().setFromObject(getOperatorBoundsRoot());
       const adjust = floorY - bbox.min.y;
       if (Math.abs(adjust) > 0.0005) {
         operatorAnchor.position.y += adjust;
@@ -4762,17 +4867,16 @@
       if (!anchor) return;
       const floorY = resolveOperatorFloorY(operatorLastSplat, anchor, operatorLastUp);
       if (!Number.isFinite(floorY)) return;
-      operatorAnchor.rotation.set(0, getOperatorFacingYaw(anchor), 0);
-      setOperatorWorldPosition(new THREE.Vector3(anchor.x, floorY, anchor.z));
+      snapOperatorFeetToWorldFloor(floorY, anchor);
       const meshFloorRaw = meshFloorReady()
         ? sampleStationMeshFootprintFloor(anchor, operatorLastUp)
         : null;
-      updateOperatorGroundDebug(anchor, floorY, meshFloorRaw);
+      updateOperatorGroundDebug(anchor, operatorAnchor.position.y, meshFloorRaw);
       updateOperatorGroundStatusLine();
       if (IS_SPLAT_DEV) {
         console.info("[splat] operator feet", {
           zone: lastZoneIndex,
-          feetY: floorY.toFixed(4),
+          feetY: operatorAnchor.position.y.toFixed(4),
           feetBaseY: Number.isFinite(operatorFeetBaseY) ? operatorFeetBaseY.toFixed(4) : null,
           lift: operatorLiftM.toFixed(4),
           anchor: { x: anchor.x.toFixed(4), z: anchor.z.toFixed(4) },
@@ -4873,27 +4977,122 @@
       repositionForActiveZone(zoneIndex);
     }
 
+    function isOmniverseOperatorUrl(url) {
+      /** USD→usd2gltf path only; Blender exports use operator-blender.glb (no fixes). */
+      return /operator-omniverse\.glb/i.test(String(url || ""));
+    }
+
+    function isWorkerOperatorUrl(url) {
+      return /Worker\/Worker\.glb/i.test(String(url || ""));
+    }
+
+    function isBlenderModel1Url(url) {
+      return /blender_model_1\.glb/i.test(String(url || ""));
+    }
+
+    function isWorkerBlenderV5Url(url) {
+      return /worker_blender_v5\.glb/i.test(String(url || ""));
+    }
+
+    /** Same on-screen height when swapping v1 (×0.005 fix + 1.85×) → v5 (meters). */
+    function convertOperatorScaleV1ToV5(scale) {
+      if (!Number.isFinite(scale)) return scale;
+      return scale * (OPERATOR_BLENDER_V1_BASE_M / OPERATOR_BLENDER_V5_BASE_M);
+    }
+
+    /** Reallusion/Omniverse cm exports — axis + unit differ by pipeline. */
+    /** Blender v5 export: mesh verts are meters; root "Worker" node often bakes ×0.01. */
+    function resetOperatorBakedRootScale(root) {
+      if (!root) return;
+      root.scale.set(1, 1, 1);
+      root.traverse((o) => {
+        if (!o.scale) return;
+        const near = (v) => Math.abs(v - 0.01) < 0.002 || Math.abs(v - 0.001) < 0.0005;
+        if (near(o.scale.x) && near(o.scale.y) && near(o.scale.z)) o.scale.set(1, 1, 1);
+      });
+    }
+
+    function getOperatorExportProfile(url) {
+      const u = String(url || "");
+      if (isWorkerBlenderV5Url(u)) {
+        return {
+          kind: "worker-blender-v5",
+          unit: 1,
+          sizeMul: 1,
+          rotX: 0,
+          yawOffset: 0,
+          modelYaw: 0,
+          resetRootScale: true,
+        };
+      }
+      if (isBlenderModel1Url(u)) {
+        return {
+          kind: "blender-model-1",
+          unit: OPERATOR_BLENDER_CM_UNIT,
+          sizeMul: OPERATOR_BLENDER_MODEL_1_SIZE_MUL,
+          rotX: 0,
+          yawOffset: 0,
+          /** Blender export already faces the station — skip legacy π flip. */
+          modelYaw: 0,
+        };
+      }
+      if (isOmniverseOperatorUrl(u)) {
+        return {
+          kind: "omniverse-zup",
+          unit: OPERATOR_OMNIVERSE_UNIT,
+          sizeMul: OPERATOR_OMNIVERSE_SIZE_MUL,
+          rotX: OPERATOR_OMNIVERSE_ROT_X,
+          yawOffset: OPERATOR_OMNIVERSE_YAW_OFFSET,
+        };
+      }
+      if (isWorkerOperatorUrl(u)) {
+        /** Direct GLB export: already Y-up, still in centimeters. */
+        return {
+          kind: "worker-yup",
+          unit: OPERATOR_OMNIVERSE_UNIT,
+          sizeMul: 1,
+          rotX: 0,
+          yawOffset: 0,
+        };
+      }
+      return null;
+    }
+
+    function getOperatorModelYaw() {
+      if (operatorExportProfile && Number.isFinite(operatorExportProfile.modelYaw)) {
+        return operatorExportProfile.modelYaw;
+      }
+      const yawOff = operatorExportProfile?.yawOffset ?? 0;
+      return OPERATOR_MODEL_YAW + yawOff;
+    }
+
+    function getOperatorBoundsRoot() {
+      return operatorOuterRoot || operatorModel;
+    }
+
     function measureOperatorBaseHeight() {
-      if (!operatorModel || operatorBaseHeightLocked) return;
-      operatorModel.position.set(0, 0, 0);
-      operatorModel.rotation.set(0, OPERATOR_MODEL_YAW, 0);
-      operatorModel.scale.set(1, 1, 1);
-      operatorModel.updateMatrixWorld(true);
-      const bbox0 = new THREE.Box3().setFromObject(operatorModel);
+      if (!operatorScaleNode || operatorBaseHeightLocked) return;
+      operatorScaleNode.position.set(0, 0, 0);
+      operatorScaleNode.scale.set(1, 1, 1);
+      operatorModel.rotation.set(0, getOperatorModelYaw(), 0);
+      updateOperatorSkeleton();
+      getOperatorBoundsRoot().updateMatrixWorld(true);
+      const bbox0 = new THREE.Box3().setFromObject(getOperatorBoundsRoot());
       operatorBaseHeight = Math.max(0.01, bbox0.max.y - bbox0.min.y);
       operatorBaseHeightLocked = true;
     }
 
     function applyOperatorModelScale() {
-      if (!operatorModel) return;
+      if (!operatorScaleNode) return;
       measureOperatorBaseHeight();
-      operatorModel.position.set(0, 0, 0);
-      operatorModel.rotation.set(0, OPERATOR_MODEL_YAW, 0);
-      operatorModel.scale.setScalar(operatorUserScale);
-      operatorModel.updateMatrixWorld(true);
-      const bbox = new THREE.Box3().setFromObject(operatorModel);
-      if (Number.isFinite(bbox.min.y)) operatorModel.position.y -= bbox.min.y;
-      operatorModel.updateMatrixWorld(true);
+      operatorScaleNode.position.set(0, 0, 0);
+      operatorModel.rotation.set(0, getOperatorModelYaw(), 0);
+      operatorScaleNode.scale.setScalar(operatorUserScale);
+      updateOperatorSkeleton();
+      getOperatorBoundsRoot().updateMatrixWorld(true);
+      const bbox = new THREE.Box3().setFromObject(getOperatorBoundsRoot());
+      if (Number.isFinite(bbox.min.y)) operatorScaleNode.position.y -= bbox.min.y;
+      getOperatorBoundsRoot().updateMatrixWorld(true);
       updateOperatorSkeleton();
     }
 
@@ -4906,9 +5105,10 @@
 
     function bindOperatorIdleRest(gltf) {
       const clips = gltf?.animations || [];
+      const isSkelClip = (c) => c?.tracks?.some((t) => /\.(quaternion|rotation|position|scale)$/.test(t.name));
       const idle = clips.find((c) => /Idle/i.test(c.name) && !/Gun|Sword|Shoot/i.test(c.name))
         || clips.find((c) => /Idle/i.test(c.name))
-        || clips[0];
+        || clips.find(isSkelClip);
       if (!idle || !operatorModel) return;
       const mixer = new THREE.AnimationMixer(operatorModel);
       const action = mixer.clipAction(idle);
@@ -4919,6 +5119,7 @@
       operatorModel.traverse((o) => {
         if (o.isBone) boneRest[o.name] = o.quaternion.clone();
       });
+      captureOperatorBoneRest();
     }
 
     function getOperatorGlbUrl() {
@@ -4933,8 +5134,11 @@
       if (!OPERATOR_SPLAT_ENABLED) return [];
       const qs = new URLSearchParams(location.search).get("opGlb");
       if (qs) return [normalizeLabAssetUrl(qs)];
+      // v5 first; v1 kept as fallback (different unit fix + scale).
       return [
-        OPERATOR_OMNIVERSE_GLB,
+        OPERATOR_WORKER_BLENDER_V5,
+        OPERATOR_BLENDER_MODEL_1,
+        OPERATOR_BLENDER_GLB,
         OPERATOR_GLB,
         OPERATOR_GLB_FALLBACK,
       ].map((u) => normalizeLabAssetUrl(u));
@@ -4950,12 +5154,25 @@
       return Math.round(n);
     }
 
+    function isOperatorMaterialTransparent(mat) {
+      if (!mat) return false;
+      return !!(mat.transparent || mat.opacity < 0.999 || mat.alphaTest > 0);
+    }
+
     function tuneOperatorMaterial(mat) {
       if (!mat) return mat;
-      mat.depthTest = false;
-      mat.depthWrite = false;
-      mat.side = THREE.FrontSide;
-      mat.transparent = !!mat.transparent && mat.opacity < 1;
+      if (operatorUseNaturalMaterials) {
+        // Proper depth + double-sided for multi-part CC/Blender exports (head/body/clothing).
+        const transparent = isOperatorMaterialTransparent(mat);
+        mat.depthTest = true;
+        mat.depthWrite = !transparent;
+        mat.transparent = transparent;
+        // Keep GLTF doubleSided — do not force FrontSide (was culling half the head).
+      } else {
+        mat.depthTest = false;
+        mat.depthWrite = false;
+        mat.side = THREE.FrontSide;
+      }
       if (mat.metalness !== undefined) mat.metalness = Math.min(mat.metalness, 0.12);
       if (mat.roughness !== undefined) mat.roughness = Math.max(mat.roughness, 0.52);
       const hasMap = !!(mat.map || mat.normalMap || mat.roughnessMap || mat.metalnessMap);
@@ -4971,15 +5188,18 @@
     }
 
     function applyOperatorMeshMaterials(root) {
+      const opaqueOrder = 1000;
+      const transparentOrder = 1100;
       root.traverse((o) => {
         if (!o.isMesh) return;
         o.frustumCulled = false;
-        o.renderOrder = 1000;
         o.castShadow = false;
         o.receiveShadow = false;
         const mats = Array.isArray(o.material) ? o.material : [o.material];
         const tuned = mats.map((m) => tuneOperatorMaterial(m));
         o.material = tuned.length === 1 ? tuned[0] : tuned;
+        const hasTransparent = tuned.some((m) => isOperatorMaterialTransparent(m));
+        o.renderOrder = hasTransparent ? transparentOrder : opaqueOrder;
         if (o.isSkinnedMesh) {
           o.frustumCulled = false;
           if (o.skeleton) o.skeleton.pose();
@@ -4996,13 +5216,28 @@
       return mapped;
     }
 
+    function loadOperatorGltfWithTimeout(loader, url, ms = 90000) {
+      return Promise.race([
+        loader.loadAsync(url),
+        new Promise((_, reject) => {
+          setTimeout(() => reject(new Error(`timeout after ${Math.round(ms / 1000)}s`)), ms);
+        }),
+      ]);
+    }
+
     async function loadOperatorGltf(loader) {
       const candidates = operatorGlbCandidates();
       console.info("[splat] operator GLB candidates", candidates);
       let lastErr;
       for (const url of candidates) {
         try {
-          const gltf = await loader.loadAsync(url);
+          const heightEl = document.getElementById("splatOpHeightVal");
+          if (heightEl) heightEl.textContent = "loading…";
+          const gltf = await loadOperatorGltfWithTimeout(
+            loader,
+            url,
+            /worker_blender_v5/i.test(url) ? 120000 : 45000,
+          );
           operatorLoadedGlbUrl = url;
           console.info("[splat] operator GLB loaded from", url);
           return gltf;
@@ -5014,12 +5249,47 @@
       throw lastErr || new Error("no operator GLB available");
     }
 
-    function setupOperatorModel(gltf) {
+    function setupOperatorModel(gltf, loadedUrl) {
       operatorModel = gltf.scene;
+      operatorExportProfile = getOperatorExportProfile(loadedUrl);
+      operatorPoseProfile = getOperatorPoseProfile(loadedUrl);
+      operatorIsOmniverse = operatorExportProfile?.kind === "omniverse-zup";
       operatorBones = {};
       boneRest = {};
       operatorBaseHeightLocked = false;
-      operatorModel.rotation.set(0, OPERATOR_MODEL_YAW, 0);
+      operatorFeetBaseY = null;
+      operatorMeshGrounded = false;
+      operatorPlacementLocked = false;
+      if (operatorExportProfile?.resetRootScale) resetOperatorBakedRootScale(operatorModel);
+      operatorModel.rotation.set(0, getOperatorModelYaw(), 0);
+
+      if (operatorExportProfile) {
+        const fix = new THREE.Group();
+        fix.name = "operatorExportFix";
+        if (operatorExportProfile.rotX) fix.rotation.x = operatorExportProfile.rotX;
+        const unit = operatorExportProfile.unit * operatorExportProfile.sizeMul;
+        const needsFixGroup = operatorExportProfile.rotX || Math.abs(unit - 1) > 1e-6;
+        if (needsFixGroup) {
+          fix.scale.setScalar(unit);
+          operatorScaleNode = new THREE.Group();
+          operatorScaleNode.name = "operatorScale";
+          operatorScaleNode.add(operatorModel);
+          fix.add(operatorScaleNode);
+          operatorOuterRoot = fix;
+        } else {
+          operatorOuterRoot = operatorModel;
+          operatorScaleNode = operatorModel;
+        }
+        console.info("[splat] operator export fix", operatorExportProfile.kind,
+          operatorExportProfile.rotX ? "rotX " + (operatorExportProfile.rotX * 180 / Math.PI).toFixed(0) + "°" : "Y-up meters",
+          needsFixGroup ? "unit " + unit : "no unit fix",
+          "yawOff", ((operatorExportProfile.yawOffset || 0) * 180 / Math.PI).toFixed(0) + "°");
+        try { localStorage.removeItem(LS_OPERATOR_SCALE_MANUAL); } catch { /* ignore */ }
+      } else {
+        operatorOuterRoot = operatorModel;
+        operatorScaleNode = operatorModel;
+      }
+
       operatorModel.traverse((o) => {
         if (o.isBone) {
           operatorBones[o.name] = o;
@@ -5027,18 +5297,20 @@
             ? o.name.split("_joint_").pop()
             : o.name.split("/").pop();
           if (short && !operatorBones[short]) operatorBones[short] = o;
-          boneRest[o.name] = o.quaternion.clone();
-          if (short && !boneRest[short]) boneRest[short] = o.quaternion.clone();
         }
       });
       applyOperatorMeshMaterials(operatorModel);
       operatorLoadedTriCount = countMeshTriangles(operatorModel);
       bindOperatorIdleRest(gltf);
-      operatorAnchor.add(operatorModel);
+      captureOperatorBoneRest();
+      if (operatorPoseProfile?.standArmRest) applyCcV5StandArmRest();
+      captureOperatorBoneRest();
+      operatorAnchor.add(operatorOuterRoot);
       groundOperatorModelToAnchor();
       logOperatorBoneMap();
       console.info("[splat] operator rig ready —", Object.keys(operatorBones).length, "bones",
-        operatorLoadedTriCount, "tris", "scale", operatorUserScale.toFixed(3));
+        operatorLoadedTriCount, "tris", "scale", operatorUserScale.toFixed(3),
+        "pose", operatorPoseProfile?.kind);
     }
     function buildFallbackOperator() {
       const root = new THREE.Group();
@@ -5053,10 +5325,15 @@
       root.add(mk(0.22, 0.24, 0.22, mat, 0, 1.52));
       root.add(mk(0.12, 0.48, 0.12, matDim, 0.14, 0.48));
       root.add(mk(0.12, 0.48, 0.12, matDim, -0.14, 0.48));
+      operatorIsOmniverse = false;
+      operatorExportProfile = null;
+      operatorPoseProfile = getOperatorPoseProfile("fallback-boxes");
       operatorBones = {};
       boneRest = {};
       operatorLoadedGlbUrl = "fallback-boxes";
       operatorLoadedTriCount = 0;
+      operatorOuterRoot = root;
+      operatorScaleNode = root;
       return root;
     }
 
@@ -5070,11 +5347,11 @@
         try {
           const loader = new GLTFLoader();
           const gltf = await loadOperatorGltf(loader);
-          setupOperatorModel(gltf);
+          setupOperatorModel(gltf, operatorLoadedGlbUrl);
         } catch (e) {
           console.warn("[splat] GLB operator failed, using fallback mesh:", e);
           operatorModel = buildFallbackOperator();
-          operatorAnchor.add(operatorModel);
+          operatorAnchor.add(operatorOuterRoot);
         }
         operatorReady = true;
         applyOperatorTargetHeightScale(true);
@@ -5295,9 +5572,8 @@
         }
       });
 
-      // Operator + splat only on local dev — 162 MB mesh loads only via mesh checkbox / ground / fit.
+      // Operator loads after splat mount (finishMountOperator) — avoids competing with .spz download.
       startStationAlignBoot();
-      if (OPERATOR_SPLAT_ENABLED) ensureInSplatOperator();
     }
 
     function size() {
