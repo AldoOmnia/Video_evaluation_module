@@ -3305,13 +3305,17 @@
     function repositionForActiveZone(zoneIndex = lastZoneIndex) {
       if (!Number.isFinite(zoneIndex)) return;
       if (!OPERATOR_SPLAT_ENABLED) return;
-      stopOperatorWalk(); // zone snap overrides any in-flight walk target
+      // A walk in this zone (in flight or arrived) owns the operator transform;
+      // background refreshes (mesh BVH ready, late GLB mount) must not teleport
+      // him back to the anchor. A genuine zone change does reset placement.
+      const walkOwnsZone = operatorWalkOwnsZone(zoneIndex);
+      if (!walkOwnsZone) clearOperatorWalkPlacement();
       activateZoneAlign(zoneIndex);
       getOperatorAnchorForZone(zoneIndex);
       applyStationMeshTransform();
       if (operatorReady) {
         ensureOperatorOnScene();
-        refreshOperatorAnchorTransform();
+        if (!walkOwnsZone) refreshOperatorAnchorTransform();
         syncOperatorVisibility();
       }
       if (IS_SPLAT_DEV) {
@@ -4264,7 +4268,7 @@
     /** Procedural walk cycle — leg/arm swing driven by distance travelled so
      * stride matches ground speed. Applied on top of the rest pose while
      * operatorWalk.active; applyOperatorIdleStance() restores the stand. */
-    function applyOperatorWalkPose(phase) {
+    function applyOperatorWalkPose(phase, intensity = 1) {
       if (!operatorReady) return;
       resetOperatorBones();
       if (operatorPoseProfile?.standArmRest) {
@@ -4275,12 +4279,13 @@
         rotateOperatorBone(OP_BONES.lForeArm, 0.06, 0, 0);
         rotateOperatorBone(OP_BONES.rForeArm, 0.06, 0, 0);
       }
-      const swing = Math.sin(phase);
+      const k = Math.max(0, Math.min(1, intensity)); // gait blends in/out with speed
+      const swing = Math.sin(phase) * k;
       const THIGH_A = 0.5;
       const KNEE_A = 0.8;
       // Knee flexes while its leg swings through (rearward half of the cycle).
-      const kneeL = Math.max(0, Math.sin(phase - Math.PI * 0.5)) * KNEE_A;
-      const kneeR = Math.max(0, Math.sin(phase + Math.PI * 0.5)) * KNEE_A;
+      const kneeL = Math.max(0, Math.sin(phase - Math.PI * 0.5)) * KNEE_A * k;
+      const kneeR = Math.max(0, Math.sin(phase + Math.PI * 0.5)) * KNEE_A * k;
       rotateOperatorBone(OP_BONES.lThigh, -swing * THIGH_A, 0, 0);
       rotateOperatorBone(OP_BONES.rThigh, swing * THIGH_A, 0, 0);
       rotateOperatorBone(OP_BONES.lCalf, kneeL, 0, 0);
@@ -4291,8 +4296,8 @@
       // Counter-swing the arms and lean slightly into the walk.
       rotateOperatorBone(OP_BONES.lArm, swing * 0.3, 0, 0);
       rotateOperatorBone(OP_BONES.rArm, -swing * 0.3, 0, 0);
-      rotateOperatorBone(OP_BONES.spine, 0.07, 0, swing * 0.03);
-      rotateOperatorBone(OP_BONES.spine1, 0.04, 0, -swing * 0.03);
+      rotateOperatorBone(OP_BONES.spine, 0.07 * k, 0, swing * 0.03);
+      rotateOperatorBone(OP_BONES.spine1, 0.04 * k, 0, -swing * 0.03);
       updateOperatorSkeleton();
     }
 
@@ -4972,7 +4977,26 @@
       totalDist: 0,
       phase: 0,           // walk-cycle phase, advanced by distance travelled
       strideM: 0.62,      // metres per full left+right stride cycle
+      traveled: 0,        // metres covered so far (drives the accel ramp)
+      zoneIndex: null,    // zone the walk was issued in
+      placed: false,      // arrived (or stopped) — hold this spot, don't re-anchor
     };
+
+    /** True while a walk (in flight or arrived) owns the operator transform in this zone. */
+    function operatorWalkOwnsZone(zoneIndex = lastZoneIndex) {
+      return (operatorWalk.active || operatorWalk.placed) && operatorWalk.zoneIndex === zoneIndex;
+    }
+
+    /** Forget any walk placement (used on genuine zone changes). */
+    function clearOperatorWalkPlacement() {
+      const wasWalking = operatorWalk.active;
+      operatorWalk.active = false;
+      operatorWalk.onArrive = null;
+      operatorWalk.placed = false;
+      operatorWalk.zoneIndex = null;
+      operatorWalk.phase = 0;
+      if (wasWalking) applyOperatorIdleStance();
+    }
 
     function sampleWalkFloorY(x, z) {
       const probe = { x, z, yaw: operatorAnchor?.rotation.y ?? 0, zoneIndex: lastZoneIndex };
@@ -4993,6 +5017,9 @@
       const y0 = sampleWalkFloorY(operatorAnchor.position.x, operatorAnchor.position.z);
       operatorWalk.feetOffset = Number.isFinite(y0) ? operatorAnchor.position.y - y0 : 0;
       operatorWalk.floorSample = null;
+      operatorWalk.traveled = 0;
+      operatorWalk.zoneIndex = lastZoneIndex;
+      operatorWalk.placed = false;
       operatorWalk.active = true;
       return true;
     }
@@ -5002,8 +5029,15 @@
       operatorWalk.active = false;
       operatorWalk.onArrive = null;
       operatorWalk.phase = 0;
-      if (wasWalking) applyOperatorIdleStance();
+      // Hold the spot he stopped at — don't let anchor refreshes teleport him.
+      if (wasWalking) {
+        operatorWalk.placed = true;
+        applyOperatorIdleStance();
+      }
     }
+
+    const WALK_RAMP_M = 0.35;      // metres to accelerate from rest / decelerate to stop
+    const WALK_BOB_M = 0.012;      // pelvis rise/fall per step (two bobs per stride)
 
     function tickOperatorLocomotion(dt) {
       if (!operatorWalk.active || !operatorReady || !operatorAnchor || !(dt > 0)) return;
@@ -5015,6 +5049,7 @@
       if (dist <= operatorWalk.arriveEps) {
         operatorWalk.active = false;
         operatorWalk.phase = 0;
+        operatorWalk.placed = true; // hold this spot until the zone changes
         if (Number.isFinite(operatorWalk.targetFeetY)) {
           operatorAnchor.position.y = operatorWalk.targetFeetY;
           operatorAnchor.updateMatrixWorld(true);
@@ -5025,26 +5060,34 @@
         cb?.();
         return;
       }
-      const step = Math.min(dist, operatorWalk.speedMps * dt);
-      const nx = px + (dx / dist) * step;
-      const nz = pz + (dz / dist) * step;
-      // Advance the walk cycle by distance so stride length stays constant.
-      operatorWalk.phase += (step / operatorWalk.strideM) * Math.PI * 2;
-      applyOperatorWalkPose(operatorWalk.phase);
-      // Face the walk direction (same yaw convention as getOperatorAnchorForZone).
+      // Turn toward the heading first; stride opens up as the body lines up.
       const targetYaw = Math.atan2(dx, -dz);
       const cur = operatorAnchor.rotation.y;
       const dYaw = Math.atan2(Math.sin(targetYaw - cur), Math.cos(targetYaw - cur));
       const maxTurn = operatorWalk.turnRate * dt;
       operatorAnchor.rotation.y = cur + Math.max(-maxTurn, Math.min(maxTurn, dYaw));
+      const misalign = Math.abs(dYaw);
+      const turnFactor = misalign > 1.1 ? 0.06 : 1 - (misalign / 1.1) * 0.85;
+      // Ease in from rest and ease out into the stop instead of constant velocity.
+      const easeIn = Math.min(1, (operatorWalk.traveled + 0.06) / WALK_RAMP_M);
+      const easeOut = Math.min(1, dist / WALK_RAMP_M + 0.12);
+      const gaitIntensity = Math.min(easeIn, easeOut) * Math.max(0.25, turnFactor);
+      const speed = operatorWalk.speedMps * Math.min(easeIn, easeOut) * turnFactor;
+      const step = Math.min(dist, Math.max(0, speed) * dt);
+      const nx = px + (dx / dist) * step;
+      const nz = pz + (dz / dist) * step;
+      // Advance the walk cycle by distance so stride length stays constant.
+      operatorWalk.traveled += step;
+      operatorWalk.phase += (step / operatorWalk.strideM) * Math.PI * 2;
+      applyOperatorWalkPose(operatorWalk.phase, gaitIntensity);
       operatorAnchor.position.x = nx;
       operatorAnchor.position.z = nz;
+      let baseY = null;
       if (Number.isFinite(operatorWalk.targetFeetY) && operatorWalk.totalDist > 0) {
         // Portal-registered endpoints: lerp feet Y along the path.
         const remaining = Math.hypot(operatorWalk.targetX - nx, operatorWalk.targetZ - nz);
         const t = Math.min(1, Math.max(0, 1 - remaining / operatorWalk.totalDist));
-        operatorAnchor.position.y =
-          operatorWalk.startFeetY + (operatorWalk.targetFeetY - operatorWalk.startFeetY) * t;
+        baseY = operatorWalk.startFeetY + (operatorWalk.targetFeetY - operatorWalk.startFeetY) * t;
       } else {
         // Follow the floor, re-sampling every WALK_RESAMPLE_DIST metres.
         let fs = operatorWalk.floorSample;
@@ -5054,8 +5097,13 @@
         }
         if (Number.isFinite(fs.y)) {
           // feetOffset already includes lift + feet-to-origin delta captured at walk start.
-          operatorAnchor.position.y = fs.y + operatorWalk.feetOffset;
+          baseY = fs.y + operatorWalk.feetOffset;
         }
+      }
+      if (Number.isFinite(baseY)) {
+        // Two pelvis bobs per stride — lowest at heel strike, highest at midstance.
+        const bob = Math.abs(Math.sin(operatorWalk.phase)) * WALK_BOB_M * gaitIntensity;
+        operatorAnchor.position.y = baseY + bob;
       }
       operatorAnchor.updateMatrixWorld(true);
     }
@@ -5172,6 +5220,8 @@
 
     function refreshOperatorAnchorTransform() {
       if (!operatorAnchor) return;
+      // A walk in this zone owns the transform — never yank him back to the anchor.
+      if (operatorWalkOwnsZone(lastZoneIndex)) return;
       const anchor = getOperatorAnchorForZone(lastZoneIndex);
       if (!anchor) return;
       const floorY = resolveOperatorFloorY(operatorLastSplat, anchor, operatorLastUp);
