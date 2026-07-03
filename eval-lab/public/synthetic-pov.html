@@ -132,9 +132,8 @@
     }
     .brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
     .brand .logo {
-      width: 18px; height: 18px; border-radius: 4px;
-      background: radial-gradient(circle at 30% 30%, var(--primary), var(--primary-dim));
-      box-shadow: 0 0 12px var(--primary-glow);
+      height: 22px; width: auto; display: block;
+      filter: drop-shadow(0 0 6px rgba(255,255,255,0.08));
     }
     .brand .name { font-weight: 600; letter-spacing: -0.01em; }
     .brand .sub { color: var(--ink-3); font-family: var(--mono); font-size: 11px; }
@@ -676,8 +675,7 @@
     <!-- Top bar -->
     <header class="topbar">
       <div class="brand">
-        <div class="logo"></div>
-        <span class="name">Comer</span>
+        <img class="logo" src="/lab/assets/comer-logo-trim.png" alt="Comer Industries" />
         <span class="sub">· synthetic-pov</span>
       </div>
       <div class="rec-pill">
