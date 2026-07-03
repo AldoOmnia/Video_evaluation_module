@@ -28,12 +28,25 @@ Anything outside the module block must go through this API:
 - `isReady()`, `setCalibrate`, `saveOrigin`, `savePortal`, `saveZoneAlign`, `getZoneAlignDump`
 - `groundOperatorToFloor()` — snap operator feet to sampled floor
 - **Locomotion foundation** (added in the audit pass):
-  - `moveOperatorTo(x, z, { speedMps, onArrive })` — walk the operator to a
-    world XZ target; floor is re-sampled every 0.35 m along the path
+  - `moveOperatorTo(x, z, { speedMps, targetFeetY, onArrive })` — walk the
+    operator to a world XZ target. With `targetFeetY`, feet Y lerps from the
+    start height to that value along the path (used for portal-registered
+    endpoints); otherwise the floor is re-sampled every 0.35 m
     (station-mesh BVH raycast when loaded, splat footprint sampling otherwise)
   - `stopOperatorWalk()`
   - `isOperatorWalking()`
-  - `getOperatorPose()` → `{ x, y, z, yaw, zoneIndex }`
+  - `getOperatorPose()` → `{ x, y, z, yaw, zoneIndex, visible }`
+- **Named-station walking** (chat commands):
+  - `runOperatorCommand("Move towards the UNICOMM system")` — parses free text
+    against each zone's `label`, `desc`, and `aliases` in `SPLAT_TOUR`, then
+    walks the operator to that station's portal-registered point in the
+    active zone's frame (stops 0.45 m short and faces the station).
+    `stop` / `halt` cancels an in-flight walk.
+  - `walkOperatorToStation(indexOrName, { speedMps, onArrive })` — same, by
+    zone index or name.
+  - `resolveStationIndexFromText(text)` → zone index or `null`.
+  - The dev-only chat bar at the bottom of the splat quadrant
+    (`#splatOpCmd`) feeds `runOperatorCommand` directly.
 
 A future backend must implement the same contract. The locomotion API is
 deliberately declarative (target, speed, arrival callback) rather than

@@ -529,6 +529,27 @@
       background: rgba(6,8,9,0.72); border: 1px solid rgba(255,255,255,0.12);
       border-radius: 4px; padding: 2px 6px; white-space: nowrap;
     }
+    .splat-hotspot .hs-desc {
+      display: block; font-size: 7.5px; letter-spacing: 0.02em;
+      color: rgba(255,255,255,0.62); text-transform: none; margin-top: 1px;
+    }
+    .splat-op-cmd {
+      position: absolute; bottom: 7px; left: 50%; transform: translateX(-50%);
+      z-index: 7; display: flex; gap: 4px; align-items: center;
+      width: min(420px, 72%);
+    }
+    .splat-op-cmd input {
+      flex: 1; font-family: var(--mono); font-size: 9.5px; color: var(--ink-1);
+      background: rgba(6,8,9,0.82); border: 1px solid var(--line-2);
+      border-radius: 4px; padding: 5px 8px; outline: none;
+    }
+    .splat-op-cmd input:focus { border-color: var(--primary-dim); }
+    .splat-op-cmd .wl-cta { font-size: 9px; padding: 4px 8px; }
+    .splat-op-cmd-status {
+      position: absolute; bottom: 32px; left: 0; right: 0; text-align: center;
+      font-family: var(--mono); font-size: 8.5px; color: var(--ink-2);
+      text-shadow: 0 1px 4px #000; pointer-events: none;
+    }
     @keyframes hs-pulse {
       0%, 100% { transform: scale(1); opacity: 1; }
       50% { transform: scale(1.12); opacity: 0.82; }
@@ -770,6 +791,12 @@
                 Mesh: ←→ X · ↑↓ Z · +/- Y · Save zone align (current station)
               </span>
             </div>
+            <form class="splat-op-cmd dev-only" id="splatOpCmd" autocomplete="off">
+              <span class="splat-op-cmd-status" id="splatOpCmdStatus" hidden></span>
+              <input id="splatOpCmdInput" type="text" spellcheck="false"
+                     placeholder="Operator command — e.g. Move towards the UNICOMM system" />
+              <button type="submit" class="wl-cta">Go</button>
+            </form>
             <a class="wl-open dev-only" id="splatOpen" href="#" target="_blank" rel="noopener" hidden>open in Marble ↗</a>
             <div class="splat-op-badge dev-only" id="splatOpBadge">
               <span class="op-num" id="splatOpStep">01 / 12</span>
@@ -999,6 +1026,8 @@
     const SPLAT_TOUR = [
       {
         label: "Station 1", tier: "core",
+        desc: "Vertical press fixture machine",
+        aliases: ["station 1", "vertical press", "press fixture", "press machine"],
         spz: "/lab/assets/marble_zone_01.spz",
         pano: "R0010104.JPG",
         flipY: false,
@@ -1050,6 +1079,7 @@
       },
       {
         label: "Station 2", tier: "core",
+        aliases: ["station 2"],
         spz: "/lab/assets/marble_zone_02.spz",
         pano: "R0010102.JPG",
         flipY: false,
@@ -1072,6 +1102,8 @@
       },
       {
         label: "Station 3", tier: "core",
+        desc: "UNICOMM system",
+        aliases: ["station 3", "unicomm", "unicom", "unicomm system"],
         spz: "/lab/assets/marble_zone_03.spz",
         pano: "R0010103.JPG",
         flipY: false,
@@ -1094,6 +1126,8 @@
       },
       {
         label: "Station 4", tier: "core",
+        desc: "Component picking area",
+        aliases: ["station 4", "component picking", "picking area", "picking"],
         spz: "/lab/assets/marble_zone_04.spz",
         pano: "R0010101.JPG",
         flipY: false,
@@ -1116,6 +1150,8 @@
       },
       {
         label: "Perimeter 5", tier: "outer",
+        desc: "Drives selection",
+        aliases: ["perimeter 5", "drives selection", "drives", "drive selection"],
         spz: "/lab/assets/marble_zone_05.spz",
         pano: "R0010105.JPG",
         flipY: false,
@@ -1138,6 +1174,8 @@
       },
       {
         label: "Perimeter 6", tier: "outer",
+        desc: "Pinion guide station end",
+        aliases: ["perimeter 6", "pinion guide", "pinion", "pinion guide end"],
         spz: "/lab/assets/marble_zone_06.spz?v=2",
         pano: "R0010111.JPG",
         flipY: false,
@@ -1160,6 +1198,8 @@
       },
       {
         label: "Perimeter 7", tier: "outer",
+        desc: "Pinion guide station end",
+        aliases: ["perimeter 7"],
         spz: "/lab/assets/marble_zone_07.spz",
         pano: "R0010112.JPG",
         flipY: false,
@@ -1648,7 +1688,12 @@
         splatHudMeta = { zoneLabel, url, numSplats, capture, origin, floorV: ev.detail?.floorV, savedOrigin };
         if (splatPh) splatPh.style.display = "none";
         setSplatHud(formatSplatHud(splatHudMeta));
-        if (splatZoneTag) splatZoneTag.textContent = zoneLabel || "hotspot tour";
+        if (splatZoneTag) {
+          const desc = SPLAT_TOUR[zoneIndex ?? -1]?.desc;
+          splatZoneTag.textContent = zoneLabel
+            ? (desc ? `${zoneLabel} · ${desc}` : zoneLabel)
+            : "hotspot tour";
+        }
         setStatus(`Loaded · ${(numSplats || 0).toLocaleString()} splats`, false);
         setTimeout(() => setStatus(null), 2500);
         window.__SPARK_SPLAT_ACTIVE = true;
@@ -1684,7 +1729,9 @@
     function setZoneUi(idx) {
       localStorage.setItem(LS_TOUR, String(idx));
       const zone = SPLAT_TOUR[idx];
-      if (zone && splatZoneTag) splatZoneTag.textContent = zone.label;
+      if (zone && splatZoneTag) {
+        splatZoneTag.textContent = zone.desc ? `${zone.label} · ${zone.desc}` : zone.label;
+      }
     }
 
     let worldPolling = false;
@@ -4870,6 +4917,12 @@
       feetOffset: 0,      // anchor Y minus floor Y at walk start (model origin != feet)
       floorSample: null,  // { x, z, y }
       onArrive: null,
+      // When finite, feet Y lerps startFeetY → targetFeetY over the path instead
+      // of live floor sampling (used for cross-station walks where the splat
+      // floor is unreliable but portal registration gives both endpoints).
+      targetFeetY: null,
+      startFeetY: 0,
+      totalDist: 0,
     };
 
     function sampleWalkFloorY(x, z) {
@@ -4885,6 +4938,9 @@
       operatorWalk.targetZ = z;
       operatorWalk.speedMps = Number.isFinite(opts.speedMps) ? Math.max(0.1, opts.speedMps) : 0.9;
       operatorWalk.onArrive = typeof opts.onArrive === "function" ? opts.onArrive : null;
+      operatorWalk.targetFeetY = Number.isFinite(opts.targetFeetY) ? opts.targetFeetY : null;
+      operatorWalk.startFeetY = operatorAnchor.position.y;
+      operatorWalk.totalDist = Math.hypot(x - operatorAnchor.position.x, z - operatorAnchor.position.z);
       const y0 = sampleWalkFloorY(operatorAnchor.position.x, operatorAnchor.position.z);
       operatorWalk.feetOffset = Number.isFinite(y0) ? operatorAnchor.position.y - y0 : 0;
       operatorWalk.floorSample = null;
@@ -4906,6 +4962,10 @@
       const dist = Math.hypot(dx, dz);
       if (dist <= operatorWalk.arriveEps) {
         operatorWalk.active = false;
+        if (Number.isFinite(operatorWalk.targetFeetY)) {
+          operatorAnchor.position.y = operatorWalk.targetFeetY;
+          operatorAnchor.updateMatrixWorld(true);
+        }
         const cb = operatorWalk.onArrive;
         operatorWalk.onArrive = null;
         cb?.();
@@ -4920,19 +4980,137 @@
       const dYaw = Math.atan2(Math.sin(targetYaw - cur), Math.cos(targetYaw - cur));
       const maxTurn = operatorWalk.turnRate * dt;
       operatorAnchor.rotation.y = cur + Math.max(-maxTurn, Math.min(maxTurn, dYaw));
-      // Follow the floor, re-sampling every WALK_RESAMPLE_DIST metres.
-      let fs = operatorWalk.floorSample;
-      if (!fs || Math.hypot(nx - fs.x, nz - fs.z) > WALK_RESAMPLE_DIST) {
-        fs = { x: nx, z: nz, y: sampleWalkFloorY(nx, nz) };
-        operatorWalk.floorSample = fs;
-      }
       operatorAnchor.position.x = nx;
       operatorAnchor.position.z = nz;
-      if (Number.isFinite(fs.y)) {
-        // feetOffset already includes lift + feet-to-origin delta captured at walk start.
-        operatorAnchor.position.y = fs.y + operatorWalk.feetOffset;
+      if (Number.isFinite(operatorWalk.targetFeetY) && operatorWalk.totalDist > 0) {
+        // Portal-registered endpoints: lerp feet Y along the path.
+        const remaining = Math.hypot(operatorWalk.targetX - nx, operatorWalk.targetZ - nz);
+        const t = Math.min(1, Math.max(0, 1 - remaining / operatorWalk.totalDist));
+        operatorAnchor.position.y =
+          operatorWalk.startFeetY + (operatorWalk.targetFeetY - operatorWalk.startFeetY) * t;
+      } else {
+        // Follow the floor, re-sampling every WALK_RESAMPLE_DIST metres.
+        let fs = operatorWalk.floorSample;
+        if (!fs || Math.hypot(nx - fs.x, nz - fs.z) > WALK_RESAMPLE_DIST) {
+          fs = { x: nx, z: nz, y: sampleWalkFloorY(nx, nz) };
+          operatorWalk.floorSample = fs;
+        }
+        if (Number.isFinite(fs.y)) {
+          // feetOffset already includes lift + feet-to-origin delta captured at walk start.
+          operatorAnchor.position.y = fs.y + operatorWalk.feetOffset;
+        }
       }
       operatorAnchor.updateMatrixWorld(true);
+    }
+
+    /* ── Named-station walking ("Move towards the UNICOMM system") ──────────
+     * Station points come from the same portal registration used for
+     * anchoring: station k's viewpoint inside the ACTIVE zone's frame is
+     * origin + portalOffsets[k] (or the origin itself for the active zone).
+     */
+    const WALK_STAND_OFF_M = 0.45; // stop this far short of the station viewpoint
+
+    function resolveStationIndexFromText(text) {
+      const t = String(text || "").toLowerCase();
+      if (!t) return null;
+      const tour = (lastTour?.length ? lastTour : (window.__SPLAT_TOUR || []));
+      let best = null;
+      tour.forEach((z, i) => {
+        for (const name of [z.label, z.desc, ...(z.aliases || [])]) {
+          if (!name) continue;
+          const n = String(name).toLowerCase();
+          if (t.includes(n) && (!best || n.length > best.len)) best = { idx: i, len: n.length };
+        }
+      });
+      return best ? best.idx : null;
+    }
+
+    /** Station k's registered viewpoint inside the ACTIVE zone's frame. */
+    function getStationPointInActiveFrame(k) {
+      const cap = getZoneCapture(lastZoneIndex);
+      const o = cap?.origin;
+      if (!Array.isArray(o) || o.length < 3) return null;
+      if (k === lastZoneIndex) return { x: o[0], eyeY: o[1], z: o[2] };
+      const tour = (lastTour?.length ? lastTour : (window.__SPLAT_TOUR || []));
+      const off = tour[lastZoneIndex]?.portalOffsets?.[k]
+        ?? tour[lastZoneIndex]?.portalOffsets?.[String(k)];
+      if (!Array.isArray(off) || off.length < 3) return null;
+      return { x: o[0] + off[0], eyeY: o[1] + off[1], z: o[2] + off[2] };
+    }
+
+    function faceOperatorToward(x, z) {
+      if (!operatorAnchor) return;
+      const yaw = Math.atan2(x - operatorAnchor.position.x, -(z - operatorAnchor.position.z));
+      if (Number.isFinite(yaw)) {
+        operatorAnchor.rotation.y = yaw;
+        operatorAnchor.updateMatrixWorld(true);
+      }
+    }
+
+    function walkOperatorToStation(target, opts = {}) {
+      const tour = (lastTour?.length ? lastTour : (window.__SPLAT_TOUR || []));
+      const idx = Number.isInteger(target) ? target : resolveStationIndexFromText(target);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= tour.length) {
+        return { ok: false, error: `unknown station: ${target}` };
+      }
+      const label = tour[idx]?.label || `Zone ${idx + 1}`;
+      if (!operatorReady || !operatorAnchor) {
+        return { ok: false, error: "operator not loaded yet" };
+      }
+      const pt = getStationPointInActiveFrame(idx);
+      if (!pt) {
+        return { ok: false, error: `no portal registration for ${label} in this view` };
+      }
+      const px = operatorAnchor.position.x;
+      const pz = operatorAnchor.position.z;
+      const dx = pt.x - px;
+      const dz = pt.z - pz;
+      const dist = Math.hypot(dx, dz);
+      if (dist <= WALK_STAND_OFF_M + 0.02) {
+        faceOperatorToward(pt.x, pt.z);
+        opts.onArrive?.();
+        return { ok: true, targetIndex: idx, label, arrived: true, distM: 0 };
+      }
+      // Destination: WALK_STAND_OFF_M short of the viewpoint, feet grounded via
+      // the portal Y (same policy as resolveOperatorFloorY for non-home zones).
+      const s = (dist - WALK_STAND_OFF_M) / dist;
+      const tx = px + dx * s;
+      const tz = pz + dz * s;
+      const eyeH = tour[idx]?.capture?.eyeHeight ?? 1.85;
+      const targetFeetY = (pt.eyeY - eyeH) + operatorGroundOffsetM + operatorLiftM;
+      const started = moveOperatorTo(tx, tz, {
+        speedMps: opts.speedMps,
+        targetFeetY,
+        onArrive: () => {
+          faceOperatorToward(pt.x, pt.z);
+          opts.onArrive?.();
+        },
+      });
+      if (!started) return { ok: false, error: "walk could not start" };
+      if (IS_SPLAT_DEV) {
+        console.info("[splat] operator walk", {
+          to: label, from: { x: px.toFixed(3), z: pz.toFixed(3) },
+          target: { x: tx.toFixed(3), z: tz.toFixed(3), feetY: targetFeetY.toFixed(3) },
+          distM: (dist - WALK_STAND_OFF_M).toFixed(2),
+        });
+      }
+      return { ok: true, targetIndex: idx, label, arrived: false, distM: dist - WALK_STAND_OFF_M };
+    }
+
+    /** Chat-style command: "Move towards the UNICOMM system" / "stop". */
+    function runOperatorCommand(text, opts = {}) {
+      const t = String(text || "").trim();
+      if (!t) return { ok: false, error: "empty command" };
+      if (/\b(stop|halt|stay|freeze)\b/i.test(t)) {
+        stopOperatorWalk();
+        return { ok: true, action: "stop" };
+      }
+      const idx = resolveStationIndexFromText(t);
+      if (idx == null) {
+        return { ok: false, error: 'no station recognized — try "walk to the UNICOMM system"' };
+      }
+      const res = walkOperatorToStation(idx, opts);
+      return res.ok ? { ...res, action: "walk" } : res;
     }
 
     function refreshOperatorAnchorTransform() {
@@ -6006,7 +6184,7 @@
         const resolved = resolvePortalPosition(origin, tour, currentIdx, z.idx);
         if (resolved) {
           portals.push({
-            idx: z.idx, label: z.label, core: z.tier === "core", ready: !!z.spz,
+            idx: z.idx, label: z.label, desc: z.desc, core: z.tier === "core", ready: !!z.spz,
             position: resolved,
           });
           return;
@@ -6033,7 +6211,7 @@
           );
         }
         portals.push({
-          idx: z.idx, label: z.label, core: z.tier === "core", ready: !!z.spz,
+          idx: z.idx, label: z.label, desc: z.desc, core: z.tier === "core", ready: !!z.spz,
           position: pos,
         });
       });
@@ -6048,7 +6226,7 @@
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "splat-hotspot" + (p.core ? " core" : "") + (p.ready ? "" : " pending");
-        btn.innerHTML = `<span class="hs-ring"></span><span class="hs-label">${p.label}</span>`;
+        btn.innerHTML = `<span class="hs-ring"></span><span class="hs-label">${p.label}${p.desc ? `<span class="hs-desc">${p.desc}</span>` : ""}</span>`;
         btn.title = p.editing
           ? `Editing portal position`
           : (p.ready ? `Jump to ${p.label}` : `${p.label} — .spz export pending`);
@@ -6276,6 +6454,9 @@
       // Locomotion foundation — see docs/viewer-abstraction.md
       moveOperatorTo,
       stopOperatorWalk,
+      walkOperatorToStation,
+      runOperatorCommand,
+      resolveStationIndexFromText,
       isOperatorWalking: () => operatorWalk.active,
       getOperatorPose: () => (operatorAnchor
         ? {
@@ -6289,6 +6470,37 @@
         : null),
     };
     if (host) init();
+
+    // Operator command chat — "Move towards the UNICOMM system"
+    const splatOpCmdForm = document.getElementById("splatOpCmd");
+    const splatOpCmdInput = document.getElementById("splatOpCmdInput");
+    const splatOpCmdStatus = document.getElementById("splatOpCmdStatus");
+    let opCmdStatusTimer = 0;
+    function setOpCmdStatus(msg, sticky = false) {
+      if (!splatOpCmdStatus) return;
+      clearTimeout(opCmdStatusTimer);
+      splatOpCmdStatus.hidden = !msg;
+      splatOpCmdStatus.textContent = msg || "";
+      if (msg && !sticky) {
+        opCmdStatusTimer = setTimeout(() => { splatOpCmdStatus.hidden = true; }, 6000);
+      }
+    }
+    splatOpCmdForm?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const text = splatOpCmdInput?.value || "";
+      const res = runOperatorCommand(text, {
+        onArrive: () => setOpCmdStatus(`operator: arrived`),
+      });
+      if (!res.ok) { setOpCmdStatus(res.error); return; }
+      if (splatOpCmdInput) splatOpCmdInput.value = "";
+      if (res.action === "stop") { setOpCmdStatus("operator: stopped"); return; }
+      setOpCmdStatus(
+        res.arrived
+          ? `operator: already at ${res.label}`
+          : `operator: walking to ${res.label} (${res.distM.toFixed(1)} m)…`,
+        !res.arrived,
+      );
+    });
 
     const splatOpScale = document.getElementById("splatOpScale");
     splatOpScale?.addEventListener("input", (e) => {
