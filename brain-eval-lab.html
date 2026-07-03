@@ -1420,6 +1420,11 @@
       <button class="active" data-mode="brain">Brain</button>
       <button data-mode="eval">Evaluate</button>
     </div>
+    <a id="synthetic-pov-link" href="/synthetic-pov?zone=1" class="client-pill" hidden
+       style="text-decoration:none;color:var(--primary);border-color:rgba(0,229,160,0.35);"
+       title="Local Spark splat + operator viewer (dev only)">
+      Synthetic POV ↗
+    </a>
     <span class="client-pill">
       <span class="pill-label">client</span>Comer Industries
     </span>
@@ -4890,6 +4895,11 @@ window.addEventListener('load', () => {
     return;
   }
   setTimeout(() => initGraph(), 100);
+
+  const povLink = document.getElementById('synthetic-pov-link');
+  if (povLink && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+    povLink.hidden = false;
+  }
 });
 </script>
 </body>

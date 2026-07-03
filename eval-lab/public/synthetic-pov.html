@@ -20,6 +20,9 @@
         var el = document.getElementById(id);
         if (el) el.setAttribute("hidden", "");
       });
+    } else {
+      var labLink = document.getElementById("labHomeLink");
+      if (labLink) labLink.hidden = false;
     }
   });
   </script>
@@ -661,6 +664,9 @@
         <span id="recName">PG-04_pinion-guide_walk_0</span>
       </div>
       <div class="top-spacer"></div>
+      <a class="rec-pill dev-only" id="labHomeLink" href="/lab/" hidden
+         style="text-decoration:none;color:var(--ink-2);border-color:var(--line-2);"
+         title="Back to Brain · Eval Lab">← Eval Lab</a>
       <div class="top-meta">
         <span>algorithm output · <b>semi-dense + closed-loop</b></span>
         <span>fps <b id="fpsRead">—</b></span>
@@ -1006,7 +1012,7 @@
             rotation: [0, 0, 0],
             scale: 1,
             align: {
-              uniformScaleMult: 0.5888,
+              uniformScaleMult: 0.588844,
               offsetX: 0.1,
               offsetY: 0.45,
               offsetZ: -0.03,
@@ -1493,10 +1499,11 @@
     }
 
     // Warm cache for adjacent stations only (never all 7 at once — kills bandwidth + main thread).
-    let _zoneSplatsPrefetched = false;
+    // Runs after every zone load; preloadSplatAsset dedupes repeats via the link tag.
+    const _prefetchedZones = new Set();
     function prefetchAdjacentZoneSplats(activeIdx = 0) {
-      if (_zoneSplatsPrefetched) return;
-      _zoneSplatsPrefetched = true;
+      if (_prefetchedZones.has(activeIdx)) return;
+      _prefetchedZones.add(activeIdx);
       const tour = window.__SPLAT_TOUR || [];
       const neighbors = [activeIdx - 1, activeIdx + 1].filter((i) => i >= 0 && i < tour.length);
       neighbors.forEach((idx, i) => {
@@ -2721,8 +2728,10 @@
     /** Spark viewer perf — keep splat navigation responsive on laptop GPUs. */
     const SPLAT_MAX_PIXEL_RATIO = 1.25;
     const OPERATOR_GLB = `${LAB_ASSETS}operator-worker.glb`;
+    /** Bump when re-exporting worker_blender_v5.glb — applied to every load path. */
+    const OPERATOR_V5_CACHE_VER = "4";
     /** Rigged Blender v5 — primary operator (Y-up meters, 101 bones). */
-    const OPERATOR_WORKER_BLENDER_V5 = `${LAB_ASSETS}worker_blender_v5.glb?v=4`;
+    const OPERATOR_WORKER_BLENDER_V5 = `${LAB_ASSETS}worker_blender_v5.glb?v=${OPERATOR_V5_CACHE_VER}`;
     /** Legacy static export — cm fix required; kept as fallback. */
     const OPERATOR_BLENDER_MODEL_1 = `${LAB_ASSETS}blender_model_1.glb?v=4`;
     /** cm → m for Blender exports that kept Omniverse/USD units (blender_model_1 only). */
@@ -2801,7 +2810,8 @@
     const OPERATOR_BESIDE = 0.58;
     const OPERATOR_FWD = 0.42;
     const OPERATOR_HOME_ZONE = 0;
-    const OPERATOR_TARGET_HEIGHT_M = 1.08;
+    /** Fallback only — authoritative value lives in tour config / station1-mesh-align.json. */
+    const OPERATOR_TARGET_HEIGHT_M = 1.65;
     const OPERATOR_SHOULDER_HALF_M = 0.22;
     const OPERATOR_MESH_CLEARANCE_M = 0.06;
     const LS_OPERATOR_SCALE = "syntheticPov.operatorScale";
@@ -2843,17 +2853,13 @@
     let operatorBakedAnchorZ = null;
     let operatorBakedFaceYaw = null;
     let operatorWorldPoseLocked = false;
-    let cachedAutoZone0 = null;
     let repoHadBakedAnchor = false;
     let operatorScaleFromSavedConfig = false;
     let operatorSavedConfig = {};
     let operatorSavedMeshFloorY = null;
-    /** Splat floor at anchor on Station 1 — used to correct Y per zone (.spz exports misalign). */
-    let operatorHomeSplatFloorY = null;
     let worldSceneOrigin = null;
     let stationAlignBootPromise = null;
     let operatorLastSplat = null;
-    let operatorHomeSplat = null;
     let mountGeneration = 0;
     let operatorLastUp = "y";
     let operatorLoadedGlbUrl = null;
@@ -3010,7 +3016,6 @@
     const _reparentPos = new THREE.Vector3();
     const _reparentQuat = new THREE.Quaternion();
     const _reparentScale = new THREE.Vector3();
-    const _zoneMeshCorr = new THREE.Vector3();
 
     /** Preserve world transform when moving operator/mesh onto overlayScene. */
     function reparentPreserveWorld(obj, newParent) {
@@ -3073,30 +3078,26 @@
       return null;
     }
 
+    /**
+     * Zone align records now carry MESH alignment only. All zone viewpoints look
+     * at the same physical space, so the operator has ONE world-fixed placement
+     * (Station 1 anchor + grounded feet) that never varies with the active zone.
+     * Operator fields are still captured in the record for reference/export but
+     * are never applied on zone switch.
+     */
     function ensureZoneAlignRecord(zoneIndex) {
       if (zoneAlignCache[zoneIndex]) return zoneAlignCache[zoneIndex];
       const tour = (lastTour?.length ? lastTour : (window.__SPLAT_TOUR || []));
       const fromTour = tour[zoneIndex]?.capture?.zoneAlign;
       const stored = readZoneAlignStorage(zoneIndex);
-      if (fromTour || stored) {
-        const base = zoneAlignCache[OPERATOR_HOME_ZONE] || {
-          operator: captureOperatorStateFromVars(),
-          mesh: captureMeshStateFromVars(),
-        };
-        zoneAlignCache[zoneIndex] = {
-          operator: { ...(base.operator || {}), ...(fromTour?.operator || {}), ...(stored?.operator || {}) },
-          mesh: { ...(base.mesh || {}), ...(fromTour?.mesh || {}), ...(stored?.mesh || {}) },
-        };
-        return zoneAlignCache[zoneIndex];
-      }
-      if (zoneIndex === OPERATOR_HOME_ZONE) {
-        zoneAlignCache[0] = {
-          operator: captureOperatorStateFromVars(),
-          mesh: captureMeshStateFromVars(),
-        };
-        return zoneAlignCache[0];
-      }
-      zoneAlignCache[zoneIndex] = cloneZoneAlignRecord(ensureZoneAlignRecord(OPERATOR_HOME_ZONE));
+      const base = zoneAlignCache[OPERATOR_HOME_ZONE] || {
+        operator: captureOperatorStateFromVars(),
+        mesh: captureMeshStateFromVars(),
+      };
+      zoneAlignCache[zoneIndex] = {
+        operator: cloneZoneAlignRecord(base).operator,
+        mesh: { ...(base.mesh || {}), ...(fromTour?.mesh || {}), ...(stored?.mesh || {}) },
+      };
       return zoneAlignCache[zoneIndex];
     }
 
@@ -3118,9 +3119,9 @@
       }
     }
 
-    function applyZoneAlignRecordToState(rec, opts = {}) {
+    /** Mesh alignment is per zone; operator placement is global (world-fixed). */
+    function applyZoneAlignRecordToState(rec) {
       if (!rec) return;
-      applyOperatorAlignObject(rec.operator || {}, { ...opts, fromZone: true });
       applyMeshAlignObject(rec.mesh || {});
       syncMeshScaleFromMult();
     }
@@ -3132,7 +3133,7 @@
       }
       zoneAlignEditIdx = zoneIndex;
       const rec = ensureZoneAlignRecord(zoneIndex);
-      applyZoneAlignRecordToState(rec, { applyModel: operatorReady });
+      applyZoneAlignRecordToState(rec);
       const tag = document.getElementById("splatOpZoneTag");
       const label = lastTour[zoneIndex]?.label || ("Zone " + (zoneIndex + 1));
       if (tag) tag.textContent = label;
@@ -3169,78 +3170,91 @@
       zoneAlignEditIdx = -1;
     }
 
-    function getZoneOperatorFields(zoneIndex = lastZoneIndex) {
-      if (zoneIndex === lastZoneIndex) {
-        return {
-          fwd: operatorPosFwd,
-          side: operatorPosSide,
-          lift: operatorLiftM,
-          yaw: operatorYawOffsetDeg,
-          feetBaseY: operatorFeetBaseY,
-          meshGrounded: operatorMeshGrounded,
-          anchorX: operatorBakedAnchorX,
-          anchorZ: operatorBakedAnchorZ,
-          faceYaw: operatorBakedFaceYaw,
-        };
-      }
-      return ensureZoneAlignRecord(zoneIndex).operator || {};
-    }
-
     /**
-     * Operator anchor for the active zone — POV + fwd/side or baked anchorX/Z per station.
-     * Each zone can store its own placement (like splat capture origins).
+     * Operator anchor for the active zone — Station 1's machine spot, expressed
+     * in the ACTIVE zone's coordinate frame.
+     *
+     * Each .spz capture has its own arbitrary frame (every export's origin sits
+     * near its camera start), so there is NO shared world coordinate system —
+     * raw Station-1 coordinates land next to the camera in every other zone.
+     * The cross-zone registration we do have is the calibrated portals:
+     * portalOffsets[<home>] marks where the Station-1 viewpoint sits inside this
+     * zone's frame. The operator stands at that point plus his calibrated offset
+     * from the Station-1 POV, facing the same way relative to it as at home.
      */
     function getOperatorAnchorForZone(zoneIndex = lastZoneIndex) {
-      const cap = getZoneCapture(zoneIndex);
-      const o = cap?.origin;
-      if (!Array.isArray(o) || o.length < 3) return null;
-      const eyeH = cap.eyeHeight ?? 1.85;
-      const { fx, fz, yaw } = povForwardFromCapture(cap);
-      const op = getZoneOperatorFields(zoneIndex);
-      let ox;
-      let oz;
-      let faceYaw;
-      if (Number.isFinite(op.anchorX) && Number.isFinite(op.anchorZ)) {
-        ox = op.anchorX;
-        oz = op.anchorZ;
-        faceYaw = Number.isFinite(op.faceYaw)
-          ? op.faceYaw
-          : Math.atan2(o[0] - ox, -(o[2] - oz));
+      const homeCap = getZoneCapture(OPERATOR_HOME_ZONE);
+      const oh = homeCap?.origin;
+      if (!Array.isArray(oh) || oh.length < 3) return null;
+      const homeEyeH = homeCap.eyeHeight ?? 1.85;
+      const { fx, fz, yaw } = povForwardFromCapture(homeCap);
+      // Operator spot in the HOME (Station 1) frame.
+      let hx;
+      let hz;
+      let homeFaceYaw;
+      if (Number.isFinite(operatorBakedAnchorX) && Number.isFinite(operatorBakedAnchorZ)) {
+        hx = operatorBakedAnchorX;
+        hz = operatorBakedAnchorZ;
+        homeFaceYaw = Number.isFinite(operatorBakedFaceYaw)
+          ? operatorBakedFaceYaw
+          : Math.atan2(oh[0] - hx, -(oh[2] - hz));
       } else {
-        const fwd = op.fwd ?? operatorPosFwd;
-        const side = op.side ?? operatorPosSide;
-        ox = o[0] + fx * fwd + (-fz * side);
-        oz = o[2] + fz * fwd + (fx * side);
-        faceYaw = Math.atan2(o[0] - ox, -(o[2] - oz));
-        if (!Number.isFinite(faceYaw)) faceYaw = yaw ?? 0;
+        hx = oh[0] + fx * operatorPosFwd + (-fz * operatorPosSide);
+        hz = oh[2] + fz * operatorPosFwd + (fx * operatorPosSide);
+        homeFaceYaw = Math.atan2(oh[0] - hx, -(oh[2] - hz));
+        if (!Number.isFinite(homeFaceYaw)) homeFaceYaw = yaw ?? 0;
       }
       if (!operatorGlobalAnchor) {
         operatorGlobalAnchor = { sampledFloor: null, floorSource: null };
       }
-      operatorGlobalAnchor.x = ox;
-      operatorGlobalAnchor.z = oz;
-      operatorGlobalAnchor.povFloorY = o[1] - eyeH;
-      operatorGlobalAnchor.floorY = operatorGlobalAnchor.povFloorY;
-      operatorGlobalAnchor.yaw = faceYaw;
-      operatorGlobalAnchor.zoneIndex = zoneIndex;
-      return operatorGlobalAnchor;
-    }
-
-    /** @deprecated alias */
-    function getStationFixedOperatorAnchor() {
-      return getOperatorAnchorForZone(lastZoneIndex);
-    }
-
-    /** Per-zone mesh offsets — St1 calibration plus each zone's saved mesh align. */
-    function getZoneMeshCorrection(_zoneIndex = lastZoneIndex, out = _zoneMeshCorr) {
-      out.set(0, 0, 0);
-      return out;
+      const a = operatorGlobalAnchor;
+      if (zoneIndex === OPERATOR_HOME_ZONE) {
+        a.x = hx;
+        a.z = hz;
+        a.yaw = homeFaceYaw;
+        a.povFloorY = oh[1] - homeEyeH;
+      } else {
+        const cap = getZoneCapture(zoneIndex);
+        const o = cap?.origin;
+        const tour = (lastTour?.length ? lastTour : (window.__SPLAT_TOUR || []));
+        const off = tour[zoneIndex]?.portalOffsets?.[OPERATOR_HOME_ZONE]
+          ?? tour[zoneIndex]?.portalOffsets?.[String(OPERATOR_HOME_ZONE)];
+        if (Array.isArray(o) && o.length >= 3 && Array.isArray(off) && off.length === 3) {
+          // Station-1 POV location inside THIS zone's frame (calibrated portal).
+          const sx = o[0] + off[0];
+          const sz = o[2] + off[2];
+          a.x = sx + (hx - oh[0]);
+          a.z = sz + (hz - oh[2]);
+          // Same facing relative to the Station-1 POV as at home.
+          a.yaw = Math.atan2(sx - a.x, -(sz - a.z));
+          if (!Number.isFinite(a.yaw)) a.yaw = homeFaceYaw;
+          // Portal Y marks Station 1's eye-height viewpoint in this frame, so the
+          // Station-1 floor here is that Y minus Station 1's eye height.
+          a.povFloorY = (o[1] + off[1]) - homeEyeH;
+        } else if (Array.isArray(o) && o.length >= 3) {
+          // No portal registration for this zone — home coords + this zone's POV
+          // floor (approximate; calibrate a portal back to Station 1 to fix).
+          a.x = hx;
+          a.z = hz;
+          a.yaw = homeFaceYaw;
+          a.povFloorY = o[1] - (cap.eyeHeight ?? 1.85);
+        } else {
+          a.x = hx;
+          a.z = hz;
+          a.yaw = homeFaceYaw;
+          a.povFloorY = oh[1] - homeEyeH;
+        }
+      }
+      a.floorY = a.povFloorY;
+      a.zoneIndex = zoneIndex;
+      return a;
     }
 
     /** Refresh operator + mesh for the active zone (loads that zone's saved align). */
     function repositionForActiveZone(zoneIndex = lastZoneIndex) {
       if (!Number.isFinite(zoneIndex)) return;
       if (!OPERATOR_SPLAT_ENABLED) return;
+      stopOperatorWalk(); // zone snap overrides any in-flight walk target
       activateZoneAlign(zoneIndex);
       getOperatorAnchorForZone(zoneIndex);
       applyStationMeshTransform();
@@ -3266,11 +3280,6 @@
       reparentPreserveWorld(operatorAnchor, overlayScene);
       operatorAnchor.position.copy(worldPos);
       operatorAnchor.updateMatrixWorld(true);
-    }
-
-    // Deprecated: world anchor is always Station 1 POV + fwd/side. Kept as a safe no-op.
-    function bakeOperatorWorldAnchor() {
-      refreshOperatorAnchorTransform();
     }
 
     function setOperatorPosFwd(fwd) {
@@ -3505,7 +3514,10 @@
       if (op.naturalMaterials != null) operatorUseNaturalMaterials = !!op.naturalMaterials;
       if (op.collisionWithMesh != null) operatorMeshCollisionEnabled = !!op.collisionWithMesh;
       if (op.groundDebug != null) operatorGroundDebugShow = !!op.groundDebug;
-      syncOperatorPrefsFromConfig(op);
+      // Zone activations are transient — only repo/global config may write the
+      // shared legacy pref keys, otherwise a default zone spot (fwd 1.2) would
+      // overwrite Station 1's saved fwd/side on the next boot.
+      if (!opts.fromZone) syncOperatorPrefsFromConfig(op);
       if (opts.applyModel && operatorReady) applyOperatorModelScale();
     }
 
@@ -3621,21 +3633,6 @@
       return hadOperator;
     }
 
-    function applyLegacyOperatorPrefsIfNoBundle() {
-      const _opTour = getOperatorTourConfig();
-      operatorUserScale = readOperatorPref(LS_OPERATOR_SCALE, "opScale", operatorUserScale);
-      operatorYawOffsetDeg = readOperatorPref(LS_OPERATOR_YAW, "opYaw", operatorYawOffsetDeg);
-      operatorLiftM = readOperatorPref(LS_OPERATOR_LIFT, "opLift", operatorLiftM);
-      if (operatorLiftM > 0.35) operatorLiftM = 0;
-      operatorPosFwd = readOperatorPref(LS_OPERATOR_FWD, "opFwd", operatorPosFwd);
-      operatorPosSide = readOperatorPref(LS_OPERATOR_SIDE, "opSide", operatorPosSide);
-      operatorGroundOffsetM = readOperatorPref(LS_OPERATOR_GROUND, "opGround", operatorGroundOffsetM);
-      const feetBase = readOperatorPref(LS_OPERATOR_FEET_BASE, "opFeetBase", NaN);
-      if (Number.isFinite(feetBase)) operatorFeetBaseY = feetBase;
-      if (!Number.isFinite(operatorUserScale)) operatorUserScale = _opTour.scale ?? 1;
-      migrateLegacyOperatorFeetBaseY();
-    }
-
     function applyMeshAlignUrlOverrides() {
       const qs = new URLSearchParams(location.search);
       for (const [key, field] of [
@@ -3660,6 +3657,11 @@
       applyTourStationDefaults();
       mergeLocalStorageStationAlign(true);
       await loadRepoStationAlign();
+      // The operator placement is global (world-fixed at Station 1). Zone records
+      // no longer apply operator state, so restore the last saved session values
+      // (feetBaseY, grounding, fwd/side tweaks) from the home record here.
+      const homeStored = readZoneAlignStorage(OPERATOR_HOME_ZONE);
+      if (homeStored?.operator) applyOperatorAlignObject(homeStored.operator);
       applyMeshAlignUrlOverrides();
       migrateLegacyOperatorFeetBaseY();
       syncMeshScaleFromMult();
@@ -3685,12 +3687,6 @@
       else if (Number.isFinite(data.rotYDeg)) stationMeshRotY = THREE.MathUtils.degToRad(data.rotYDeg);
     }
 
-    function readStationMeshAlign() {
-      mergeLocalStorageStationAlign();
-      applyMeshAlignUrlOverrides();
-      syncMeshScaleFromMult();
-    }
-
     async function loadRepoStationAlign() {
       try {
         const res = await fetch("/lab/station1-mesh-align.json");
@@ -3710,24 +3706,10 @@
       return LAB_ASSETS + String(url).replace(/^\.?\/?assets\//, "");
     }
 
-    function shouldAutoLoadStationMesh() {
-      if (stationMeshShow) return true;
-      const q = new URLSearchParams(location.search);
-      return q.get("mesh") === "1" || q.get("stationMesh") === "1" || q.get("stationMesh") === "true";
-    }
-
     function stationMeshConfig() {
       return stationMeshCfg
         || window.__SPLAT_TOUR?.[OPERATOR_HOME_ZONE]?.capture?.stationMesh
         || null;
-    }
-
-    function maybeEnsureStationMesh(cfg = stationMeshConfig()) {
-      if (!cfg?.url) return null;
-      const url = normalizeLabAssetUrl(cfg.url);
-      stationMeshCfg = { ...cfg, url };
-      if (!shouldAutoLoadStationMesh()) return null;
-      return ensureStationMesh(stationMeshCfg);
     }
 
     function isTypingInForm() {
@@ -3948,9 +3930,6 @@
         return false;
       }
     }
-
-    // Deprecated — saveMeshAlignPose bakes anchorX/Z into repo JSON.
-    async function ensureOperatorAnchorBakedToRepo() {}
 
     function saveMeshAlignPose() {
       persistZoneAlign(lastZoneIndex);
@@ -4637,10 +4616,6 @@
       return true;
     }
 
-    function maybeFitOperatorScaleToStationMesh(force = false) {
-      fitOperatorScaleToStationMesh(force);
-    }
-
     function sampleMeshFootprintHits(anchor, up = "y") {
       if (!meshFloorReady()) return [];
       const yaw = getOperatorFacingYaw(anchor);
@@ -4817,9 +4792,29 @@
       }
     }
 
-    // Feet Y at the station-fixed anchor — constant across zones once grounded.
+    /**
+     * Feet Y for the anchor.
+     * Home zone: the Station-1 grounded feetBaseY / mesh floor is authoritative.
+     * Other zones: feetBaseY and the mesh live in Station 1's coordinate frame,
+     * which does not exist here — derive the floor from the portal-registered
+     * Station-1 viewpoint (anchor.povFloorY) plus the same ground delta that was
+     * calibrated at home, so height/lift match Station 1 exactly.
+     */
     function resolveOperatorFloorY(_splat, anchor, up = "y") {
       if (!anchor) return null;
+      const zone = Number.isFinite(anchor.zoneIndex) ? anchor.zoneIndex : lastZoneIndex;
+      if (zone !== OPERATOR_HOME_ZONE) {
+        const pov = anchor.povFloorY ?? anchor.floorY;
+        if (Number.isFinite(pov)) {
+          return pov + operatorGroundOffsetM + operatorLiftM;
+        }
+        const splat = operatorLastSplat || current;
+        if (splat) {
+          const s = sampleOperatorFootprintFloor(splat, anchor, up);
+          if (s != null) return s + operatorLiftM;
+        }
+        return null;
+      }
       if (Number.isFinite(operatorFeetBaseY) && operatorMeshGrounded) {
         return operatorFeetBaseY + operatorLiftM;
       }
@@ -4858,8 +4853,87 @@
       return null;
     }
 
-    // Back-compat no-ops (world-fixing removed).
-    function ensureOperatorSavedFloor() { return null; }
+    /* ── Operator locomotion foundation ─────────────────────────────────────
+     * Target-based walking on the sampled floor (mesh BVH when loaded, splat
+     * footprint otherwise). Public contract: moveOperatorTo / stopOperatorWalk
+     * / isOperatorWalking on window.SplatViewer. A future physics backend
+     * (Omniverse) replaces the stepping + floor source behind the same API.
+     */
+    const WALK_RESAMPLE_DIST = 0.35; // m between floor re-samples (splat sampling is costly)
+    const operatorWalk = {
+      active: false,
+      targetX: 0,
+      targetZ: 0,
+      speedMps: 0.9,
+      turnRate: 3.5,      // rad/s toward heading
+      arriveEps: 0.05,    // m
+      feetOffset: 0,      // anchor Y minus floor Y at walk start (model origin != feet)
+      floorSample: null,  // { x, z, y }
+      onArrive: null,
+    };
+
+    function sampleWalkFloorY(x, z) {
+      const probe = { x, z, yaw: operatorAnchor?.rotation.y ?? 0, zoneIndex: lastZoneIndex };
+      const res = sampleZoneFloorAtAnchor(probe, operatorLastUp);
+      return res ? res.y : null;
+    }
+
+    function moveOperatorTo(x, z, opts = {}) {
+      if (!Number.isFinite(x) || !Number.isFinite(z)) return false;
+      if (!operatorReady || !operatorAnchor) return false;
+      operatorWalk.targetX = x;
+      operatorWalk.targetZ = z;
+      operatorWalk.speedMps = Number.isFinite(opts.speedMps) ? Math.max(0.1, opts.speedMps) : 0.9;
+      operatorWalk.onArrive = typeof opts.onArrive === "function" ? opts.onArrive : null;
+      const y0 = sampleWalkFloorY(operatorAnchor.position.x, operatorAnchor.position.z);
+      operatorWalk.feetOffset = Number.isFinite(y0) ? operatorAnchor.position.y - y0 : 0;
+      operatorWalk.floorSample = null;
+      operatorWalk.active = true;
+      return true;
+    }
+
+    function stopOperatorWalk() {
+      operatorWalk.active = false;
+      operatorWalk.onArrive = null;
+    }
+
+    function tickOperatorLocomotion(dt) {
+      if (!operatorWalk.active || !operatorReady || !operatorAnchor || !(dt > 0)) return;
+      const px = operatorAnchor.position.x;
+      const pz = operatorAnchor.position.z;
+      const dx = operatorWalk.targetX - px;
+      const dz = operatorWalk.targetZ - pz;
+      const dist = Math.hypot(dx, dz);
+      if (dist <= operatorWalk.arriveEps) {
+        operatorWalk.active = false;
+        const cb = operatorWalk.onArrive;
+        operatorWalk.onArrive = null;
+        cb?.();
+        return;
+      }
+      const step = Math.min(dist, operatorWalk.speedMps * dt);
+      const nx = px + (dx / dist) * step;
+      const nz = pz + (dz / dist) * step;
+      // Face the walk direction (same yaw convention as getOperatorAnchorForZone).
+      const targetYaw = Math.atan2(dx, -dz);
+      const cur = operatorAnchor.rotation.y;
+      const dYaw = Math.atan2(Math.sin(targetYaw - cur), Math.cos(targetYaw - cur));
+      const maxTurn = operatorWalk.turnRate * dt;
+      operatorAnchor.rotation.y = cur + Math.max(-maxTurn, Math.min(maxTurn, dYaw));
+      // Follow the floor, re-sampling every WALK_RESAMPLE_DIST metres.
+      let fs = operatorWalk.floorSample;
+      if (!fs || Math.hypot(nx - fs.x, nz - fs.z) > WALK_RESAMPLE_DIST) {
+        fs = { x: nx, z: nz, y: sampleWalkFloorY(nx, nz) };
+        operatorWalk.floorSample = fs;
+      }
+      operatorAnchor.position.x = nx;
+      operatorAnchor.position.z = nz;
+      if (Number.isFinite(fs.y)) {
+        // feetOffset already includes lift + feet-to-origin delta captured at walk start.
+        operatorAnchor.position.y = fs.y + operatorWalk.feetOffset;
+      }
+      operatorAnchor.updateMatrixWorld(true);
+    }
 
     function refreshOperatorAnchorTransform() {
       if (!operatorAnchor) return;
@@ -4891,13 +4965,8 @@
       return { fx: Math.sin(yaw) * cp, fz: -Math.cos(yaw) * cp, yaw, pitch };
     }
 
-    // Legacy alias.
-    function getGlobalOperatorAnchor(_autoZone0) {
-      return getStationFixedOperatorAnchor();
-    }
-
     function recomputeOperatorAnchorXZ() {
-      getStationFixedOperatorAnchor();
+      getOperatorAnchorForZone(lastZoneIndex);
     }
 
     function ensureOperatorOnScene() {
@@ -4967,14 +5036,6 @@
         updateStationMeshHud("station mesh: load failed (using splat floor)");
       });
       return stationMeshLoadPromise;
-    }
-
-    function applyGlobalOperatorPlacement(splat, zoneIndex, up = "y", _autoZone0 = null) {
-      if (!operatorAnchor) return;
-      if (splat) operatorLastSplat = splat;
-      if (zoneIndex === OPERATOR_HOME_ZONE && splat) operatorHomeSplat = splat;
-      operatorLastUp = up;
-      repositionForActiveZone(zoneIndex);
     }
 
     function isOmniverseOperatorUrl(url) {
@@ -5082,6 +5143,7 @@
       operatorBaseHeightLocked = true;
     }
 
+    const _opAnchorWorldPos = new THREE.Vector3();
     function applyOperatorModelScale() {
       if (!operatorScaleNode) return;
       measureOperatorBaseHeight();
@@ -5091,7 +5153,16 @@
       updateOperatorSkeleton();
       getOperatorBoundsRoot().updateMatrixWorld(true);
       const bbox = new THREE.Box3().setFromObject(getOperatorBoundsRoot());
-      if (Number.isFinite(bbox.min.y)) operatorScaleNode.position.y -= bbox.min.y;
+      // The bbox is world-space, so the feet offset must be measured relative to
+      // the anchor's world Y. Using bbox.min.y raw baked the anchor height into
+      // the model's local offset on every zone sync — the operator crept up or
+      // down by the floor height on each station jump (the "floating" bug).
+      const anchorWorldY = operatorAnchor
+        ? operatorAnchor.getWorldPosition(_opAnchorWorldPos).y
+        : 0;
+      if (Number.isFinite(bbox.min.y)) {
+        operatorScaleNode.position.y -= (bbox.min.y - anchorWorldY);
+      }
       getOperatorBoundsRoot().updateMatrixWorld(true);
       updateOperatorSkeleton();
     }
@@ -5130,18 +5201,28 @@
       return null;
     }
 
+    /** Tour/JSON glbUrl entries omit ?v= — apply the shared bust so caches can't go stale. */
+    function withOperatorCacheBust(url) {
+      const u = String(url || "");
+      if (!u || u.includes("?") || !/worker_blender_v5\.glb$/i.test(u)) return u;
+      return `${u}?v=${OPERATOR_V5_CACHE_VER}`;
+    }
+
     function operatorGlbCandidates() {
       if (!OPERATOR_SPLAT_ENABLED) return [];
       const qs = new URLSearchParams(location.search).get("opGlb");
       if (qs) return [normalizeLabAssetUrl(qs)];
-      // v5 first; v1 kept as fallback (different unit fix + scale).
-      return [
+      // Saved config first (station1-mesh-align.json), then v5, then fallbacks.
+      const saved = getOperatorConfigMerged().glbUrl;
+      const list = [
+        saved ? withOperatorCacheBust(normalizeLabAssetUrl(saved)) : null,
         OPERATOR_WORKER_BLENDER_V5,
         OPERATOR_BLENDER_MODEL_1,
         OPERATOR_BLENDER_GLB,
         OPERATOR_GLB,
         OPERATOR_GLB_FALLBACK,
-      ].map((u) => normalizeLabAssetUrl(u));
+      ].filter(Boolean).map((u) => normalizeLabAssetUrl(u));
+      return [...new Set(list)];
     }
 
     function countMeshTriangles(obj) {
@@ -5560,6 +5641,7 @@
         const flyDelta = Math.min(flyClock.getDelta(), 0.05);
         controls.update();
         updateFlyMovement(flyDelta);
+        tickOperatorLocomotion(flyDelta);
         updateHotspotProjections();
         applySplatVisibility();
         renderer.autoClear = true;
@@ -5888,6 +5970,7 @@
           floorV: null,
           capture: lastCapture,
           savedOrigin: true,
+          mountGen: mountGeneration,
         },
       }));
       return true;
@@ -5936,6 +6019,12 @@
             origin.y + Math.cos(angle) * radius,
             origin.z,
           );
+        } else if (up === "x") {
+          pos.set(
+            origin.x,
+            origin.y + Math.sin(angle) * radius,
+            origin.z + Math.cos(angle) * radius,
+          );
         } else {
           pos.set(
             origin.x + Math.sin(angle) * radius,
@@ -5977,14 +6066,20 @@
       }
     }
 
+    const _hotspotDir = new THREE.Vector3();
+    const _cameraFwd = new THREE.Vector3();
     function updateHotspotProjections() {
       if (!camera || !host || !hotspotEls.length) return;
       const w = host.clientWidth || 1, h = host.clientHeight || 1;
       const tmp = new THREE.Vector3();
+      camera.getWorldDirection(_cameraFwd);
       for (const { btn, pos } of hotspotEls) {
+        // NDC z alone is unreliable for points behind the camera (w flips sign);
+        // test against the camera forward vector instead.
+        _hotspotDir.copy(pos).sub(camera.position);
+        const behind = _hotspotDir.dot(_cameraFwd) <= 0;
         tmp.copy(pos);
         tmp.project(camera);
-        const behind = tmp.z > 1;
         const off = tmp.x < -1.05 || tmp.x > 1.05 || tmp.y < -1.05 || tmp.y > 1.05;
         btn.hidden = behind || off;
         if (!behind && !off) {
@@ -5999,12 +6094,9 @@
       await alignBoot;
       if (mountGen !== mountGeneration || current !== splat) return;
       if (!OPERATOR_SPLAT_ENABLED) return;
-      if (zoneIndex === OPERATOR_HOME_ZONE) {
-        cachedAutoZone0 = auto;
-        operatorHomeSplat = splat;
-      }
-      const autoZone0 = zoneIndex === OPERATOR_HOME_ZONE ? auto : cachedAutoZone0;
       await ensureInSplatOperator();
+      // Re-validate after the (possibly long) GLB load — a faster zone hop wins.
+      if (mountGen !== mountGeneration || current !== splat) return;
       repositionForActiveZone(zoneIndex);
       updateOperatorGroundStatusLine();
     }
@@ -6089,7 +6181,6 @@
         }
 
         operatorLastSplat = splat;
-        if (zoneIndex === OPERATOR_HOME_ZONE) operatorHomeSplat = splat;
         const up = lastUp;
         const hasBakedOrigin = Array.isArray(capture.origin) && capture.origin.length === 3 && !forceRecalc;
         let origin;
@@ -6182,6 +6273,20 @@
       saveZoneAlign,
       getZoneAlignDump,
       groundOperatorToFloor,
+      // Locomotion foundation — see docs/viewer-abstraction.md
+      moveOperatorTo,
+      stopOperatorWalk,
+      isOperatorWalking: () => operatorWalk.active,
+      getOperatorPose: () => (operatorAnchor
+        ? {
+            x: operatorAnchor.position.x,
+            y: operatorAnchor.position.y,
+            z: operatorAnchor.position.z,
+            yaw: operatorAnchor.rotation.y,
+            zoneIndex: lastZoneIndex,
+            visible: operatorAnchor.visible,
+          }
+        : null),
     };
     if (host) init();
 
