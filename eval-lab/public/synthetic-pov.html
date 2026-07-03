@@ -2817,6 +2817,12 @@
       rArm: ["mixamorigRightArm", "mixamorig:RightArm", "UpperArm.R", "CC_Base_R_Upperarm", "R_Upperarm", "RightArm", "upperarm_r"],
       rForeArm: ["mixamorigRightForeArm", "mixamorig:RightForeArm", "LowerArm.R", "CC_Base_R_Forearm", "R_Forearm", "RightForeArm", "lowerarm_r"],
       rClavicle: ["mixamorigRightShoulder", "mixamorig:RightShoulder", "CC_Base_R_Clavicle", "R_Clavicle", "RightShoulder", "shoulder_r"],
+      lThigh: ["mixamorigLeftUpLeg", "mixamorig:LeftUpLeg", "UpperLeg.L", "CC_Base_L_Thigh", "L_Thigh", "LeftUpLeg", "thigh_l"],
+      lCalf: ["mixamorigLeftLeg", "mixamorig:LeftLeg", "LowerLeg.L", "CC_Base_L_Calf", "L_Calf", "LeftLeg", "calf_l"],
+      lFoot: ["mixamorigLeftFoot", "mixamorig:LeftFoot", "Foot.L", "CC_Base_L_Foot", "L_Foot", "LeftFoot", "foot_l"],
+      rThigh: ["mixamorigRightUpLeg", "mixamorig:RightUpLeg", "UpperLeg.R", "CC_Base_R_Thigh", "R_Thigh", "RightUpLeg", "thigh_r"],
+      rCalf: ["mixamorigRightLeg", "mixamorig:RightLeg", "LowerLeg.R", "CC_Base_R_Calf", "R_Calf", "RightLeg", "calf_r"],
+      rFoot: ["mixamorigRightFoot", "mixamorig:RightFoot", "Foot.R", "CC_Base_R_Foot", "R_Foot", "RightFoot", "foot_r"],
     };
 
     const host = document.getElementById("splatMain");
@@ -4255,6 +4261,49 @@
       });
     }
 
+    /** Procedural walk cycle — leg/arm swing driven by distance travelled so
+     * stride matches ground speed. Applied on top of the rest pose while
+     * operatorWalk.active; applyOperatorIdleStance() restores the stand. */
+    function applyOperatorWalkPose(phase) {
+      if (!operatorReady) return;
+      resetOperatorBones();
+      if (operatorPoseProfile?.standArmRest) {
+        rotateOperatorBone(OP_BONES.lClavicle, 0.05, 0, 0);
+        rotateOperatorBone(OP_BONES.rClavicle, 0.05, 0, 0);
+        rotateOperatorBone(OP_BONES.lArm, 0, 0, -0.78);
+        rotateOperatorBone(OP_BONES.rArm, 0, 0, 0.78);
+        rotateOperatorBone(OP_BONES.lForeArm, 0.06, 0, 0);
+        rotateOperatorBone(OP_BONES.rForeArm, 0.06, 0, 0);
+      }
+      const swing = Math.sin(phase);
+      const THIGH_A = 0.5;
+      const KNEE_A = 0.8;
+      // Knee flexes while its leg swings through (rearward half of the cycle).
+      const kneeL = Math.max(0, Math.sin(phase - Math.PI * 0.5)) * KNEE_A;
+      const kneeR = Math.max(0, Math.sin(phase + Math.PI * 0.5)) * KNEE_A;
+      rotateOperatorBone(OP_BONES.lThigh, -swing * THIGH_A, 0, 0);
+      rotateOperatorBone(OP_BONES.rThigh, swing * THIGH_A, 0, 0);
+      rotateOperatorBone(OP_BONES.lCalf, kneeL, 0, 0);
+      rotateOperatorBone(OP_BONES.rCalf, kneeR, 0, 0);
+      // Keep feet roughly level with the ground through the stride.
+      rotateOperatorBone(OP_BONES.lFoot, swing * THIGH_A * 0.4 - kneeL * 0.5, 0, 0);
+      rotateOperatorBone(OP_BONES.rFoot, -swing * THIGH_A * 0.4 - kneeR * 0.5, 0, 0);
+      // Counter-swing the arms and lean slightly into the walk.
+      rotateOperatorBone(OP_BONES.lArm, swing * 0.3, 0, 0);
+      rotateOperatorBone(OP_BONES.rArm, -swing * 0.3, 0, 0);
+      rotateOperatorBone(OP_BONES.spine, 0.07, 0, swing * 0.03);
+      rotateOperatorBone(OP_BONES.spine1, 0.04, 0, -swing * 0.03);
+      updateOperatorSkeleton();
+    }
+
+    /** Restore the standing rest pose (after a walk ends or is cancelled). */
+    function applyOperatorIdleStance() {
+      if (!operatorReady) return;
+      resetOperatorBones();
+      if (operatorPoseProfile?.standArmRest) applyCcV5StandArmRest();
+      else updateOperatorSkeleton();
+    }
+
     /** CC v5 export bind is A-pose — rotate upper arms down to hang at sides. */
     function applyCcV5StandArmRest() {
       rotateOperatorBone(OP_BONES.lClavicle, 0.05, 0, 0);
@@ -4921,6 +4970,8 @@
       targetFeetY: null,
       startFeetY: 0,
       totalDist: 0,
+      phase: 0,           // walk-cycle phase, advanced by distance travelled
+      strideM: 0.62,      // metres per full left+right stride cycle
     };
 
     function sampleWalkFloorY(x, z) {
@@ -4947,8 +4998,11 @@
     }
 
     function stopOperatorWalk() {
+      const wasWalking = operatorWalk.active;
       operatorWalk.active = false;
       operatorWalk.onArrive = null;
+      operatorWalk.phase = 0;
+      if (wasWalking) applyOperatorIdleStance();
     }
 
     function tickOperatorLocomotion(dt) {
@@ -4960,10 +5014,12 @@
       const dist = Math.hypot(dx, dz);
       if (dist <= operatorWalk.arriveEps) {
         operatorWalk.active = false;
+        operatorWalk.phase = 0;
         if (Number.isFinite(operatorWalk.targetFeetY)) {
           operatorAnchor.position.y = operatorWalk.targetFeetY;
           operatorAnchor.updateMatrixWorld(true);
         }
+        applyOperatorIdleStance();
         const cb = operatorWalk.onArrive;
         operatorWalk.onArrive = null;
         cb?.();
@@ -4972,6 +5028,9 @@
       const step = Math.min(dist, operatorWalk.speedMps * dt);
       const nx = px + (dx / dist) * step;
       const nz = pz + (dz / dist) * step;
+      // Advance the walk cycle by distance so stride length stays constant.
+      operatorWalk.phase += (step / operatorWalk.strideM) * Math.PI * 2;
+      applyOperatorWalkPose(operatorWalk.phase);
       // Face the walk direction (same yaw convention as getOperatorAnchorForZone).
       const targetYaw = Math.atan2(dx, -dz);
       const cur = operatorAnchor.rotation.y;
@@ -5006,7 +5065,7 @@
      * anchoring: station k's viewpoint inside the ACTIVE zone's frame is
      * origin + portalOffsets[k] (or the origin itself for the active zone).
      */
-    const WALK_STAND_OFF_M = 0.45; // stop this far short of the station viewpoint
+    const WALK_STAND_OFF_M = 0.15; // stop this far short of the station viewpoint
 
     function resolveStationIndexFromText(text) {
       const t = String(text || "").toLowerCase();
@@ -5631,6 +5690,7 @@
       window.__lastOpSyncT = now;
       const { playT, duration } = ev.detail || {};
       const steps = window.__OPERATOR_STEPS;
+      if (operatorWalk.active) return; // walk cycle owns the skeleton while moving
       if (!operatorReady || !operatorVisible || playT == null || !steps?.length) return;
       const prog = (playT / Math.max(duration, 0.001)) * steps.length;
       const idx = Math.floor(prog) % steps.length;
@@ -6456,6 +6516,12 @@
       runOperatorCommand,
       resolveStationIndexFromText,
       isOperatorWalking: () => operatorWalk.active,
+      /** Dev-only: drive/tune the procedural walk cycle from the console. */
+      _walkDebug: {
+        applyWalkPose: applyOperatorWalkPose,
+        idleStance: applyOperatorIdleStance,
+        boneWorld: (role) => getOperatorBoneWorldPosition(OP_BONES[role])?.toArray() ?? null,
+      },
       getOperatorPose: () => (operatorAnchor
         ? {
             x: operatorAnchor.position.x,
