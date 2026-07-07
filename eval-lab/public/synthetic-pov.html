@@ -4511,7 +4511,6 @@
         rayDown = stationRayDir.set(-1, 0, 0);
       }
       stationRaycaster.set(rayStart, rayDown);
-      stationRaycaster.far = Infinity; // obstacle probes clamp far — always reset
       stationRaycaster.firstHitOnly = true;
       const hits = stationRaycaster.intersectObjects(stationMeshColliders, false);
       if (!hits.length) return null;
@@ -4981,9 +4980,6 @@
       traveled: 0,        // metres covered so far (drives the accel ramp)
       zoneIndex: null,    // zone the walk was issued in
       placed: false,      // arrived (or stopped) — hold this spot, don't re-anchor
-      meshSample: null,   // { x, z, y } BVH floor under the path (refines feet Y)
-      meshTrusted: false, // mesh floor agrees with registration → collision active
-      onBlocked: null,    // mesh obstacle stopped the walk short of the target
     };
 
     /** True while a walk (in flight or arrived) owns the operator transform in this zone. */
@@ -5015,7 +5011,6 @@
       operatorWalk.targetZ = z;
       operatorWalk.speedMps = Number.isFinite(opts.speedMps) ? Math.max(0.1, opts.speedMps) : 0.9;
       operatorWalk.onArrive = typeof opts.onArrive === "function" ? opts.onArrive : null;
-      operatorWalk.onBlocked = typeof opts.onBlocked === "function" ? opts.onBlocked : null;
       operatorWalk.targetFeetY = Number.isFinite(opts.targetFeetY) ? opts.targetFeetY : null;
       operatorWalk.startFeetY = operatorAnchor.position.y;
       operatorWalk.totalDist = Math.hypot(x - operatorAnchor.position.x, z - operatorAnchor.position.z);
@@ -5025,44 +5020,7 @@
       operatorWalk.traveled = 0;
       operatorWalk.zoneIndex = lastZoneIndex;
       operatorWalk.placed = false;
-      // Station-mesh grounding (home zone only — that's where the mesh overlay
-      // is calibrated; other zones' frames have no mesh registration). The
-      // mesh lives in its own Y band, so it is used RELATIVELY: feet track
-      // (mesh floor + offset), where the offset anchors the calibrated stance
-      // (feetBaseY) to the mesh floor at the calibrated spot. This overrides
-      // the eyeballed portal Y drift that made him sink between points.
-      operatorWalk.meshSample = null;
-      operatorWalk.meshTrusted = false;
-      if (meshGroundReady() && lastZoneIndex === OPERATOR_HOME_ZONE) {
-        const px0 = operatorAnchor.position.x;
-        const pz0 = operatorAnchor.position.z;
-        const meshY0 = raycastStationFloorAt(px0, pz0, operatorLastUp);
-        if (Number.isFinite(meshY0)) {
-          // Calibrated stance height: feetBaseY when grounded, else Station 1's
-          // registered floor. Never the current feet — a prior walk may have
-          // left them sunk on drifted portal Ys, which is what we're fixing.
-          let refFeet = Number.isFinite(operatorFeetBaseY) ? operatorFeetBaseY + operatorLiftM : null;
-          if (refFeet == null) {
-            const pf = station1PovFloorY();
-            if (Number.isFinite(pf)) refFeet = pf + operatorGroundOffsetM + operatorLiftM;
-          }
-          const a = getOperatorAnchorForZone(OPERATOR_HOME_ZONE);
-          const meshAtSpot = a ? raycastStationFloorAt(a.x, a.z, operatorLastUp) : null;
-          const offset = refFeet != null
-            ? refFeet - (Number.isFinite(meshAtSpot) ? meshAtSpot : meshY0)
-            : operatorAnchor.position.y - meshY0;
-          operatorWalk.meshTrusted = true;
-          operatorWalk.meshSample = { x: px0, z: pz0, y: meshY0, offset };
-        }
-      }
       operatorWalk.active = true;
-      if (IS_SPLAT_DEV) {
-        console.info("[splat] walk start", {
-          meshTrusted: operatorWalk.meshTrusted,
-          meshReady: meshGroundReady(),
-          distM: operatorWalk.totalDist.toFixed(2),
-        });
-      }
       return true;
     }
 
@@ -5080,27 +5038,6 @@
 
     const WALK_RAMP_M = 0.35;      // metres to accelerate from rest / decelerate to stop
     const WALK_BOB_M = 0.012;      // pelvis rise/fall per step (two bobs per stride)
-    const WALK_MESH_SNAP_M = 1.0;  // sanity bound: mesh-derived feet vs registered height
-    const WALK_BLOCK_MARGIN_M = 0.12; // extra clearance beyond the capsule radius
-
-    const _walkRayOrigin = new THREE.Vector3();
-    const _walkRayDir = new THREE.Vector3();
-
-    /** Distance to the nearest mesh obstacle ahead at chest + knee height.
-     * Ray heights are measured from the MESH floor under the operator, not his
-     * feet — the overlay mesh can sit at a different absolute Y than the splat
-     * ground, but heights above its own floor are correct. */
-    function walkObstacleAhead(x, meshFloorY, z, yaw, probeDist) {
-      if (!Number.isFinite(meshFloorY) || !meshGroundReady()) return null;
-      _walkRayDir.set(Math.sin(yaw), 0, -Math.cos(yaw));
-      let nearest = null;
-      for (const h of [1.05, 0.35]) { // chest, knee
-        _walkRayOrigin.set(x, meshFloorY + h, z);
-        const d = raycastStationMeshAlong(_walkRayOrigin, _walkRayDir, probeDist);
-        if (d != null && (nearest == null || d < nearest)) nearest = d;
-      }
-      return nearest;
-    }
 
     function tickOperatorLocomotion(dt) {
       if (!operatorWalk.active || !operatorReady || !operatorAnchor || !(dt > 0)) return;
@@ -5113,18 +5050,8 @@
         operatorWalk.active = false;
         operatorWalk.phase = 0;
         operatorWalk.placed = true; // hold this spot until the zone changes
-        // Final feet height: mesh floor wins when grounded on it, else the
-        // portal-registered target height.
-        let finalY = Number.isFinite(operatorWalk.targetFeetY) ? operatorWalk.targetFeetY : null;
-        if (operatorWalk.meshTrusted) {
-          const my = raycastStationFloorAt(operatorWalk.targetX, operatorWalk.targetZ, operatorLastUp);
-          if (Number.isFinite(my)) {
-            const meshFeetY = my + (operatorWalk.meshSample?.offset ?? 0);
-            if (finalY == null || Math.abs(meshFeetY - finalY) < WALK_MESH_SNAP_M) finalY = meshFeetY;
-          }
-        }
-        if (Number.isFinite(finalY)) {
-          operatorAnchor.position.y = finalY;
+        if (Number.isFinite(operatorWalk.targetFeetY)) {
+          operatorAnchor.position.y = operatorWalk.targetFeetY;
           operatorAnchor.updateMatrixWorld(true);
         }
         applyOperatorIdleStance();
@@ -5149,25 +5076,6 @@
       const step = Math.min(dist, Math.max(0, speed) * dt);
       const nx = px + (dx / dist) * step;
       const nz = pz + (dz / dist) * step;
-      // Mesh collision: stop against machines/benches instead of clipping through.
-      if (operatorWalk.meshTrusted && dist > operatorWalk.arriveEps * 3) {
-        const clearance = operatorCapsuleRadius + WALK_BLOCK_MARGIN_M;
-        const ahead = walkObstacleAhead(px, operatorWalk.meshSample?.y, pz, targetYaw, clearance + step + 0.25);
-        if (ahead != null && ahead <= clearance + step) {
-          operatorWalk.active = false;
-          operatorWalk.phase = 0;
-          operatorWalk.placed = true;
-          applyOperatorIdleStance();
-          const cb = operatorWalk.onBlocked;
-          operatorWalk.onBlocked = null;
-          operatorWalk.onArrive = null;
-          if (IS_SPLAT_DEV) {
-            console.info("[splat] walk blocked by mesh", { aheadM: +ahead.toFixed(3), remainingM: +dist.toFixed(3) });
-          }
-          cb?.(dist);
-          return;
-        }
-      }
       // Advance the walk cycle by distance so stride length stays constant.
       operatorWalk.traveled += step;
       operatorWalk.phase += (step / operatorWalk.strideM) * Math.PI * 2;
@@ -5180,21 +5088,6 @@
         const remaining = Math.hypot(operatorWalk.targetX - nx, operatorWalk.targetZ - nz);
         const t = Math.min(1, Math.max(0, 1 - remaining / operatorWalk.totalDist));
         baseY = operatorWalk.startFeetY + (operatorWalk.targetFeetY - operatorWalk.startFeetY) * t;
-        // Mesh BVH refinement: follow the actual floor surface (steps, ramps,
-        // uneven slab) when the mesh is aligned; registration remains the
-        // sanity bound so a mis-scaled mesh can't fling him.
-        if (operatorWalk.meshTrusted) {
-          let ms = operatorWalk.meshSample;
-          if (!ms || Math.hypot(nx - ms.x, nz - ms.z) > WALK_RESAMPLE_DIST) {
-            const my = raycastStationFloorAt(nx, nz, operatorLastUp);
-            ms = { x: nx, z: nz, y: my, offset: ms?.offset ?? 0 };
-            operatorWalk.meshSample = ms;
-          }
-          if (Number.isFinite(ms.y)) {
-            const meshFeetY = ms.y + (ms.offset ?? 0);
-            if (Math.abs(meshFeetY - baseY) < WALK_MESH_SNAP_M) baseY = meshFeetY;
-          }
-        }
       } else {
         // Follow the floor, re-sampling every WALK_RESAMPLE_DIST metres.
         let fs = operatorWalk.floorSample;
@@ -5290,19 +5183,12 @@
       const tz = pz + dz * s;
       const eyeH = tour[idx]?.capture?.eyeHeight ?? 1.85;
       const targetFeetY = (pt.eyeY - eyeH) + operatorGroundOffsetM + operatorLiftM;
-      // Load the station mesh in the background so this (or the next) walk can
-      // ground against real geometry instead of the registration lerp alone.
-      if (!meshFloorReady()) void ensureMeshForOperatorGround().catch(() => {});
       const started = moveOperatorTo(tx, tz, {
         speedMps: opts.speedMps,
         targetFeetY,
         onArrive: () => {
           faceOperatorToward(pt.x, pt.z);
           opts.onArrive?.();
-        },
-        onBlocked: (remainingM) => {
-          faceOperatorToward(pt.x, pt.z);
-          opts.onBlocked?.(remainingM);
         },
       });
       if (!started) return { ok: false, error: "walk could not start" };
@@ -6685,9 +6571,6 @@
         applyWalkPose: applyOperatorWalkPose,
         idleStance: applyOperatorIdleStance,
         boneWorld: (role) => getOperatorBoneWorldPosition(OP_BONES[role])?.toArray() ?? null,
-        meshFloorAt: (x, z) => raycastStationFloorAt(x, z, operatorLastUp),
-        meshReady: () => meshGroundReady(),
-        feetBaseY: () => operatorFeetBaseY,
       },
       getOperatorPose: () => (operatorAnchor
         ? {
@@ -6721,8 +6604,6 @@
       const text = splatOpCmdInput?.value || "";
       const res = runOperatorCommand(text, {
         onArrive: () => setOpCmdStatus(`operator: arrived`),
-        onBlocked: (remainingM) =>
-          setOpCmdStatus(`operator: blocked by equipment ${remainingM.toFixed(1)} m short — stopping here`),
       });
       if (!res.ok) { setOpCmdStatus(res.error); return; }
       if (splatOpCmdInput) splatOpCmdInput.value = "";
