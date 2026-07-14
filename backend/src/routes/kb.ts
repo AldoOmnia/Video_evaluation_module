@@ -193,7 +193,7 @@ export function findGlassesComponent(sku: string): KbComponent | null {
  */
 const GLASSES_IMG_BASE = "/lab/assets/pinion-components";
 /** Bump when GLASSES_COMPONENTS / GLASSES_ARTIFACTS / station reports grow so live stores re-merge. */
-const GLASSES_SYNC_VERSION = 4;
+const GLASSES_SYNC_VERSION = 5;
 const GLASSES_REPO = "https://github.com/AldoOmnia/comer-rokid-demo";
 
 interface CataloguePart {
@@ -207,28 +207,57 @@ interface CataloguePart {
   warning?: { headline: string; action: string };
 }
 
-/** Display name, taxonomy codes, and vendored reference images per glasses SKU.
- *  Exported: /api/assist attaches the same references to its Gemini vision calls. */
+/**
+ * Display name, taxonomy codes, and vendored reference images per glasses SKU.
+ * Exported: /api/assist attaches the same references to its Gemini vision calls.
+ *
+ * `codes` mirror ONLY the warnings actually wired on the glasses build
+ * (WrongPartGuard + SequenceGuard + spec decoys — verified against
+ * comer-rokid-demo memory-architecture):
+ *   - ORIENTATION  → the three -FLIP decoys (steps 1 / 4 / 6)
+ *   - SUBSTITUTION → the C-ring WRONG PART demo trigger (step 7)
+ *   - ORDER        → the step-7 shim-pack pick sequence (CHECK ORDER)
+ * Everything else is recognition/ID-only today — codes stay empty so the
+ * platform never claims a warning the glasses don't fire.
+ * `warning` (when set) overrides/supplies the live overlay copy for wired
+ * warnings that don't come from a catalogue decoy entry.
+ */
 export const GLASSES_COMPONENTS: Record<
   string,
-  { name: string; codes: string[]; images: string[] }
+  { name: string; codes: string[]; images: string[]; warning?: { headline: string; action: string } }
 > = {
+  // Step 1 — pressed onto cover (punch fixture 3187.111.100.09); FLIP decoy fires WRONG ORIENTATION.
   "248114A1": { name: "Bearing cup 248114A1 — inboard bevel pinion (big cup)", codes: ["ORIENTATION"], images: ["bearing_cup_248114a1_pos_correct_1.jpg", "bearing_cup_248114a1_flip_1.jpg"] },
-  "191440A1": { name: "Bearing cup 191440A1 — small cover cup", codes: ["SUBSTITUTION"], images: ["bearing_cup_191440a1.jpg"] },
+  // Step 2 — recognition/ID only. No 191440A1-FLIP decoy: flipping it fires nothing.
+  "191440A1": { name: "Bearing cup 191440A1 — small cover cup", codes: [], images: ["bearing_cup_191440a1.jpg"] },
+  // Step 4 — pressed onto pinion shaft (punch 3187.111.100.07); FLIP decoy (memory-architecture, untested).
   "248118A1": { name: "Bearing cone 248118A1 — inboard bevel pinion", codes: ["ORIENTATION"], images: ["bearing_cone_248118a1_pos_correct_1.jpg", "bearing_cone_248118a1_flip.jpg"] },
+  // Step 6 — placed on cover (driver 3187.111.180.00 over it); FLIP decoy fires WRONG ORIENTATION.
   "67190R91": { name: "Bearing cone 67190R91 — upper pinion", codes: ["ORIENTATION"], images: ["bearing_cone_67190r91_pos_correct_1.jpg", "bearing_cone_67190r91_flip.jpg"] },
-  "191711A1": { name: "Shim .101 — bevel pinion bearing (191711A1)", codes: ["SUBSTITUTION", "OUT_OF_SPEC"], images: ["IMG_3081.jpg"] },
-  "191712A1": { name: "Shim .130 — bevel pinion bearing (191712A1)", codes: ["SUBSTITUTION", "OUT_OF_SPEC"], images: ["IMG_3080.jpg"] },
-  "191713A1": { name: "Spacer / retainer shim ring (191713A1)", codes: ["SUBSTITUTION"], images: ["IMG_3074.jpg"] },
-  "92203637": { name: "Ring retainer, thick 92203637", codes: ["SUBSTITUTION", "ORIENTATION"], images: ["part_n_92203637.jpg"] },
-  "92203640": { name: "Ring, snap retainer 92203640", codes: ["SUBSTITUTION"], images: ["part_n_92203640.jpg"] },
-  "229515A2": { name: "External retaining ring 229515A2 (C-ring)", codes: ["SUBSTITUTION"], images: ["ring_retainer_229515A2.jpg"] },
-  "837-12030": { name: "Dowel pin 12.018 × 30 mm (837-12030)", codes: ["SUBSTITUTION"], images: ["IMG_3077.jpg"] },
-  "14441231": { name: "Screw hex-soc M6×12 (14441231)", codes: ["SUBSTITUTION"], images: ["IMG_3076.jpg"] },
-  "628-8016": { name: "Bolt M8×16 10.9 PHC (628-8016)", codes: ["EXTRA_OBJECT"], images: ["IMG_3075.jpg"] },
-  "3187.111.180.00": { name: "Press driver cod.3187.111.180.00 (Step 6 cone)", codes: ["SUBSTITUTION"], images: ["driver_3187_111_180_00.jpg"] },
-  "3187.111.100.27": { name: "Punch fixture cod.3187.111.100.27 (Step 8 retainer)", codes: ["SUBSTITUTION"], images: ["driver_3187_111_100_27.jpg"] },
-  "3187.111.100.28": { name: "Driver cod.3187.111.100.28 (Step 14 shim pack)", codes: ["SUBSTITUTION"], images: ["driver_3187_111_100_28.jpg"] },
+  // Step 7 shim pack — SequenceGuard slot 2 ("shims": .101/.130 counted as ONE
+  // slot; the VLM can't tell them apart, so no substitution warning is wired).
+  "191711A1": { name: "Shim .101 — bevel pinion bearing (191711A1)", codes: ["ORDER"], images: ["IMG_3081.jpg"],
+    warning: { headline: "CHECK ORDER", action: "Pick order: thick spacer retainer (92203637) → shims → thin spacer retainer (191713A1)" } },
+  "191712A1": { name: "Shim .130 — bevel pinion bearing (191712A1)", codes: ["ORDER"], images: ["IMG_3080.jpg"],
+    warning: { headline: "CHECK ORDER", action: "Pick order: thick spacer retainer (92203637) → shims → thin spacer retainer (191713A1)" } },
+  // Step 7 shim pack — SequenceGuard slot 3 (thin spacer retainer, last pick).
+  "191713A1": { name: "Spacer / retainer shim ring (191713A1)", codes: ["ORDER"], images: ["IMG_3074.jpg"],
+    warning: { headline: "CHECK ORDER", action: "Last pick of the shim pack — thick spacer retainer and shims go first" } },
+  // Step 7 shim pack — SequenceGuard slot 1 (thick spacer retainer, first pick).
+  "92203637": { name: "Ring retainer, thick 92203637", codes: ["ORDER"], images: ["part_n_92203637.jpg"],
+    warning: { headline: "CHECK ORDER", action: "First pick of the shim pack — before shims and the thin spacer retainer" } },
+  // Step 16 — recognition/ID only.
+  "92203640": { name: "Ring, snap retainer 92203640", codes: [], images: ["part_n_92203640.jpg"] },
+  // Step 7 decoy — the original WrongPartGuard demo trigger (visually distinct, open gap).
+  "229515A2": { name: "External retaining ring 229515A2 (C-ring)", codes: ["SUBSTITUTION"], images: ["ring_retainer_229515A2.jpg"],
+    warning: { headline: "WRONG PART", action: "Not for step 7 - put it back" } },
+  // Recognition/ID only — no warnings wired on these today.
+  "837-12030": { name: "Dowel pin 12.018 × 30 mm (837-12030)", codes: [], images: ["IMG_3077.jpg"] },
+  "14441231": { name: "Screw hex-soc M6×12 (14441231)", codes: [], images: ["IMG_3076.jpg"] },
+  "628-8016": { name: "Bolt M8×16 10.9 PHC (628-8016)", codes: [], images: ["IMG_3075.jpg"] },
+  "3187.111.180.00": { name: "Press driver cod.3187.111.180.00 (Step 6 cone)", codes: [], images: ["driver_3187_111_180_00.jpg"] },
+  "3187.111.100.27": { name: "Punch fixture cod.3187.111.100.27 (Step 8 retainer)", codes: [], images: ["driver_3187_111_100_27.jpg"] },
+  "3187.111.100.28": { name: "Driver cod.3187.111.100.28 (Step 14 shim pack)", codes: [], images: ["driver_3187_111_100_28.jpg"] },
 };
 
 /**
@@ -280,16 +309,25 @@ function seedGlassesKnowledge(store: KbStore): boolean {
     if (!cfg) continue;
     const steps = (part.used_in_steps ?? []).map((n) => `S${String(n).padStart(2, "0")}`);
     const decoy = decoyBySku.get(sku);
+    // Warning precedence: catalogue -FLIP decoy > guard-level copy (C-ring
+    // WrongPartGuard, shim-pack SequenceGuard) > none (recognition-only).
+    const warning = decoy?.warning ?? cfg.warning ?? null;
     const noteParts = [
-      steps.length ? `ST.100 ${steps.join(" · ")}` : "recognition-only (not in current procedure)",
-      decoy?.warning ? `glasses fire: ${decoy.warning.headline} — ${decoy.warning.action}` : null,
+      steps.length
+        ? `ST.100 ${steps.join(" · ")}`
+        : warning
+          ? "decoy trigger — not itself part of the procedure"
+          : "recognition-only (not in current procedure)",
+      warning
+        ? `glasses fire: ${warning.headline} — ${warning.action}`
+        : "recognition/ID only — no warning wired on the glasses",
     ].filter(Boolean);
     components.push({
       id: `glasses-${sku}`,
       name: cfg.name,
       note: noteParts.join(" · "),
       steps,
-      warning: decoy?.warning ?? null,
+      warning,
       errorCodes: validErrorCodes(cfg.codes),
       images: cfg.images.map((f) => ({
         id: `glasses-img-${f}`,
