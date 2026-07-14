@@ -53,11 +53,14 @@ interface RefEntry {
   fingerprint: string;
   mime: string;
   dataBase64: string;
+  /** "correct orientation" or "FLIPPED — wrong orientation (decoy)" */
+  pose: string;
 }
 let refCache: RefEntry[] | null = null;
 
-/** One canonical 768px reference image per SKU + its catalogue visual
- *  fingerprint — the dedupe-by-SKU strategy the glasses observe loop uses. */
+/** All vendored 768px reference images per SKU (correct-orientation AND flip
+ *  decoys, labeled) + the catalogue visual fingerprint — the same vocabulary
+ *  the glasses observe loop attaches, so orientation can be judged too. */
 function referenceLibrary(): RefEntry[] {
   if (refCache) return refCache;
   let fingerprints = new Map<string, string>();
@@ -75,18 +78,19 @@ function referenceLibrary(): RefEntry[] {
   const imgDir = join(EVAL_LAB_PUBLIC, "assets", "pinion-components");
   const refs: RefEntry[] = [];
   for (const [sku, cfg] of Object.entries(GLASSES_COMPONENTS)) {
-    const file = cfg.images[0];
-    if (!file) continue;
-    try {
-      const buf = readFileSync(join(imgDir, file));
-      refs.push({
-        sku,
-        name: cfg.name,
-        fingerprint: fingerprints.get(sku) ?? "",
-        mime: "image/jpeg",
-        dataBase64: buf.toString("base64"),
-      });
-    } catch { /* image not vendored — skip */ }
+    for (const file of cfg.images) {
+      try {
+        const buf = readFileSync(join(imgDir, file));
+        refs.push({
+          sku,
+          name: cfg.name,
+          fingerprint: fingerprints.get(sku) ?? "",
+          mime: "image/jpeg",
+          dataBase64: buf.toString("base64"),
+          pose: /flip/i.test(file) ? "FLIPPED — wrong orientation (decoy)" : "correct orientation",
+        });
+      } catch { /* image not vendored — skip */ }
+    }
   }
   refCache = refs;
   return refs;
@@ -96,6 +100,7 @@ interface VisionId {
   sku: string | null;
   className: string;
   confidence: number;
+  flipped: boolean;
   reasoning: string;
 }
 
@@ -111,15 +116,19 @@ async function identifyImage(
     "the part in the USER IMAGE by comparing against them. Match on SHAPE and the " +
     "visual fingerprints, not on the reference's exact pose or background. " +
     "If nothing matches, sku must be null and className a plain description. " +
+    "If the part matches a reference but is UPSIDE-DOWN / wrong-side-up compared " +
+    "to its correct-orientation reference, still return the plain sku (NEVER " +
+    "append -FLIP) and set flipped=true — exactly how the glasses resolve their " +
+    "FLIP decoys. " +
     'Answer ONLY with raw JSON: {"sku": string|null, "className": string, ' +
-    '"confidence": number 0-1, "reasoning": string (1-2 sentences, mention the ' +
-    "distinguishing features you used)}." +
+    '"confidence": number 0-1, "flipped": boolean, "reasoning": string ' +
+    "(1-2 sentences, mention the distinguishing features you used)}." +
     (question ? ` The user also asked: "${question}" — factor it into reasoning.` : "");
 
   const parts: GeminiPart[] = [{ text: prompt }];
   for (const r of refs) {
     parts.push({
-      text: `REFERENCE sku=${r.sku} — ${r.name}${r.fingerprint ? ` — fingerprint: ${r.fingerprint}` : ""}`,
+      text: `REFERENCE sku=${r.sku} — ${r.name} — ${r.pose}${r.fingerprint ? ` — fingerprint: ${r.fingerprint}` : ""}`,
     });
     parts.push({ inline_data: { mime_type: r.mime, data: r.dataBase64 } });
   }
@@ -138,6 +147,7 @@ async function identifyImage(
         sku: null,
         className: "vision stub — set GEMINI_API_KEY to run the same VLM as the glasses",
         confidence: 0,
+        flipped: false,
         reasoning: `No GEMINI_API_KEY on the server. Live path runs ${VISION_MODEL} against ${refs.length} glasses reference images.`,
       },
       model: "stub",
@@ -150,11 +160,16 @@ async function identifyImage(
     const clean = res.text.replace(/```(?:json)?/g, "").trim();
     parsed = JSON.parse(clean.slice(clean.indexOf("{"), clean.lastIndexOf("}") + 1));
   } catch { /* fall through to defaults */ }
+  // The model sometimes answers with the decoy id anyway — resolve to the
+  // real part number, exactly like the glasses overlay does.
+  const rawSku = typeof parsed.sku === "string" ? parsed.sku.trim() : "";
+  const flipDecoy = /-FLIP$/i.test(rawSku);
   return {
     id: {
-      sku: typeof parsed.sku === "string" && parsed.sku ? parsed.sku : null,
+      sku: rawSku ? rawSku.replace(/-FLIP$/i, "") : null,
       className: String(parsed.className ?? res.text.slice(0, 120)),
       confidence: Math.max(0, Math.min(1, Number(parsed.confidence ?? 0))),
+      flipped: Boolean(parsed.flipped) || flipDecoy,
       reasoning: String(parsed.reasoning ?? ""),
     },
     model: res.model,
@@ -187,6 +202,7 @@ assistRouter.post("/", async (req, res, next) => {
       sku: string | null;
       className: string;
       confidence: number;
+      flipped: boolean;
       reasoning: string;
       component: { name: string; steps: string[]; errorCodes: string[]; warning: unknown } | null;
     } | null = null;
@@ -220,6 +236,7 @@ assistRouter.post("/", async (req, res, next) => {
       vision && !vision.stubbed
         ? vision.sku
           ? `[attached photo identified by the vision model as: ${vision.component?.name ?? vision.className} (SKU ${vision.sku}, confidence ${vision.confidence.toFixed(2)})` +
+            (vision.flipped ? " — shown in the WRONG ORIENTATION (flipped); on the glasses this would fire the orientation warning right now" : "") +
             (vision.component && vision.component.steps.length ? ` — used in ${vision.component.steps.join(", ")}` : "") +
             (vision.component && vision.component.errorCodes.length ? ` — watched for ${vision.component.errorCodes.join(", ")}` : "") +
             "]"

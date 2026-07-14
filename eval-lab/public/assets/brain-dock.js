@@ -260,7 +260,12 @@
         html += `<b>${esc(comp ? comp.name : v.className)}</b> <span class="conf">· SKU ${esc(v.sku)} · ${(v.confidence * 100).toFixed(0)}%</span>`;
         if (comp && comp.steps && comp.steps.length) html += `<div class="conf">used in ${comp.steps.map(esc).join(' · ')}</div>`;
         if (comp && comp.errorCodes && comp.errorCodes.length) html += `<div class="conf">watched for: ${comp.errorCodes.map(esc).join(' · ')}</div>`;
-        if (comp && comp.warning && comp.warning.headline) html += `<div class="warn"><b>${esc(comp.warning.headline)}</b> — ${esc(comp.warning.action)}</div>`;
+        if (v.flipped && comp && comp.warning && comp.warning.headline) {
+          // Same overlay the glasses fire when the VLM resolves a FLIP decoy.
+          html += `<div class="warn"><b>${esc(comp.warning.headline)}</b> — ${esc(comp.warning.action)} <span class="conf">(would fire on the glasses now)</span></div>`;
+        } else if (comp && comp.warning && comp.warning.headline) {
+          html += `<div class="conf">if wrong: ${esc(comp.warning.headline)} — ${esc(comp.warning.action)}</div>`;
+        }
         if (v.reasoning) html += `<div class="conf" style="margin-top:4px;">${esc(v.reasoning)}</div>`;
       } else {
         html += `<b>${esc(v.className)}</b> <span class="conf">· no catalogue match</span>` +
