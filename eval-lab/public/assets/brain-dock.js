@@ -138,15 +138,15 @@
   const toggle = document.createElement('button');
   toggle.className = 'bd-toggle';
   toggle.type = 'button';
-  toggle.innerHTML = '<span class="dot"></span> Ask the Brain';
+  toggle.innerHTML = '<span class="dot"></span> Ask Comer AI';
   document.body.appendChild(toggle);
 
   const drawer = document.createElement('aside');
   drawer.className = 'bd-drawer';
-  drawer.setAttribute('aria-label', 'Brain chat');
+  drawer.setAttribute('aria-label', 'Comer AI chat');
   drawer.innerHTML = `
     <div class="bd-head">
-      <span class="t">Brain</span>
+      <span class="t">Comer AI</span>
       <span class="ctx" id="bd-ctx"></span>
       <button class="bd-close" type="button" title="Close (Esc)">✕</button>
     </div>

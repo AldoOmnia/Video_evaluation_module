@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Brain · Eval Lab</title>
+<title>Comer AI · Eval Lab</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -1464,10 +1464,10 @@
       ← Home
     </a>
     <div class="brand">
-      <span class="dot">●</span>BRAIN · EVAL LAB <span class="v">v0.5 — taxonomy-aware</span>
+      <span class="dot">●</span>COMER AI · EVAL LAB <span class="v">v0.5 — taxonomy-aware</span>
     </div>
     <div class="mode-toggle">
-      <button class="active" data-mode="brain">Brain</button>
+      <button class="active" data-mode="brain">Comer AI</button>
       <button data-mode="eval">Evaluate</button>
     </div>
     <select class="station-picker" id="lab-station-picker" title="Switch station"></select>
@@ -1503,7 +1503,7 @@
         <div class="se-desc" id="se-desc">—</div>
         <p class="se-msg">
           Nothing is loaded for this station yet — no procedure graph, training material,
-          or component references. Start building its Brain from the knowledge base.
+          or component references. Start feeding Comer AI from the knowledge base.
         </p>
         <div class="se-actions">
           <a class="se-cta" id="se-kb-link" href="/knowledge/">＋ Start adding material ↗</a>
@@ -1627,7 +1627,7 @@
           </div>
         </div>
         <div class="chat-input-wrap">
-          <input class="chat-input" id="chat-input" placeholder="Ask the brain anything…" />
+          <input class="chat-input" id="chat-input" placeholder="Ask Comer AI anything…" />
           <button class="chat-send" id="chat-send">Ask</button>
         </div>
       </section>
@@ -1688,7 +1688,7 @@
             <div><div class="k">activity</div><div class="v">Pinion Guide</div></div>
             <div><div class="k">keysteps</div><div class="v" id="ev-keysteps">12</div></div>
             <div><div class="k">artifacts</div><div class="v" id="ev-artifacts">—</div></div>
-            <div><div class="k">source</div><div class="v">Brain</div></div>
+            <div><div class="k">source</div><div class="v">Comer AI</div></div>
           </div>
           <button class="btn btn-secondary" id="ev-gen-btn" style="margin-top: 10px;">
             Generate simulated session
@@ -2384,7 +2384,7 @@ function renderRightPanel() {
       </div>
       <div class="chat-body" id="chat-body">${chatBodyHTML()}</div>
       <div class="chat-input-wrap">
-        <input class="chat-input" id="chat-input" placeholder="Ask the brain anything…" />
+        <input class="chat-input" id="chat-input" placeholder="Ask Comer AI anything…" />
         <button class="chat-send" id="chat-send">Ask</button>
       </div>`;
     wireChat();
@@ -2609,7 +2609,7 @@ function setChatBusy(busy) {
   const send = document.getElementById('chat-send');
   if (input) {
     input.disabled = busy;
-    input.placeholder = busy ? 'Waiting for response…' : 'Ask the brain anything…';
+    input.placeholder = busy ? 'Waiting for response…' : 'Ask Comer AI anything…';
     if (busy) input.classList.remove('chat-input-filled');
   }
   if (send) send.disabled = busy;
@@ -4230,7 +4230,7 @@ async function runEvaluation(annotations, hwId, stratId, mode) {
     const events = sessionEventsForApi(annotations);
     const anomalyCount = events.filter(e => e.label === 'incorrect').length;
     if (anomalyCount === 0) {
-      throw new Error('No mistake clips in this session — tag segments as "mistake / anomaly" in Brain, or import a CSV with label=incorrect.');
+      throw new Error('No mistake clips in this session — tag segments as "mistake / anomaly" in Comer AI mode, or import a CSV with label=incorrect.');
     }
     toast(`Calling Claude for ${anomalyCount} anomaly clip${anomalyCount === 1 ? '' : 's'} (~3–8s each)…`);
     const t0 = performance.now();
@@ -4831,7 +4831,7 @@ document.getElementById('ev-gen-btn').onclick = generateEvalSession;
 document.getElementById('ev-from-clips-btn').onclick = () => {
   const segments = (state.brain.artifacts || []).filter(a => a.type === 'VideoSegment');
   if (segments.length === 0) {
-    toast('No VideoSegment artifacts yet. Drop a video-index CSV (and your videos) in Brain mode first.');
+    toast('No VideoSegment artifacts yet. Drop a video-index CSV (and your videos) in Comer AI mode first.');
     return;
   }
   const validErrors = new Set(Object.keys(ERROR_TAXONOMY));
@@ -4856,7 +4856,7 @@ document.getElementById('ev-from-clips-btn').onclick = () => {
   renderEvalSession();
   toast(mistakes > 0
     ? `Loaded ${session.length} clip${session.length === 1 ? '' : 's'} · ${mistakes} mistake clip${mistakes === 1 ? '' : 's'} ready for LIVE LLM`
-    : `Loaded ${session.length} clip${session.length === 1 ? '' : 's'} — all marked correct; tag mistake clips in Brain for LIVE eval`);
+    : `Loaded ${session.length} clip${session.length === 1 ? '' : 's'} — all marked correct; tag mistake clips in Comer AI mode for LIVE eval`);
 };
 async function runOnce(mode) {
   if (!state.eval.session) return;
@@ -5024,7 +5024,7 @@ window.addEventListener('load', () => {
   if (typeof cytoscape === 'undefined') {
     document.getElementById('cy').innerHTML =
       '<div style="padding:40px;color:var(--err);font-family:var(--mono);font-size:11px;text-align:center;">' +
-      'Cytoscape failed to load from CDN. Brain mode unavailable, but Evaluate mode works — switch to it via the toggle.</div>';
+      'Cytoscape failed to load from CDN. Comer AI mode unavailable, but Evaluate mode works — switch to it via the toggle.</div>';
     return;
   }
   setTimeout(() => initGraph(), 100);

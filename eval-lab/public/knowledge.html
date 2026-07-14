@@ -484,7 +484,7 @@
 
   <header class="topbar">
     <a class="back-home" href="/home/">← Home</a>
-    <span class="topbar-title"><strong>Facility knowledge base</strong> · the Brain of the Comer plant</span>
+    <span class="topbar-title"><strong>Facility knowledge base</strong> · what Comer AI knows about the plant</span>
     <div class="view-toggle" role="tablist">
       <button id="vt-facility" class="is-active" role="tab">Facility</button>
       <button id="vt-station" role="tab">Station</button>
@@ -497,7 +497,7 @@
     <!-- ── Facility view ─────────────────────── -->
     <section class="facility-view is-active" id="facility-view">
       <div class="facility-head">
-        <h1>The line, as the Brain sees it</h1>
+        <h1>The line, as Comer AI sees it</h1>
         <p>The 13 real Rockford stations from the MES acquisition report — each holds its own knowledge graph: procedures, training material, component references.
         The digital-twin capture (and all its viewpoints) lives inside ST100 · Pinion Guide. Click a station to open it.</p>
       </div>
@@ -536,7 +536,7 @@
         <div class="graph-body">
           <div class="graph-canvas">
             <svg id="station-svg" viewBox="0 0 560 430" role="img" aria-label="Station knowledge graph"></svg>
-            <div class="graph-hint" id="graph-hint">procedure · material · components · POV — click any node to trace why it's in the Brain</div>
+            <div class="graph-hint" id="graph-hint">procedure · material · components · POV — click any node to trace why Comer AI knows it</div>
           </div>
           <aside class="node-inspect" id="node-inspect" aria-live="polite"></aside>
         </div>
@@ -579,7 +579,7 @@
           <input type="file" id="art-file" multiple hidden
                  accept=".pdf,.csv,.tsv,.mp4,.mov,.webm" />
           <div class="art-list" id="art-list"></div>
-          <div class="empty-note" id="art-empty">no material yet — this station's Brain is empty</div>
+          <div class="empty-note" id="art-empty">no material yet — Comer AI has nothing loaded for this station</div>
         </div>
 
         <!-- 04 · Component recognition references -->
@@ -1003,7 +1003,7 @@
         const p = node.ref;
         body += `<div class="ni-row"><b>${p.label === 'mistake' ? '✕ contains mistakes' : '✓ done correctly'}</b>${p.durationS ? ' · ' + fmtDur(p.durationS) : ''}${p.note ? `<span class="sub">${esc(p.note)}</span>` : ''}</div>`;
         if (p.analysis) {
-          body += `<div><div class="ni-h">Brain analysis</div><div class="ni-row">${esc(p.analysis.summary)}</div>` +
+          body += `<div><div class="ni-h">Comer AI analysis</div><div class="ni-row">${esc(p.analysis.summary)}</div>` +
             (p.analysis.suggestions || []).map((s) => `<div class="ni-row">
               ${s.step ? `<b>${esc(s.step)}</b> · ` : ''}${s.errorCode ? `<span class="err-chip" style="${chipStyle(s.errorCode)}">${esc(s.errorCode)}</span>` : ''}
               <span class="sub">${esc(s.observed)}${s.detect ? ' → detect: ' + esc(s.detect) : ''}</span>
@@ -1070,9 +1070,9 @@
             ? '<span class="glasses-pill" title="Loaded on the Rokid glasses build — managed in comer-rokid-demo">⟲ glasses</span>'
             : a.source === 'report'
             ? `<span class="glasses-pill" style="color:var(--ink-2);border-color:var(--line-2);background:transparent;" title="Extracted from Full_stations_report.xlsx (MES acquisition export)">▦ MES report</span>
-          <button class="art-del" data-del-art="${a.id}" title="Remove from the Brain">✕</button>`
+          <button class="art-del" data-del-art="${a.id}" title="Remove from the knowledge base">✕</button>`
             : `<span class="art-size">${fmtSize(a.size)}</span>
-          <button class="art-del" data-del-art="${a.id}" title="Remove from the Brain">✕</button>`}
+          <button class="art-del" data-del-art="${a.id}" title="Remove from the knowledge base">✕</button>`}
         </div>`).join('');
       list.querySelectorAll('[data-del-art]').forEach((b) => b.addEventListener('click', async () => {
         await fetch(`/api/kb/stations/${current.station.id}/artifacts/${b.dataset.delArt}`, { method: 'DELETE' });

@@ -553,7 +553,7 @@
       <div class="chat-thread" id="chat-thread"></div>
       <form class="chat-form" id="chat-form">
         <input id="chat-input" type="text" autocomplete="off"
-               placeholder="Ask the plant Brain — “most common mistakes on the pinion guide?”, “torque for the pinion nut?”…" />
+               placeholder="Ask Comer AI — “most common mistakes on the pinion guide?”, “torque for the pinion nut?”…" />
         <button type="submit" id="chat-send">Ask</button>
       </form>
       <div class="chat-chips" id="chat-chips">
@@ -742,7 +742,7 @@
     /* ── Brain answer (knowledge / training material) ──────── */
     async function renderBrainAnswer(q) {
       sendBtn.disabled = true;
-      const ph = addThinking('Consulting the Brain');
+      const ph = addThinking('Consulting Comer AI');
       try {
         const r = await fetch('/api/brain/chat', {
           method: 'POST',
@@ -769,7 +769,7 @@
         addMsg('bot', body, meta);
       } catch (err) {
         ph.remove();
-        addMsg('bot', 'The Brain is unreachable right now — ' + esc(err.message) + '. Try again, or check the backend.', '<span class="chip stub">error</span>');
+        addMsg('bot', 'Comer AI is unreachable right now — ' + esc(err.message) + '. Try again, or check the backend.', '<span class="chip stub">error</span>');
       } finally {
         sendBtn.disabled = false;
       }
