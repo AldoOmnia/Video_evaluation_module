@@ -87,6 +87,7 @@
   }
   .bd-vision .conf { color: #6b6b6b; font-size: 11px; }
   .bd-vision .warn { color: #f59e0b; font-size: 11.5px; margin-top: 4px; }
+  .bd-vision .warn b { color: inherit; font-weight: 600; }
   .bd-meta {
     font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 8.5px;
     color: #6b6b6b; letter-spacing: 0.04em; margin-top: 8px; line-height: 1.7;
@@ -163,10 +164,19 @@
         <button type="button" id="bd-preview-x" title="Remove image">✕</button>
       </div>
       <div class="bd-inflex">
-        <button class="bd-btn" type="button" id="bd-attach" title="Attach a component photo">📷</button>
+        <button class="bd-btn" type="button" id="bd-attach" title="Attach a component photo" aria-label="Attach a component photo">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+          </svg>
+        </button>
         <textarea class="bd-input" id="bd-input" rows="1"
           placeholder="Ask… or attach a photo and ask “what is this?”"></textarea>
-        <button class="bd-btn send" type="button" id="bd-send" title="Send">➤</button>
+        <button class="bd-btn send" type="button" id="bd-send" title="Send" aria-label="Send">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
       </div>
       <input type="file" id="bd-file" accept="image/*" hidden />
       <div class="bd-foot">gemini vision + claude retrieval · mirrors the glasses 1:1</div>
@@ -249,7 +259,7 @@
         html += `<b>${esc(comp ? comp.name : v.className)}</b> <span class="conf">· SKU ${esc(v.sku)} · ${(v.confidence * 100).toFixed(0)}%</span>`;
         if (comp && comp.steps && comp.steps.length) html += `<div class="conf">used in ${comp.steps.map(esc).join(' · ')}</div>`;
         if (comp && comp.errorCodes && comp.errorCodes.length) html += `<div class="conf">watched for: ${comp.errorCodes.map(esc).join(' · ')}</div>`;
-        if (comp && comp.warning && comp.warning.headline) html += `<div class="warn">⚠ ${esc(comp.warning.headline)} — ${esc(comp.warning.action)}</div>`;
+        if (comp && comp.warning && comp.warning.headline) html += `<div class="warn"><b>${esc(comp.warning.headline)}</b> — ${esc(comp.warning.action)}</div>`;
         if (v.reasoning) html += `<div class="conf" style="margin-top:4px;">${esc(v.reasoning)}</div>`;
       } else {
         html += `<b>${esc(v.className)}</b> <span class="conf">· no catalogue match</span>` +
