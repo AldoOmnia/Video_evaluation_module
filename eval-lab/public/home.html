@@ -513,9 +513,9 @@
     <button class="nav-item" data-nav-line>
       <span class="ico">◉</span> Live line
     </button>
-    <button class="nav-item" data-nav-report>
-      <span class="ico">▤</span> Reports
-    </button>
+    <a class="nav-item" href="/reports/">
+      <span class="ico">▤</span> Reports <span class="ext">↗</span>
+    </a>
     <div class="nav-k">Tools</div>
     <a class="nav-item" href="/lab/">
       <span class="ico">◳</span> Eval Lab · PG-04 <span class="ext">↗</span>
@@ -655,9 +655,6 @@
     });
     document.querySelector('[data-nav-line]').addEventListener('click', () => {
       setNav(false); askLine();
-    });
-    document.querySelector('[data-nav-report]').addEventListener('click', () => {
-      setNav(false); askReport();
     });
 
     /* ── LLM pill ──────────────────────────────────────────── */

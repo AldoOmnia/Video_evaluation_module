@@ -23,6 +23,7 @@ import {
   WELCOME_HTML,
   HOME_HTML,
   KNOWLEDGE_HTML,
+  REPORTS_HTML,
   SYNTHETIC_POV_HTML,
   SHARED_DIR,
 } from "./paths.js";
@@ -376,6 +377,12 @@ app.get(["/home", "/home/"], (_req, res) => {
 app.get(["/knowledge", "/knowledge/"], (_req, res) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
   res.sendFile(KNOWLEDGE_HTML);
+});
+
+// Full-page glasses warnings & savings report.
+app.get(["/reports", "/reports/"], (_req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.sendFile(REPORTS_HTML);
 });
 
 app.get("/lab/", (_req, res) => {

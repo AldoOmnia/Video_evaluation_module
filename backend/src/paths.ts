@@ -36,4 +36,5 @@ export const LOGIN_HTML = join(EVAL_LAB_PUBLIC, "login.html");
 export const WELCOME_HTML = join(EVAL_LAB_PUBLIC, "welcome.html");
 export const HOME_HTML = join(EVAL_LAB_PUBLIC, "home.html");
 export const KNOWLEDGE_HTML = join(EVAL_LAB_PUBLIC, "knowledge.html");
+export const REPORTS_HTML = join(EVAL_LAB_PUBLIC, "reports.html");
 export const SYNTHETIC_POV_HTML = join(EVAL_LAB_PUBLIC, "synthetic-pov.html");
