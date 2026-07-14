@@ -193,7 +193,7 @@ export function findGlassesComponent(sku: string): KbComponent | null {
  */
 const GLASSES_IMG_BASE = "/lab/assets/pinion-components";
 /** Bump when GLASSES_COMPONENTS / GLASSES_ARTIFACTS / station reports grow so live stores re-merge. */
-const GLASSES_SYNC_VERSION = 5;
+const GLASSES_SYNC_VERSION = 6;
 const GLASSES_REPO = "https://github.com/AldoOmnia/comer-rokid-demo";
 
 interface CataloguePart {
@@ -214,7 +214,7 @@ interface CataloguePart {
  * `codes` mirror ONLY the warnings actually wired on the glasses build
  * (WrongPartGuard + SequenceGuard + spec decoys — verified against
  * comer-rokid-demo memory-architecture):
- *   - ORIENTATION  → the three -FLIP decoys (steps 1 / 4 / 6)
+ *   - ORIENTATION  → the four -FLIP decoys (steps 1 / 2 / 4 / 6)
  *   - SUBSTITUTION → the C-ring WRONG PART demo trigger (step 7)
  *   - ORDER        → the step-7 shim-pack pick sequence (CHECK ORDER)
  * Everything else is recognition/ID-only today — codes stay empty so the
@@ -226,10 +226,13 @@ export const GLASSES_COMPONENTS: Record<
   string,
   { name: string; codes: string[]; images: string[]; warning?: { headline: string; action: string } }
 > = {
-  // Step 1 — pressed onto cover (punch fixture 3187.111.100.09); FLIP decoy fires WRONG ORIENTATION.
+  // Step 1 — pressed onto cover (punch fixture 3187.111.100.09); FLIP decoy fires
+  // WRONG ORIENTATION. Line-engineer verified 2026-07-14: TIMKEN stamped side UP
+  // (previous rule was inverted — image roles re-shot/swapped in the glasses repo).
   "248114A1": { name: "Bearing cup 248114A1 — inboard bevel pinion (big cup)", codes: ["ORIENTATION"], images: ["bearing_cup_248114a1_pos_correct_1.jpg", "bearing_cup_248114a1_flip_1.jpg"] },
-  // Step 2 — recognition/ID only. No 191440A1-FLIP decoy: flipping it fires nothing.
-  "191440A1": { name: "Bearing cup 191440A1 — small cover cup", codes: [], images: ["bearing_cup_191440a1.jpg"] },
+  // Step 2 — 191440A1-FLIP decoy added 2026-07-14 (line-engineer verified:
+  // TIMKEN side DOWN — deliberately the OPPOSITE convention of the big cup).
+  "191440A1": { name: "Bearing cup 191440A1 — small cover cup", codes: ["ORIENTATION"], images: ["bearing_cup_191440a1_pos_correct_1.jpg", "bearing_cup_191440a1_flip_1.jpg"] },
   // Step 4 — pressed onto pinion shaft (punch 3187.111.100.07); FLIP decoy (memory-architecture, untested).
   "248118A1": { name: "Bearing cone 248118A1 — inboard bevel pinion", codes: ["ORIENTATION"], images: ["bearing_cone_248118a1_pos_correct_1.jpg", "bearing_cone_248118a1_flip.jpg"] },
   // Step 6 — placed on cover (driver 3187.111.180.00 over it); FLIP decoy fires WRONG ORIENTATION.
@@ -276,7 +279,7 @@ const GLASSES_ARTIFACTS: Array<
   { name: "Tolerance spec", type: "csv", file: "tolerances.csv", note: "Acceptance ranges per measurement step" },
   { name: "Shim SKU lookup", type: "csv", file: "shim-sku-lookup.csv", note: "Measured gap → correct shim SKU (S07 wrong-shim warning)" },
   { name: "Historical error rates", type: "csv", file: "error-rates.csv", note: "Defect rates per step — grounds the 'most common mistakes' answers" },
-  { name: "Operator tribal knowledge — 11 narrated recordings", type: "other", repoPath: "backend/data/supervisor-knowledge", note: "Matteo + Mohammed audio-transcribed facts — AUTHORITATIVE shop-floor notes in the glasses prompt; mirrored in chat retrieval here" },
+  { name: "Operator tribal knowledge — 12 curated fact blocks", type: "other", repoPath: "backend/data/supervisor-knowledge", note: "Matteo + Mohammed audio-transcribed facts + line-engineer cup-orientation rule (2026-07-14) — AUTHORITATIVE shop-floor notes in the glasses prompt; mirrored in chat retrieval here" },
   { name: "Pinion phase sheets — Phase 1–12 PDFs", type: "pdf", repoPath: "docs/source-material/Comer_industries_pinion_steps", note: "Original Comer work instructions the ST.100 steps + VLM keyframes were extracted from" },
   { name: "Comer knowledge-base catalogues — 5 product PDFs", type: "pdf", repoPath: "Comer_industries_knowledge_base", note: "Rockford fan clutch, Walterscheid PTO, gearboxes, planetary drives, Synergy driveshafts" },
   { name: "Component reference photo set — 55 angles", type: "other", repoPath: "docs/source-material/pinion-components/images", note: "Full-resolution source of the 19 reference images below (768px copies attached per component)" },

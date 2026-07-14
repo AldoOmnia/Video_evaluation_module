@@ -75,12 +75,12 @@
       "description": "BEARING, CUP, 140.0048 OD X 28.4734 W",
       "category": "Bearings",
       "specifications": "Tapered roller bearing cup; OD 140.0048mm; W 28.4734mm",
-      "visual_fingerprint": "TAPERED ROLLER BEARING CUP — a thick steel ring with a visibly TAPERED inner race (cone-shaped inside, cup-shaped outside). Large OD (~140 mm) and fairly wide (~28 mm). The inner surface is smooth and angled, not flat like a shim. One face is the bright machined tapered raceway; the opposite face carries stamped maker text (e.g. 'TIMKEN 572 CD1 RM VN'). Smaller cover-bearing cup — distinguish from the bigger Step-1 cup 248114A1 by outer diameter / bin label.",
-      "image_filename": "part_IMG_3079.png; part_IMG_3079_2.png; part_IMG_3079_3.png; bearing_cup_191440a1_1.png; bearing_cup_191440a1_2.png; bearing_cup_191440a1_3.png",
+      "visual_fingerprint": "TAPERED ROLLER BEARING CUP — a thick steel ring with a visibly TAPERED inner race (cone-shaped inside, cup-shaped outside). Large OD (~140 mm) and fairly wide (~28 mm). The inner surface is smooth and angled, not flat like a shim. CORRECTLY ORIENTED (line-engineer verified: assembled TIMKEN side facing DOWN) the face pointing TOWARD the camera is the bright machined TAPERED RACEWAY with NO stamped lettering; the stamped maker text ('TIMKEN', 'HM4...', '572 CD1 RM VN') points DOWN when correct. Smaller cover-bearing cup — distinguish from the bigger Step-1 cup 248114A1 by outer diameter / bin label. NOTE — the BIG cup 248114A1 uses the OPPOSITE convention (its TIMKEN face goes UP); do not carry one cup's rule onto the other.",
+      "image_filename": "part_IMG_3079.png; part_IMG_3079_2.png; part_IMG_3079_3.png; bearing_cup_191440a1_1.png; bearing_cup_191440a1_pos_correct_1.png",
       "used_in_steps": [
         2
       ],
-      "notes": "Small bearing cup pressed onto cover; shim selection note visible (0.813)"
+      "notes": "Small bearing cup pressed onto cover at Step 2; shim selection note visible (0.813). Correct orientation per the line engineer: TIMKEN stamped side facing DOWN (bright raceway up) — opposite of the big cup 248114A1."
     },
     {
       "part_number_comer": "0900.7703",
@@ -116,12 +116,12 @@
       "description": "BEARING, CUP, INBOARD BEVEL PINION (BIG BEARING CUP)",
       "category": "Bearings",
       "specifications": "Tapered roller bearing CUP (outer race only, no rollers); big bearing cup pressed onto the cover at Step 1; inboard bevel pinion P900",
-      "visual_fingerprint": "TAPERED ROLLER BEARING CUP (outer race) — a solid steel RING with a smooth CONE-SHAPED (tapered) inner bore and NO rollers and NO cage. CORRECTLY ORIENTED (as placed on the punch fixture / pressed onto the cover at Step 1) the WIDE mouth of the taper faces TOWARD the camera, so the up-face shows a bright, smooth, polished TAPERED RACEWAY (a machined cone wall angling DOWN and INWARD to a smaller bore) and NO stamped lettering on the up-facing rim. The stamped maker text ('TIMKEN', 'INDIA'/'VN', a code like 542/572) lives on the OPPOSITE face, which points DOWN when correct. Bin label reads 'BEARING CUP 248114A1 / CUP-INBOARD BEVEL PINION P900'. Distinct from a bearing CONE (248118A1 / 67190R91), which carries a ring of rollers; and from a flat shim/spacer ring, which has a straight bore and no taper. Larger and wider than the small cover cup 191440A1 (IMG_3079). NOTE — opposite convention from the cone: for the CUP a visible stamped TIMKEN face UP means WRONG/inverted (248114A1-FLIP); for the cone 67190R91 the stamped flat face UP is correct.",
-      "image_filename": "bearing_cup_248114a1_pos_correct_1.png; bearing_cup_248114a1_pos_correct_2.png; part_bearing_cup_248114a1.png; part_bearing_cup_248114a1_2.png; part_bearing_cup_248114a1_3.png",
+      "visual_fingerprint": "TAPERED ROLLER BEARING CUP (outer race) — a solid steel RING with a smooth CONE-SHAPED (tapered) inner bore and NO rollers and NO cage. CORRECTLY ORIENTED (line-engineer verified: assembled TIMKEN side facing UP) the face pointing TOWARD the camera is the STAMPED MAKER face — a flat-ish rim carrying engraved/etched text ('TIMKEN', a code like 572, 'CD1 RM VN') around the bore. The bright smooth wide tapered raceway points DOWN when correct. Bin label reads 'BEARING CUP 248114A1 / CUP-INBOARD BEVEL PINION P900'. Distinct from a bearing CONE (248118A1 / 67190R91), which carries a ring of rollers; and from a flat shim/spacer ring, which has a straight bore and no taper. Larger and wider than the small cover cup 191440A1 (IMG_3079). NOTE — the SMALL cup 191440A1 uses the OPPOSITE convention (its TIMKEN face goes DOWN); do not carry one cup's rule onto the other.",
+      "image_filename": "bearing_cup_248114a1_pos_correct_1.png; bearing_cup_248114a1_pos_correct_2.png; bearing_cup_248114a1_pos_correct_3.png; part_bearing_cup_248114a1.png; part_bearing_cup_248114a1_2.png; part_bearing_cup_248114a1_3.png",
       "used_in_steps": [
         1
       ],
-      "notes": "Big bearing cup pressed onto the cover at Step 1 (PHASE 1) on punch fixture cod.3187.111.100.09. Orientation/position check belongs to Step 1 — pressing it inverted is the cup half of the documented inverted cup/cone error (errors_pinion_guide_for_KB.txt): the press flags it out-of-range, but once pressed wrong it is very hard to remove and usually damages the part."
+      "notes": "Big bearing cup pressed onto the cover at Step 1 (PHASE 1) on punch fixture cod.3187.111.100.09. Correct orientation per the line engineer: TIMKEN stamped side facing UP. Orientation/position check belongs to Step 1 — pressing it inverted is the cup half of the documented inverted cup/cone error (errors_pinion_guide_for_KB.txt): the press flags it out-of-range, but once pressed wrong it is very hard to remove and usually damages the part."
     },
     {
       "part_number_comer": "",
@@ -185,7 +185,14 @@
       "used_in_steps": [
         8
       ],
-      "notes": "Step 8 punch fixture for pressing the ring retainer. Looks almost identical to the Step 14 driver 3187.111.100.28 — confusing these is the documented wrong-driver error; verify the engraved last digits before pressing."
+      "notes": "Step 8 punch fixture for pressing the ring retainer. Looks almost identical to the Step 14 driver 3187.111.100.28 — confusing these is the documented wrong-driver error; verify the engraved last digits before pressing.",
+      "decoy_on_steps": [
+        14
+      ],
+      "warning": {
+        "headline": "WRONG DRIVER",
+        "action": "Put it back — step 14 uses driver cod.3187.111.100.28; read the engraved last digits (.27 vs .28)"
+      }
     },
     {
       "part_number_comer": "3187.111.100.28",
@@ -198,7 +205,14 @@
       "used_in_steps": [
         14
       ],
-      "notes": "Step 14 driver: collected in MANUAL mode to press/disassemble the shim pack if rolling torque (5.6-20.3Nm) fails. Looks almost identical to the Step 8 fixture 3187.111.100.27 — confusing these is the documented wrong-driver error; verify the engraved last digits."
+      "notes": "Step 14 driver: collected in MANUAL mode to press/disassemble the shim pack if rolling torque (5.6-20.3Nm) fails. Looks almost identical to the Step 8 fixture 3187.111.100.27 — confusing these is the documented wrong-driver error; verify the engraved last digits.",
+      "decoy_on_steps": [
+        8
+      ],
+      "warning": {
+        "headline": "WRONG DRIVER",
+        "action": "Put it back — step 8 uses punch fixture cod.3187.111.100.27; read the engraved last digits (.27 vs .28)"
+      }
     },
     {
       "part_number_comer": "0900.7145",
@@ -212,6 +226,25 @@
         16
       ],
       "notes": "Marked '92203640' on face; ring snap retainer assembled with 2 screws cod.14441231 at step 16. Visually close to 92203637 (brushed eccentric 2-hole) and the C-ring 229515A2 (open gap) — use finish, gap, and stamped code to disambiguate."
+    },
+    {
+      "part_number_comer": "",
+      "part_number_cnh": "191440A1-FLIP",
+      "description": "SMALL BEARING CUP 191440A1 — PLACED UPSIDE-DOWN / INVERTED (WRONG ORIENTATION)",
+      "category": "Bearings",
+      "specifications": "Synthetic wrong-state identity of small cup 191440A1 — same part, inverted orientation at Step 2",
+      "visual_fingerprint": "SMALL TAPERED ROLLER BEARING CUP turned UPSIDE-DOWN (WRONG orientation). The face pointing TOWARD the camera is the STAMPED MAKER face — a flat-ish rim carrying engraved/etched text ('TIMKEN', 'HM4...', '572 CD1 RM VN') around the bore — instead of the bright wide tapered raceway. So: stamped TIMKEN text legible on the UP face ⇒ inverted ⇒ 191440A1-FLIP; bare bright tapered raceway with NO text up ⇒ correct ⇒ 191440A1 (line-engineer verified: the small cup's TIMKEN side faces DOWN when assembled — OPPOSITE of the big cup 248114A1). Same physical part as 191440A1; the ONLY difference is orientation. Assign this identity ONLY when stamped text on the up-face is unmistakable; when ambiguous (tilted, edge-on, glare, unreadable), DEFAULT TO CORRECT (191440A1) — a false wrong-orientation alarm is worse than a miss.",
+      "image_filename": "bearing_cup_191440a1_flip_1.png; bearing_cup_191440a1_flip_2.png",
+      "used_in_steps": [
+        2
+      ],
+      "notes": "Synthetic decoy identity (not a real CNH part number). Flags the small bearing cup being placed/pressed upside-down at Step 2, mirroring the Step-1 big-cup decoy (248114A1-FLIP) and the Step-6 cone decoy (67190R91-FLIP).",
+      "_synthetic": true,
+      "decoy_for": "191440A1",
+      "warning": {
+        "headline": "WRONG ORIENTATION",
+        "action": "Flip it — the bright tapered raceway must face UP; the stamped TIMKEN face goes DOWN"
+      }
     },
     {
       "part_number_comer": "",
@@ -238,8 +271,8 @@
       "description": "BEARING CUP 248114A1 — PLACED UPSIDE-DOWN / INVERTED (WRONG ORIENTATION)",
       "category": "Bearings",
       "specifications": "Synthetic wrong-state identity of cup 248114A1 — same part, inverted orientation at Step 1",
-      "visual_fingerprint": "TAPERED ROLLER BEARING CUP turned UPSIDE-DOWN (WRONG orientation) on the fixture/cover. The face pointing TOWARD the camera is the STAMPED MAKER face — flat-ish rim carrying engraved/laser-etched lettering ('TIMKEN', 'INDIA'/'VN', and a code such as 542 or 572) — and you see the NARROW end of the taper, NOT the bright wide tapered raceway. So: stamped TIMKEN text legible on the UP face ⇒ inverted ⇒ 248114A1-FLIP; bright smooth wide tapered raceway with NO text on the up face ⇒ correct ⇒ 248114A1. Same physical part as 248114A1; the ONLY difference is orientation. Assign this identity ONLY when the stamped text face is clearly UP or the narrow taper end clearly faces the camera; when the pose is ambiguous (tilted, edge-on, glare, text unreadable), DEFAULT TO CORRECT (248114A1) — a false wrong-orientation alarm is worse than a miss.",
-      "image_filename": "bearing_cup_248114a1_flip_1.png; bearing_cup_248114a1_flip_2.png; bearing_cup_248114a1_flip_3.png",
+      "visual_fingerprint": "TAPERED ROLLER BEARING CUP turned UPSIDE-DOWN (WRONG orientation) on the fixture/cover. The face pointing TOWARD the camera is the BRIGHT, smooth, polished TAPERED RACEWAY — a machined cone wall angling DOWN and INWARD with the WIDE mouth of the taper up — and NO stamped lettering anywhere on the up-face. So: bare bright wide tapered raceway with NO text on the up face ⇒ inverted ⇒ 248114A1-FLIP; stamped TIMKEN text legible on the UP face ⇒ correct ⇒ 248114A1 (line-engineer verified: TIMKEN side faces UP when assembled). Same physical part as 248114A1; the ONLY difference is orientation. Assign this identity ONLY when the bare textless raceway face is clearly UP; when the pose is ambiguous (tilted, edge-on, glare, text possibly present but unreadable), DEFAULT TO CORRECT (248114A1) — a false wrong-orientation alarm is worse than a miss.",
+      "image_filename": "bearing_cup_248114a1_flip_1.png; bearing_cup_248114a1_flip_2.png",
       "used_in_steps": [
         1
       ],
@@ -248,7 +281,7 @@
       "decoy_for": "248114A1",
       "warning": {
         "headline": "WRONG ORIENTATION",
-        "action": "Flip it — the wide tapered mouth (bright raceway, no stamp) must face UP; the stamped TIMKEN face goes DOWN"
+        "action": "Flip it — the stamped TIMKEN face must be UP; the bright tapered raceway goes DOWN"
       }
     },
     {
