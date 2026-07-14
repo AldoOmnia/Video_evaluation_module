@@ -201,8 +201,52 @@
     .panel-h .n { color: var(--primary); }
     .panel-h .count { margin-left: auto; color: var(--ink-3); }
 
-    /* Station node graph — full-width panel, graph itself stays readable */
-    .graph-panel svg { display: block; width: 100%; max-width: 680px; height: auto; margin: 0 auto; }
+    /* Station node graph — graph on the left, asset inspector on the right */
+    .graph-body { display: flex; gap: 20px; align-items: stretch; }
+    .graph-canvas { flex: 1 1 auto; min-width: 0; }
+    .graph-panel svg { display: block; width: 100%; max-width: 620px; height: auto; margin: 0 auto; }
+    .sg-hit { cursor: pointer; outline: none; }
+    .sg-hit:hover .sg-node-label, .sg-hit:focus-visible .sg-node-label { fill: var(--ink-1); }
+    .sg-halo { fill: none; stroke: var(--primary); stroke-width: 1.4; stroke-dasharray: 3 3; opacity: 0.9; }
+
+    .node-inspect {
+      flex: 0 0 320px; width: 320px;
+      border-left: 1px solid var(--line-2); padding-left: 18px;
+      display: flex; flex-direction: column; gap: 11px;
+      max-height: 470px; overflow-y: auto;
+    }
+    @media (max-width: 980px) {
+      .graph-body { flex-direction: column; }
+      .node-inspect { flex: none; width: auto; max-height: none; border-left: none; border-top: 1px solid var(--line-2); padding: 14px 0 0; }
+    }
+    .ni-empty { color: var(--ink-3); font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; line-height: 1.8; margin: auto 0; }
+    .ni-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .ni-kind {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 2px 8px; border: 1px solid currentColor; border-radius: 20px;
+    }
+    .ni-name { font-size: 13px; font-weight: 600; color: var(--ink-1); line-height: 1.4; }
+    .ni-h { font-family: var(--mono); font-size: 9px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; }
+    .ni-row {
+      font-size: 11.5px; color: var(--ink-2); line-height: 1.5;
+      padding: 6px 9px; border: 1px solid var(--line-2); border-radius: 7px; margin-bottom: 5px;
+    }
+    .ni-row b { color: var(--ink-1); font-weight: 600; }
+    .ni-row .sub { display: block; font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); margin-top: 2px; }
+    .ni-imgs { display: flex; gap: 6px; flex-wrap: wrap; }
+    .ni-imgs img { width: 56px; height: 56px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line-2); }
+    .ni-warn {
+      border: 1px solid rgba(245,165,36,0.45); background: rgba(245,165,36,0.06);
+      border-radius: 8px; padding: 8px 10px; font-size: 11.5px; color: var(--ink-1); line-height: 1.5;
+    }
+    .ni-warn b { color: var(--warn, #f5a524); }
+    .ni-frame { display: flex; gap: 9px; align-items: center; border: 1px solid var(--line-2); border-radius: 8px; padding: 6px; margin-bottom: 6px; }
+    .ni-frame img { width: 66px; height: 44px; object-fit: cover; border-radius: 5px; flex: none; }
+    .ni-frame .m { font-family: var(--mono); font-size: 9.5px; color: var(--ink-2); line-height: 1.55; min-width: 0; }
+    .ni-frame .m b { color: var(--ink-1); }
+    .ni-foot { font-family: var(--mono); font-size: 9px; color: var(--ink-3); letter-spacing: 0.05em; line-height: 1.6; }
+    .ni-foot a { color: var(--primary); text-decoration: none; }
+    .ni-foot a:hover { text-decoration: underline; }
     .sg-edge { stroke: rgba(255,255,255,0.10); stroke-width: 1.2; }
     .sg-edge.hot { stroke: rgba(0,229,160,0.35); }
     .sg-center { fill: #0f1512; stroke: var(--primary); stroke-width: 1.6; }
@@ -486,11 +530,16 @@
         One-way for now: what you add here stays on the platform and is not pushed to the glasses.</span>
       </div>
 
-      <!-- 01 · Node graph — full width -->
+      <!-- 01 · Node graph + asset inspector — full width -->
       <div class="panel graph-panel" style="margin-top:12px;">
         <div class="panel-h"><span class="n">01</span> Station knowledge graph</div>
-        <svg id="station-svg" viewBox="0 0 560 430" role="img" aria-label="Station knowledge graph"></svg>
-        <div class="graph-hint" id="graph-hint">procedure · material · components · POV — grows as you add knowledge</div>
+        <div class="graph-body">
+          <div class="graph-canvas">
+            <svg id="station-svg" viewBox="0 0 560 430" role="img" aria-label="Station knowledge graph"></svg>
+            <div class="graph-hint" id="graph-hint">procedure · material · components · POV — click any node to trace why it's in the Brain</div>
+          </div>
+          <aside class="node-inspect" id="node-inspect" aria-live="polite"></aside>
+        </div>
       </div>
 
       <div class="station-grid">
@@ -747,24 +796,28 @@
     }
 
     /* ── Station graph ────────────────────────── */
+    let ringNodes = [];      // last rendered ring — index-aligned with data-ring
+    let selectedRing = -1;   // which node the inspector is showing
+
     function renderStationGraph() {
       const svg = $('station-svg');
       if (!current) { svg.innerHTML = ''; return; }
       const CX = 280, CY = 215;
       const ring = [];
-      (current.keysteps || []).forEach((k) => ring.push({ kind: 'step', label: 'S' + String(k.order).padStart(2, '0'), full: k.label, color: '#60a5fa' }));
+      (current.keysteps || []).forEach((k) => ring.push({ kind: 'step', label: 'S' + String(k.order).padStart(2, '0'), full: k.label, color: '#60a5fa', ref: k }));
       (current.artifacts || []).forEach((a) => ring.push({
         kind: 'art', label: a.type.toUpperCase(),
-        full: a.name,
+        full: a.name, ref: a,
         color: a.type === 'pdf' ? '#f87171' : a.type === 'csv' ? '#4ade80' : a.type === 'video' ? '#60a5fa' : '#8a8a8a',
       }));
-      (current.components || []).forEach((c) => ring.push({ kind: 'comp', label: c.name.slice(0, 12), full: c.name, color: '#f472b6', img: (c.images[0] || {}).url }));
+      (current.components || []).forEach((c) => ring.push({ kind: 'comp', label: c.name.slice(0, 12), full: c.name, color: '#f472b6', img: (c.images[0] || {}).url, ref: c }));
       (current.povs || []).forEach((p) => ring.push({
         kind: 'pov',
         label: p.label === 'mistake' ? 'POV ✕' : 'POV ✓',
-        full: p.name,
+        full: p.name, ref: p,
         color: p.label === 'mistake' ? '#ef4444' : '#4ade80',
       }));
+      ringNodes = ring;
 
       let parts = [];
       const R = 150;
@@ -773,17 +826,19 @@
         const x = CX + Math.cos(a) * R;
         const y = CY + Math.sin(a) * R;
         parts.push(`<line class="sg-edge ${n.kind === 'comp' ? 'hot' : ''}" x1="${CX}" y1="${CY}" x2="${x}" y2="${y}"/>`);
+        let node = '';
         if (n.img) {
-          parts.push(
+          node =
             `<clipPath id="clip${i}"><circle cx="${x}" cy="${y}" r="15"/></clipPath>` +
             `<image href="${esc(n.img)}" x="${x - 15}" y="${y - 15}" width="30" height="30" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip${i})"/>` +
-            `<circle cx="${x}" cy="${y}" r="15" fill="none" stroke="${n.color}" stroke-width="1.4"/>`
-          );
+            `<circle cx="${x}" cy="${y}" r="15" fill="none" stroke="${n.color}" stroke-width="1.4"/>`;
         } else {
-          parts.push(`<circle cx="${x}" cy="${y}" r="${n.kind === 'step' ? 7 : 9}" fill="#0f1512" stroke="${n.color}" stroke-width="1.4"/>`);
+          node = `<circle cx="${x}" cy="${y}" r="${n.kind === 'step' ? 7 : 9}" fill="#0f1512" stroke="${n.color}" stroke-width="1.4"/>`;
         }
+        if (i === selectedRing) node += `<circle class="sg-halo" cx="${x}" cy="${y}" r="${n.img ? 20 : 14}"/>`;
         const ly = y + (Math.sin(a) >= 0 ? 24 : -18);
-        parts.push(`<text class="sg-node-label" x="${x}" y="${ly}" text-anchor="middle">${esc(n.label)}</text>`);
+        node += `<text class="sg-node-label" x="${x}" y="${ly}" text-anchor="middle">${esc(n.label)}</text>`;
+        parts.push(`<g class="sg-hit" data-ring="${i}" tabindex="0" role="button" aria-label="${esc(n.full)}">${node}</g>`);
       });
 
       // center node
@@ -796,6 +851,171 @@
         parts.push(`<text class="sg-empty" x="${CX}" y="${CY + 80}" text-anchor="middle">empty graph — add material or components to grow it</text>`);
       }
       svg.innerHTML = parts.join('');
+      svg.querySelectorAll('.sg-hit').forEach((g) => {
+        const open = () => selectRing(Number(g.dataset.ring));
+        g.addEventListener('click', open);
+        g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+      });
+    }
+
+    function selectRing(i) {
+      selectedRing = (i === selectedRing) ? -1 : i;   // click again to close
+      renderStationGraph();
+      renderInspector(selectedRing >= 0 ? ringNodes[selectedRing] : null);
+    }
+
+    /* ── Node inspector — why is this asset in the Brain? ─────── */
+    const KIND_META = {
+      step: { label: 'procedure step', color: '#60a5fa' },
+      art:  { label: 'training material', color: '#8a8a8a' },
+      comp: { label: 'component reference', color: '#f472b6' },
+      pov:  { label: 'POV recording', color: '#4ade80' },
+    };
+    let lineReportCache = null, lineReportPromise = null, inspectToken = 0;
+    function getLineReport() {
+      if (lineReportCache) return Promise.resolve(lineReportCache);
+      if (!lineReportPromise) {
+        lineReportPromise = fetch('/api/line/report', { cache: 'no-store' })
+          .then((r) => r.json()).then((d) => (lineReportCache = d)).catch(() => null);
+      }
+      return lineReportPromise;
+    }
+
+    function compSteps(c) {
+      if (Array.isArray(c.steps) && c.steps.length) return c.steps;
+      return (c.note && c.note.match(/S\d\d/g)) || [];
+    }
+    function keystepFor(code) {
+      return (current.keysteps || []).find((k) => k.order === Number(code.slice(1))) || null;
+    }
+    function errRow(code) {
+      const err = taxonomy.errors[code];
+      if (!err) return '';
+      return `<div class="ni-row"><span class="err-chip" style="${chipStyle(code)}">${esc(code)} · ${esc(err.label)}</span>
+        <span class="sub">${esc(err.desc)}</span></div>`;
+    }
+    function sourceLine(x) {
+      if (x.source === 'glasses') return 'Mirrored one-way from the live glasses build (comer-rokid-demo) — the Rokid glasses run this today.';
+      if (x.source === 'report') return 'Extracted from Full_stations_report.xlsx — the MES acquisition export for this station.';
+      return 'Added on the platform' + (x.addedAt ? ' · ' + new Date(x.addedAt).toLocaleDateString() : '') + '.';
+    }
+
+    /**
+     * Report ties — find this asset's error codes / steps inside the glasses
+     * warnings report (captured frames + per-worker warning counts).
+     */
+    async function fillReportTies(codes, steps) {
+      const token = ++inspectToken;
+      const el = document.getElementById('ni-report');
+      if (!el) return;
+      const rep = await getLineReport();
+      if (token !== inspectToken || !document.getElementById('ni-report')) return; // selection changed meanwhile
+      if (!rep || !rep.workers) { el.innerHTML = '<div class="ni-foot">warnings report unavailable</div>'; return; }
+
+      const codeSet = new Set(codes);
+      const frames = [];
+      const workerRows = [];
+      for (const w of rep.workers) {
+        for (const f of (w.frames || [])) {
+          const stepHit = steps.some((s) => (f.label || '').startsWith(s));
+          if (codeSet.has(f.code) || stepHit) frames.push({ ...f, worker: w.workerName || w.workerId, device: w.device });
+        }
+        const topCode = String(w.topError || '').split('·')[0].trim();
+        if (codeSet.has(topCode)) {
+          workerRows.push(`<div class="ni-row"><b>${esc(w.workerName || w.workerId)}</b> · ${esc(w.device || '')}
+            <span class="sub">top error ${esc(w.topError)} — ${w.warningsFired} fired / ${w.avoided} avoided</span></div>`);
+        }
+      }
+      if (!frames.length && !workerRows.length) {
+        el.innerHTML = `<div class="ni-h">In the warnings report</div>
+          <div class="ni-foot">no captured warnings tie back to this asset in the current period (${esc(rep.period || '')})</div>`;
+        return;
+      }
+      el.innerHTML = `<div class="ni-h">In the warnings report · ${esc(rep.period || '')}</div>` +
+        frames.slice(0, 4).map((f) => `<div class="ni-frame">
+          <img src="${esc(f.src)}" alt="${esc(f.label)}" loading="lazy"/>
+          <span class="m"><b>${esc(f.label)}</b><br/>${esc(f.code)} · ${esc(f.worker)}${f.device ? ' · ' + esc(f.device) : ''}</span>
+        </div>`).join('') +
+        workerRows.join('') +
+        `<div class="ni-foot">frames captured by the glasses when this warning fired — <a href="/home/">full report on home ↗</a></div>`;
+    }
+
+    function renderInspector(node) {
+      const box = $('node-inspect');
+      inspectToken++; // invalidate any in-flight report fill
+      if (!node) {
+        box.innerHTML = `<div class="ni-empty">select a node on the graph —<br/><br/>
+          components show the procedure step they belong to, the failure modes mapped against them,
+          the live glasses warning, and captured error frames from the warnings report.<br/><br/>
+          steps show which components and warnings they carry; material shows where it came from.</div>`;
+        return;
+      }
+      const meta = KIND_META[node.kind];
+      const head = `<div class="ni-top"><span class="ni-kind" style="color:${meta.color}">${meta.label}</span></div>
+        <div class="ni-name">${esc(node.full)}</div>`;
+      let body = '';
+
+      if (node.kind === 'comp') {
+        const c = node.ref;
+        const steps = compSteps(c);
+        if (c.images.length) {
+          body += `<div><div class="ni-h">Reference images · ${c.images.length}</div>
+            <div class="ni-imgs">${c.images.slice(0, 6).map((im) => `<img src="${esc(im.url)}" alt="${esc(im.name)}" title="${esc(im.name)}" loading="lazy"/>`).join('')}</div></div>`;
+        }
+        body += `<div><div class="ni-h">In the procedure</div>` +
+          (steps.length
+            ? steps.map((s) => {
+                const k = keystepFor(s);
+                return `<div class="ni-row"><b>${esc(s)}</b>${k ? ' · ' + esc(k.label) : ''}${k && k.risk ? `<span class="sub">risk: ${esc(k.risk)}</span>` : ''}</div>`;
+              }).join('')
+            : '<div class="ni-row">recognition-only — not tied to a step in the current procedure</div>') + '</div>';
+        if (c.errorCodes.length) {
+          body += `<div><div class="ni-h">Mapped failure modes</div>${c.errorCodes.map(errRow).join('')}</div>`;
+        }
+        if (c.warning && c.warning.headline) {
+          body += `<div><div class="ni-h">Live glasses warning</div>
+            <div class="ni-warn"><b>⚠ ${esc(c.warning.headline)}</b><br/>${esc(c.warning.action)}</div></div>`;
+        }
+        body += `<div id="ni-report"><div class="ni-h">In the warnings report</div><div class="ni-foot">checking captured warnings…</div></div>`;
+        body += `<div class="ni-foot">${esc(sourceLine(c))}</div>`;
+        queueMicrotask(() => fillReportTies(c.errorCodes, steps));
+
+      } else if (node.kind === 'step') {
+        const k = node.ref;
+        const code = 'S' + String(k.order).padStart(2, '0');
+        body += `<div class="ni-row"><b>${esc(code)}</b> · step ${k.order} of ${(current.keysteps || []).length}${k.risk ? `<span class="sub">risk: ${esc(k.risk)}</span>` : ''}</div>`;
+        const comps = (current.components || []).filter((c) => compSteps(c).includes(code));
+        body += `<div><div class="ni-h">Components used in this step</div>` +
+          (comps.length
+            ? comps.map((c) => `<div class="ni-row"><b>${esc(c.name)}</b>${c.errorCodes.length ? `<span class="sub">watched for: ${c.errorCodes.map(esc).join(' · ')}</span>` : ''}</div>`).join('')
+            : '<div class="ni-row">none mapped yet — add component references in section 04</div>') + '</div>';
+        const codes = [...new Set(comps.flatMap((c) => c.errorCodes))];
+        body += `<div id="ni-report"><div class="ni-h">In the warnings report</div><div class="ni-foot">checking captured warnings…</div></div>`;
+        queueMicrotask(() => fillReportTies(codes, [code]));
+
+      } else if (node.kind === 'art') {
+        const a = node.ref;
+        body += `<div class="ni-row"><b>${esc(a.type.toUpperCase())}</b>${a.size ? ' · ' + fmtSize(a.size) : ''}${a.note ? `<span class="sub">${esc(a.note)}</span>` : ''}</div>`;
+        if (a.url) body += `<div class="ni-foot"><a href="${esc(a.url)}" target="_blank" rel="noopener">open material ↗</a></div>`;
+        body += `<div class="ni-foot">${esc(sourceLine(a))}</div>`;
+
+      } else if (node.kind === 'pov') {
+        const p = node.ref;
+        body += `<div class="ni-row"><b>${p.label === 'mistake' ? '✕ contains mistakes' : '✓ done correctly'}</b>${p.durationS ? ' · ' + fmtDur(p.durationS) : ''}${p.note ? `<span class="sub">${esc(p.note)}</span>` : ''}</div>`;
+        if (p.analysis) {
+          body += `<div><div class="ni-h">Brain analysis</div><div class="ni-row">${esc(p.analysis.summary)}</div>` +
+            (p.analysis.suggestions || []).map((s) => `<div class="ni-row">
+              ${s.step ? `<b>${esc(s.step)}</b> · ` : ''}${s.errorCode ? `<span class="err-chip" style="${chipStyle(s.errorCode)}">${esc(s.errorCode)}</span>` : ''}
+              <span class="sub">${esc(s.observed)}${s.detect ? ' → detect: ' + esc(s.detect) : ''}</span>
+              ${s.glassesWarning ? `<span class="sub">glasses: “${esc(s.glassesWarning)}”</span>` : ''}
+            </div>`).join('') + '</div>';
+        } else {
+          body += `<div class="ni-foot">not analyzed yet — run Analyze in section 02 to compare it against the known material</div>`;
+        }
+        body += `<div class="ni-foot">Added on the platform${p.addedAt ? ' · ' + new Date(p.addedAt).toLocaleDateString() : ''}.</div>`;
+      }
+
+      box.innerHTML = head + body;
     }
 
     /* ── Data loads ───────────────────────────── */
@@ -818,6 +1038,8 @@
       // Glasses-build provenance strip (PG-04 today)
       $('glasses-sync').classList.toggle('is-on', !!d.glassesSync);
       if (d.glassesSync && d.glassesSync.repo) $('glasses-sync-repo').href = d.glassesSync.repo;
+      selectedRing = -1;
+      renderInspector(null);
       renderStationGraph();
       renderArtifacts();
       renderComponents();

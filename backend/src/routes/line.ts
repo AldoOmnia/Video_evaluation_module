@@ -132,10 +132,10 @@ lineRouter.get("/report", async (_req, res) => {
       warningsFired: 14,
       avoided: 11,
       missed: 3,
-      topError: "B04 · torque sequence skipped",
+      topError: "INCOMPLETE · torque sequence cut short",
       frames: [
-        { src: "/lab/assets/phase8_frame.jpg", label: "S09 · single-pass torque", code: "B04" },
-        { src: "/lab/assets/worker_pov.jpg", label: "S07 · wrong shim SKU", code: "A02" },
+        { src: "/lab/assets/phase8_frame.jpg", label: "S09 · single-pass torque", code: "INCOMPLETE" },
+        { src: "/lab/assets/worker_pov.jpg", label: "S07 · wrong shim SKU", code: "SUBSTITUTION" },
       ],
     },
     {
@@ -145,9 +145,9 @@ lineRouter.get("/report", async (_req, res) => {
       warningsFired: 8,
       avoided: 7,
       missed: 1,
-      topError: "A02 · component mismatch",
+      topError: "SUBSTITUTION · component mismatch",
       frames: [
-        { src: "/lab/assets/pinion_guide_station.jpg", label: "S04 · missing pinion cup", code: "A01" },
+        { src: "/lab/assets/pinion_guide_station.jpg", label: "S04 · cup flipped at load", code: "ORIENTATION" },
       ],
     },
     {
@@ -157,9 +157,9 @@ lineRouter.get("/report", async (_req, res) => {
       warningsFired: 5,
       avoided: 5,
       missed: 0,
-      topError: "C01 · press depth out of range",
+      topError: "OUT_OF_SPEC · press depth out of range",
       frames: [
-        { src: "/lab/assets/phase8_frame.jpg", label: "S11 · press depth check", code: "C01" },
+        { src: "/lab/assets/phase8_frame.jpg", label: "S11 · press depth check", code: "OUT_OF_SPEC" },
       ],
     },
   ];

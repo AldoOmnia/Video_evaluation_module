@@ -90,6 +90,10 @@ interface KbComponent {
   addedAt: string;
   /** "glasses" = mirrored from the live comer-rokid-demo build (read-only reference). */
   source?: "glasses" | "report";
+  /** Procedure steps the part is used in (e.g. ["S06","S09"]) — from the glasses catalogue. */
+  steps?: string[];
+  /** The live warning the glasses fire when this part's failure mode is seen. */
+  warning?: { headline: string; action: string } | null;
 }
 interface KbArtifact {
   id: string;
@@ -181,7 +185,7 @@ function findStation(id: string) {
  */
 const GLASSES_IMG_BASE = "/lab/assets/pinion-components";
 /** Bump when GLASSES_COMPONENTS / GLASSES_ARTIFACTS / station reports grow so live stores re-merge. */
-const GLASSES_SYNC_VERSION = 3;
+const GLASSES_SYNC_VERSION = 4;
 const GLASSES_REPO = "https://github.com/AldoOmnia/comer-rokid-demo";
 
 interface CataloguePart {
@@ -275,6 +279,8 @@ function seedGlassesKnowledge(store: KbStore): boolean {
       id: `glasses-${sku}`,
       name: cfg.name,
       note: noteParts.join(" · "),
+      steps,
+      warning: decoy?.warning ?? null,
       errorCodes: validErrorCodes(cfg.codes),
       images: cfg.images.map((f) => ({
         id: `glasses-img-${f}`,
