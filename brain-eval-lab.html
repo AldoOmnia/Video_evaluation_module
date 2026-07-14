@@ -4939,14 +4939,19 @@ async function wireStationPicker() {
 
   // Fallback mirrors the backend list so the picker still works if /api is down.
   let stations = [
-    { id: 'pg-04', label: 'Pinion Guide · PG-04', desc: 'Pilot station — full procedure graph + eval tools live', active: true },
-    { id: 'st-1', label: 'Station 1', desc: 'Vertical press fixture machine', active: false },
-    { id: 'st-2', label: 'Station 2', desc: 'Assembly station', active: false },
-    { id: 'st-3', label: 'Station 3', desc: 'UNICOMM system', active: false },
-    { id: 'st-4', label: 'Station 4', desc: 'Component picking area', active: false },
-    { id: 'pm-5', label: 'Perimeter 5', desc: 'Drivers selection', active: false },
-    { id: 'pm-6', label: 'Perimeter 6', desc: 'Pinion guide station end', active: false },
-    { id: 'pm-7', label: 'Perimeter 7', desc: 'Pinion guide station end', active: false },
+    { id: 'pg-04', label: 'ST100 · Pinion Guide', desc: 'Pinion cover pre-assembly — pilot: glasses + digital twin live', active: true },
+    { id: 'st110', label: 'ST110 · Carrier Bearing', desc: 'Expanding plug · bearing cone · LH diff carrier assy', active: false },
+    { id: 'st130-135', label: 'ST130-135 · Diff Carrier', desc: 'Diff carrier bolts · preload · shims · brake shim check', active: false },
+    { id: 'st140', label: 'ST140 · Brake Piston', desc: 'Brake piston bore · self-adjust stack', active: false },
+    { id: 'st150', label: 'ST150 · Pinion Cover On Housing', desc: 'Cover to housing · manifold bolts · elbows · plugs', active: false },
+    { id: 'st160', label: 'ST160 · Bolting 1', desc: '500QT bolt tightening', active: false },
+    { id: 'st170', label: 'ST170 · Bolting 2', desc: '500QT bolt tightening', active: false },
+    { id: 'st180-190', label: 'ST180-190 · Test Bench', desc: 'Leakage · filling · brake tests · run-in · pollution', active: false },
+    { id: 'st200-220', label: 'ST200-220 · Riveter + Diff', desc: 'Riveting · thrust washer · diff bolts · bearing cup', active: false },
+    { id: 'st300', label: 'ST300 · Gear Bearing Press', desc: 'Gear bearing cups/cones · backlash', active: false },
+    { id: 'st310', label: 'ST310 · Dropbox', desc: 'Dropbox on center housing · plugs · Loctite', active: false },
+    { id: 'st500-520', label: 'ST500-520 · Shaft Bearings', desc: 'Cone/cup bearing onto shaft · nut tighten · plugs', active: false },
+    { id: 'st710', label: 'ST710 · Victory Tightening', desc: 'Pin positioning · Victory release/tightening cycles', active: false },
   ];
   try {
     const d = await (await fetch('/api/kb/stations', { cache: 'no-store' })).json();

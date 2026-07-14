@@ -1,0 +1,87 @@
+SN,Phase_ID,Phase_Rev,Phase_Number,ID_Acq,Description_Acq,min,max,Value_Acq,Status_Acq
+PCMRS0700115,180_LEAKAGE_QTR,0,2,1,Charged Pressure [mbar],434.3,530.9,483.59,OK
+PCMRS0700115,180_LEAKAGE_QTR,0,2,2,Leakage [mbar],-0.413,0.413,-0.037,OK
+PCMRS0700115,190_Filling 600,0,2,1,Final Drive LH filled liters,31,33,32,OK
+PCMRS0700115,190_Filling 600,0,2,2,Final Drive RH filled liters,31,33,32,OK
+PCMRS0700115,190_Parking brake test 600,0,3,1,Steady test: Speed [rpm],-1,1,0,OK
+PCMRS0700115,190_Parking brake test 600,0,3,2,Steady test: Torque [Nm],90,110,99.6,OK
+PCMRS0700115,190_Parking brake test 600,0,3,3,Steady test: Pressure park.brake [bar],-1,2,1,OK
+PCMRS0700115,190_Parking brake test 600,0,3,4,Steady test: Pressure serv.brake [bar],-1,2,0.8,OK
+PCMRS0700115,190_Parking brake test 600,0,3,5,Steady test: Pressure diff.lock [bar],-1,2,1,OK
+PCMRS0700115,190_Parking brake test 600,0,3,6,Free spinning torque test: Speed [rpm],750,850,800,OK
+PCMRS0700115,190_Parking brake test 600,0,3,7,Free spinning torque test: Torque [Nm],20,200,64.7,OK
+PCMRS0700115,190_Parking brake test 600,0,3,8,Free spinning torque test: Pressure park.brake [bar],28,32,30,OK
+PCMRS0700115,190_Parking brake test 600,0,3,9,Free spinning torque test: Pressure serv.brake [bar],-1,2,0,OK
+PCMRS0700115,190_Parking brake test 600,0,3,10,Free spinning torque test: Pressure diff.lock [bar],-1,2,0.1,OK
+PCMRS0700115,190_Parking brake test 600,0,3,11,Brake lock test: Speed [rpm],-1,1,0,OK
+PCMRS0700115,190_Parking brake test 600,0,3,12,Brake lock test: Torque [Nm],90,110,99.6,OK
+PCMRS0700115,190_Parking brake test 600,0,3,13,Brake lock test: Pressure park.brake [bar],-1,2,0.2,OK
+PCMRS0700115,190_Parking brake test 600,0,3,14,Brake lock test: Pressure serv.brake [bar],-1,2,0,OK
+PCMRS0700115,190_Parking brake test 600,0,3,15,Brake lock test: Pressure diff.lock [bar],-1,2,0,OK
+PCMRS0700115,190_Service brake test 600,0,4,1,Free spinning test: Speed [rpm],650,750,699,OK
+PCMRS0700115,190_Service brake test 600,0,4,2,Free spinning test: Torque [Nm],20,200,60.4,OK
+PCMRS0700115,190_Service brake test 600,0,4,3,Free spinning test: Pressure park.brake [bar],28,32,30,OK
+PCMRS0700115,190_Service brake test 600,0,4,4,Free spinning test: Pressure serv.brake [bar],-1,2,0,OK
+PCMRS0700115,190_Service brake test 600,0,4,5,Free spinning test: Pressure diff.lock [bar],-1,2,0.1,OK
+PCMRS0700115,190_Service brake test 600,0,4,6,Brake lock test: Speed [rpm],-1,1,0,OK
+PCMRS0700115,190_Service brake test 600,0,4,7,Brake lock test: Torque [Nm],90,110,99.6,OK
+PCMRS0700115,190_Service brake test 600,0,4,8,Brake lock test: Pressure park.brake [bar],28,32,30,OK
+PCMRS0700115,190_Service brake test 600,0,4,9,Brake lock test: Pressure serv.brake [bar],17,22,20,OK
+PCMRS0700115,190_Service brake test 600,0,4,10,Brake lock test: Pressure diff.lock [bar],-1,2,0.1,OK
+PCMRS0700115,190_Service brake test 600,0,4,11,Brake release test: Speed [rpm],650,750,700,OK
+PCMRS0700115,190_Service brake test 600,0,4,12,Brake release test: Torque [Nm],20,200,60.4,OK
+PCMRS0700115,190_Service brake test 600,0,4,13,Brake release test: Pressure park.brake [bar],29,33,30,OK
+PCMRS0700115,190_Service brake test 600,0,4,14,Brake release test: Pressure serv.brake [bar],-1,2,0,OK
+PCMRS0700115,190_Service brake test 600,0,4,15,Brake release test: Pressure diff.lock [bar],-1,2,0.1,OK
+PCMRS0700115,190_Run-in 600,0,5,1,1: Motor speed [rpm],2030,2130,2076,OK
+PCMRS0700115,190_Run-in 600,0,5,2,1: Motor torque [Nm],20,250,192.4,OK
+PCMRS0700115,190_Run-in 600,0,5,3,1: Pressure park.brake [bar],28,32,30,OK
+PCMRS0700115,190_Run-in 600,0,5,4,1: Pressure serv.brake [bar],-1,2,0,OK
+PCMRS0700115,190_Run-in 600,0,5,5,1: Pressure diff.lock [bar],-1,2,0.1,OK
+PCMRS0700115,190_Run-in 600,0,5,6,2: Motor speed [rpm],-2130,-2030,-2078,OK
+PCMRS0700115,190_Run-in 600,0,5,7,2: Motor torque [Nm],20,250,84.3,OK
+PCMRS0700115,190_Run-in 600,0,5,8,2: Pressure park.brake [bar],28,32,30,OK
+PCMRS0700115,190_Run-in 600,0,5,9,2: Pressure serv.brake [bar],-1,2,0,OK
+PCMRS0700115,190_Run-in 600,0,5,10,2: Pressure diff.lock [bar],-1,2,0.1,OK
+PCMRS0700115,190_Filling 600,0,2,1,Final Drive LH filled liters,31,33,32,OK
+PCMRS0700115,190_Filling 600,0,2,2,Final Drive RH filled liters,31,33,32,OK
+PCMRS0700115,190_Run-in 600,0,5,1,1: Motor speed [rpm],2030,2130,2077,OK
+PCMRS0700115,190_Run-in 600,0,5,2,1: Motor torque [Nm],20,250,78.4,OK
+PCMRS0700115,190_Run-in 600,0,5,3,1: Pressure park.brake [bar],28,32,30,OK
+PCMRS0700115,190_Run-in 600,0,5,4,1: Pressure serv.brake [bar],-1,2,0,OK
+PCMRS0700115,190_Run-in 600,0,5,5,1: Pressure diff.lock [bar],-1,2,0.1,OK
+PCMRS0700115,190_Run-in 600,0,5,6,2: Motor speed [rpm],-2130,-2030,-2077,OK
+PCMRS0700115,190_Run-in 600,0,5,7,2: Motor torque [Nm],20,250,70,OK
+PCMRS0700115,190_Run-in 600,0,5,8,2: Pressure park.brake [bar],28,32,30,OK
+PCMRS0700115,190_Run-in 600,0,5,9,2: Pressure serv.brake [bar],-1,2,0,OK
+PCMRS0700115,190_Run-in 600,0,5,10,2: Pressure diff.lock [bar],-1,2,0.1,OK
+PCMRS0700115,190_Pollution 600,0,6,2,Pollution (ISO 4406): 6um,0,23,20,OK
+PCMRS0700115,190_Pollution 600,0,6,3,Pollution (ISO 4406): 14um,0,17,14,OK
+PCMRS0700115,190_Pollution 600,0,6,4,Attempts reached,0,5,1,OK
+PCMRS0700115,600QT P190 M18X1.5 PINION LUBE,0,9,1,Bolts tightened,1,1,1,OK
+PCMRS0700115,600QT P190 M18X1.5 PINION LUBE,0,9,2,BOLT 1: Angle [°],1,360,6,OK
+PCMRS0700115,600QT P190 M18X1.5 PINION LUBE,0,9,3,BOLT 1: Torque [Nm],70,77,74,OK
+PCMRS0700115,600QT P190 M22X1.5 PARK BRAKE,0,10,1,Bolts tightened,1,1,1,OK
+PCMRS0700115,600QT P190 M22X1.5 PARK BRAKE,0,10,2,BOLT 1: Angle [°],1,360,5,OK
+PCMRS0700115,600QT P190 M22X1.5 PARK BRAKE,0,10,3,BOLT 1: Torque [Nm],70,77,72.4,OK
+PCMRS0700115,600QT P190 M22X1.5 SERVICE BRAKE,0,11,1,Bolts tightened,1,1,1,OK
+PCMRS0700115,600QT P190 M22X1.5 SERVICE BRAKE,0,11,2,BOLT 1: Angle [°],1,360,6,OK
+PCMRS0700115,600QT P190 M22X1.5 SERVICE BRAKE,0,11,3,BOLT 1: Torque [Nm],70,77,73.6,OK
+PCMRS0700115,600QT P190 M22X1.5 DIFF AND BRAKE LUBE,0,12,1,Bolts tightened,1,1,1,OK
+PCMRS0700115,600QT P190 M22X1.5 DIFF AND BRAKE LUBE,0,12,2,BOLT 1: Angle [°],1,360,6,OK
+PCMRS0700115,600QT P190 M22X1.5 DIFF AND BRAKE LUBE,0,12,3,BOLT 1: Torque [Nm],70,77,72.8,OK
+PCMRS0700115,600QT P190 M18X1.5 TEARDROP DRAIN LH,0,14,1,Bolts tightened,1,1,1,OK
+PCMRS0700115,600QT P190 M18X1.5 TEARDROP DRAIN LH,0,14,2,BOLT 1: Angle [°],1,360,6,OK
+PCMRS0700115,600QT P190 M18X1.5 TEARDROP DRAIN LH,0,14,3,BOLT 1: Torque [Nm],70,77,72.8,OK
+PCMRS0700115,600QT P190 M18X1.5 TEARDROP DRAIN RH,0,15,1,Bolts tightened,1,1,1,OK
+PCMRS0700115,600QT P190 M18X1.5 TEARDROP DRAIN RH,0,15,2,BOLT 1: Angle [°],1,360,1,OK
+PCMRS0700115,600QT P190 M18X1.5 TEARDROP DRAIN RH,0,15,3,BOLT 1: Torque [Nm],70,77,74.6,OK
+PCMRS0700115,600QT P190 M22X1.5 AIR INLET,0,16,1,Bolts tightened,1,1,1,OK
+PCMRS0700115,600QT P190 M22X1.5 AIR INLET,0,16,2,BOLT 1: Angle [°],1,360,7,OK
+PCMRS0700115,600QT P190 M22X1.5 AIR INLET,0,16,3,BOLT 1: Torque [Nm],70,77,71.2,OK
+PCMRS0700115,600QT P190 M22X1.5 FILLING LH,0,17,1,Bolts tightened,1,1,1,OK
+PCMRS0700115,600QT P190 M22X1.5 FILLING LH,0,17,2,BOLT 1: Angle [°],1,360,4,OK
+PCMRS0700115,600QT P190 M22X1.5 FILLING LH,0,17,3,BOLT 1: Torque [Nm],70,77,72.2,OK
+PCMRS0700115,600QT P190 M22X1.5 FILLING RH,0,18,1,Bolts tightened,1,1,1,OK
+PCMRS0700115,600QT P190 M22X1.5 FILLING RH,0,18,2,BOLT 1: Angle [°],1,360,2,OK
+PCMRS0700115,600QT P190 M22X1.5 FILLING RH,0,18,3,BOLT 1: Torque [Nm],70,77,72,OK

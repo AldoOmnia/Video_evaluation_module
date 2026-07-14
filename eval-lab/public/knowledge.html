@@ -110,6 +110,9 @@
     .fac-node .nd-label { font-size: 12px; }
     .fac-node .nd-desc { fill: var(--ink-3); font-family: var(--mono); font-size: 8.5px; font-weight: 400; letter-spacing: 0.03em; }
     .fac-node .nd-counts { fill: var(--primary); font-family: var(--mono); font-size: 8.5px; font-weight: 400; }
+    .fac-node .nd-report { font-family: var(--mono); font-size: 8px; font-weight: 400; letter-spacing: 0.03em; }
+    .fac-node .nd-report.ok { fill: #3d5c50; }
+    .fac-node .nd-report.warn { fill: var(--warn, #f5a524); }
     .fac-twin { cursor: pointer; }
     .fac-twin rect { fill: rgba(74,222,128,0.06); stroke: rgba(74,222,128,0.4); stroke-width: 1; transition: fill 140ms ease; }
     .fac-twin:hover rect { fill: rgba(74,222,128,0.16); }
@@ -443,7 +446,8 @@
     <section class="facility-view is-active" id="facility-view">
       <div class="facility-head">
         <h1>The line, as the Brain sees it</h1>
-        <p>Every station holds its own knowledge graph — procedures, training material, and component references. Click a station to open it.</p>
+        <p>The 13 real Rockford stations from the MES acquisition report — each holds its own knowledge graph: procedures, training material, component references.
+        The digital-twin capture (and all its viewpoints) lives inside ST100 · Pinion Guide. Click a station to open it.</p>
       </div>
       <div class="facility-canvas">
         <svg id="facility-svg" viewBox="0 0 1140 560" role="img" aria-label="Facility station map"></svg>
@@ -453,6 +457,7 @@
         <span><span class="dot" style="background:#2a2a2a"></span>scaffold — awaiting material</span>
         <span style="color:var(--ok);">✓ twin — digital twin available</span>
         <span>counts: keysteps · material · components</span>
+        <span style="color:var(--warn,#f5a524);">⚠ checks — MES acquisitions outside limits (Full_stations_report)</span>
       </div>
     </section>
 
@@ -644,22 +649,36 @@
     picker.addEventListener('change', () => showStation(picker.value));
 
     /* ── Facility graph ───────────────────────── */
-    // Hand-placed layout echoing the plant tour: core line left→right, perimeter arc below.
+    // Real Rockford stations from Full_stations_report.xlsx (one node per
+    // sheet). Main line snakes across two rows; test + subassembly stations
+    // sit on the bottom row. Placeholder geometry — will be replaced by the
+    // actual factory floor layout.
     const FAC_POS = {
-      'pg-04': { x: 570, y: 140 },
-      'st-1':  { x: 170, y: 250 },
-      'st-2':  { x: 400, y: 300 },
-      'st-3':  { x: 640, y: 320 },
-      'st-4':  { x: 880, y: 260 },
-      'pm-5':  { x: 240, y: 452 },
-      'pm-6':  { x: 570, y: 480 },
-      'pm-7':  { x: 890, y: 452 },
+      // main assembly line (row 1, left → right)
+      'pg-04':     { x: 160, y: 130 },
+      'st110':     { x: 440, y: 130 },
+      'st130-135': { x: 720, y: 130 },
+      'st140':     { x: 990, y: 130 },
+      // main line continues (row 2, right → left)
+      'st150':     { x: 990, y: 300 },
+      'st160':     { x: 720, y: 300 },
+      'st170':     { x: 440, y: 300 },
+      'st180-190': { x: 160, y: 300 },
+      // test + subassembly stations (row 3)
+      'st200-220': { x: 130, y: 470 },
+      'st300':     { x: 360, y: 470 },
+      'st310':     { x: 590, y: 470 },
+      'st500-520': { x: 820, y: 470 },
+      'st710':     { x: 1030, y: 470 },
     };
     const FAC_EDGES = [
-      ['st-1', 'st-2'], ['st-2', 'st-3'], ['st-3', 'st-4'],
-      ['pm-5', 'pm-6'], ['pm-6', 'pm-7'],
-      ['st-1', 'pm-5'], ['st-4', 'pm-7'],
-      ['pg-04', 'st-2'], ['pg-04', 'st-3'],
+      // main line flow
+      ['pg-04', 'st110'], ['st110', 'st130-135'], ['st130-135', 'st140'],
+      ['st140', 'st150'],
+      ['st150', 'st160'], ['st160', 'st170'], ['st170', 'st180-190'],
+      // subassembly chain + feed into the main line
+      ['st200-220', 'st300'], ['st300', 'st310'], ['st310', 'st500-520'], ['st500-520', 'st710'],
+      ['st200-220', 'st130-135'], ['st310', 'st150'],
     ];
 
     function renderFacility() {
@@ -683,8 +702,12 @@
             <circle class="core" cx="${p.x}" cy="${p.y}" r="${r}"/>
             <circle cx="${p.x}" cy="${p.y}" r="4" fill="${s.active ? 'var(--primary)' : '#3a3a3a'}"/>
             <text class="nd-label" x="${p.x}" y="${p.y - r - 22}" text-anchor="middle">${esc(s.label)}</text>
-            <text class="nd-desc" x="${p.x}" y="${p.y - r - 9}" text-anchor="middle">${esc(s.desc || '')}</text>
+            <text class="nd-desc" x="${p.x}" y="${p.y - r - 9}" text-anchor="middle">${esc((s.desc || '').length > 30 ? (s.desc || '').slice(0, 29) + '…' : (s.desc || ''))}</text>
             <text class="nd-counts" x="${p.x}" y="${p.y + r + 16}" text-anchor="middle">${countsTxt}</text>
+            ${s.report && !twin ? `
+            <text class="nd-report ${s.report.nok > 0 ? 'warn' : 'ok'}" x="${p.x}" y="${p.y + r + 29}" text-anchor="middle">${
+              s.report.nok > 0 ? `⚠ ${s.report.nok}/${s.report.checks} checks NOT OK` : `✓ ${s.report.checks} checks OK`
+            }</text>` : ''}
             ${twin ? `
             <g class="fac-twin" data-twin="${s.id}" role="link" aria-label="Open the digital twin viewer">
               <rect x="${p.x - 46}" y="${p.y + r + 23}" width="92" height="17" rx="8.5"/>
@@ -804,6 +827,9 @@
           <span class="art-name" title="${esc(a.note || a.name)}">${a.url ? `<a href="${esc(a.url)}" target="_blank" style="color:inherit;">${esc(a.name)}</a>` : esc(a.name)}</span>
           ${a.source === 'glasses'
             ? '<span class="glasses-pill" title="Loaded on the Rokid glasses build — managed in comer-rokid-demo">⟲ glasses</span>'
+            : a.source === 'report'
+            ? `<span class="glasses-pill" style="color:var(--ink-2);border-color:var(--line-2);background:transparent;" title="Extracted from Full_stations_report.xlsx (MES acquisition export)">▦ MES report</span>
+          <button class="art-del" data-del-art="${a.id}" title="Remove from the Brain">✕</button>`
             : `<span class="art-size">${fmtSize(a.size)}</span>
           <button class="art-del" data-del-art="${a.id}" title="Remove from the Brain">✕</button>`}
         </div>`).join('');

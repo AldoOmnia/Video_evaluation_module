@@ -27,23 +27,50 @@ const UPLOADS_DIR = join(EVAL_LAB_PUBLIC, "kb-uploads");
 const UPLOADS_URL = "/lab/kb-uploads";
 const MAX_FILE_BYTES = 8 * 1024 * 1024; // fits inside the 12mb JSON body cap
 
-/** The line as captured in the synthetic-pov tour + the PG-04 pilot station. */
+/**
+ * The real Rockford line, one entry per sheet of Full_stations_report.xlsx
+ * (MES acquisition export). The digital-twin capture and its hotspots all
+ * live INSIDE the pinion guide station (ST100 = pg-04) — the other entries
+ * here are genuinely different stations on the line.
+ *
+ * `report` = extracted from the station's sheet: MES phase count, number of
+ * acquisition checks in the snapshot, and how many passed their min/max
+ * limits. The per-station CSV is vendored at shared/data/stations-report/.
+ */
 const STATIONS = [
   {
     id: "pg-04",
-    label: "Pinion Guide · PG-04",
-    desc: "Pilot station — full procedure graph + eval tools live",
+    label: "ST100 · Pinion Guide",
+    desc: "Pinion cover pre-assembly — pilot: glasses + digital twin live",
     tier: "core",
     active: true,
     procedureId: "proc:pinion-guide",
+    report: { sheet: "ST100", phases: 17, checks: 96, ok: 86, nok: 10, sample: "bearing cups · inf/sup bearing press · shim pack · ring retainer · rolling torque" },
   },
-  { id: "st-1", label: "Station 1", desc: "Vertical press fixture machine", tier: "core", active: false, procedureId: null },
-  { id: "st-2", label: "Station 2", desc: "Assembly station", tier: "core", active: false, procedureId: null },
-  { id: "st-3", label: "Station 3", desc: "UNICOMM system", tier: "core", active: false, procedureId: null },
-  { id: "st-4", label: "Station 4", desc: "Component picking area", tier: "core", active: false, procedureId: null },
-  { id: "pm-5", label: "Perimeter 5", desc: "Drivers selection", tier: "outer", active: false, procedureId: null },
-  { id: "pm-6", label: "Perimeter 6", desc: "Pinion guide station end", tier: "outer", active: false, procedureId: null },
-  { id: "pm-7", label: "Perimeter 7", desc: "Pinion guide station end", tier: "outer", active: false, procedureId: null },
+  { id: "st110", label: "ST110 · Carrier Bearing", desc: "Expanding plug · bearing cone · LH diff carrier assy", tier: "core", active: false, procedureId: null,
+    report: { sheet: "ST110", phases: 3, checks: 6, ok: 4, nok: 2, sample: "expanding plug · bearing cone · carrier bearing assy" } },
+  { id: "st130-135", label: "ST130-135 · Diff Carrier", desc: "Diff carrier bolts · preload · shims · brake shim check", tier: "core", active: false, procedureId: null,
+    report: { sheet: "ST130-135", phases: 20, checks: 143, ok: 140, nok: 3, sample: "bolt on diff carrier · carrier height · preload · shim tot · brake shim check" } },
+  { id: "st140", label: "ST140 · Brake Piston", desc: "Brake piston bore · self-adjust stack", tier: "core", active: false, procedureId: null,
+    report: { sheet: "ST140", phases: 10, checks: 138, ok: 116, nok: 22, sample: "brake piston bore · self adjust 1-3 · self adjust washers" } },
+  { id: "st150", label: "ST150 · Pinion Cover On Housing", desc: "Cover to housing · manifold bolts · elbows · plugs", tier: "core", active: false, procedureId: null,
+    report: { sheet: "ST150", phases: 28, checks: 104, ok: 102, nok: 2, sample: "bolt on clip · tube nut onto elbow · pinion cover on housing · M27x2" } },
+  { id: "st160", label: "ST160 · Bolting 1", desc: "500QT bolt tightening", tier: "core", active: false, procedureId: null,
+    report: { sheet: "ST160", phases: 1, checks: 45, ok: 45, nok: 0, sample: "P160 bolts — torque acquisitions" } },
+  { id: "st170", label: "ST170 · Bolting 2", desc: "500QT bolt tightening", tier: "core", active: false, procedureId: null,
+    report: { sheet: "ST170", phases: 1, checks: 27, ok: 26, nok: 1, sample: "P170 bolts — torque acquisitions" } },
+  { id: "st180-190", label: "ST180-190 · Test Bench", desc: "Leakage · filling · brake tests · run-in · pollution", tier: "outer", active: false, procedureId: null,
+    report: { sheet: "ST180_190", phases: 15, checks: 86, ok: 86, nok: 0, sample: "leakage QTR · filling · parking/service brake test · run-in" } },
+  { id: "st200-220", label: "ST200-220 · Riveter + Diff", desc: "Riveting · thrust washer · diff bolts · bearing cup", tier: "outer", active: false, procedureId: null,
+    report: { sheet: "ST200_220", phases: 10, checks: 67, ok: 64, nok: 3, sample: "riveter · thrust washer · diff bolts · bearing cup" } },
+  { id: "st300", label: "ST300 · Gear Bearing Press", desc: "Gear bearing cups/cones · backlash", tier: "outer", active: false, procedureId: null,
+    report: { sheet: "ST300", phases: 9, checks: 30, ok: 4, nok: 26, sample: "small/big gear bearing cup · bearing cone press · backlash" } },
+  { id: "st310", label: "ST310 · Dropbox", desc: "Dropbox on center housing · plugs · Loctite", tier: "outer", active: false, procedureId: null,
+    report: { sheet: "ST310", phases: 6, checks: 123, ok: 122, nok: 1, sample: "dropbox on center housing DX/SX · plug M18x1.5 · Loctite" } },
+  { id: "st500-520", label: "ST500-520 · Shaft Bearings", desc: "Cone/cup bearing onto shaft · nut tighten · plugs", tier: "outer", active: false, procedureId: null,
+    report: { sheet: "ST500_510_520", phases: 8, checks: 125, ok: 75, nok: 50, sample: "cone bearing onto shaft · cup bearing · nut tighten · bolts on nut" } },
+  { id: "st710", label: "ST710 · Victory Tightening", desc: "Pin positioning · Victory release/tightening cycles", tier: "outer", active: false, procedureId: null,
+    report: { sheet: "ST710", phases: 12, checks: 35, ok: 34, nok: 1, sample: "pin positioning 1-2 · Victory release/tightening 1-2" } },
 ] as const;
 
 type StationId = (typeof STATIONS)[number]["id"];
@@ -62,7 +89,7 @@ interface KbComponent {
   images: KbImage[];
   addedAt: string;
   /** "glasses" = mirrored from the live comer-rokid-demo build (read-only reference). */
-  source?: "glasses";
+  source?: "glasses" | "report";
 }
 interface KbArtifact {
   id: string;
@@ -72,7 +99,8 @@ interface KbArtifact {
   note: string | null;
   url: string | null; // set when the file itself was small enough to store
   addedAt: string;
-  source?: "glasses";
+  /** "glasses" = comer-rokid-demo build · "report" = Full_stations_report.xlsx MES export */
+  source?: "glasses" | "report";
 }
 interface KbPovSuggestion {
   step: string | null;
@@ -152,8 +180,8 @@ function findStation(id: string) {
  * the platform reflects exactly what is running on the glasses.
  */
 const GLASSES_IMG_BASE = "/lab/assets/pinion-components";
-/** Bump when GLASSES_COMPONENTS / GLASSES_ARTIFACTS grow so live stores re-merge. */
-const GLASSES_SYNC_VERSION = 2;
+/** Bump when GLASSES_COMPONENTS / GLASSES_ARTIFACTS / station reports grow so live stores re-merge. */
+const GLASSES_SYNC_VERSION = 3;
 const GLASSES_REPO = "https://github.com/AldoOmnia/comer-rokid-demo";
 
 interface CataloguePart {
@@ -288,8 +316,8 @@ function seedGlassesKnowledge(store: KbStore): boolean {
     };
   });
 
-  // Merge: glasses-sourced entries (glasses-* ids) are refreshed in place so a
-  // seed-version bump updates them; anything a manager added by hand is kept.
+  // Merge: seeded entries (glasses-* / report-* ids) are refreshed in place so
+  // a seed-version bump updates them; anything a manager added by hand is kept.
   const mergeById = <T extends { id: string }>(existing: T[], seeded: T[]): T[] => {
     const bySeedId = new Map(seeded.map((s) => [s.id, s]));
     const kept = existing.map((e) => bySeedId.get(e.id) ?? e);
@@ -298,6 +326,28 @@ function seedGlassesKnowledge(store: KbStore): boolean {
   };
   bucket.components = mergeById(bucket.components, components);
   bucket.artifacts = mergeById(bucket.artifacts, artifacts);
+
+  // Every station gets its slice of the MES acquisition report
+  // (Full_stations_report.xlsx, one sheet per station, vendored as CSV).
+  for (const s of STATIONS) {
+    const rep = s.report;
+    if (!rep) continue;
+    let size: number | null = null;
+    try {
+      size = readFileSync(join(SHARED_DIR, "data", "stations-report", `${rep.sheet}.csv`)).length;
+    } catch { continue; /* report CSV not vendored — skip this station */ }
+    const stBucket = stationBucket(store, s.id);
+    stBucket.artifacts = mergeById(stBucket.artifacts, [{
+      id: `report-art-${rep.sheet}`,
+      name: `MES acquisition report — ${rep.sheet}`,
+      type: "csv",
+      size,
+      note: `${rep.phases} phases · ${rep.checks} checks: ${rep.ok} OK / ${rep.nok} NOT OK — ${rep.sample}`,
+      url: `/shared-data/stations-report/${rep.sheet}.csv`,
+      addedAt: now,
+      source: "report",
+    }]);
+  }
   return true;
 }
 
