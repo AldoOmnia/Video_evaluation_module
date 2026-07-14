@@ -135,6 +135,14 @@
       display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
       margin-bottom: 4px;
     }
+    .station-head .back-fac {
+      background: transparent; border: 1px solid var(--line-2); border-radius: 6px;
+      color: var(--ink-2); font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 6px 10px; cursor: pointer; align-self: center;
+      transition: border-color 140ms ease, color 140ms ease;
+    }
+    .station-head .back-fac:hover { border-color: var(--primary-dim); color: var(--primary); }
     .station-head h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
     .station-head .desc { font-family: var(--mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.05em; text-transform: uppercase; }
     .station-head .lab-link {
@@ -464,6 +472,7 @@
     <!-- ── Station view ──────────────────────── -->
     <section class="station-view" id="station-view">
       <div class="station-head">
+        <button type="button" class="back-fac" id="back-fac" title="Back to the facility view">← All stations</button>
         <h1 id="st-title">—</h1>
         <span class="desc" id="st-desc">—</span>
         <a class="lab-link" id="st-lab-link" href="/lab/" hidden>Full graph + eval tools ↗</a>
@@ -622,31 +631,41 @@
     const vtSt = $('vt-station');
     const picker = $('station-picker');
 
-    function showFacility() {
+    // push=true adds a history entry so the browser back button walks
+    // station → facility instead of leaving the knowledge base entirely.
+    function showFacility(push = true) {
       facView.classList.add('is-active');
       stView.classList.remove('is-active');
       vtFac.classList.add('is-active');
       vtSt.classList.remove('is-active');
       picker.hidden = true;
-      history.replaceState(null, '', '/knowledge/');
+      if (push) history.pushState({ view: 'facility' }, '', '/knowledge/');
       loadStations(); // refresh counts on return
     }
-    async function showStation(id) {
+    async function showStation(id, push = true) {
       facView.classList.remove('is-active');
       stView.classList.add('is-active');
       vtSt.classList.add('is-active');
       vtFac.classList.remove('is-active');
       picker.hidden = false;
       picker.value = id;
-      history.replaceState(null, '', '/knowledge/?station=' + encodeURIComponent(id));
+      const url = '/knowledge/?station=' + encodeURIComponent(id);
+      if (push) history.pushState({ view: 'station', id }, '', url);
+      else history.replaceState({ view: 'station', id }, '', url);
       await loadStation(id);
     }
-    vtFac.addEventListener('click', showFacility);
+    window.addEventListener('popstate', () => {
+      const id = new URLSearchParams(location.search).get('station');
+      if (id && stations.some((s) => s.id === id)) showStation(id, false);
+      else showFacility(false);
+    });
+    vtFac.addEventListener('click', () => showFacility());
+    $('back-fac').addEventListener('click', () => showFacility());
     vtSt.addEventListener('click', () => {
       const id = picker.value || (stations[0] && stations[0].id);
       if (id) showStation(id);
     });
-    picker.addEventListener('change', () => showStation(picker.value));
+    picker.addEventListener('change', () => showStation(picker.value, false));
 
     /* ── Facility graph ───────────────────────── */
     // Real Rockford stations from Full_stations_report.xlsx (one node per
@@ -1178,7 +1197,7 @@
       taxonomy = tx;
       renderTaxonomySelect();
       const wanted = new URLSearchParams(location.search).get('station');
-      if (wanted && stations.some((s) => s.id === wanted)) showStation(wanted);
+      if (wanted && stations.some((s) => s.id === wanted)) showStation(wanted, false);
     })();
   </script>
 </body>
