@@ -1,0 +1,57 @@
+{
+  "_kind": "supervisor-knowledge/v1",
+  "_source_audio": null,
+  "_source_video": null,
+  "_phase_tag": "PRESS STATION — fixture & driver selection",
+  "_step_codes": ["pinion-1", "pinion-4", "pinion-6", "pinion-8", "pinion-14"],
+  "_step_title": "Press operations — correct fixture / driver selection",
+  "_recorded_by": "Comer process engineering (top line errors), relayed by Omnia 2026-06-11",
+  "_transcribed_by": null,
+  "_distilled_by": "manual entry (claude, from engineering note)",
+  "_ingested_at": "2026-06-11T14:00:00.000Z",
+  "_verified_by": null,
+  "facts": [
+    {
+      "id": "pinion-fixture-driver-001",
+      "topic": "common mistake",
+      "step_codes": ["pinion-1"],
+      "fact": "Incorrect fixture/driver selection at the press station is one of the TWO most frequent line errors on this build (the other is the step-6 bearing-cone orientation). Step 1's cup press uses PUNCH FIXTURE cod.3187.111.100.09 — verify the engraved code on the fixture before pressing.",
+      "applies_when": "any press operation, especially step 1",
+      "citation": {
+        "source": "process-engineering top-errors note, 2026-06-11",
+        "transcript_quote": "Incorrect Fixture and Driver Selection: this is particularly an issue at the press station."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "pinion-fixture-driver-002",
+      "topic": "common mistake",
+      "step_codes": ["pinion-1", "pinion-4", "pinion-6"],
+      "fact": "Wrong fixture/driver picks happen almost exclusively during cross-training or shift coverage: regular operators know the tooling by memory, but a cross-trained backup covering for an operator on leave is much more likely to select the wrong driver. The correct drivers and fixtures are detailed in the Work Instructions — when in doubt, read the engraved cod. number off the tool and check it against the step.",
+      "applies_when": "cross-trained backup or shift-coverage operator is running the station",
+      "citation": {
+        "source": "process-engineering top-errors note, 2026-06-11",
+        "transcript_quote": "If a regular operator is on leave, a cross-trained backup is much more likely to select the wrong driver."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "pinion-fixture-driver-003",
+      "topic": "look-alike tooling",
+      "step_codes": ["pinion-1", "pinion-4", "pinion-6", "pinion-8", "pinion-14"],
+      "fact": "The press tooling is easy to confuse because most of it shares the 3187.111.* family and differs only in the last digits of the engraved code: step 1 punch fixture cod.3187.111.100.09, step 4 punch cod.3187.111.100.07, step 6 driver cod.3187.111.180.00, step 8 punch fixture cod.3187.111.100.27, step 14 driver cod.3187.111.100.28. The engraved code is the reliable check — do not pick by eye, especially between the 100.07 and the 100.09.",
+      "applies_when": null,
+      "citation": {
+        "source": "pinion Work Instructions (step details, CSV import)",
+        "transcript_quote": null
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "_kind": "supervisor-knowledge/v1",
+  "_source_video": "docs/source-material/pinion-videos/CORRECT_Order/shim_pack_step7_shimming_correct_order.MOV",
+  "_phase_tag": "PHASE 7",
+  "_step_codes": [
+    "pinion-7"
+  ],
+  "_step_title": "4900.12001 P100 SHIM PACK",
+  "_recorded_by": "Comer line operator (narrating video)",
+  "_transcribed_by": "gemini-2.5-flash",
+  "_distilled_by": "claude-sonnet-4-6",
+  "_ingested_at": "2026-06-01T20:06:27.249Z",
+  "_verified_by": null,
+  "_full_transcript": "[00:05] So this was what I was talking about.\n[00:07] So, you might have\n[00:13] these shims.\n[00:16] So you might, I mean, the correct sequence of assembly, I think, is this is the thick spacer.\n[00:23] You put the shims on.\n[00:28] And then then.\n[00:29] So maybe some times I mean if you're\n[00:33] You can you do it or you could just do the other way with the thin one, but that's not the right sequence of assembly.\n[00:39] So.\n[00:40] Okay.\n[00:41] Yeah, that's one thing you might.\n[00:42] Oh, okay.\n[00:43] So okay, going back to the order as a as a class of errors.\n[00:47] Class of errors, yeah.\n[00:48] For the sequence, yeah.\n[00:49] And this happens like more often than not.\n[00:53] I mean like for him, I mean, it doesn't happen with him right now because he used to work it for so long.\n[00:58] Yeah.\n[00:59] So yeah, but somebody is new here, they might get confused.\n[01:04] You do have part numbers here, but since just the thickness, then the can just be",
+  "facts": [
+    {
+      "id": "pinion-phase7-correct-order-001",
+      "topic": "assembly sequence",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "The correct sequence when building the shim pack is: thick spacer first, then shims on top of it, and then the thin spacer — not the other way around.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/CORRECT_Order/shim_pack_step7_shimming_correct_order.MOV",
+        "audio_offset_s": 16,
+        "transcript_quote": "the correct sequence of assembly is this is the thick spacer. You put the shims on."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "pinion-phase7-correct-order-002",
+      "topic": "common mistake",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "A common assembly error is installing the thin spacer before the shims instead of placing the thick spacer down first; the operator flags this happens more often than not with new assemblers.",
+      "applies_when": "assembler is new or unfamiliar with this sub-assembly",
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/CORRECT_Order/shim_pack_step7_shimming_correct_order.MOV",
+        "audio_offset_s": 33,
+        "transcript_quote": "you could just do the other way with the thin one, but that's not the right sequence of assembly."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "pinion-phase7-correct-order-003",
+      "topic": "part confusion",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "Because the spacers are differentiated only by thickness, new operators can easily mix up the thin (cod.191713A1) and thick (cod.92203637) spacers despite part numbers being present on the parts.",
+      "applies_when": "assembler is new or unfamiliar with this sub-assembly",
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/CORRECT_Order/shim_pack_step7_shimming_correct_order.MOV",
+        "audio_offset_s": 64,
+        "transcript_quote": "you do have part numbers here, but since just the thickness, then they can just be"
+      },
+      "keyframes": [],
+      "confidence": "medium",
+      "verified": false
+    }
+  ]
+}

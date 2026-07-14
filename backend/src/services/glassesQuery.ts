@@ -2,7 +2,8 @@
  * Shared glasses Q&A pipeline — Brain chat + POST /query (APK).
  */
 import { specs } from "./specs.js";
-import { retrieveRelevantNodes, scoreNodes, type GraphNode } from "./retrieval.js";
+import { flattenProcedure, scoreNodes, type GraphNode } from "./retrieval.js";
+import { knowledgeNodes } from "./knowledge.js";
 import { llmCall } from "./anthropic.js";
 import {
   buildGlassesQuerySystemPrompt,
@@ -42,7 +43,7 @@ function nodeExcerpt(n: GraphNode): string | undefined {
   const r = n.raw as Record<string, unknown> | undefined;
   const text = typeof r?.extractedText === "string" ? r.extractedText : "";
   if (!text) return undefined;
-  return text.slice(0, 200).replace(/\s+/g, " ").trim();
+  return text.slice(0, 480).replace(/\s+/g, " ").trim();
 }
 
 export async function runGlassesQuery(
@@ -53,13 +54,19 @@ export async function runGlassesQuery(
     specs.hardware.profiles["rokid_ai"] ??
     Object.values(specs.hardware.profiles)[0];
 
-  const fromGraph = retrieveRelevantNodes(specs.procedure, input.transcript, k * 2);
-  const artifacts = input.artifactNodes ?? [];
-  const scoredArtifacts = scoreNodes(artifacts, input.transcript);
-  const merged: GraphNode[] = [
-    ...scoredArtifacts.map((s) => s.node),
-    ...fromGraph,
-  ].slice(0, k);
+  // One corpus, one ranking: canonical procedure + plant knowledge (operator
+  // field notes, historical error rates, facility KB) + client artifacts.
+  const procedureNodes = flattenProcedure(specs.procedure);
+  const corpus: GraphNode[] = [
+    ...(input.artifactNodes ?? []),
+    ...knowledgeNodes(),
+    ...procedureNodes,
+  ];
+  const scored = scoreNodes(corpus, input.transcript);
+  const merged: GraphNode[] =
+    scored.length > 0
+      ? scored.slice(0, k).map((s) => s.node)
+      : procedureNodes.slice(0, k); // empty/no-match query fallback
 
   const userMsg = buildGlassesQueryUserMessage(
     input.transcript,

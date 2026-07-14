@@ -10,6 +10,8 @@ import { evalRouter } from "./routes/eval.js";
 import { specRouter } from "./routes/spec.js";
 import { queryRouter } from "./routes/query.js";
 import { authRouter } from "./routes/auth.js";
+import { kbRouter } from "./routes/kb.js";
+import { lineRouter } from "./routes/line.js";
 import { worldLabsRouter } from "./routes/worldlabs.js";
 import { worldLabsConfigured } from "./services/worldlabs.js";
 import {
@@ -17,7 +19,10 @@ import {
   LAB_HTML,
   LOGIN_HTML,
   WELCOME_HTML,
+  HOME_HTML,
+  KNOWLEDGE_HTML,
   SYNTHETIC_POV_HTML,
+  SHARED_DIR,
 } from "./paths.js";
 
 const app = express();
@@ -60,6 +65,8 @@ app.use("/api/spec", specRouter);
 app.use("/api/brain/chat", brainChatRouter);
 app.use("/api/eval", evalRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/line", lineRouter);
+app.use("/api/kb", kbRouter);
 app.use("/api/worldlabs", worldLabsRouter);
 app.use("/query", queryRouter); // Rokid APK compatibility
 
@@ -337,6 +344,11 @@ app.use(
 // (compiled dist/) without hard-coded relative offsets.
 app.use("/lab", express.static(EVAL_LAB_PUBLIC));
 
+// Read-only line data (torque tables, error rates, ST.100 steps, parts
+// catalogue) — the same files the glasses build ships. Serving them lets
+// KB artifacts link straight to the source material.
+app.use("/shared-data", express.static(join(SHARED_DIR, "data")));
+
 // Root + /login both serve the tenant-specific login page. Auth is
 // completed client-side against /api/auth/login; on success the SPA
 // stores a session blob in localStorage and forwards to /welcome/ then /lab/.
@@ -348,6 +360,18 @@ app.get(["/", "/login", "/login/"], (_req, res) => {
 app.get(["/welcome", "/welcome/"], (_req, res) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
   res.sendFile(WELCOME_HTML);
+});
+
+// Unified platform home — chat + the three services (post-login landing).
+app.get(["/home", "/home/"], (_req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.sendFile(HOME_HTML);
+});
+
+// Facility knowledge base — per-station node graphs + component references.
+app.get(["/knowledge", "/knowledge/"], (_req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.sendFile(KNOWLEDGE_HTML);
 });
 
 app.get("/lab/", (_req, res) => {

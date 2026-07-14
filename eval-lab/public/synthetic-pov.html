@@ -11,6 +11,11 @@
     } else {
       window.__SPLAT_OPERATOR_ENABLED = true;
     }
+    // ?embed=1 — preview mode for iframes (knowledge base digital twin
+    // panel): only the World Labs splat quadrant, no HUD quadrants.
+    if (new URLSearchParams(location.search).get("embed")) {
+      document.documentElement.classList.add("embed-splat");
+    }
   })();
   </script>
   <script>
@@ -28,7 +33,7 @@
   </script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Comer Industries · Synthetic POV</title>
+  <title>Comer Industries · Digital Twin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -84,6 +89,22 @@
     html.splat-live .splat-cal,
     html.splat-live .splat-src { display: none !important; }
     body:not(.splat-dev) .dev-only { display: none !important; }
+
+    /* ── Embed mode (?embed=1) — World Labs splat only ──────────────────
+       Used when the viewer is previewed inside another page (knowledge
+       base digital twin panel). Everything except the splat quadrant is
+       stripped: no topbar, streams tree, other quadrants, or timeline. */
+    html.embed-splat .topbar,
+    html.embed-splat .timeline,
+    html.embed-splat .main > .panel,
+    html.embed-splat .rsz,
+    html.embed-splat .quad:not([data-quad="splat"]),
+    html.embed-splat .quad[data-quad="splat"] > .panel-head .grip,
+    html.embed-splat .dev-only { display: none !important; }
+    html.embed-splat .app { grid-template-rows: 1fr; }
+    html.embed-splat .main { grid-template-columns: 1fr; border-bottom: none; }
+    html.embed-splat .quads { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+    html.embed-splat .quad[data-quad="splat"] { border: none; }
 
     /* Layout variables driven by the resizers (persisted to localStorage). */
     :root { --sidebar-w: 200px; --qcol: 50%; --qrow: 50%; --timeline-h: 150px; }
@@ -676,7 +697,7 @@
     <header class="topbar">
       <div class="brand">
         <img class="logo" src="/lab/assets/comer-logo-trim.png" alt="Comer Industries" />
-        <span class="sub">· synthetic-pov</span>
+        <span class="sub">· digital twin</span>
       </div>
       <div class="rec-pill">
         <span class="glyph">●</span>

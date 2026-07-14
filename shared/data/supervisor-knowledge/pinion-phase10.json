@@ -1,0 +1,124 @@
+{
+  "_kind": "supervisor-knowledge/v1",
+  "_source_video": "docs/source-material/pinion-videos/raw/Phase10_Video.MP4",
+  "_phase_tag": "STEPS 14 / 7",
+  "_step_codes": [
+    "pinion-14",
+    "pinion-7"
+  ],
+  "_step_title": "4900.12001 P100 ROLLING TORQUE / SHIM PACK ADJUSTMENT",
+  "_recorded_by": "Comer line operator (narrating video)",
+  "_transcribed_by": "gemini-2.5-flash",
+  "_distilled_by": "claude-sonnet-4-6",
+  "_ingested_at": "2026-05-29T18:07:06.466Z",
+  "_verified_by": null,
+  "_full_transcript": "[00:02] Phase 10.\n[00:08] And what did we do here?\n[00:10] We put this in.\n[00:11] Okay.\n[00:13] The bolt.\n[00:14] Yeah.\n[00:17] Put it in.\n[00:18] There's a thread in there where it to screw in.\n[00:22] We use this.\n[00:28] Nice.\n[00:29] Ty.\n[00:30] Okay.\n[00:43] So this one is probably going to come back bad.\n[00:49] What exactly does this measure?\n[00:51] The torque, right?\n[00:52] The torque, yes.\n[00:55] The rolling torque of the pinion.\n[00:57] Yep.\n[00:58] So 12.43 is way too low.\n[01:01] We have to increase our shims.\n[01:03] You could put in your AI.\n[01:04] Um.\n[01:09] Check rolling torque.\n[01:11] If rolling torque too low.\n[01:13] Add shims, increase shims.\n[01:16] If it's too high, reduce shims.\n[01:19] As for the values and how we can decide what number of shim will increase by what torque, we don't know yet.\n[01:28] We don't know 100%.\n[01:30] Um, if you want, I could back press it right here and we could see the change in rolling torque and see how this, the back press, affects the rolling torque number.\n[01:39] Either way, this is the incorrect torque we have.\n[01:41] It's why.\n[01:42] Okay, you need to increase it, right?\n[01:44] Yeah, it has to be increased, but you can take it right here and maybe get a range of numbers.\n[01:48] However you want to do it, it doesn't matter to me.\n[01:55] The system will pass to see the other way because it's operating under the assumption that we have, it's operating under the assumption that's going to reduce.\n[02:07] So, if you want me to press it, I can press it.\n[02:10] No, no, just do, do.\n[02:12] Okay.\n[02:13] Like fix it basically, do what you have to do.\n[02:16] Yeah, ordinarily we would fix it.\n[02:22] This is the the hard part, right?\n[02:23] The shim.\n[02:24] This is the hardest part and it's because we don't have a standard.\n[02:27] For example.\n[02:28] All right, let me, let me put this.\n[02:38] So it's phase 11, right?\n[02:43] Not phase 11, it's uh, phase 7, phase 7.\n[02:50] Phase 7 is where we put the shims.\n[02:53] No, but I'm, I'm saying like right now, where phase are we at?\n[02:56] Oh yeah, we're on phase 11.\n[02:57] Okay.\n[02:59] We're on phase 11.\n[03:42] So, would you say this wording is, is accurate?\n[03:46] The hardest part is getting the shim pack to have the right torque, standard is missing and adjusting it up and down is hard as there's no fixed rule on how to do it.\n[03:54] Correct.\n[03:58] Okay.\n[04:09] I'm getting a lot of good data.\n[04:15] But, what time is it?\n[04:18] This nice.\n[04:19] It's lunch time for me.\n[04:21] So I will be back.\n[04:22] Yes, sure.\n[04:23] About 25 minutes.\n[04:25] That's fine.\n[04:26] So phase 9 is phase 11.\n[04:31] Amazing.",
+  "facts": [
+    {
+      "id": "pinion-phase10-001",
+      "topic": "measurement result",
+      "step_codes": [
+        "pinion-14"
+      ],
+      "fact": "A rolling torque reading of 12.43 on this pinion assembly was identified as way too low and therefore a failing result.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase10_Video.MP4",
+        "audio_offset_s": 58,
+        "transcript_quote": "So 12.43 is way too low."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "pinion-phase10-002",
+      "topic": "shim adjustment",
+      "step_codes": [
+        "pinion-14",
+        "pinion-7"
+      ],
+      "fact": "If the measured rolling torque is too low, the operator must increase the shim pack to raise the torque value.",
+      "applies_when": "rolling torque reading is below the required value",
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase10_Video.MP4",
+        "audio_offset_s": 61,
+        "transcript_quote": "We have to increase our shims."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "pinion-phase10-003",
+      "topic": "shim adjustment",
+      "step_codes": [
+        "pinion-14",
+        "pinion-7"
+      ],
+      "fact": "If the measured rolling torque is too high, the operator must reduce the shim pack to lower the torque value.",
+      "applies_when": "rolling torque reading is above the required value",
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase10_Video.MP4",
+        "audio_offset_s": 76,
+        "transcript_quote": "If it's too high, reduce shims."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "pinion-phase10-004",
+      "topic": "shim standard missing",
+      "step_codes": [
+        "pinion-14",
+        "pinion-7"
+      ],
+      "fact": "There is currently no fixed rule or standard that defines how much a given change in shim thickness will change the rolling torque value by a predictable amount.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase10_Video.MP4",
+        "audio_offset_s": 79,
+        "transcript_quote": "as for the values and how we can decide what number of shim will increase by what torque, we don't know yet."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "pinion-phase10-005",
+      "topic": "shim phase reference",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "The shim pack is installed during Phase 7, which is the phase the operator must return to in order to adjust shims when rolling torque is out of range.",
+      "applies_when": "rolling torque result requires shim adjustment",
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase10_Video.MP4",
+        "audio_offset_s": 170,
+        "transcript_quote": "Phase 7 is where we put the shims."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "pinion-phase10-006",
+      "topic": "process difficulty",
+      "step_codes": [
+        "pinion-14",
+        "pinion-7"
+      ],
+      "fact": "Achieving the correct rolling torque through shim pack adjustment is described by the operator as the hardest part of the pinion assembly process due to the absence of a defined standard.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase10_Video.MP4",
+        "audio_offset_s": 224,
+        "transcript_quote": "The hardest part is getting the shim pack to have the right torque, standard is missing and adjusting it up and down is hard as there's no fixed rule."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    }
+  ]
+}

@@ -40,8 +40,8 @@ brainChatRouter.post("/", async (req, res, next) => {
     const result = await runGlassesQuery({
       transcript: body.query,
       artifactNodes,
-      k: body.k ?? 5,
-      maxTokens: 320,
+      k: body.k ?? 8,
+      maxTokens: 480,
       model: body.model,
     });
 

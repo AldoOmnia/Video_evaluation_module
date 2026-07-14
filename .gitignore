@@ -57,6 +57,11 @@ eval-lab/public/assets/june18_pano_*.jpg
 eval-lab/public/assets/pinion_guide_station.jpg
 eval-lab/public/.station1_capture.json
 eval-lab/public/.station_tour_calibration.json
+
+# Facility knowledge-base store + uploaded reference images (runtime data,
+# written by /api/kb — belongs to the deployment, not the repo).
+eval-lab/public/.kb-store.json
+eval-lab/public/kb-uploads/
 eval-lab/public/assets/Industrial Machine Shop Interior 1.spz
 eval-lab/public/assets/industrial-machine-shop-mesh.glb
 eval-lab/public/assets/operator-omniverse.glb

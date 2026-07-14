@@ -40,7 +40,10 @@ const TYPE_BIAS: Record<string, number> = {
   Document: 1.4,
   DataTable: 1.4,
   VideoSegment: 1.3,
-  TribalKnowledge: 1.3,
+  // First-hand operator field notes + historical defect data — the corpus
+  // behind "most common mistakes" style questions. Highest priority.
+  TribalKnowledge: 1.5,
+  ErrorRate: 1.6,
   // Canonical procedure
   ExpertAdvice: 1.5,
   Instruction: 1.2,

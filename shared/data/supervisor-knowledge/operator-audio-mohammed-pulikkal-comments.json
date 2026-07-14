@@ -1,0 +1,102 @@
+{
+  "_kind": "supervisor-knowledge/v1",
+  "_source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Mohammed pulikkal comments.m4a",
+  "_phase_tag": "Comer visit (Jun 1) — Mohammed Pulikkal comments",
+  "_step_codes": [
+    "pinion-7"
+  ],
+  "_step_title": "4900.12001 P100 SHIM PACK",
+  "_recorded_by": "Mohammed Pulikkal (Comer), factory visit 2026-06-01",
+  "_transcribed_by": "gemini-2.5-flash",
+  "_distilled_by": "claude-sonnet-4-6",
+  "_ingested_at": "2026-06-01T20:05:41.805Z",
+  "_verified_by": "human reconcile 2026-06-01: shim-pack order set to authoritative CORRECT_Order video (thick 92203637 → shims → thin 191713A1); audio stated reverse order",
+  "_full_transcript": "[00:01] So we're checking the error taxonomy list and uh verifying that against the most common mistakes for the opinion guide.\n[00:09] Okay, so yeah, for the sequence error I might think, we have a particular sequence.\n[00:15] I mean, it is in the work instructions, but yeah, they might can miss that up.\n[00:20] It ha I don't think it ever has happened a lot of time.\n[00:25] But uh like uh yeah, whenever a new worker or somebody's cross training, I think there is a chance that it can happen.\n[00:32] Cuz they are used to ask me how is the correct sequence of the assembling.\n[00:36] So I think that sequence is a big thing.\n[00:38] So like so we have this washer.\n[00:43] Uh then shim.\n[00:46] And then putting a uh thin washer.\n[00:48] It should be like the thin washer, uh shims and the thick washer.\n[00:53] It cannot be inverted or anything.\n[00:56] So that is one thing we might have to yeah, about the sequential errors we have to take care.\n[01:01] I could just provide take the drawing of the opinion and just show you that.\n[01:06] Okay.\n[01:06] Okay.\n[01:06] Yeah.\n[01:07] The the the CAD basically.\n[01:09] Yeah, the CAD yeah, the CAD here.\n[01:10] And maybe I can show you out on the line too how it's supposed to be.\n[01:14] So, the error that you said, um is part of one of these.\n[01:18] That's the sequence errors, yeah.\n[01:19] Okay.\n[01:20] Yeah, but like is it part of any of these sub classes?\n[01:28] Thank you.\n[01:29] Uh I would say omition, but it doesn't happen, but the order.\n[01:34] Order.\n[01:34] Order, yeah.\n[01:35] Got it.\n[01:35] What about the other ones?\n[01:37] Execution errors.\n[01:42] technisch funzionano.\n[01:47] Okay.\n[01:57] there are three.\n[01:59] I don't think execution errors but in execution errors yeah orientation is one thing I told you about the bearing cup and con.\n[02:07] Yeah.\n[02:09] So I I that's why I think this should cover pretty much all classes.\n[02:12] All classes, yeah.\n[02:17] Okay, then the substitution, that might happen sometimes because we have different axles.\n[02:22] This one.\n[02:26] Ethan, show me this one.\n[02:28] That's confused.\n[02:28] Confused, yeah.\n[02:31] So this one, the VLM is not is not able to recognize it automatically.\n[02:37] It needs to do CV training.\n[02:41] I mean it's just the difference, I think, the thickness.\n[02:44] thickness, yeah.\n[02:45] Yeah, it's too similar.\n[02:46] It's too similar.\n[02:48] Okay, that is the thing.\n[02:49] Now we're coming to the specification errors.\n[02:56] I mean, this one happens all the time.\n[03:00] This one happens all the time, but that we have the system that detects it at the moment.\n[03:07] So, I mean, we have the measuring tools.\n[03:11] So whenever yeah, it measures the values out of range.\n[03:14] So it is detected within the system.\n[03:15] I mean, they cannot make a mistake on that.\n[03:18] Yeah.\n[03:19] My goal is to so, the machine is this classes do not refer to the machine.\n[03:27] Um if you get it out of spec, the machine detects it.\n[03:30] But if it's out of spec, sometimes it told me, it's not easy to understand why is it out of spec because there's no standard on how to get it right.\n[03:41] So once it's out of spec, um uh we're trying to like um suggest a um a uh a corrective action.\n[03:51] Okay.\n[03:51] Yeah, I got it.\n[03:52] So it's like it's a it's out of step.\n[03:54] Maybe it's because or try this.\n[03:58] So uh okay, so that but I would say you might record a lot of data.\n[04:03] So that basically happened yeah, on the shim shimming process.\n[04:07] Yeah.\n[04:08] So uh we shim in order to require like a certain amount of rolling torque.\n[04:14] We need I think like around 5.6 to 20.3 Newton meters of rolling torque.\n[04:18] So we need shims to obtain that uh rolling torque.\n[04:24] So the amount of shims that uh so I don't know like like right now they have a kind of idea.\n[04:31] Okay, you take this much millimeter of shims and we might get around this.\n[04:34] But they might have to repeat it again and again because this And so it's Yeah, it's trial and error.\n[04:40] It's trial and error.\n[04:40] So I think for that we might recur a lot of data on the axle.\n[04:44] So we will have a closer range of what the shims should be to acquire a particular range.\n[04:51] So yeah, that's something everybody here is also working on.\n[04:54] I mean, even I'm working on so once we have a lot of data, it would be much easier.\n[05:01] So yeah, that's one thing then the intent was related to\n[05:07] So it is script on data.\n[05:13] This is mostly related, you're looking at Class D.\n[05:17] Yeah, it's mostly related to the mismatch between what the glasses see and what the machine says.\n[05:22] Okay.\n[05:22] Because um so the interesting thing that I'm building in is um obviously the CV part which is standard.\n[05:32] And then uh the OEM fusion logic embedded into the OEM software with the connection to the database.\n[05:41] And then um which is the automated state.\n[05:44] So if the machine says you're in step seven, the glass is said you're in step seven.\n[05:50] Okay.\n[05:50] Because the most important thing is the machine.\n[05:53] Machine.\n[05:53] Okay.\n[05:54] So that's that's for sure.\n[05:56] And it's also important when um um you visually recognize those steps.\n[06:02] Okay.\n[06:03] Um the machine should say you're in step seven so that the software knows whatever class of errors there are possible in step seven are circumscribed to what you're actually doing right now.\n[06:16] And um uh and there's a memory built in.\n[06:19] There's a memory of um architecture built in.\n[06:22] So the software knows that um the previous step was step five and now you're step six.\n[06:29] Six.\n[06:29] So that's how it works.\n[06:30] So this is mostly for the for matching these matching these these these states.\n[06:36] Um I think in this case you might have only issue uh is like, so there are certain uh so mostly it's connected to either the PLC or the torque wrench or something.\n[06:48] But there are few steps that the operator just have to do it and click next.\n[06:53] Okay, so we have a step where uh you just check the I think the clearance between using the slip gauge.\n[07:02] We just inside, yeah.\n[07:04] So that's it.\n[07:05] Is it not connected to the machine?\n[07:06] It's not connected to the machine.\n[07:07] It's just they have to check it.\n[07:08] Okay, if it's good, press next.\n[07:10] That's it.\n[07:11] Okay, is it part of what I'm on the procedure I'm working on?\n[07:15] I mean, like I don't think for the opinion you might have a problem a lot of problem on that, but few other stations they might do the I mean, they'll be like on uh they'll be three steps.\n[07:25] They just have to press next, next, next.\n[07:27] But they'll keep doing that and they'll be on step five.\n[07:30] Okay.\n[07:31] And they'll be doing the step seven also because it just they have to press next.\n[07:34] So if they press next, it should still change the state of the glasses.\n[07:39] If it's connected.\n[07:40] Oh, if it's connected, it don't only change if they press next, okay, then it should be good.\n[07:44] It's it should be connected.\n[07:46] Um I asked the wanted access to the database with the read access at least, uh read permissions.\n[07:54] Um So, yeah.\n[07:56] Okay.\n[07:56] And then we're waiting for the Unicom guys.\n[07:58] Okay.\n[07:59] Yeah, I'm sorry, I'm a bit throaty.\n[08:02] Okay.\n[08:03] Um and then the last ones.\n[08:08] Yeah, yeah, this is mostly for me as well.\n[08:11] Okay.\n[08:12] Um okay, so these are pretty much they should cover all the classes.\n[08:17] all the classes, okay.\n[08:18] Okay.\n[08:18] Um yeah, I mean, that's it.\n[08:21] No problem.\n[08:22] If you want, I could just show you the opinion.\n[08:24] I'm in.\n[08:25] Yes, show me that.\n[08:25] I'll stop.",
+  "facts": [
+    {
+      "id": "mohammed-pulikkal-comments-001",
+      "topic": "assembly sequence",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "The shim pack stacking order is critical and cannot be inverted. AUTHORITATIVE order (per the CORRECT_Order reference video): thick washer (cod.92203637) down first, then shims, then thin washer (cod.191713A1) on top. NOTE: this operator's audio described the reverse sequence ('thin washer, shims, thick washer') — that mismatch is exactly the kind of mix-up this check guards against; always defer to the correct-order reference.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Mohammed pulikkal comments.m4a",
+        "audio_offset_s": 48,
+        "transcript_quote": "thin washer, uh shims and the thick washer. It cannot be inverted or anything."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": true
+    },
+    {
+      "id": "mohammed-pulikkal-comments-002",
+      "topic": "common mistake",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "New workers and cross-training operators are the most likely to mix up the shim pack stacking sequence, and have historically asked the experienced operator to confirm the correct order.",
+      "applies_when": "when a new or cross-training worker is performing the step",
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Mohammed pulikkal comments.m4a",
+        "audio_offset_s": 25,
+        "transcript_quote": "whenever a new worker or somebody's cross training, I think there is a chance that it can happen"
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "mohammed-pulikkal-comments-003",
+      "topic": "shim specification",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "The target rolling torque that the shim pack must achieve is approximately 5.6 to 20.3 Newton meters.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Mohammed pulikkal comments.m4a",
+        "audio_offset_s": 254,
+        "transcript_quote": "around 5.6 to 20.3 Newton meters of rolling torque"
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "mohammed-pulikkal-comments-004",
+      "topic": "shimming process",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "Selecting the correct total shim pack thickness to hit the rolling-torque specification is a trial-and-error process that may require the operator to repeat the measurement and adjustment multiple times.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Mohammed pulikkal comments.m4a",
+        "audio_offset_s": 280,
+        "transcript_quote": "they might have to repeat it again and again because this… it's trial and error"
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "mohammed-pulikkal-comments-005",
+      "topic": "part substitution",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "The thin spacer and thick spacer look very similar (difference is mainly thickness), making them easy to confuse; visual inspection alone may not reliably distinguish them.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Mohammed pulikkal comments.m4a",
+        "audio_offset_s": 161,
+        "transcript_quote": "I mean it's just the difference, I think, the thickness… it's too similar"
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    }
+  ]
+}

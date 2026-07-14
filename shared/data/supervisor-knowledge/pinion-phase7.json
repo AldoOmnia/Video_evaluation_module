@@ -1,0 +1,85 @@
+{
+  "_kind": "supervisor-knowledge/v1",
+  "_source_video": "docs/source-material/pinion-videos/raw/Phase7_Video.MP4",
+  "_phase_tag": "PHASE 7",
+  "_step_codes": [
+    "pinion-7"
+  ],
+  "_step_title": "4900.12001 P100 SHIM PACK",
+  "_recorded_by": "Comer line operator (narrating video)",
+  "_transcribed_by": "gemini-2.5-flash",
+  "_distilled_by": "claude-sonnet-4-6",
+  "_ingested_at": "2026-06-01T20:06:13.857Z",
+  "_verified_by": null,
+  "_full_transcript": "[00:00] Okay, good.\n[00:01] Big spacer.\n[00:02] Shims.\n[00:03] Phase seven.\n[00:04] Phase seven.\n[00:05] My kid ain't even born yet.\n[00:06] He's come out.\n[00:07] Thin spacer.\n[00:09] Now I'm just starting the journey.\n[00:10] Yeah, I don't think you can do this great.\n[00:12] You got to hit by two apart now.\n[00:13] Like this.\n[00:16] That's spinning in the floor.\n[00:19] That's pretty three to one.\n[00:21] Is that?\n[00:21] Well, that's what I want to do.\n[00:22] They want to do that.\n[00:23] I want to do that.\n[00:24] I'm not doing that.\n[00:25] Press the button.\n[00:26] Well, yeah, I get yours is kind of yours is here now.\n[00:28] That's it.\n[00:29] What value does it need to be?\n[00:33] We don't have a set value for this.\n[00:35] It's based off experience.\n[00:37] Oh, no.\n[00:42] We put this down.\n[00:44] Give it or take.\n[00:46] Like what what\n[00:48] 0.8 as a starting point.\n[00:50] Oh, sorry.\n[00:51] Not 0.8, but\n[00:54] 0.8 for shims.\n[00:57] 0.937.\n[01:01] For completed shim pack.\n[01:03] Okay.\n[01:04] Imagine like, imagine this is my first time on the job.\n[01:07] Instead of asking one of like the knowledgeable workers, I ask, is this a good value?\n[01:13] And he says, yes or no.\n[01:14] Let's just change it.\n[01:15] No, that's difficult.\n[01:15] I would love to give you a definitive answer, but\n[01:18] It's like a range, it's fine.\n[01:19] It's a range.\n[01:20] Okay.\n[01:21] It's difficult to answer.\n[01:24] Cool.\n[01:26] Let's see.\n[01:27] For phase eight.\n[01:30] Snap ring.",
+  "facts": [
+    {
+      "id": "pinion-phase7-001",
+      "topic": "shim pack value",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "The shims-only portion of the shim pack uses approximately 0.8 mm as a starting-point thickness, not a fixed required value.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase7_Video.MP4",
+        "audio_offset_s": 54,
+        "transcript_quote": "0.8 for shims"
+      },
+      "keyframes": [],
+      "confidence": "medium",
+      "verified": false
+    },
+    {
+      "id": "pinion-phase7-002",
+      "topic": "shim pack target",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "The completed shim pack (thin spacer + thick spacer + shims combined) targets approximately 0.937 mm as measured with the micrometer.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase7_Video.MP4",
+        "audio_offset_s": 57,
+        "transcript_quote": "0.937. For completed shim pack."
+      },
+      "keyframes": [],
+      "confidence": "medium",
+      "verified": false
+    },
+    {
+      "id": "pinion-phase7-003",
+      "topic": "shim pack tolerance",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "There is no single mandatory shim pack value; the acceptable measurement is a range, and the correct thickness is determined by experience rather than a fixed specification.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase7_Video.MP4",
+        "audio_offset_s": 33,
+        "transcript_quote": "We don't have a set value for this. It's based off experience."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "pinion-phase7-004",
+      "topic": "assembly sequence",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "The snap ring is installed at the start of phase eight, immediately after the shim pack is set onto the pinion shaft in phase seven.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase7_Video.MP4",
+        "audio_offset_s": 90,
+        "transcript_quote": "For phase eight. Snap ring."
+      },
+      "keyframes": [],
+      "confidence": "medium",
+      "verified": false
+    }
+  ]
+}

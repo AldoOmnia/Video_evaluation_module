@@ -1,0 +1,1159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Comer Industries · Facility knowledge base</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #050505;
+      --bg-2: #0d0d0d;
+      --bg-3: #141414;
+      --ink-1: #f5f5f5;
+      --ink-2: #a3a3a3;
+      --ink-3: #6b6b6b;
+      --line: #1f1f1f;
+      --line-2: #2a2a2a;
+      --primary: #00E5A0;
+      --primary-dim: #00996B;
+      --ok: #4ade80;
+      --warn: #f59e0b;
+      --err: #ef4444;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; }
+    body {
+      background: var(--bg); color: var(--ink-1);
+      font-family: var(--sans); font-size: 14px; line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    .bg {
+      position: fixed; inset: 0; z-index: -2;
+      background:
+        radial-gradient(circle at top left, rgba(0,229,160,0.05), transparent 55%),
+        radial-gradient(circle at bottom right, rgba(0,150,255,0.04), transparent 55%),
+        var(--bg);
+    }
+
+    .topbar {
+      position: sticky; top: 0; z-index: 40;
+      display: flex; align-items: center; gap: 14px;
+      padding: 10px 18px;
+      background: rgba(5,5,5,0.85); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+    }
+    .back-home {
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--ink-2); text-decoration: none;
+      padding: 6px 10px; border: 1px solid var(--line-2); border-radius: 6px;
+      transition: color 140ms ease, border-color 140ms ease;
+      white-space: nowrap;
+    }
+    .back-home:hover { color: var(--primary); border-color: var(--primary-dim); }
+    .topbar-title {
+      font-family: var(--mono); font-size: 9px;
+      letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .topbar-title strong { color: var(--ink-1); font-weight: 500; }
+
+    /* View toggle */
+    .view-toggle {
+      margin-left: auto;
+      display: flex; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden;
+      flex-shrink: 0;
+    }
+    .view-toggle button {
+      background: transparent; border: none; cursor: pointer;
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--ink-3); padding: 7px 13px;
+      transition: background 140ms ease, color 140ms ease;
+    }
+    .view-toggle button.is-active { background: rgba(0,229,160,0.1); color: var(--primary); }
+    .station-picker {
+      background: var(--bg-3); border: 1px solid var(--line-2); border-radius: 8px;
+      color: var(--ink-1); font-family: var(--mono); font-size: 11px;
+      padding: 7px 9px; outline: none; cursor: pointer; max-width: 220px;
+    }
+
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 22px 20px 60px; }
+
+    /* ── Facility view ───────────────────────── */
+    .facility-head { text-align: center; margin-bottom: 8px; }
+    .facility-head h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+    .facility-head p { font-size: 12px; color: var(--ink-3); margin-top: 3px; }
+    .facility-canvas {
+      position: relative; width: 100%;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2); border-radius: 14px;
+      overflow: hidden;
+      margin-top: 14px;
+    }
+    .facility-canvas svg { display: block; width: 100%; height: auto; }
+    .fac-edge { stroke: rgba(0,229,160,0.18); stroke-width: 1.6; stroke-dasharray: 5 5; }
+    .fac-node { cursor: pointer; }
+    .fac-node circle.core {
+      fill: #0f1512; stroke: var(--line-2); stroke-width: 1.5;
+      transition: stroke 140ms ease;
+    }
+    .fac-node.is-active circle.core { stroke: var(--primary); }
+    .fac-node:hover circle.core { stroke: var(--primary); }
+    .fac-node circle.halo { fill: none; stroke: rgba(0,229,160,0.25); stroke-width: 1; }
+    .fac-node text { fill: var(--ink-1); font-family: var(--sans); font-weight: 600; }
+    .fac-node .nd-label { font-size: 12px; }
+    .fac-node .nd-desc { fill: var(--ink-3); font-family: var(--mono); font-size: 8.5px; font-weight: 400; letter-spacing: 0.03em; }
+    .fac-node .nd-counts { fill: var(--primary); font-family: var(--mono); font-size: 8.5px; font-weight: 400; }
+    .fac-twin { cursor: pointer; }
+    .fac-twin rect { fill: rgba(74,222,128,0.06); stroke: rgba(74,222,128,0.4); stroke-width: 1; transition: fill 140ms ease; }
+    .fac-twin:hover rect { fill: rgba(74,222,128,0.16); }
+    .fac-twin text { fill: var(--ok); font-family: var(--mono); font-size: 8.5px; font-weight: 500; letter-spacing: 0.04em; }
+    .fac-legend {
+      display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--ink-3);
+      padding: 12px 0 2px;
+    }
+    .fac-legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+
+    /* ── Station view ────────────────────────── */
+    .station-view { display: none; }
+    .station-view.is-active { display: block; }
+    .facility-view { display: none; }
+    .facility-view.is-active { display: block; }
+
+    .station-head {
+      display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+    .station-head h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+    .station-head .desc { font-family: var(--mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.05em; text-transform: uppercase; }
+    .station-head .lab-link {
+      margin-left: auto;
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--primary); text-decoration: none;
+      border: 1px solid rgba(0,229,160,0.3); border-radius: 6px; padding: 6px 10px;
+      transition: background 140ms ease;
+    }
+    .station-head .lab-link:hover { background: rgba(0,229,160,0.08); }
+
+    /* Glasses-build sync provenance */
+    .glasses-sync {
+      display: none; align-items: center; gap: 9px; flex-wrap: wrap;
+      margin-top: 10px; padding: 8px 12px;
+      background: rgba(0,229,160,0.05); border: 1px solid rgba(0,229,160,0.22);
+      border-radius: 9px;
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.04em;
+      color: var(--ink-2);
+    }
+    .glasses-sync.is-on { display: flex; }
+    .glasses-sync .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 7px rgba(0,229,160,0.8); }
+    .glasses-sync b { color: var(--primary); font-weight: 600; }
+    .glasses-sync a { color: var(--ink-2); }
+    .glasses-pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.05em;
+      color: var(--primary); background: rgba(0,229,160,0.08);
+      border: 1px solid rgba(0,229,160,0.3); border-radius: 4px;
+      padding: 2px 6px; white-space: nowrap; flex-shrink: 0;
+      text-transform: uppercase;
+    }
+
+    /* 01 spans full width above; below it: 02 (left) | 03+04 stacked (right).
+       stretch keeps the two sides the same visual height — the long lists
+       inside scroll rather than growing the page. */
+    .station-grid {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px; margin-top: 16px; align-items: stretch;
+    }
+    .station-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .station-col .panel:last-child { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    @media (max-width: 900px) { .station-grid { grid-template-columns: 1fr; } }
+
+    .panel {
+      background: var(--bg-2); border: 1px solid var(--line-2); border-radius: 14px;
+      padding: 14px;
+    }
+    .panel-h {
+      font-family: var(--mono); font-size: 9px; font-weight: 500;
+      letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+      display: flex; align-items: center; gap: 8px;
+      padding-bottom: 10px; margin-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .panel-h .n { color: var(--primary); }
+    .panel-h .count { margin-left: auto; color: var(--ink-3); }
+
+    /* Station node graph — full-width panel, graph itself stays readable */
+    .graph-panel svg { display: block; width: 100%; max-width: 680px; height: auto; margin: 0 auto; }
+    .sg-edge { stroke: rgba(255,255,255,0.10); stroke-width: 1.2; }
+    .sg-edge.hot { stroke: rgba(0,229,160,0.35); }
+    .sg-center { fill: #0f1512; stroke: var(--primary); stroke-width: 1.6; }
+    .sg-center-label { fill: var(--ink-1); font-family: var(--sans); font-size: 11px; font-weight: 600; }
+    .sg-center-sub { fill: var(--ink-3); font-family: var(--mono); font-size: 7.5px; }
+    .sg-node-label { fill: var(--ink-2); font-family: var(--mono); font-size: 8px; }
+    .sg-empty { fill: var(--ink-3); font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; }
+    .graph-hint { font-family: var(--mono); font-size: 9px; color: var(--ink-3); text-align: center; padding-top: 6px; }
+
+    /* Dropzone */
+    .drop {
+      border: 1.5px dashed var(--line-2); border-radius: 10px;
+      padding: 18px 14px; text-align: center; cursor: pointer;
+      color: var(--ink-3); font-size: 12px;
+      transition: border-color 140ms ease, background 140ms ease;
+    }
+    .drop:hover, .drop.is-over { border-color: var(--primary-dim); background: rgba(0,229,160,0.04); color: var(--ink-2); }
+    .drop .big { display: block; font-size: 13px; color: var(--ink-2); font-weight: 500; margin-bottom: 2px; }
+    .drop .fmt { font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em; }
+    .art-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+    .art-row {
+      display: flex; align-items: center; gap: 9px;
+      background: var(--bg-3); border: 1px solid var(--line-2); border-radius: 8px;
+      padding: 7px 10px;
+    }
+    .art-type {
+      font-family: var(--mono); font-size: 8.5px; font-weight: 600; letter-spacing: 0.08em;
+      padding: 2px 7px; border-radius: 4px; flex-shrink: 0;
+    }
+    .art-type.pdf { color: #f87171; border: 1px solid rgba(248,113,113,0.4); }
+    .art-type.csv { color: #4ade80; border: 1px solid rgba(74,222,128,0.4); }
+    .art-type.video { color: #60a5fa; border: 1px solid rgba(96,165,250,0.4); }
+    .art-type.other { color: var(--ink-3); border: 1px solid var(--line-2); }
+    .art-name { font-size: 12px; color: var(--ink-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .art-size { font-family: var(--mono); font-size: 9px; color: var(--ink-3); margin-left: auto; flex-shrink: 0; }
+    .art-del {
+      background: none; border: none; color: var(--ink-3); cursor: pointer;
+      font-size: 13px; padding: 2px 4px; flex-shrink: 0;
+      transition: color 120ms ease;
+    }
+    .art-del:hover { color: var(--err); }
+    .empty-note { font-family: var(--mono); font-size: 10px; color: var(--ink-3); text-align: center; padding: 10px 0 4px; }
+
+    /* Components — single column inside the right rail; scrolls so 03+04
+       together stay roughly as tall as the POV panel on the left. */
+    .comp-list {
+      display: grid; grid-template-columns: 1fr;
+      gap: 12px;
+      flex: 1; min-height: 0; max-height: 560px; overflow-y: auto;
+      padding-right: 4px;
+    }
+    .comp-card {
+      background: var(--bg-3); border: 1px solid var(--line-2); border-radius: 10px;
+      padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .comp-top { display: flex; align-items: baseline; gap: 8px; }
+    .comp-top .nm { font-size: 13px; font-weight: 600; }
+    .comp-top .note { font-size: 11px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .comp-imgs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .comp-imgs .thumb {
+      width: 104px; height: 78px; border-radius: 6px; overflow: hidden;
+      border: 1px solid var(--line-2); background: #000;
+    }
+    .comp-imgs .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .comp-imgs .add-img {
+      width: 104px; height: 78px; border-radius: 6px;
+      border: 1.5px dashed var(--line-2); background: transparent;
+      color: var(--ink-3); font-size: 18px; cursor: pointer;
+      transition: border-color 140ms ease, color 140ms ease;
+    }
+    .comp-imgs .add-img:hover { border-color: var(--primary-dim); color: var(--primary); }
+    .err-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+    .err-chip {
+      font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.05em;
+      padding: 2.5px 8px; border-radius: 10px;
+      border: 1px solid var(--line-2); color: var(--ink-2);
+    }
+    .comp-foot { display: flex; align-items: center; }
+    .comp-foot .art-del { margin-left: auto; font-family: var(--mono); font-size: 9px; }
+
+    /* Add component form */
+    .add-comp {
+      border-top: 1px dashed var(--line-2); margin-top: 14px; padding-top: 14px;
+      display: flex; flex-direction: column; gap: 9px;
+    }
+    /* Auto-stacks when the panel is narrow (half-width column) */
+    .add-comp-cols {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px; align-items: start;
+    }
+    .add-comp-left { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+    .add-comp-right { min-width: 0; }
+    .add-comp .row { display: flex; gap: 8px; }
+    .add-comp input[type="text"] {
+      flex: 1; width: 100%; background: var(--bg-3); border: 1px solid var(--line-2);
+      border-radius: 8px; color: var(--ink-1);
+      font-family: var(--sans); font-size: 13px; padding: 11px 12px; outline: none;
+    }
+    .add-comp input[type="text"]:focus { border-color: var(--primary-dim); }
+    .pick-imgs {
+      background: var(--bg-3); border: 1.5px dashed var(--line-2); border-radius: 8px;
+      color: var(--ink-3); font-family: var(--mono); font-size: 10px;
+      padding: 9px 11px; cursor: pointer; text-align: left;
+      transition: border-color 140ms ease, color 140ms ease;
+    }
+    .add-comp .pick-imgs { padding: 22px 12px; text-align: center; }
+    .pick-imgs:hover { border-color: var(--primary-dim); color: var(--ink-2); }
+    .pick-imgs .sel { color: var(--primary); }
+    .tax-select {
+      display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start;
+      min-height: 128px; max-height: 300px; overflow-y: auto;
+      padding: 10px; background: var(--bg-3);
+      border: 1px solid var(--line-2); border-radius: 8px;
+    }
+    .tax-k { width: 100%; font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); margin: 5px 0 1px; }
+    .tax-chip {
+      font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.04em;
+      padding: 5px 11px; border-radius: 12px; cursor: pointer;
+      background: transparent; border: 1px solid var(--line-2); color: var(--ink-2);
+      transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+    }
+    .tax-chip.is-on { color: #06120c; font-weight: 600; }
+    .btn-save {
+      align-self: flex-start;
+      background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dim) 100%);
+      color: #06120c; border: none; border-radius: 8px;
+      font-family: var(--sans); font-size: 12px; font-weight: 600;
+      padding: 9px 18px; cursor: pointer;
+      transition: filter 140ms ease;
+    }
+    .btn-save:hover { filter: brightness(1.06); }
+    .btn-save:disabled { opacity: 0.45; cursor: default; }
+    .form-status { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); }
+    .form-status.err { color: var(--err); }
+    .form-status.ok { color: var(--ok); }
+
+    /* ── Procedure POV recordings ─────────────── */
+    .pov-form { display: flex; flex-direction: column; gap: 9px; }
+    .pov-form textarea {
+      background: var(--bg-3); border: 1px solid var(--line-2); border-radius: 8px;
+      color: var(--ink-1); font-family: var(--sans); font-size: 12px;
+      padding: 9px 11px; outline: none; resize: vertical; min-height: 54px;
+    }
+    .pov-form textarea:focus { border-color: var(--primary-dim); }
+    .seg { display: flex; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden; }
+    .seg button {
+      flex: 1; background: transparent; border: none; cursor: pointer;
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--ink-3); padding: 8px 10px;
+      transition: background 120ms ease, color 120ms ease;
+    }
+    .seg button.is-on.correct { background: rgba(74,222,128,0.12); color: var(--ok); }
+    .seg button.is-on.mistake { background: rgba(239,68,68,0.12); color: var(--err); }
+    .pov-list { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+    .pov-card {
+      background: var(--bg-3); border: 1px solid var(--line-2); border-radius: 10px;
+      padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .pov-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .pov-top .nm { font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 56%; }
+    .pov-tag {
+      font-family: var(--mono); font-size: 8.5px; font-weight: 600; letter-spacing: 0.08em;
+      padding: 2px 8px; border-radius: 10px; text-transform: uppercase; flex-shrink: 0;
+    }
+    .pov-tag.correct { color: var(--ok); border: 1px solid rgba(74,222,128,0.4); }
+    .pov-tag.mistake { color: var(--err); border: 1px solid rgba(239,68,68,0.4); }
+    .pov-meta { font-family: var(--mono); font-size: 9px; color: var(--ink-3); margin-left: auto; flex-shrink: 0; }
+    .btn-analyze {
+      align-self: flex-start;
+      background: transparent; border: 1px solid rgba(0,229,160,0.35); border-radius: 7px;
+      color: var(--primary); font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.05em; text-transform: uppercase;
+      padding: 6px 12px; cursor: pointer;
+      transition: background 140ms ease;
+    }
+    .btn-analyze:hover { background: rgba(0,229,160,0.08); }
+    .btn-analyze:disabled { opacity: 0.4; cursor: default; }
+    .sugg-summary { font-size: 12px; color: var(--ink-2); border-left: 2px solid var(--primary-dim); padding-left: 9px; }
+    .sugg {
+      border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+      display: flex; flex-direction: column; gap: 4px; background: rgba(255,255,255,0.015);
+    }
+    .sugg .head { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .sugg .warn-line {
+      font-family: var(--mono); font-size: 10px; color: var(--warn);
+      border: 1px solid rgba(245,158,11,0.35); border-radius: 5px; padding: 2px 8px;
+    }
+    .sugg .kv { font-size: 11px; color: var(--ink-2); }
+    .sugg .kv b { color: var(--ink-1); font-weight: 600; }
+
+    /* ── Digital twin ─────────────────────────── */
+    .twin-shell {
+      position: relative; width: 100%; aspect-ratio: 16 / 9;
+      background: #000; border: 1px solid var(--line-2); border-radius: 10px;
+      overflow: hidden;
+    }
+    .twin-shell iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+    .twin-launch {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(0,229,160,0.08), transparent 60%),
+        radial-gradient(circle at 70% 70%, rgba(0,150,255,0.06), transparent 60%),
+        #050807;
+      border: none; cursor: pointer; color: var(--ink-2);
+      font-family: var(--sans); font-size: 13px;
+      transition: color 140ms ease;
+    }
+    .twin-launch:hover { color: var(--primary); }
+    .twin-launch .play {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 1.5px solid var(--primary-dim); color: var(--primary);
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+    }
+    .twin-launch .sub { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+    .twin-foot {
+      display: flex; align-items: center; gap: 10px; padding-top: 9px;
+      font-family: var(--mono); font-size: 9.5px; color: var(--ink-3);
+    }
+    .twin-foot a { color: var(--primary); text-decoration: none; margin-left: auto; }
+    .twin-foot a:hover { text-decoration: underline; }
+
+    .toast {
+      position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%) translateY(6px);
+      background: var(--bg-3); border: 1px solid var(--primary-dim); color: var(--ink-1);
+      border-radius: 8px; padding: 9px 16px; font-size: 12px;
+      opacity: 0; pointer-events: none; z-index: 100;
+      transition: opacity 200ms ease, transform 200ms ease;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <a class="back-home" href="/home/">← Home</a>
+    <span class="topbar-title"><strong>Facility knowledge base</strong> · the Brain of the Comer plant</span>
+    <div class="view-toggle" role="tablist">
+      <button id="vt-facility" class="is-active" role="tab">Facility</button>
+      <button id="vt-station" role="tab">Station</button>
+    </div>
+    <select class="station-picker" id="station-picker" hidden></select>
+  </header>
+
+  <div class="wrap">
+
+    <!-- ── Facility view ─────────────────────── -->
+    <section class="facility-view is-active" id="facility-view">
+      <div class="facility-head">
+        <h1>The line, as the Brain sees it</h1>
+        <p>Every station holds its own knowledge graph — procedures, training material, and component references. Click a station to open it.</p>
+      </div>
+      <div class="facility-canvas">
+        <svg id="facility-svg" viewBox="0 0 1140 560" role="img" aria-label="Facility station map"></svg>
+      </div>
+      <div class="fac-legend">
+        <span><span class="dot" style="background:var(--primary)"></span>active station — full graph live</span>
+        <span><span class="dot" style="background:#2a2a2a"></span>scaffold — awaiting material</span>
+        <span style="color:var(--ok);">✓ twin — digital twin available</span>
+        <span>counts: keysteps · material · components</span>
+      </div>
+    </section>
+
+    <!-- ── Station view ──────────────────────── -->
+    <section class="station-view" id="station-view">
+      <div class="station-head">
+        <h1 id="st-title">—</h1>
+        <span class="desc" id="st-desc">—</span>
+        <a class="lab-link" id="st-lab-link" href="/lab/" hidden>Full graph + eval tools ↗</a>
+      </div>
+
+      <!-- Provenance strip — shown when this station mirrors the live glasses build -->
+      <div class="glasses-sync" id="glasses-sync">
+        <span class="dot"></span>
+        <span><b>Synced from the glasses build</b> — every component, reference image and warning below is what the
+        Rokid glasses run today (<a id="glasses-sync-repo" href="#" target="_blank" rel="noopener">comer-rokid-demo ↗</a>).
+        One-way for now: what you add here stays on the platform and is not pushed to the glasses.</span>
+      </div>
+
+      <!-- 01 · Node graph — full width -->
+      <div class="panel graph-panel" style="margin-top:12px;">
+        <div class="panel-h"><span class="n">01</span> Station knowledge graph</div>
+        <svg id="station-svg" viewBox="0 0 560 430" role="img" aria-label="Station knowledge graph"></svg>
+        <div class="graph-hint" id="graph-hint">procedure · material · components · POV — grows as you add knowledge</div>
+      </div>
+
+      <div class="station-grid">
+        <!-- 02 · Procedure POV recordings — left column -->
+        <div class="panel">
+          <div class="panel-h"><span class="n">02</span> Procedure POV recordings <span class="count" id="pov-count">0</span></div>
+          <div class="pov-form">
+              <button type="button" class="pick-imgs" id="pov-pick">
+                <span id="pov-pick-label">＋ POV recording of the full procedure (.mp4 / .mov / .webm)</span>
+              </button>
+              <input type="file" id="pov-file" accept=".mp4,.mov,.webm,video/*" hidden />
+              <div class="seg" id="pov-seg">
+                <button type="button" class="correct is-on" data-tag="correct">✓ done correctly</button>
+                <button type="button" class="mistake" data-tag="mistake">✕ contains mistakes</button>
+              </div>
+              <textarea id="pov-transcript" placeholder="Audio transcript — what was said / heard in the recording. Typed for now; auto-transcription (ASR) fills this once wired."></textarea>
+              <textarea id="pov-note" style="min-height:38px;" placeholder="Operator note (optional) — what you think went wrong or should be watched…"></textarea>
+              <div class="row" style="display:flex;align-items:center;gap:12px;">
+                <button type="button" class="btn-save" id="pov-save">Add recording</button>
+                <span class="form-status" id="pov-status"></span>
+              </div>
+            </div>
+          <div class="pov-list" id="pov-list"></div>
+          <div class="empty-note" id="pov-empty">no POV recordings yet — add correct and wrong executions to teach the warning logic</div>
+        </div>
+
+        <!-- 03 + 04 stacked — right column, together matching 02's height -->
+        <div class="station-col">
+        <!-- 03 · Training material -->
+        <div class="panel">
+          <div class="panel-h"><span class="n">03</span> Training material <span class="count" id="art-count">0</span></div>
+          <div class="drop" id="art-drop">
+            <span class="big">Drop or click to add material</span>
+            becomes part of this station's graph
+            <div class="fmt">.pdf · .csv / .tsv · .mp4 / .mov / .webm</div>
+          </div>
+          <input type="file" id="art-file" multiple hidden
+                 accept=".pdf,.csv,.tsv,.mp4,.mov,.webm" />
+          <div class="art-list" id="art-list"></div>
+          <div class="empty-note" id="art-empty">no material yet — this station's Brain is empty</div>
+        </div>
+
+        <!-- 04 · Component recognition references -->
+        <div class="panel comp-panel">
+          <div class="panel-h"><span class="n">04</span> Component recognition references <span class="count" id="comp-count">0</span></div>
+          <div class="comp-list" id="comp-list"></div>
+          <div class="empty-note" id="comp-empty">no components mapped yet</div>
+
+          <div class="add-comp">
+            <div class="add-comp-cols">
+              <div class="add-comp-left">
+                <input type="text" id="comp-name" placeholder="Component name — e.g. Guide bearing, Crush sleeve…" />
+                <button type="button" class="pick-imgs" id="comp-pick">
+                  <span id="comp-pick-label">＋ Reference images (what the CV / VLM should recognize)</span>
+                </button>
+                <input type="file" id="comp-files" accept="image/*" multiple hidden />
+                <div class="row" style="align-items:center;gap:12px;">
+                  <button type="button" class="btn-save" id="comp-save">Save component</button>
+                  <span class="form-status" id="comp-status"></span>
+                </div>
+              </div>
+              <div class="add-comp-right">
+                <div class="form-status" style="margin-bottom:5px;">Map against the error taxonomy — which failures involve this component?</div>
+                <div class="tax-select" id="tax-select"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div><!-- /.station-col -->
+      </div>
+
+      <!-- Station digital twin (only stations with a capture — today: pinion guide) -->
+      <div class="panel" style="margin-top:16px;" id="st-twin-panel" hidden>
+        <div class="panel-h"><span class="n">05</span> Digital twin <span class="count" style="color:var(--ok);">✓ available</span></div>
+        <div class="twin-shell" id="st-twin-shell">
+          <button type="button" class="twin-launch" id="st-twin-launch">
+            <span class="play">▶</span>
+            <span id="st-twin-title">Load the pinion guide digital twin</span>
+            <span class="sub">gaussian-splat capture of the pinion guide area · operator + station geometry</span>
+          </button>
+        </div>
+        <div class="twin-foot">
+          <span>same capture the warning logic will be simulated against (Omniverse next)</span>
+          <a id="st-twin-open" href="/synthetic-pov" target="_blank">Open full viewer ↗</a>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    /* ── Session gate ─────────────────────────── */
+    try {
+      const s = JSON.parse(localStorage.getItem('omnia.session') || 'null');
+      if (!s || s.tenant !== 'comer' || s.expiresAt <= Date.now()) window.location.replace('/login');
+    } catch { window.location.replace('/login'); }
+
+    const $ = (id) => document.getElementById(id);
+    function esc(s) {
+      return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      }[c]));
+    }
+    function toast(msg) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(t._h);
+      t._h = setTimeout(() => t.classList.remove('show'), 2600);
+    }
+    function fmtSize(n) {
+      if (n == null) return '';
+      if (n > 1048576) return (n / 1048576).toFixed(1) + ' MB';
+      if (n > 1024) return Math.round(n / 1024) + ' KB';
+      return n + ' B';
+    }
+    function readAsDataURL(file) {
+      return new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result);
+        r.onerror = rej;
+        r.readAsDataURL(file);
+      });
+    }
+
+    /* ── State ────────────────────────────────── */
+    let stations = [];
+    let taxonomy = { groups: {}, errors: {} };
+    let current = null;         // current station detail payload
+    let selectedCodes = new Set();
+    let pendingImages = [];     // [{name,dataBase64}] for the add-component form
+
+    /* ── View switching ───────────────────────── */
+    const facView = $('facility-view');
+    const stView = $('station-view');
+    const vtFac = $('vt-facility');
+    const vtSt = $('vt-station');
+    const picker = $('station-picker');
+
+    function showFacility() {
+      facView.classList.add('is-active');
+      stView.classList.remove('is-active');
+      vtFac.classList.add('is-active');
+      vtSt.classList.remove('is-active');
+      picker.hidden = true;
+      history.replaceState(null, '', '/knowledge/');
+      loadStations(); // refresh counts on return
+    }
+    async function showStation(id) {
+      facView.classList.remove('is-active');
+      stView.classList.add('is-active');
+      vtSt.classList.add('is-active');
+      vtFac.classList.remove('is-active');
+      picker.hidden = false;
+      picker.value = id;
+      history.replaceState(null, '', '/knowledge/?station=' + encodeURIComponent(id));
+      await loadStation(id);
+    }
+    vtFac.addEventListener('click', showFacility);
+    vtSt.addEventListener('click', () => {
+      const id = picker.value || (stations[0] && stations[0].id);
+      if (id) showStation(id);
+    });
+    picker.addEventListener('change', () => showStation(picker.value));
+
+    /* ── Facility graph ───────────────────────── */
+    // Hand-placed layout echoing the plant tour: core line left→right, perimeter arc below.
+    const FAC_POS = {
+      'pg-04': { x: 570, y: 140 },
+      'st-1':  { x: 170, y: 250 },
+      'st-2':  { x: 400, y: 300 },
+      'st-3':  { x: 640, y: 320 },
+      'st-4':  { x: 880, y: 260 },
+      'pm-5':  { x: 240, y: 452 },
+      'pm-6':  { x: 570, y: 480 },
+      'pm-7':  { x: 890, y: 452 },
+    };
+    const FAC_EDGES = [
+      ['st-1', 'st-2'], ['st-2', 'st-3'], ['st-3', 'st-4'],
+      ['pm-5', 'pm-6'], ['pm-6', 'pm-7'],
+      ['st-1', 'pm-5'], ['st-4', 'pm-7'],
+      ['pg-04', 'st-2'], ['pg-04', 'st-3'],
+    ];
+
+    function renderFacility() {
+      const svg = $('facility-svg');
+      const edges = FAC_EDGES.map(([a, b]) => {
+        const p = FAC_POS[a], q = FAC_POS[b];
+        if (!p || !q) return '';
+        return `<line class="fac-edge" x1="${p.x}" y1="${p.y}" x2="${q.x}" y2="${q.y}"/>`;
+      }).join('');
+      const nodes = stations.map((s) => {
+        const p = FAC_POS[s.id];
+        if (!p) return '';
+        const r = s.active ? 34 : 26;
+        const c = s.counts || {};
+        const countsTxt = `${c.keysteps || 0} · ${c.artifacts || 0} · ${c.components || 0}`;
+        const twin = TWIN_STATIONS.has(s.id);
+        return `
+          <g class="fac-node ${s.active ? 'is-active' : ''}" data-station="${s.id}" tabindex="0" role="button"
+             aria-label="Open ${esc(s.label)}">
+            ${s.active ? `<circle class="halo" cx="${p.x}" cy="${p.y}" r="${r + 8}"/>` : ''}
+            <circle class="core" cx="${p.x}" cy="${p.y}" r="${r}"/>
+            <circle cx="${p.x}" cy="${p.y}" r="4" fill="${s.active ? 'var(--primary)' : '#3a3a3a'}"/>
+            <text class="nd-label" x="${p.x}" y="${p.y - r - 22}" text-anchor="middle">${esc(s.label)}</text>
+            <text class="nd-desc" x="${p.x}" y="${p.y - r - 9}" text-anchor="middle">${esc(s.desc || '')}</text>
+            <text class="nd-counts" x="${p.x}" y="${p.y + r + 16}" text-anchor="middle">${countsTxt}</text>
+            ${twin ? `
+            <g class="fac-twin" data-twin="${s.id}" role="link" aria-label="Open the digital twin viewer">
+              <rect x="${p.x - 46}" y="${p.y + r + 23}" width="92" height="17" rx="8.5"/>
+              <text x="${p.x}" y="${p.y + r + 35}" text-anchor="middle">✓ digital twin</text>
+            </g>` : ''}
+          </g>`;
+      }).join('');
+      svg.innerHTML = edges + nodes;
+      svg.querySelectorAll('.fac-node').forEach((g) => {
+        const open = () => showStation(g.dataset.station);
+        g.addEventListener('click', open);
+        g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+      });
+      svg.querySelectorAll('.fac-twin').forEach((b) => b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        window.open(TWIN_URL, '_blank');
+      }));
+    }
+
+    /* ── Station graph ────────────────────────── */
+    function renderStationGraph() {
+      const svg = $('station-svg');
+      if (!current) { svg.innerHTML = ''; return; }
+      const CX = 280, CY = 215;
+      const ring = [];
+      (current.keysteps || []).forEach((k) => ring.push({ kind: 'step', label: 'S' + String(k.order).padStart(2, '0'), full: k.label, color: '#60a5fa' }));
+      (current.artifacts || []).forEach((a) => ring.push({
+        kind: 'art', label: a.type.toUpperCase(),
+        full: a.name,
+        color: a.type === 'pdf' ? '#f87171' : a.type === 'csv' ? '#4ade80' : a.type === 'video' ? '#60a5fa' : '#8a8a8a',
+      }));
+      (current.components || []).forEach((c) => ring.push({ kind: 'comp', label: c.name.slice(0, 12), full: c.name, color: '#f472b6', img: (c.images[0] || {}).url }));
+      (current.povs || []).forEach((p) => ring.push({
+        kind: 'pov',
+        label: p.label === 'mistake' ? 'POV ✕' : 'POV ✓',
+        full: p.name,
+        color: p.label === 'mistake' ? '#ef4444' : '#4ade80',
+      }));
+
+      let parts = [];
+      const R = 150;
+      ring.forEach((n, i) => {
+        const a = (i / Math.max(1, ring.length)) * Math.PI * 2 - Math.PI / 2;
+        const x = CX + Math.cos(a) * R;
+        const y = CY + Math.sin(a) * R;
+        parts.push(`<line class="sg-edge ${n.kind === 'comp' ? 'hot' : ''}" x1="${CX}" y1="${CY}" x2="${x}" y2="${y}"/>`);
+        if (n.img) {
+          parts.push(
+            `<clipPath id="clip${i}"><circle cx="${x}" cy="${y}" r="15"/></clipPath>` +
+            `<image href="${esc(n.img)}" x="${x - 15}" y="${y - 15}" width="30" height="30" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip${i})"/>` +
+            `<circle cx="${x}" cy="${y}" r="15" fill="none" stroke="${n.color}" stroke-width="1.4"/>`
+          );
+        } else {
+          parts.push(`<circle cx="${x}" cy="${y}" r="${n.kind === 'step' ? 7 : 9}" fill="#0f1512" stroke="${n.color}" stroke-width="1.4"/>`);
+        }
+        const ly = y + (Math.sin(a) >= 0 ? 24 : -18);
+        parts.push(`<text class="sg-node-label" x="${x}" y="${ly}" text-anchor="middle">${esc(n.label)}</text>`);
+      });
+
+      // center node
+      parts.push(
+        `<circle class="sg-center" cx="${CX}" cy="${CY}" r="42"/>` +
+        `<text class="sg-center-label" x="${CX}" y="${CY - 2}" text-anchor="middle">${esc(current.station.label)}</text>` +
+        `<text class="sg-center-sub" x="${CX}" y="${CY + 12}" text-anchor="middle">${ring.length} node${ring.length === 1 ? '' : 's'}</text>`
+      );
+      if (ring.length === 0) {
+        parts.push(`<text class="sg-empty" x="${CX}" y="${CY + 80}" text-anchor="middle">empty graph — add material or components to grow it</text>`);
+      }
+      svg.innerHTML = parts.join('');
+    }
+
+    /* ── Data loads ───────────────────────────── */
+    async function loadStations() {
+      const d = await (await fetch('/api/kb/stations', { cache: 'no-store' })).json();
+      stations = d.stations || [];
+      picker.innerHTML = stations.map((s) => `<option value="${s.id}">${esc(s.label)}</option>`).join('');
+      renderFacility();
+    }
+
+    async function loadStation(id) {
+      const d = await (await fetch('/api/kb/stations/' + encodeURIComponent(id), { cache: 'no-store' })).json();
+      current = d;
+      $('st-title').textContent = d.station.label;
+      $('st-desc').textContent = d.station.desc || '';
+      // Lab is reachable for every station — inactive ones land on its empty state.
+      $('st-lab-link').hidden = false;
+      $('st-lab-link').href = '/lab/?station=' + encodeURIComponent(id);
+      $('st-lab-link').textContent = d.station.active ? 'Full graph + eval tools ↗' : 'Open in eval lab ↗';
+      // Glasses-build provenance strip (PG-04 today)
+      $('glasses-sync').classList.toggle('is-on', !!d.glassesSync);
+      if (d.glassesSync && d.glassesSync.repo) $('glasses-sync-repo').href = d.glassesSync.repo;
+      renderStationGraph();
+      renderArtifacts();
+      renderComponents();
+      renderPovs();
+      resetCompForm();
+      resetPovForm();
+      updateStationTwin(id);
+    }
+
+    /* ── Material ─────────────────────────────── */
+    function typeOf(file) {
+      const n = file.name.toLowerCase();
+      if (n.endsWith('.pdf')) return 'pdf';
+      if (n.endsWith('.csv') || n.endsWith('.tsv')) return 'csv';
+      if (/\.(mp4|mov|webm)$/.test(n)) return 'video';
+      return 'other';
+    }
+    function renderArtifacts() {
+      const list = $('art-list');
+      const arts = (current && current.artifacts) || [];
+      $('art-count').textContent = arts.length;
+      $('art-empty').style.display = arts.length ? 'none' : 'block';
+      list.innerHTML = arts.map((a) => `
+        <div class="art-row">
+          <span class="art-type ${a.type}">${a.type.toUpperCase()}</span>
+          <span class="art-name" title="${esc(a.note || a.name)}">${a.url ? `<a href="${esc(a.url)}" target="_blank" style="color:inherit;">${esc(a.name)}</a>` : esc(a.name)}</span>
+          ${a.source === 'glasses'
+            ? '<span class="glasses-pill" title="Loaded on the Rokid glasses build — managed in comer-rokid-demo">⟲ glasses</span>'
+            : `<span class="art-size">${fmtSize(a.size)}</span>
+          <button class="art-del" data-del-art="${a.id}" title="Remove from the Brain">✕</button>`}
+        </div>`).join('');
+      list.querySelectorAll('[data-del-art]').forEach((b) => b.addEventListener('click', async () => {
+        await fetch(`/api/kb/stations/${current.station.id}/artifacts/${b.dataset.delArt}`, { method: 'DELETE' });
+        await loadStation(current.station.id);
+      }));
+    }
+
+    async function addFiles(files) {
+      for (const file of files) {
+        const type = typeOf(file);
+        const body = { name: file.name, type, size: file.size };
+        // small pdf/csv files travel inline and get stored + linked
+        if (type !== 'video' && file.size <= 8 * 1024 * 1024) {
+          body.dataBase64 = await readAsDataURL(file);
+        }
+        const r = await fetch(`/api/kb/stations/${current.station.id}/artifacts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!r.ok) {
+          const e = await r.json().catch(() => ({}));
+          toast('Failed: ' + (e.error || r.status));
+          continue;
+        }
+        toast('Added ' + file.name + ' to ' + current.station.label);
+      }
+      await loadStation(current.station.id);
+    }
+
+    const drop = $('art-drop');
+    const artFile = $('art-file');
+    drop.addEventListener('click', () => artFile.click());
+    artFile.addEventListener('change', () => { if (artFile.files.length) { addFiles([...artFile.files]); artFile.value = ''; } });
+    ['dragover', 'dragenter'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('is-over'); }));
+    ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('is-over'); }));
+    drop.addEventListener('drop', (e) => { if (e.dataTransfer.files.length) addFiles([...e.dataTransfer.files]); });
+
+    /* ── Components ───────────────────────────── */
+    function chipStyle(code) {
+      const err = taxonomy.errors[code];
+      const g = err && taxonomy.groups[err.group];
+      const color = (g && g.color) || '#6b6b6b';
+      return `border-color:${color};color:${color};`;
+    }
+    function renderComponents() {
+      const list = $('comp-list');
+      const comps = (current && current.components) || [];
+      $('comp-count').textContent = comps.length;
+      $('comp-empty').style.display = comps.length ? 'none' : 'block';
+      list.innerHTML = comps.map((c) => `
+        <div class="comp-card">
+          <div class="comp-top">
+            <span class="nm">${esc(c.name)}</span>
+            ${c.note ? `<span class="note">${esc(c.note)}</span>` : ''}
+          </div>
+          <div class="comp-imgs">
+            ${c.images.map((im) => `<span class="thumb" title="${esc(im.name)}"><img src="${esc(im.url)}" alt="${esc(im.name)}" loading="lazy"/></span>`).join('')}
+            <button class="add-img" data-add-img="${c.id}" title="Add reference images">＋</button>
+          </div>
+          ${c.errorCodes.length ? `<div class="err-chips">${c.errorCodes.map((code) => {
+            const err = taxonomy.errors[code];
+            return `<span class="err-chip" style="${chipStyle(code)}" title="${esc(err ? err.desc : '')}">${esc(code)}${err ? ' · ' + esc(err.label) : ''}</span>`;
+          }).join('')}</div>` : ''}
+          <div class="comp-foot">
+            <span class="form-status">${c.images.length} reference image${c.images.length === 1 ? '' : 's'}</span>
+            ${c.source === 'glasses'
+              ? '<span class="glasses-pill" title="Recognized live by the Rokid glasses — managed in comer-rokid-demo">⟲ glasses</span>'
+              : `<button class="art-del" data-del-comp="${c.id}">remove</button>`}
+          </div>
+        </div>`).join('');
+
+      list.querySelectorAll('[data-del-comp]').forEach((b) => b.addEventListener('click', async () => {
+        await fetch(`/api/kb/stations/${current.station.id}/components/${b.dataset.delComp}`, { method: 'DELETE' });
+        await loadStation(current.station.id);
+      }));
+      list.querySelectorAll('[data-add-img]').forEach((b) => b.addEventListener('click', () => {
+        const inp = document.createElement('input');
+        inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = true;
+        inp.onchange = async () => {
+          const images = [];
+          for (const f of inp.files) images.push({ name: f.name, dataBase64: await readAsDataURL(f) });
+          const r = await fetch(`/api/kb/stations/${current.station.id}/components/${b.dataset.addImg}/images`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ images }),
+          });
+          if (!r.ok) { const e = await r.json().catch(() => ({})); toast('Failed: ' + (e.error || r.status)); return; }
+          toast('Reference images added');
+          await loadStation(current.station.id);
+        };
+        inp.click();
+      }));
+    }
+
+    /* Add-component form */
+    function renderTaxonomySelect() {
+      const box = $('tax-select');
+      const byGroup = {};
+      for (const [code, err] of Object.entries(taxonomy.errors)) {
+        (byGroup[err.group] = byGroup[err.group] || []).push([code, err]);
+      }
+      box.innerHTML = Object.entries(taxonomy.groups).map(([gid, g]) => {
+        const items = (byGroup[gid] || []).map(([code, err]) =>
+          `<button type="button" class="tax-chip" data-code="${code}" data-color="${g.color}"
+                   title="${esc(err.desc)}">${esc(code)} · ${esc(err.label)}</button>`).join('');
+        return items ? `<span class="tax-k">${gid} — ${esc(g.label)}</span>${items}` : '';
+      }).join('');
+      box.querySelectorAll('.tax-chip').forEach((chip) => chip.addEventListener('click', () => {
+        const code = chip.dataset.code;
+        const color = chip.dataset.color;
+        if (selectedCodes.has(code)) {
+          selectedCodes.delete(code);
+          chip.classList.remove('is-on');
+          chip.style.background = '';
+          chip.style.borderColor = '';
+          chip.style.color = '';
+        } else {
+          selectedCodes.add(code);
+          chip.classList.add('is-on');
+          chip.style.background = color;
+          chip.style.borderColor = color;
+        }
+      }));
+    }
+    function resetCompForm() {
+      $('comp-name').value = '';
+      pendingImages = [];
+      selectedCodes = new Set();
+      $('comp-pick-label').innerHTML = '＋ Reference images (what the CV / VLM should recognize)';
+      $('comp-status').textContent = '';
+      $('comp-status').className = 'form-status';
+      renderTaxonomySelect();
+    }
+    $('comp-pick').addEventListener('click', () => $('comp-files').click());
+    $('comp-files').addEventListener('change', async () => {
+      const files = [...$('comp-files').files];
+      for (const f of files) pendingImages.push({ name: f.name, dataBase64: await readAsDataURL(f) });
+      $('comp-files').value = '';
+      $('comp-pick-label').innerHTML = pendingImages.length
+        ? `<span class="sel">${pendingImages.length} image${pendingImages.length === 1 ? '' : 's'} selected</span> — click to add more`
+        : '＋ Reference images (what the CV / VLM should recognize)';
+    });
+    $('comp-save').addEventListener('click', async () => {
+      const name = $('comp-name').value.trim();
+      const status = $('comp-status');
+      if (!name) { status.textContent = 'component name required'; status.className = 'form-status err'; return; }
+      $('comp-save').disabled = true;
+      status.textContent = 'saving…'; status.className = 'form-status';
+      try {
+        const r = await fetch(`/api/kb/stations/${current.station.id}/components`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, errorCodes: [...selectedCodes], images: pendingImages }),
+        });
+        if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || ('HTTP ' + r.status)); }
+        toast('Component "' + name + '" added to ' + current.station.label);
+        await loadStation(current.station.id);
+      } catch (e) {
+        status.textContent = e.message; status.className = 'form-status err';
+      } finally {
+        $('comp-save').disabled = false;
+      }
+    });
+
+    /* ── Procedure POV recordings ─────────────── */
+    let povFile = null;    // the picked File (video bytes stay client-side for now)
+    let povTag = 'correct';
+
+    function videoDuration(file) {
+      return new Promise((res) => {
+        const v = document.createElement('video');
+        v.preload = 'metadata';
+        v.onloadedmetadata = () => { const d = v.duration; URL.revokeObjectURL(v.src); res(Number.isFinite(d) ? d : null); };
+        v.onerror = () => { URL.revokeObjectURL(v.src); res(null); };
+        v.src = URL.createObjectURL(file);
+      });
+    }
+    function fmtDur(s) {
+      if (s == null) return '';
+      const m = Math.floor(s / 60);
+      return m + ':' + String(Math.round(s % 60)).padStart(2, '0');
+    }
+
+    function resetPovForm() {
+      povFile = null;
+      povTag = 'correct';
+      $('pov-seg').querySelectorAll('button').forEach((b) => b.classList.toggle('is-on', b.dataset.tag === 'correct'));
+      $('pov-pick-label').innerHTML = '＋ POV recording of the full procedure (.mp4 / .mov / .webm)';
+      $('pov-transcript').value = '';
+      $('pov-note').value = '';
+      $('pov-status').textContent = '';
+      $('pov-status').className = 'form-status';
+    }
+
+    $('pov-pick').addEventListener('click', () => $('pov-file').click());
+    $('pov-file').addEventListener('change', () => {
+      povFile = $('pov-file').files[0] || null;
+      $('pov-file').value = '';
+      $('pov-pick-label').innerHTML = povFile
+        ? `<span class="sel">${esc(povFile.name)}</span> · ${fmtSize(povFile.size)}`
+        : '＋ POV recording of the full procedure (.mp4 / .mov / .webm)';
+    });
+    $('pov-seg').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+      povTag = b.dataset.tag;
+      $('pov-seg').querySelectorAll('button').forEach((x) => x.classList.toggle('is-on', x === b));
+    }));
+
+    $('pov-save').addEventListener('click', async () => {
+      const status = $('pov-status');
+      if (!povFile) { status.textContent = 'pick a recording first'; status.className = 'form-status err'; return; }
+      $('pov-save').disabled = true;
+      status.textContent = 'registering…'; status.className = 'form-status';
+      try {
+        const durationS = await videoDuration(povFile);
+        const body = {
+          name: povFile.name,
+          size: povFile.size,
+          label: povTag,
+          transcript: $('pov-transcript').value.trim() || undefined,
+          note: $('pov-note').value.trim() || undefined,
+        };
+        if (durationS != null) body.durationS = durationS;
+        const r = await fetch(`/api/kb/stations/${current.station.id}/povs`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || ('HTTP ' + r.status)); }
+        toast('POV recording added — run "Suggest warning logic" to analyze it');
+        await loadStation(current.station.id);
+      } catch (e) {
+        status.textContent = e.message; status.className = 'form-status err';
+        $('pov-save').disabled = false;
+      }
+      $('pov-save').disabled = false;
+    });
+
+    function renderSuggestion(s) {
+      const code = s.errorCode ? `<span class="err-chip" style="${chipStyle(s.errorCode)}">${esc(s.errorCode)}</span>` : '';
+      const step = s.step ? `<span class="err-chip" style="border-color:#60a5fa;color:#60a5fa;">${esc(s.step)}</span>` : '';
+      return `
+        <div class="sugg">
+          <div class="head">${step}${code}<span class="warn-line">⚠ ${esc(s.glassesWarning || '—')}</span></div>
+          ${s.observed ? `<div class="kv"><b>Observed:</b> ${esc(s.observed)}</div>` : ''}
+          ${s.detect ? `<div class="kv"><b>Detect:</b> ${esc(s.detect)}</div>` : ''}
+        </div>`;
+    }
+
+    function renderPovs() {
+      const list = $('pov-list');
+      const povs = (current && current.povs) || [];
+      $('pov-count').textContent = povs.length;
+      $('pov-empty').style.display = povs.length ? 'none' : 'block';
+      list.innerHTML = povs.map((p) => `
+        <div class="pov-card">
+          <div class="pov-top">
+            <span class="nm" title="${esc(p.name)}">${esc(p.name)}</span>
+            <span class="pov-tag ${p.label}">${p.label}</span>
+            <span class="pov-meta">${fmtDur(p.durationS)}${p.size ? ' · ' + fmtSize(p.size) : ''}${p.transcript ? ' · audio ✓' : ' · no audio transcript'}</span>
+          </div>
+          ${p.note ? `<div class="kv" style="font-size:11px;color:var(--ink-3);">${esc(p.note)}</div>` : ''}
+          ${p.analysis ? `
+            <div class="sugg-summary">${esc(p.analysis.summary)}${p.analysis.stubbed ? ' <span style="color:var(--ink-3);">(stub — set ANTHROPIC_API_KEY for live analysis)</span>' : ''}</div>
+            ${(p.analysis.suggestions || []).map(renderSuggestion).join('')}
+          ` : ''}
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button class="btn-analyze" data-analyze="${p.id}">${p.analysis ? 'Re-analyze' : 'Suggest warning logic'}</button>
+            <span class="form-status" data-analyze-status="${p.id}"></span>
+            <button class="art-del" data-del-pov="${p.id}" style="margin-left:auto;font-family:var(--mono);font-size:9px;">remove</button>
+          </div>
+        </div>`).join('');
+
+      list.querySelectorAll('[data-del-pov]').forEach((b) => b.addEventListener('click', async () => {
+        await fetch(`/api/kb/stations/${current.station.id}/povs/${b.dataset.delPov}`, { method: 'DELETE' });
+        await loadStation(current.station.id);
+      }));
+      list.querySelectorAll('[data-analyze]').forEach((b) => b.addEventListener('click', async () => {
+        const st = list.querySelector(`[data-analyze-status="${b.dataset.analyze}"]`);
+        b.disabled = true;
+        st.textContent = 'comparing against known material…';
+        try {
+          const r = await fetch(`/api/kb/stations/${current.station.id}/povs/${b.dataset.analyze}/analyze`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+          });
+          if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || ('HTTP ' + r.status)); }
+          toast('Warning-logic suggestions ready');
+          await loadStation(current.station.id);
+        } catch (e) {
+          st.textContent = e.message; st.className = 'form-status err';
+          b.disabled = false;
+        }
+      }));
+    }
+
+    /* ── Digital twin ─────────────────────────── */
+    // The only capture we have is the pinion guide area. The 7-zone tour
+    // inside the viewer covers viewpoints WITHIN that area — it is not a
+    // per-station twin of the whole facility.
+    const TWIN_STATIONS = new Set(['pg-04']);
+    const TWIN_URL = '/synthetic-pov?zone=1';
+    // In-page preview: splat quadrant only (?embed=1) — the full HUD with
+    // all quadrants stays behind the "Open full viewer" link.
+    const TWIN_EMBED_URL = TWIN_URL + '&embed=1';
+
+    $('st-twin-launch').addEventListener('click', () => {
+      const shell = $('st-twin-shell');
+      const iframe = document.createElement('iframe');
+      iframe.src = TWIN_EMBED_URL;
+      iframe.allow = 'fullscreen; xr-spatial-tracking';
+      iframe.title = 'Digital twin viewer';
+      shell.innerHTML = '';
+      shell.appendChild(iframe);
+    });
+
+    function updateStationTwin(id) {
+      const panel = $('st-twin-panel');
+      panel.hidden = !TWIN_STATIONS.has(id);
+      $('st-twin-open').href = TWIN_URL;
+      // Leaving the twin station: drop any loaded viewer so the heavy splat
+      // iframe never stays alive behind a hidden panel.
+      const shell = $('st-twin-shell');
+      if (shell.querySelector('iframe')) {
+        shell.innerHTML = `
+          <button type="button" class="twin-launch" id="st-twin-launch">
+            <span class="play">▶</span>
+            <span id="st-twin-title">Load the pinion guide digital twin</span>
+            <span class="sub">gaussian-splat capture of the pinion guide area · operator + station geometry</span>
+          </button>`;
+        $('st-twin-launch').addEventListener('click', () => {
+          const iframe = document.createElement('iframe');
+          iframe.src = TWIN_EMBED_URL;
+          iframe.allow = 'fullscreen; xr-spatial-tracking';
+          iframe.title = 'Digital twin viewer';
+          shell.innerHTML = '';
+          shell.appendChild(iframe);
+        });
+      }
+    }
+
+    /* ── Boot ─────────────────────────────────── */
+    (async () => {
+      const [tx] = await Promise.all([
+        (await fetch('/api/spec/taxonomy', { cache: 'no-store' })).json(),
+        loadStations(),
+      ]);
+      taxonomy = tx;
+      renderTaxonomySelect();
+      const wanted = new URLSearchParams(location.search).get('station');
+      if (wanted && stations.some((s) => s.id === wanted)) showStation(wanted);
+    })();
+  </script>
+</body>
+</html>

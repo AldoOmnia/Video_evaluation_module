@@ -140,6 +140,52 @@
   }
   @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
 
+  /* ── Station picker + empty station state ── */
+  .station-picker {
+    margin-left: 8px;
+    background: var(--bg-3); border: 1px solid var(--line-2); border-radius: 2px;
+    color: var(--ink); font-family: var(--mono); font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 5px 8px; outline: none; cursor: pointer; max-width: 210px;
+  }
+  .station-picker:hover, .station-picker:focus { border-color: var(--acc-dim); }
+
+  .station-empty {
+    position: absolute; inset: 0; z-index: 40;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg);
+  }
+  .station-empty[hidden] { display: none; }
+  .station-empty .box { text-align: center; max-width: 480px; padding: 32px 24px; }
+  .station-empty .ring {
+    width: 74px; height: 74px; margin: 0 auto 18px; border-radius: 50%;
+    border: 1.5px dashed var(--line-2);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-3); font-size: 26px;
+  }
+  .station-empty h2 { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+  .station-empty .se-desc {
+    font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px;
+  }
+  .station-empty .se-msg { font-size: 12.5px; color: var(--ink-2); margin-top: 14px; line-height: 1.65; }
+  .station-empty .se-actions { display: flex; gap: 10px; justify-content: center; margin-top: 22px; flex-wrap: wrap; }
+  .station-empty .se-cta {
+    display: inline-block; text-decoration: none;
+    background: rgba(0,229,160,0.12); color: var(--acc);
+    border: 1px solid rgba(0,229,160,0.4); border-radius: 3px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em;
+    padding: 9px 16px; cursor: pointer; transition: background 120ms ease;
+  }
+  .station-empty .se-cta:hover { background: rgba(0,229,160,0.2); }
+  .station-empty .se-back {
+    background: transparent; color: var(--ink-2);
+    border: 1px solid var(--line-2); border-radius: 3px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em;
+    padding: 9px 16px; cursor: pointer; transition: border-color 120ms ease, color 120ms ease;
+  }
+  .station-empty .se-back:hover { border-color: var(--acc-dim); color: var(--acc); }
+
   /* ── Workspace base ──────────────────── */
   main.workspace { position: relative; overflow: hidden; min-height: 0; }
   .mode-container { position: absolute; inset: 0; display: none; min-height: 0; }
@@ -1413,6 +1459,10 @@
 <div class="app">
 
   <header class="bar">
+    <a href="/home/" class="client-pill" title="Back to the platform home"
+       style="text-decoration:none;color:var(--ink-2);flex-shrink:0;">
+      ← Home
+    </a>
     <div class="brand">
       <span class="dot">●</span>BRAIN · EVAL LAB <span class="v">v0.5 — taxonomy-aware</span>
     </div>
@@ -1420,10 +1470,11 @@
       <button class="active" data-mode="brain">Brain</button>
       <button data-mode="eval">Evaluate</button>
     </div>
+    <select class="station-picker" id="lab-station-picker" title="Switch station"></select>
     <a id="synthetic-pov-link" href="/synthetic-pov?zone=1" class="client-pill" hidden
        style="text-decoration:none;color:var(--primary);border-color:rgba(0,229,160,0.35);"
-       title="Local Spark splat + operator viewer (dev only)">
-      Synthetic POV ↗
+       title="Digital twin — splat + operator viewer (dev only)">
+      Digital twin ↗
     </a>
     <span class="client-pill">
       <span class="pill-label">client</span>Comer Industries
@@ -1443,6 +1494,23 @@
   </header>
 
   <main class="workspace">
+
+    <!-- ── Empty station state — shown when the selected station has no knowledge yet ── -->
+    <div class="station-empty" id="station-empty" hidden>
+      <div class="box">
+        <div class="ring">◌</div>
+        <h2 id="se-label">Station</h2>
+        <div class="se-desc" id="se-desc">—</div>
+        <p class="se-msg">
+          Nothing is loaded for this station yet — no procedure graph, training material,
+          or component references. Start building its Brain from the knowledge base.
+        </p>
+        <div class="se-actions">
+          <a class="se-cta" id="se-kb-link" href="/knowledge/">＋ Start adding material ↗</a>
+          <button type="button" class="se-back" id="se-back">← Back to Pinion Guide</button>
+        </div>
+      </div>
+    </div>
 
     <!-- ───────────────────────── BRAIN MODE ───────────────────────── -->
     <div class="mode-container active" id="brain-mode">
@@ -4859,6 +4927,65 @@ function wireSignOut() {
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
+   STATION PICKER
+   The lab's full graph + eval tools are live for the pilot station (pinion
+   guide). Every other station is selectable too — it shows an empty state
+   that points at the knowledge base until material is loaded for it.
+   ════════════════════════════════════════════════════════════════════════════ */
+async function wireStationPicker() {
+  const picker = document.getElementById('lab-station-picker');
+  const overlay = document.getElementById('station-empty');
+  if (!picker || !overlay) return;
+
+  // Fallback mirrors the backend list so the picker still works if /api is down.
+  let stations = [
+    { id: 'pg-04', label: 'Pinion Guide · PG-04', desc: 'Pilot station — full procedure graph + eval tools live', active: true },
+    { id: 'st-1', label: 'Station 1', desc: 'Vertical press fixture machine', active: false },
+    { id: 'st-2', label: 'Station 2', desc: 'Assembly station', active: false },
+    { id: 'st-3', label: 'Station 3', desc: 'UNICOMM system', active: false },
+    { id: 'st-4', label: 'Station 4', desc: 'Component picking area', active: false },
+    { id: 'pm-5', label: 'Perimeter 5', desc: 'Drivers selection', active: false },
+    { id: 'pm-6', label: 'Perimeter 6', desc: 'Pinion guide station end', active: false },
+    { id: 'pm-7', label: 'Perimeter 7', desc: 'Pinion guide station end', active: false },
+  ];
+  try {
+    const d = await (await fetch('/api/kb/stations', { cache: 'no-store' })).json();
+    if (Array.isArray(d.stations) && d.stations.length) stations = d.stations;
+  } catch { /* fallback list above */ }
+
+  picker.innerHTML = stations
+    .map(s => `<option value="${escapeHTML(s.id)}">${escapeHTML(s.label)}</option>`)
+    .join('');
+
+  const homeId = (stations.find(s => s.active) || stations[0]).id;
+
+  function setStation(id) {
+    const st = stations.find(s => s.id === id) || stations[0];
+    picker.value = st.id;
+    const loaded = !!st.active; // only the pilot station has a Brain today
+    overlay.hidden = loaded;
+    const statusEl = document.getElementById('header-status-text');
+    if (loaded) {
+      if (statusEl) statusEl.textContent = '12 keysteps · pinion guide';
+      if (state.graph) setTimeout(() => state.graph.resize(), 60);
+    } else {
+      document.getElementById('se-label').textContent = st.label;
+      document.getElementById('se-desc').textContent = st.desc || '';
+      document.getElementById('se-kb-link').href = '/knowledge/?station=' + encodeURIComponent(st.id);
+      if (statusEl) statusEl.textContent = '0 keysteps · ' + st.label.toLowerCase();
+    }
+    history.replaceState(null, '',
+      loaded ? location.pathname : location.pathname + '?station=' + encodeURIComponent(st.id));
+  }
+
+  picker.addEventListener('change', () => setStation(picker.value));
+  document.getElementById('se-back').addEventListener('click', () => setStation(homeId));
+
+  const requested = new URLSearchParams(location.search).get('station');
+  setStation(requested || homeId);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
    INITIAL RENDER
    ════════════════════════════════════════════════════════════════════════════ */
 window.addEventListener('load', () => {
@@ -4871,6 +4998,7 @@ window.addEventListener('load', () => {
   renderArtifactList();
   wireChat();
   wireSignOut();
+  wireStationPicker();
 
   if (restored) toast(`Restored ${state.brain.artifacts.length} artifact${state.brain.artifacts.length===1?'':'s'} from last session`);
 
