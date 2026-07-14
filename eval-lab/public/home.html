@@ -194,6 +194,8 @@
     /* Conversation mode — once a query is asked, the service quadrants get
        out of the way and the chat becomes the whole view. */
     body.in-chat .services, body.in-chat .foot { display: none; }
+    /* Full-chat view IS the Brain — the floating dock pill would be redundant. */
+    body.in-chat .bd-toggle, body.in-chat .bd-drawer { display: none; }
     body.in-chat .hero h1, body.in-chat .hero .sub { display: none; }
     body.in-chat .hero img.logo { height: 34px; margin-bottom: 0; }
     body.in-chat .stage { gap: 14px; padding-top: 20px; }

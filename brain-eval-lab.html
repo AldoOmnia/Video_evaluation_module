@@ -5036,18 +5036,7 @@ window.addEventListener('load', () => {
 });
 </script>
 
-<!-- Platform-wide Brain dock — context follows the station picker -->
-<script>
-  window.BrainDockContext = () => {
-    const picker = document.getElementById('lab-station-picker');
-    const opt = picker && picker.selectedOptions && picker.selectedOptions[0];
-    return {
-      page: 'Eval lab',
-      station: opt ? opt.textContent : undefined,
-      view: 'full graph + eval tools',
-    };
-  };
-</script>
-<script src="/lab/assets/brain-dock.js" defer></script>
+<!-- No Brain dock here: the eval lab IS the full Brain view — its chat
+     panel is the fixed UI, a floating "Ask the Brain" pill would duplicate it. -->
 </body>
 </html>
