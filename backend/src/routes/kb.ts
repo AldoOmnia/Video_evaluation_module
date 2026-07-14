@@ -172,6 +172,14 @@ function findStation(id: string) {
   return STATIONS.find((s) => s.id === id) ?? null;
 }
 
+/** Seeded glasses component (with structured steps + live warning) by SKU —
+ *  used by /api/assist to enrich a Gemini vision identification. */
+export function findGlassesComponent(sku: string): KbComponent | null {
+  const store = loadStore();
+  const bucket = store.stations["pg-04"];
+  return bucket?.components.find((c) => c.id === `glasses-${sku}`) ?? null;
+}
+
 /* ── Glasses-build sync (comer-rokid-demo → PG-04) ────────────────────────
  *
  * The Rokid glasses build already recognizes the pinion-station parts and
@@ -199,8 +207,9 @@ interface CataloguePart {
   warning?: { headline: string; action: string };
 }
 
-/** Display name, taxonomy codes, and vendored reference images per glasses SKU. */
-const GLASSES_COMPONENTS: Record<
+/** Display name, taxonomy codes, and vendored reference images per glasses SKU.
+ *  Exported: /api/assist attaches the same references to its Gemini vision calls. */
+export const GLASSES_COMPONENTS: Record<
   string,
   { name: string; codes: string[]; images: string[] }
 > = {

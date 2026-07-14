@@ -6726,5 +6726,24 @@
       mount(p.url, p.fileType, p.opts || {});
     }
   </script>
+
+  <!-- Platform-wide Brain dock — skipped in embed mode (preview iframes) -->
+  <script>
+    if (!new URLSearchParams(location.search).has('embed')) {
+      window.BrainDockContext = () => {
+        let zone;
+        try {
+          const tour = window.__SPLAT_TOUR || [];
+          const p = window.SplatViewer && window.SplatViewer.getOperatorPose && window.SplatViewer.getOperatorPose();
+          zone = p && tour[p.zoneIndex] && tour[p.zoneIndex].label;
+        } catch { /* viewer not ready yet */ }
+        return { page: 'Digital twin', station: 'ST100 · Pinion Guide', view: zone || undefined };
+      };
+      const s = document.createElement('script');
+      s.src = '/lab/assets/brain-dock.js';
+      s.defer = true;
+      document.body.appendChild(s);
+    }
+  </script>
 </body>
 </html>

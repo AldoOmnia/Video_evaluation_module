@@ -45,6 +45,9 @@ git push origin platform-comer
 5. Click **Apply**. Render will prompt for two secrets — paste them
    into the dashboard, NOT into `render.yaml`:
    - `ANTHROPIC_API_KEY` — the key you already use for the Rokid build
+   - `GEMINI_API_KEY` — same key as the glasses backend; powers the Brain
+     dock's component-photo recognition (`gemini-3.5-flash`, the exact VLM
+     the glasses observe loop runs — override via `GEMINI_VLM_OBSERVE_MODEL`)
    - `AUTH_TOKEN_SECRET` — any 32+ char random string, e.g.:
      ```bash
      node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"

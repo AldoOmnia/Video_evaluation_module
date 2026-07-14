@@ -1422,5 +1422,22 @@
       if (wanted && stations.some((s) => s.id === wanted)) showStation(wanted, false);
     })();
   </script>
+
+  <!-- Platform-wide Brain dock — context follows facility/station/inspected node -->
+  <script>
+    window.BrainDockContext = () => {
+      const facActive = document.getElementById('facility-view').classList.contains('is-active');
+      const st = (typeof current !== 'undefined' && current && current.station) ? current.station : null;
+      const inspected = (typeof selectedRing !== 'undefined' && selectedRing >= 0 && ringNodes[selectedRing])
+        ? ringNodes[selectedRing].full : null;
+      return {
+        page: 'Facility knowledge base',
+        station: !facActive && st ? st.label : undefined,
+        view: facActive ? 'facility map — all stations' : 'station knowledge graph',
+        detail: inspected ? 'inspecting node: ' + inspected : undefined,
+      };
+    };
+  </script>
+  <script src="/lab/assets/brain-dock.js" defer></script>
 </body>
 </html>

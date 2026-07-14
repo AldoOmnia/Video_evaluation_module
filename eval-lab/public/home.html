@@ -940,5 +940,14 @@
     refreshReportCard();
     setInterval(refreshLineCard, 30_000);
   </script>
+
+  <!-- Platform-wide Brain dock (right-side chat, context-aware) -->
+  <script>
+    window.BrainDockContext = () => ({
+      page: 'Platform home',
+      view: document.body.classList.contains('in-chat') ? 'chat conversation' : 'services overview',
+    });
+  </script>
+  <script src="/lab/assets/brain-dock.js" defer></script>
 </body>
 </html>

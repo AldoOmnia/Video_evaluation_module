@@ -11,9 +11,11 @@ import { specRouter } from "./routes/spec.js";
 import { queryRouter } from "./routes/query.js";
 import { authRouter } from "./routes/auth.js";
 import { kbRouter } from "./routes/kb.js";
+import { assistRouter } from "./routes/assist.js";
 import { lineRouter } from "./routes/line.js";
 import { worldLabsRouter } from "./routes/worldlabs.js";
 import { worldLabsConfigured } from "./services/worldlabs.js";
+import { geminiConfigured, VISION_MODEL } from "./services/gemini.js";
 import {
   EVAL_LAB_PUBLIC,
   LAB_HTML,
@@ -56,6 +58,7 @@ app.get("/health", (_req, res) => {
     hardwareProfiles: Object.keys(specs.hardware.profiles).length,
     strategies: Object.keys(specs.strategies.strategies).length,
     worldLabs: worldLabsConfigured(),
+    geminiVision: geminiConfigured() ? VISION_MODEL : false,
     cors: wildcard ? "wildcard" : allow,
     nodeEnv: process.env.NODE_ENV ?? "development",
   });
@@ -67,6 +70,7 @@ app.use("/api/eval", evalRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/line", lineRouter);
 app.use("/api/kb", kbRouter);
+app.use("/api/assist", assistRouter);
 app.use("/api/worldlabs", worldLabsRouter);
 app.use("/query", queryRouter); // Rokid APK compatibility
 
