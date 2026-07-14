@@ -193,7 +193,7 @@ export function findGlassesComponent(sku: string): KbComponent | null {
  */
 const GLASSES_IMG_BASE = "/lab/assets/pinion-components";
 /** Bump when GLASSES_COMPONENTS / GLASSES_ARTIFACTS / station reports grow so live stores re-merge. */
-const GLASSES_SYNC_VERSION = 6;
+const GLASSES_SYNC_VERSION = 8;
 const GLASSES_REPO = "https://github.com/AldoOmnia/comer-rokid-demo";
 
 interface CataloguePart {
@@ -233,9 +233,12 @@ export const GLASSES_COMPONENTS: Record<
   // Step 2 — 191440A1-FLIP decoy added 2026-07-14 (line-engineer verified:
   // TIMKEN side DOWN — deliberately the OPPOSITE convention of the big cup).
   "191440A1": { name: "Bearing cup 191440A1 — small cover cup", codes: ["ORIENTATION"], images: ["bearing_cup_191440a1_pos_correct_1.jpg", "bearing_cup_191440a1_flip_1.jpg"] },
-  // Step 4 — pressed onto pinion shaft (punch 3187.111.100.07); FLIP decoy (memory-architecture, untested).
+  // Step 4 — pressed onto pinion shaft (punch 3187.111.100.07); FLIP decoy fires
+  // WRONG ORIENTATION. Line-engineer verified 2026-07-14: TIMKEN side DOWN /
+  // roller cage UP — the OPPOSITE convention of the step-6 cone.
   "248118A1": { name: "Bearing cone 248118A1 — inboard bevel pinion", codes: ["ORIENTATION"], images: ["bearing_cone_248118a1_pos_correct_1.jpg", "bearing_cone_248118a1_flip.jpg"] },
-  // Step 6 — placed on cover (driver 3187.111.180.00 over it); FLIP decoy fires WRONG ORIENTATION.
+  // Step 6 — placed on cover (driver 3187.111.180.00 over it); FLIP decoy fires
+  // WRONG ORIENTATION. Convention: TIMKEN stamped face UP (opposite of step 4).
   "67190R91": { name: "Bearing cone 67190R91 — upper pinion", codes: ["ORIENTATION"], images: ["bearing_cone_67190r91_pos_correct_1.jpg", "bearing_cone_67190r91_flip.jpg"] },
   // Step 7 shim pack — SequenceGuard slot 2 ("shims": .101/.130 counted as ONE
   // slot; the VLM can't tell them apart, so no substitution warning is wired).
@@ -270,7 +273,7 @@ export const GLASSES_COMPONENTS: Record<
  * material too big to vendor (PDFs, images, audio).
  */
 const GLASSES_ARTIFACTS: Array<
-  Pick<KbArtifact, "name" | "type" | "note"> & { file?: string; repoPath?: string }
+  Pick<KbArtifact, "name" | "type" | "note"> & { file?: string; repoPath?: string; id?: string }
 > = [
   { name: "ST.100 pinion cover procedure — 17 steps", type: "csv", file: "pinion-guide-steps-st100.csv", note: "Step titles, VLM image refs, correct/wrong CV identities per step (glasses build)" },
   { name: "Comer ↔ CNH parts catalogue v2", type: "other", file: "pinion-parts-catalogue.json", note: "Per-SKU visual fingerprints the VLM uses to tell lookalike parts apart" },
@@ -279,7 +282,10 @@ const GLASSES_ARTIFACTS: Array<
   { name: "Tolerance spec", type: "csv", file: "tolerances.csv", note: "Acceptance ranges per measurement step" },
   { name: "Shim SKU lookup", type: "csv", file: "shim-sku-lookup.csv", note: "Measured gap → correct shim SKU (S07 wrong-shim warning)" },
   { name: "Historical error rates", type: "csv", file: "error-rates.csv", note: "Defect rates per step — grounds the 'most common mistakes' answers" },
-  { name: "Operator tribal knowledge — 12 curated fact blocks", type: "other", repoPath: "backend/data/supervisor-knowledge", note: "Matteo + Mohammed audio-transcribed facts + line-engineer cup-orientation rule (2026-07-14) — AUTHORITATIVE shop-floor notes in the glasses prompt; mirrored in chat retrieval here" },
+  // Stable id: this entry's display name changes as fact blocks land — without
+  // it, every rename would re-seed as a new artifact (learned the hard way).
+  { id: "glasses-art-supervisor-knowledge", name: "Operator tribal knowledge — 13 curated fact blocks", type: "other", repoPath: "backend/data/supervisor-knowledge", note: "Matteo + Mohammed audio-transcribed facts + line-engineer cup & cone orientation rules (2026-07-14) — AUTHORITATIVE shop-floor notes in the glasses prompt; mirrored in chat retrieval here" },
+  { name: "KB errors doc — engineer-verified orientation rules", type: "other", file: "errors-pinion-guide-for-kb.txt", note: "errors_pinion_guide_for_KB.txt — the authoritative TIMKEN-side rules for all four orientation-sensitive parts + the fixture/driver confusion note" },
   { name: "Pinion phase sheets — Phase 1–12 PDFs", type: "pdf", repoPath: "docs/source-material/Comer_industries_pinion_steps", note: "Original Comer work instructions the ST.100 steps + VLM keyframes were extracted from" },
   { name: "Comer knowledge-base catalogues — 5 product PDFs", type: "pdf", repoPath: "Comer_industries_knowledge_base", note: "Rockford fan clutch, Walterscheid PTO, gearboxes, planetary drives, Synergy driveshafts" },
   { name: "Component reference photo set — 55 angles", type: "other", repoPath: "docs/source-material/pinion-components/images", note: "Full-resolution source of the 19 reference images below (768px copies attached per component)" },
@@ -357,7 +363,7 @@ function seedGlassesKnowledge(store: KbStore): boolean {
       } catch { /* file missing — keep null */ }
     }
     return {
-      id: `glasses-art-${a.file ?? a.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+      id: a.id ?? `glasses-art-${a.file ?? a.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
       name: a.name,
       type: a.type,
       size,
@@ -380,6 +386,12 @@ function seedGlassesKnowledge(store: KbStore): boolean {
     const present = new Set(kept.map((e) => e.id));
     return [...kept, ...seeded.filter((s) => !present.has(s.id))];
   };
+  // Prune glasses-seeded entries that dropped out of the seed set (renamed /
+  // removed on the glasses build) BEFORE merging, so stale mirrors disappear.
+  const seededArtIds = new Set(artifacts.map((a) => a.id));
+  const seededCompIds = new Set(components.map((c) => c.id));
+  bucket.artifacts = bucket.artifacts.filter((a) => a.source !== "glasses" || seededArtIds.has(a.id));
+  bucket.components = bucket.components.filter((c) => c.source !== "glasses" || seededCompIds.has(c.id));
   bucket.components = mergeById(bucket.components, components);
   bucket.artifacts = mergeById(bucket.artifacts, artifacts);
 

@@ -1,0 +1,8 @@
+
+Inverted Bearing Cup (cod.248114A1) and Cone (cod.67190R91) Assembly: Operators occasionally assemble the bearing cup and cones inverted. While the press detects this error immediately flagging in an out-of-range position), once a part is pressed incorrectly, it is incredibly difficult to remove. This often results in component damage and significant downtime during the removal process.
+
+The Bearing cup cod. 248114A1 assembled TIMKEN side facing UP and the small bearing cup cod. 191440A1 assembled TIMKEN facing down.
+
+Bearing cone cod. 248118A1 assembled TIMKEN side facing DOWN. 
+
+Incorrect Fixture and Driver Selection (operators use fixture/drivers interchangeably) - correct drivers nomenclature is for parts (cod.3187.111.100.27, cod.3187.111.100.28 they get confused the most): This is particularly an issue at the press station. While the correct drivers and fixtures are clearly detailed in the Work Instructions and regular operators know them well errors happen during cross-training or shift coverage. If a regular operator is on leave, a cross-trained backup is much more likely to select the wrong driver.

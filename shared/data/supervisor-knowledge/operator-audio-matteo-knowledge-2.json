@@ -113,7 +113,7 @@
         "pinion-4",
         "pinion-6"
       ],
-      "fact": "Inverted bearing cup and cone assembly is one of the two most error-prone tasks on the station. Operators occasionally assemble the bearing cup and cones inverted. The press detects this immediately (it flags an out-of-range position), but once a part has been pressed in the wrong orientation it is incredibly difficult to remove — removal frequently damages the component and causes significant downtime. Line-engineer verified orientations (2026-07-14): the BIG bearing cup cod.248114A1 is assembled TIMKEN side facing UP, and the SMALL bearing cup cod.191440A1 is assembled TIMKEN side facing DOWN — the two cups use opposite conventions.",
+      "fact": "Inverted bearing cup and cone assembly is one of the two most error-prone tasks on the station. Operators occasionally assemble the bearing cup and cones inverted. The press detects this immediately (it flags an out-of-range position), but once a part has been pressed in the wrong orientation it is incredibly difficult to remove — removal frequently damages the component and causes significant downtime. Line-engineer verified orientations (2026-07-14): the BIG bearing cup cod.248114A1 is assembled TIMKEN side facing UP, and the SMALL bearing cup cod.191440A1 is assembled TIMKEN side facing DOWN, the inboard cone cod.248118A1 (Step 4) TIMKEN side facing DOWN (roller cage up), and the upper cone cod.67190R91 (Step 6) TIMKEN side facing UP — both the cup pair and the cone pair use opposite conventions, so never carry one part's rule onto its sibling.",
       "applies_when": null,
       "citation": {
         "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Recording matteo knowledge comer.m4a",

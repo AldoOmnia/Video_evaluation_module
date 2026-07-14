@@ -129,12 +129,12 @@
       "description": "BEARING, CONE, INBOARD BEVEL PINION",
       "category": "Bearings",
       "specifications": "Tapered roller bearing CONE (rollers held in a cage); inboard bevel pinion P900",
-      "visual_fingerprint": "TAPERED ROLLER BEARING CONE (INBOARD BEVEL PINION P900), correctly oriented — LARGER than the step-6 cone 67190R91. The face pointing TOWARD the camera is a FLAT, SOLID machined steel ring with stamped 'TIMKEN' / maker text around an open center bore; the rollers angle DOWN / inward AWAY from the camera, so you do NOT see a cage of rollers standing up. SIDE VIEW: the SMOOTH solid roller-free steel band runs along the TOP edge ABOVE the rollers. Bin label '248118A1 (CNH) / CONE-INBOARD BEVEL PINION P900'. Same physical part as 248118A1-FLIP; flat stamped face up / smooth band on top = this (correct) identity. Distinct from a bearing CUP (248114A1, no rollers) and from the smaller 67190R91 cone at step 6.",
+      "visual_fingerprint": "TAPERED ROLLER BEARING CONE (INBOARD BEVEL PINION P900), correctly oriented per the engineer's position reference photos — LARGER than the step-6 cone 67190R91 and uses the OPPOSITE convention. CORRECT: the face pointing TOWARD the camera is the ANGLED ROLLER CAGE around a WIDE polished tapered bore — slanted rollers visible from above, NO stamped text on the up-face; the flat stamped TIMKEN face points DOWN. SIDE VIEW: the rollers flare WIDER toward the TOP and the SMOOTH roller-free steel band (back rib of the stamped face) sits along the BOTTOM edge. Bin label '248118A1 (CNH) / CONE-INBOARD BEVEL PINION P900'. Same physical part as 248118A1-FLIP; roller cage up / band on bottom = this (correct) identity. Distinct from a bearing CUP (248114A1, no rollers) and from the smaller 67190R91 cone at step 6 — NOTE the step-6 cone uses the OPPOSITE rule (its stamped face UP is correct).",
       "image_filename": "bearing_cone_248118a1_pos_correct_1.png; bearing_cone_248118a1_pos_correct_2.png; bearing_cone_248118a1_pos_correct_3.png; bearing_cone_248118a1_pos_correct_4.png; part_cone_inboard_bevel_pinion_248118a1.png; part_cone_inboard_bevel_pinion_248118a1_2.png; part_cone_inboard_bevel_pinion_248118a1_3.png; part_cone_inboard_bevel_pinion_248118a1_4.png; part_cone_inboard_bevel_pinion_248118a1_5.png",
       "used_in_steps": [
         4
       ],
-      "notes": "Inboard bevel pinion bearing cone pressed onto pinion shaft at Step 4 (PHASE 4) with punch fixture cod.3187.111.100.07. Orientation check belongs to Step 4 — pressing the cone upside-down causes part damage / rework documented in errors_pinion_guide_for_KB.txt."
+      "notes": "Inboard bevel pinion bearing cone pressed onto pinion shaft at Step 4 (PHASE 4) with punch fixture cod.3187.111.100.07. Correct orientation per the position reference photos: roller cage / wide tapered mouth facing UP, stamped TIMKEN face DOWN — opposite of the step-6 cone 67190R91. Orientation check belongs to Step 4 — pressing the cone upside-down causes part damage / rework documented in errors_pinion_guide_for_KB.txt."
     },
     {
       "part_number_comer": "",
@@ -252,17 +252,17 @@
       "description": "BEARING CONE 248118A1 — INSTALLED UPSIDE-DOWN (WRONG ORIENTATION)",
       "category": "Bearings",
       "specifications": "Synthetic wrong-state identity of cone 248118A1 — same part, flipped orientation at Step 4",
-      "visual_fingerprint": "TAPERED ROLLER BEARING CONE (INBOARD BEVEL PINION P900) turned UPSIDE-DOWN (WRONG orientation) — LARGER than 67190R91. FACE-ON: the face pointing TOWARD the camera is the ANGLED ROLLER CAGE standing up — a ring of slanted polished cylindrical rollers narrowing toward a smaller tapered opening, with NO flat stamped 'TIMKEN' face visible on top. SIDE VIEW: the ROLLERS reach the TOP rim and flare WIDER toward the top, while the SMOOTH solid roller-free steel band sits along the BOTTOM edge BELOW the rollers. Same physical part as 248118A1; assign this identity when the standing roller cage faces the camera OR a side view shows the smooth band at the BOTTOM — otherwise it is the correctly-oriented 248118A1.",
+      "visual_fingerprint": "TAPERED ROLLER BEARING CONE (INBOARD BEVEL PINION P900) turned UPSIDE-DOWN (WRONG orientation) — LARGER than 67190R91. FACE-ON: the face pointing TOWARD the camera is the FLAT solid machined steel RING with stamped maker text ('TIMKEN', 'NP6...', 'CD1') around the center bore — NO standing roller cage visible from above. SIDE VIEW: the SMOOTH solid roller-free steel band sits along the TOP edge ABOVE the rollers. Same physical part as 248118A1; assign this identity ONLY when the stamped text face is clearly UP or a side view clearly shows the smooth band on TOP — when ambiguous (tilted, glare, text unreadable), DEFAULT TO CORRECT (248118A1); a false wrong-orientation alarm is worse than a miss. NOTE — OPPOSITE of the step-6 cone 67190R91, where stamped face up is CORRECT.",
       "image_filename": "bearing_cone_248118a1_flip.png; bearing_cone_248118a1_flip_2.png; bearing_cone_248118a1_flip_3.png",
       "used_in_steps": [
         4
       ],
-      "notes": "Synthetic decoy identity (not a real CNH part number). Flags the inboard bevel pinion cone being placed/pressed upside-down at Step 4. Pressing the cone flipped causes part damage / rework documented in errors_pinion_guide_for_KB.txt.",
+      "notes": "Synthetic decoy identity (not a real CNH part number). Flags the inboard bevel pinion cone being placed/pressed upside-down at Step 4 (stamped TIMKEN face up = inverted, per the engineer's position reference photos — opposite convention from the step-6 cone 67190R91). Pressing the cone flipped causes part damage / rework documented in errors_pinion_guide_for_KB.txt.",
       "_synthetic": true,
       "decoy_for": "248118A1",
       "warning": {
         "headline": "WRONG ORIENTATION",
-        "action": "Flip it — flat stamped face (TIMKEN) must face up"
+        "action": "Flip it — the roller cage / wide tapered mouth must face UP; the stamped TIMKEN face goes DOWN"
       }
     },
     {

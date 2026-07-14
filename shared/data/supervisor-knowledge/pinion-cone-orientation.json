@@ -1,0 +1,53 @@
+{
+  "_kind": "supervisor-knowledge/v1",
+  "_source_audio": null,
+  "_source_video": null,
+  "_phase_tag": "PRESS STATION — bearing cone orientation (TIMKEN side)",
+  "_step_codes": [
+    "pinion-4",
+    "pinion-6"
+  ],
+  "_step_title": "Steps 4 & 6 — inboard and upper bearing cone orientation",
+  "_recorded_by": "Comer line engineering (errors_pinion_guide_for_KB.txt) + position reference photos, relayed by Omnia 2026-07-14",
+  "_transcribed_by": null,
+  "_distilled_by": "manual entry (claude, from KB errors doc + Bearing_Cone_248118A1_Position / Bearing_Cone_67190R91_Position reference photos)",
+  "_ingested_at": "2026-07-14T23:15:00.000Z",
+  "_verified_by": "verified 2026-07-14 against docs/source-material/errors_pinion_guide_for_KB.txt (cone 248118A1 TIMKEN side DOWN) and the Correct/Wrong position photo folders for both cones.",
+  "facts": [
+    {
+      "id": "pinion-cone-orientation-001",
+      "topic": "orientation rule",
+      "step_codes": [
+        "pinion-4"
+      ],
+      "fact": "The inboard bevel pinion bearing cone cod.248118A1 (Step 4, pressed onto the pinion shaft) is assembled with the TIMKEN stamped side facing DOWN — the roller cage / wide tapered mouth faces UP and no lettering is visible on the up-face. If the flat stamped TIMKEN face is visible facing up, the cone is INVERTED: stop and flip it before pressing. Pressing it inverted causes the part damage / rework downtime documented for inverted cup/cone assembly.",
+      "applies_when": "step 4 — inboard bearing cone on pinion shaft",
+      "citation": {
+        "source": "line engineering KB errors doc + Bearing_Cone_248118A1_Position reference photos, 2026-07-14",
+        "transcript_quote": "Bearing cone cod. 248118A1 assembled TIMKEN side facing DOWN.",
+        "curated_source": "docs/source-material/errors_pinion_guide_for_KB.txt"
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": true
+    },
+    {
+      "id": "pinion-cone-orientation-002",
+      "topic": "orientation rule",
+      "step_codes": [
+        "pinion-4",
+        "pinion-6"
+      ],
+      "fact": "The two bearing cones use OPPOSITE orientation conventions, mirroring the cup pair: inboard cone 248118A1 (Step 4) goes TIMKEN side DOWN (roller cage up), while the upper cone 67190R91 (Step 6) goes TIMKEN side UP (flat stamped face up, rollers down). Never carry one cone's rule onto the other — identify which cone is in hand first (248118A1 is visibly larger) and apply that cone's own rule.",
+      "applies_when": "any cone placement at steps 4 or 6",
+      "citation": {
+        "source": "Bearing_Cone_248118A1_Position and Bearing_Cone_67190R91_Position Correct/Wrong reference photos, 2026-07-14",
+        "transcript_quote": "Bearing cone cod. 248118A1 assembled TIMKEN side facing DOWN.",
+        "curated_source": "docs/source-material/errors_pinion_guide_for_KB.txt"
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": true
+    }
+  ]
+}
