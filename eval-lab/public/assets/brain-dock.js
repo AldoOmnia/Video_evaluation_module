@@ -109,7 +109,8 @@
   .bd-input {
     flex: 1; background: #111; border: 1px solid #2a2a2a; border-radius: 10px;
     color: #f5f5f5; font-family: inherit; font-size: 12.5px; line-height: 1.5;
-    padding: 9px 12px; resize: none; min-height: 38px; max-height: 110px; outline: none;
+    /* Two lines tall so the full "Ask… or attach a photo…" hint shows unclipped. */
+    padding: 9px 12px; resize: none; min-height: 57px; max-height: 110px; outline: none;
   }
   .bd-input:focus { border-color: rgba(0,229,160,0.45); }
   .bd-btn {
