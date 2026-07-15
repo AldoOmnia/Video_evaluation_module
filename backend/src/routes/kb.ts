@@ -193,7 +193,7 @@ export function findGlassesComponent(sku: string): KbComponent | null {
  */
 const GLASSES_IMG_BASE = "/lab/assets/pinion-components";
 /** Bump when GLASSES_COMPONENTS / GLASSES_ARTIFACTS / station reports grow so live stores re-merge. */
-const GLASSES_SYNC_VERSION = 8;
+const GLASSES_SYNC_VERSION = 9;
 const GLASSES_REPO = "https://github.com/AldoOmnia/comer-rokid-demo";
 
 interface CataloguePart {
@@ -227,12 +227,16 @@ export const GLASSES_COMPONENTS: Record<
   { name: string; codes: string[]; images: string[]; warning?: { headline: string; action: string } }
 > = {
   // Step 1 — pressed onto cover (punch fixture 3187.111.100.09); FLIP decoy fires
-  // WRONG ORIENTATION. Line-engineer verified 2026-07-14: TIMKEN stamped side UP
-  // (previous rule was inverted — image roles re-shot/swapped in the glasses repo).
-  "248114A1": { name: "Bearing cup 248114A1 — inboard bevel pinion (big cup)", codes: ["ORIENTATION"], images: ["bearing_cup_248114a1_pos_correct_1.jpg", "bearing_cup_248114a1_flip_1.jpg"] },
-  // Step 2 — 191440A1-FLIP decoy added 2026-07-14 (line-engineer verified:
-  // TIMKEN side DOWN — deliberately the OPPOSITE convention of the big cup).
-  "191440A1": { name: "Bearing cup 191440A1 — small cover cup", codes: ["ORIENTATION"], images: ["bearing_cup_191440a1_pos_correct_1.jpg", "bearing_cup_191440a1_flip_1.jpg"] },
+  // WRONG ORIENTATION. TIMKEN stamped side UP (stamp 'TIMKEN NP241715' — the
+  // earlier "big cup" position photos were actually the small cup; rewired in
+  // glasses commit 757cb211 with the engineer's dedicated JPEGs, and a92ac902
+  // added the thick-rim discriminator + Phase-1 work-instruction anchor).
+  // The side-by-side 'bearing_cups_…timken_up' shot is the rim-width contrast ref.
+  "248114A1": { name: "Bearing cup 248114A1 — inboard bevel pinion (big cup)", codes: ["ORIENTATION"], images: ["bearing_cup_248114a1_pos_correct_1.jpg", "bearing_cup_248114a1_flip_1.jpg", "bearing_cups_248114a1_191440a1_timken_up.jpg"] },
+  // Step 2 — TIMKEN side DOWN (stamp 'TIMKEN 572 CD1 RM VN' — deliberately the
+  // OPPOSITE convention of the big cup). Correct/flip set re-shot in 757cb211
+  // (the misfiled big-cup photos were really this cup); side view is identity-only.
+  "191440A1": { name: "Bearing cup 191440A1 — small cover cup", codes: ["ORIENTATION"], images: ["bearing_cup_191440a1_pos_correct_1.jpg", "bearing_cup_191440a1_flip_1.jpg", "bearing_cup_191440a1_side_1.jpg", "bearing_cups_248114a1_191440a1_timken_down.jpg"] },
   // Step 4 — pressed onto pinion shaft (punch 3187.111.100.07); FLIP decoy fires
   // WRONG ORIENTATION. Line-engineer verified 2026-07-14: TIMKEN side DOWN /
   // roller cage UP — the OPPOSITE convention of the step-6 cone.

@@ -55,7 +55,7 @@
         "pinion-1",
         "pinion-2"
       ],
-      "fact": "The two bearing cups use OPPOSITE orientation conventions and this is the trap: big cup 248114A1 goes TIMKEN side UP, small cup 191440A1 goes TIMKEN side DOWN. Never carry one cup's rule onto the other — check which cup is in hand (outer diameter / bin label / current step) before judging its orientation. Inverted cup/cone assembly is one of the two most error-prone tasks on this station.",
+      "fact": "The two bearing cups use OPPOSITE orientation conventions and this is the trap: big cup 248114A1 goes TIMKEN side UP, small cup 191440A1 goes TIMKEN side DOWN. Never carry one cup's rule onto the other — check which cup is in hand (outer diameter / bin label / current step) before judging its orientation. A fast visual tell photographed side-by-side: the big cup's stamped TIMKEN rim is a visibly THICKER/WIDER flat annulus than the small cup's narrow stamped band. The big cup's correct pose (TIMKEN face up on the fixture) is also what the Phase-1 'INSERT BEARING CUP' work-instruction photo (Phase1.pdf) shows. Inverted cup/cone assembly is one of the two most error-prone tasks on this station.",
       "applies_when": "any cup placement at steps 1–2",
       "citation": {
         "source": "line mechanical engineer note, 2026-07-14",

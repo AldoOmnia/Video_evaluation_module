@@ -53,10 +53,25 @@ interface RefEntry {
   fingerprint: string;
   mime: string;
   dataBase64: string;
-  /** "correct orientation" or "FLIPPED — wrong orientation (decoy)" */
+  /** e.g. "correct orientation", "FLIPPED — wrong orientation (decoy)",
+   *  side-view or side-by-side contrast labels */
   pose: string;
 }
 let refCache: RefEntry[] | null = null;
+
+/** Labels mirror how the glasses annotate their reference vocabulary. */
+function poseLabel(file: string): string {
+  if (/^bearing_cups_/i.test(file)) {
+    // Side-by-side rim-width contrast shots from glasses commit a92ac902.
+    const up = /timken_up/i.test(file);
+    return (
+      `SIDE-BY-SIDE CONTRAST — big cup 248114A1 next to small cup 191440A1, both TIMKEN face ${up ? "UP" : "DOWN"}. ` +
+      "The big cup's stamped rim is a visibly THICKER/WIDER flat annulus than the small cup's narrow band — use rim width + diameter to tell the cups apart before applying orientation rules"
+    );
+  }
+  if (/_side/i.test(file)) return "SIDE VIEW — identity reference only; a cup's taper is internal, orientation cannot be judged from this angle";
+  return /flip/i.test(file) ? "FLIPPED — wrong orientation (decoy)" : "correct orientation";
+}
 
 /** All vendored 768px reference images per SKU (correct-orientation AND flip
  *  decoys, labeled) + the catalogue visual fingerprint — the same vocabulary
@@ -87,7 +102,7 @@ function referenceLibrary(): RefEntry[] {
           fingerprint: fingerprints.get(sku) ?? "",
           mime: "image/jpeg",
           dataBase64: buf.toString("base64"),
-          pose: /flip/i.test(file) ? "FLIPPED — wrong orientation (decoy)" : "correct orientation",
+          pose: poseLabel(file),
         });
       } catch { /* image not vendored — skip */ }
     }
