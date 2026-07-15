@@ -193,7 +193,7 @@ export function findGlassesComponent(sku: string): KbComponent | null {
  */
 const GLASSES_IMG_BASE = "/lab/assets/pinion-components";
 /** Bump when GLASSES_COMPONENTS / GLASSES_ARTIFACTS / station reports grow so live stores re-merge. */
-const GLASSES_SYNC_VERSION = 9;
+const GLASSES_SYNC_VERSION = 10;
 const GLASSES_REPO = "https://github.com/AldoOmnia/comer-rokid-demo";
 
 interface CataloguePart {
@@ -345,7 +345,9 @@ function seedGlassesKnowledge(store: KbStore): boolean {
       images: cfg.images.map((f) => ({
         id: `glasses-img-${f}`,
         name: f,
-        url: `${GLASSES_IMG_BASE}/${f}`,
+        // ?v= busts the 7-day immutable browser cache when a reference photo's
+        // content changes under the same filename (e.g. the 757cb211 cup rewire).
+        url: `${GLASSES_IMG_BASE}/${f}?v=${GLASSES_SYNC_VERSION}`,
         addedAt: now,
       })),
       addedAt: now,
