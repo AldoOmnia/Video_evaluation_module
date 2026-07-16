@@ -29,7 +29,7 @@
     background: #0d0d0d; color: #00E5A0;
     border: 1px solid rgba(0,229,160,0.35); border-radius: 24px;
     padding: 10px 16px; cursor: pointer;
-    font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+    font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
     font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase;
     box-shadow: 0 4px 24px rgba(0,0,0,0.5);
     transition: background 140ms ease, transform 140ms ease;
@@ -53,7 +53,7 @@
   }
   .bd-head .t { font-size: 12.5px; font-weight: 600; letter-spacing: -0.01em; }
   .bd-head .ctx {
-    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 9px;
+    font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; font-size: 9px;
     color: #6b6b6b; letter-spacing: 0.05em; text-transform: uppercase;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;
   }
@@ -82,25 +82,25 @@
     border-radius: 9px; padding: 8px 11px; margin-bottom: 8px; font-size: 12px;
   }
   .bd-vision .vh {
-    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 8.5px;
+    font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; font-size: 8.5px;
     letter-spacing: 0.08em; text-transform: uppercase; color: #60a5fa; margin-bottom: 4px;
   }
   .bd-vision .conf { color: #6b6b6b; font-size: 11px; }
   .bd-vision .warn { color: #f59e0b; font-size: 11.5px; margin-top: 4px; }
   .bd-vision .warn b { color: inherit; font-weight: 600; }
   .bd-meta {
-    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 8.5px;
+    font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; font-size: 8.5px;
     color: #6b6b6b; letter-spacing: 0.04em; margin-top: 8px; line-height: 1.7;
   }
   .bd-empty { color: #6b6b6b; font-size: 12px; line-height: 1.7; margin: auto 0; text-align: center; padding: 0 18px; }
   .bd-empty b { color: #a3a3a3; }
-  .bd-thinking { color: #6b6b6b; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.06em; }
+  .bd-thinking { color: #6b6b6b; font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; font-size: 10px; letter-spacing: 0.06em; }
   .bd-thinking::after { content: '…'; animation: bd-pulse 1.2s infinite; }
   @keyframes bd-pulse { 0%,100%{opacity:0.3} 50%{opacity:1} }
   .bd-inrow { border-top: 1px solid #1f1f1f; padding: 12px 14px; flex: none; }
   .bd-attach-preview {
     display: none; align-items: center; gap: 8px; margin-bottom: 8px;
-    font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #a3a3a3;
+    font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; font-size: 10px; color: #a3a3a3;
   }
   .bd-attach-preview.is-on { display: flex; }
   .bd-attach-preview img { width: 42px; height: 42px; object-fit: cover; border-radius: 6px; border: 1px solid #2a2a2a; }
@@ -123,7 +123,7 @@
   .bd-btn.send { background: rgba(0,229,160,0.12); border-color: rgba(0,229,160,0.4); color: #00E5A0; }
   .bd-btn:disabled { opacity: 0.4; cursor: default; }
   .bd-foot {
-    font-family: 'JetBrains Mono', monospace; font-size: 8px; color: #4a4a4a;
+    font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; font-size: 8px; color: #4a4a4a;
     letter-spacing: 0.05em; text-transform: uppercase; text-align: center; margin-top: 8px;
   }`;
 
