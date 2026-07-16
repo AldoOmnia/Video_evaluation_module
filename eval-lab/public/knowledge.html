@@ -127,6 +127,13 @@
     .fac-hoist circle { fill: none; stroke: rgba(255,255,255,0.15); stroke-width: 1; }
     .fac-hoist circle.hz-ring { stroke: rgba(255,255,255,0.06); }
     .fac-hoist text { fill: rgba(255,255,255,0.25); font-family: var(--mono); font-size: 10px; font-weight: 600; }
+    /* Fullscreen furniture from the drawing: axle units on the floor, parts
+       pallets, and the CAD-style operator manikins (blue, seen from above) */
+    .fac-part { stroke: rgba(255,255,255,0.14); fill: none; stroke-width: 1; }
+    .fac-pallet circle { stroke: rgba(255,255,255,0.09); fill: none; stroke-width: 1; }
+    .fac-operator ellipse { fill: rgba(96,165,250,0.14); stroke: rgba(96,165,250,0.55); stroke-width: 1; }
+    .fac-operator circle { fill: rgba(96,165,250,0.5); }
+    .fac-operator line { stroke: rgba(96,165,250,0.45); stroke-width: 1; stroke-linecap: round; }
     .fac-grid { stroke: rgba(255,255,255,0.07); stroke-width: 1; }
     .fac-aisle { stroke: rgba(245,197,66,0.20); stroke-width: 3; stroke-dasharray: 14 10; fill: none; }
     .fac-runway { fill: #3a3a3a; font-family: var(--mono); font-size: 7.5px; letter-spacing: 0.05em; }
@@ -877,6 +884,32 @@
       { text: 'RUNWAY 1000 lbs · 2 BRIDGES @ 500 lbs ea',  x: 72,  y: 196 },
       { text: 'RUNWAY 1000 lbs · 2 BRIDGES @ 500 lbs ea',  x: 672, y: 800 },
     ];
+    // Axle units sitting on the floor (top view), as drawn on the plan:
+    // west staging column, bay 7 bottom row, finished units near bay 6 out.
+    const FAC_AXLES = [
+      { x: 96,  y: 262, rot: 90 }, { x: 96,  y: 330, rot: 90 }, { x: 96, y: 398, rot: 90 },
+      { x: 150, y: 706 }, { x: 250, y: 706 }, { x: 350, y: 706 },
+      { x: 940, y: 782 }, { x: 1030, y: 782 },
+    ];
+    // Round-part pallet grids (bearing/cup staging) — rows of circles on the
+    // drawing, above bay 3, in bay 1 and beside the subdifferential cell.
+    const FAC_PALLETS = [
+      { x: 530, y: 12, rows: 2, cols: 5 },
+      { x: 640, y: 12, rows: 2, cols: 5 },
+      { x: 330, y: 50, rows: 1, cols: 4 },
+      { x: 1036, y: 520, rows: 3, cols: 3 },
+    ];
+    // Operator manikins (blue, top view) at their working side of each
+    // station, facing the machine — matches the CAD figures.
+    const FAC_OPERATORS = [
+      { key: 'st190', side: 'w' }, { key: 'st180', side: 'e' },
+      { key: 'st160', side: 'w' }, { key: 'st170', side: 'e' },
+      { key: 'st300', side: 'w' }, { key: 'st310', side: 'e' },
+      { key: 'pg-04', side: 'e' }, { key: 'st110', side: 'e' },
+      { key: 'st150', side: 'w' }, { key: 'st140', side: 'w' }, { key: 'st130-135', side: 'w' },
+      { key: 'st500-520', side: 'w' }, { key: 'st200-220', side: 'w' },
+      { key: 'st400-410', side: 'w' }, { key: 'st700-710', side: 'w' },
+    ];
     // key = unique map spot · id = KB station it opens. ST180 and ST190 are
     // two physical spots sharing one MES sheet (st180-190) — the ST180 dot is
     // "lite": no counts/report so the shared numbers aren't double-shown.
@@ -1004,7 +1037,42 @@
         }
         const aisles = `<path class="fac-aisle" d="M 42 24 V 832"/><path class="fac-aisle" d="M 42 832 H 1100"/>`;
         const runways = FAC_RUNWAYS.map((r) => `<text class="fac-runway" x="${r.x}" y="${r.y}">${esc(r.text)}</text>`).join('');
-        detail = aisles + gridMarks.join('') + `<g class="fac-hoist">${hoists}</g>` + runways;
+        // Axle units: housing + shaft + wheel-end blocks, like the plan's
+        // top-view part symbols.
+        const axles = FAC_AXLES.map((a) => `
+          <g class="fac-part" transform="translate(${a.x} ${a.y}) rotate(${a.rot || 0})">
+            <line x1="-18" y1="0" x2="18" y2="0"/>
+            <rect x="-23" y="-5" width="5" height="10" rx="1"/>
+            <rect x="18" y="-5" width="5" height="10" rx="1"/>
+            <circle cx="0" cy="0" r="6"/><circle cx="0" cy="0" r="2.5"/>
+          </g>`).join('');
+        const pallets = FAC_PALLETS.map((p) => {
+          const cs = [];
+          for (let i = 0; i < p.rows; i++) for (let j = 0; j < p.cols; j++) {
+            cs.push(`<circle cx="${p.x + j * 13}" cy="${p.y + i * 13}" r="4.5"/>`);
+          }
+          return `<g class="fac-pallet">${cs.join('')}</g>`;
+        }).join('');
+        // Operator manikins: shoulders + head + reaching arms, rotated to
+        // face the station dot from their working side.
+        const ops = FAC_OPERATORS.map((o) => {
+          const n = byKey[o.key];
+          const s = n && stations.find((st) => st.id === n.id);
+          if (!n || !s) return '';
+          const d = (s.active ? 32 : 24) + 22;
+          const p = {
+            w: [n.x - d, n.y, 90], e: [n.x + d, n.y, -90],
+            s: [n.x, n.y + d, 0],  n: [n.x, n.y - d, 180],
+          }[o.side || 'w'];
+          return `
+          <g class="fac-operator" transform="translate(${p[0]} ${p[1]}) rotate(${p[2]})">
+            <line x1="-7" y1="-1" x2="-9.5" y2="-8"/>
+            <line x1="7" y1="-1" x2="9.5" y2="-8"/>
+            <ellipse cx="0" cy="1.5" rx="9" ry="4.5"/>
+            <circle cx="0" cy="-2" r="3.2"/>
+          </g>`;
+        }).join('');
+        detail = aisles + gridMarks.join('') + `<g class="fac-hoist">${hoists}</g>` + runways + axles + pallets + ops;
       }
       const edges = FAC_EDGES.map(([a, b]) => {
         const p = byKey[a], q = byKey[b];
