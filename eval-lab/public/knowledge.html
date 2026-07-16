@@ -97,6 +97,39 @@
       margin-top: 14px;
     }
     .facility-canvas svg { display: block; width: 100%; height: auto; }
+    /* Fullscreen takeover — the map fills the viewport and gains the
+       high-fidelity detail layer (hoist zones, column grid, aisles). */
+    .facility-canvas.is-full {
+      position: fixed; inset: 0; z-index: 80; margin: 0;
+      border-radius: 0; border: none;
+      background: var(--bg, #0a0a0a);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px 28px;
+    }
+    .facility-canvas.is-full svg { width: auto; height: calc(100vh - 40px); max-width: 100%; }
+    .fac-fullbtn {
+      position: absolute; right: 12px; bottom: 12px; z-index: 5;
+      display: flex; align-items: center; justify-content: center;
+      width: 34px; height: 34px;
+      background: rgba(10,12,11,0.72); border: 1px solid var(--line-2); border-radius: 9px;
+      color: var(--ink-3); cursor: pointer;
+      transition: border-color 140ms ease, color 140ms ease;
+    }
+    .fac-fullbtn:hover { border-color: var(--primary-dim); color: var(--primary); }
+    .facility-canvas.is-full .fac-fullbtn { right: 20px; bottom: 20px; }
+    /* The chat pill would sit on top of the takeover — hide it while full. */
+    body.fac-fullscreen .bd-toggle, body.fac-fullscreen .bd-drawer { display: none; }
+    .fac-fullbtn .ico-collapse { display: none; }
+    .facility-canvas.is-full .fac-fullbtn .ico-expand { display: none; }
+    .facility-canvas.is-full .fac-fullbtn .ico-collapse { display: block; }
+    /* High-fidelity layer (fullscreen only): hoist coverage circles with the
+       drawing's zone letters, column grid, aisle striping, runway captions */
+    .fac-hoist circle { fill: none; stroke: rgba(255,255,255,0.15); stroke-width: 1; }
+    .fac-hoist circle.hz-ring { stroke: rgba(255,255,255,0.06); }
+    .fac-hoist text { fill: rgba(255,255,255,0.25); font-family: var(--mono); font-size: 10px; font-weight: 600; }
+    .fac-grid { stroke: rgba(255,255,255,0.07); stroke-width: 1; }
+    .fac-aisle { stroke: rgba(245,197,66,0.20); stroke-width: 3; stroke-dasharray: 14 10; fill: none; }
+    .fac-runway { fill: #3a3a3a; font-family: var(--mono); font-size: 7.5px; letter-spacing: 0.05em; }
     .fac-edge { stroke: rgba(0,229,160,0.18); stroke-width: 1.6; stroke-dasharray: 5 5; }
     .fac-bay rect { fill: rgba(245,197,66,0.015); stroke: rgba(245,197,66,0.20); stroke-width: 1.2; }
     .fac-bay.open rect { fill: none; stroke: rgba(245,197,66,0.12); stroke-dasharray: 4 4; }
@@ -538,8 +571,18 @@
         <p>The real Rockford stations, laid out as they sit on the plant floor — bays 1 · 3 · 4 · 6 · 7 from the facility drawing, each station at its physical spot with its stage,
         historical MES checks and knowledge counts. The digital-twin capture (and all its viewpoints) lives inside ST100 · Pinion Guide. Click a station to open it.</p>
       </div>
-      <div class="facility-canvas">
+      <div class="facility-canvas" id="facility-canvas">
         <svg id="facility-svg" viewBox="0 0 1140 850" role="img" aria-label="Facility station map on the plant floor layout"></svg>
+        <button type="button" class="fac-fullbtn" id="fac-fullbtn" title="Expand the plant view full screen" aria-label="Expand the plant view full screen">
+          <svg class="ico-expand" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M8.5 1.5 H12.5 V5.5 M12.5 1.5 L8 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M5.5 12.5 H1.5 V8.5 M1.5 12.5 L6 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <svg class="ico-collapse" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M12.5 5.5 H8.5 V1.5 M8.5 5.5 L13 1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M1.5 8.5 H5.5 V12.5 M5.5 8.5 L1 13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
       </div>
       <div class="fac-legend">
         <span><span class="dot" style="background:var(--primary)"></span>active station — full graph live</span>
@@ -798,6 +841,39 @@
       { x: 120, y: 596, w: 66, h: 40 },   // bay 7 — roll-over benches
       { x: 206, y: 596, w: 66, h: 40 },
     ];
+    // High-fidelity layer, drawn only in fullscreen: the drawing's hoist
+    // coverage circles with their zone letters (C…X), structural column grid,
+    // aisle striping and runway captions. Letters follow the CAD drawing;
+    // entries with `key` ring the matching station node.
+    const FAC_HOISTS = [
+      { letter: 'C', x: 150, y: 118, r: 44 },
+      { letter: 'D', key: 'st190', r: 54 },
+      { letter: 'E', x: 370, y: 112, r: 44 },
+      { letter: 'F', x: 150, y: 316, r: 52 },
+      { letter: 'G', x: 300, y: 396, r: 52 },
+      { letter: '',  key: 'st160', r: 48 },
+      { letter: '',  key: 'st170', r: 48 },
+      { letter: 'H', key: 'st300', r: 50 },
+      { letter: 'I', key: 'st310', r: 50 },
+      { letter: 'K', key: 'pg-04', r: 56 },
+      { letter: 'L', key: 'st110', r: 50 },
+      { letter: 'M', key: 'st150', r: 52 },
+      { letter: 'N', key: 'st140', r: 52 },
+      { letter: 'P', key: 'st130-135', r: 52 },
+      { letter: 'Q', x: 140, y: 585, r: 40 },
+      { letter: 'R', x: 300, y: 585, r: 40 },
+      { letter: 'S', key: 'st500-520', r: 50 },
+      { letter: 'T', x: 530, y: 690, r: 38 },
+      { letter: 'U', key: 'st200-220', r: 50 },
+      { letter: 'V', x: 990, y: 560, r: 36 },
+      { letter: 'W', key: 'st400-410', r: 50 },
+      { letter: 'X', key: 'st700-710', r: 50 },
+    ];
+    const FAC_RUNWAYS = [
+      { text: 'RUNWAY 4000 lbs · 4 BRIDGES @ 2000 lbs ea', x: 482, y: 434 },
+      { text: 'RUNWAY 1000 lbs · 2 BRIDGES @ 500 lbs ea',  x: 72,  y: 196 },
+      { text: 'RUNWAY 1000 lbs · 2 BRIDGES @ 500 lbs ea',  x: 672, y: 800 },
+    ];
     // key = unique map spot · id = KB station it opens. ST180 and ST190 are
     // two physical spots sharing one MES sheet (st180-190) — the ST180 dot is
     // "lite": no counts/report so the shared numbers aren't double-shown.
@@ -832,6 +908,7 @@
 
     function renderFacility() {
       const svg = $('facility-svg');
+      const full = $('facility-canvas').classList.contains('is-full');
       const bays = FAC_BAYS.map((b) => `
         <g class="fac-bay ${b.open ? 'open' : ''}">
           <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="3"/>
@@ -853,6 +930,39 @@
         <text class="fac-note" x="145" y="68" text-anchor="middle">test bench</text>`;
       const byKey = {};
       FAC_NODES.forEach((n) => { byKey[n.key] = n; });
+      // Fullscreen-only fidelity layer, matching the CAD drawing.
+      let detail = '';
+      if (full) {
+        const hoists = FAC_HOISTS.map((h) => {
+          const anchor = h.key ? byKey[h.key] : h;
+          if (!anchor) return '';
+          const cx = anchor.x, cy = anchor.y;
+          let out = `<circle class="hz-ring" cx="${cx}" cy="${cy}" r="${h.r}"/>`;
+          if (h.letter) {
+            // Letter tag sits on the ring, dodging the node's label stack:
+            // NE for below-labeled nodes, SE otherwise; centered when free.
+            let lx = cx, ly = cy;
+            if (h.key) {
+              const d = h.r * 0.71;
+              lx = cx + d;
+              ly = anchor.below ? cy - d : cy + d;
+            }
+            out += `<circle cx="${lx}" cy="${ly}" r="9"/>
+              <text x="${lx}" y="${ly + 3.5}" text-anchor="middle">${esc(h.letter)}</text>`;
+          }
+          return out;
+        }).join('');
+        const gridMarks = [];
+        for (const gy of [36, 292, 480, 810]) {
+          for (let gx = 60; gx <= 1090; gx += 103) {
+            gridMarks.push(`<line class="fac-grid" x1="${gx - 5}" y1="${gy}" x2="${gx + 5}" y2="${gy}"/>
+              <line class="fac-grid" x1="${gx}" y1="${gy - 5}" x2="${gx}" y2="${gy + 5}"/>`);
+          }
+        }
+        const aisles = `<path class="fac-aisle" d="M 42 24 V 832"/><path class="fac-aisle" d="M 42 832 H 1100"/>`;
+        const runways = FAC_RUNWAYS.map((r) => `<text class="fac-runway" x="${r.x}" y="${r.y}">${esc(r.text)}</text>`).join('');
+        detail = aisles + gridMarks.join('') + `<g class="fac-hoist">${hoists}</g>` + runways;
+      }
       const edges = FAC_EDGES.map(([a, b]) => {
         const p = byKey[a], q = byKey[b];
         if (!p || !q) return '';
@@ -895,7 +1005,7 @@
             </g>` : ''}
           </g>`;
       }).join('');
-      svg.innerHTML = bays + belts + machines + notes + edges + nodes;
+      svg.innerHTML = bays + detail + belts + machines + notes + edges + nodes;
       svg.querySelectorAll('.fac-node').forEach((g) => {
         const open = () => showStation(g.dataset.station);
         g.addEventListener('click', open);
@@ -906,6 +1016,25 @@
         window.open(TWIN_URL, '_blank');
       }));
     }
+
+    // Bottom-right double-arrow: full-screen takeover of the plant view.
+    // Fullscreen re-renders with the high-fidelity CAD layer (hoist zones,
+    // column grid, aisle striping, runway captions).
+    function setFacFull(on) {
+      $('facility-canvas').classList.toggle('is-full', on);
+      document.body.classList.toggle('fac-fullscreen', on);
+      document.body.style.overflow = on ? 'hidden' : '';
+      const btn = $('fac-fullbtn');
+      btn.title = on ? 'Exit full screen (Esc)' : 'Expand the plant view full screen';
+      btn.setAttribute('aria-label', btn.title);
+      renderFacility();
+    }
+    $('fac-fullbtn').addEventListener('click', () => {
+      setFacFull(!$('facility-canvas').classList.contains('is-full'));
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && $('facility-canvas').classList.contains('is-full')) setFacFull(false);
+    });
 
     // Double-arrow expander: reveals the actual 2D CAD drawing the map is
     // traced from, as a miniature under the schematic.
