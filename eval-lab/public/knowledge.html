@@ -822,13 +822,16 @@
     //   Bay 7  — Stage 6 sub starship (ST500-520)
     //   Bay 6  — Stage 5 subdifferential (ST200-220) · Stage 3 sub
     //            (ST400-410) · Stage 4 sub (ST700-710)
+    // Base bay rectangles (plant proportions). At render time each bay grows
+    // to wrap the full footprint of its stations — dot, label stack, badges —
+    // so nodes never spill outside as stations gain material or go active.
     const FAC_BAYS = [
-      { label: 'BAY 1', x: 60,  y: 36,  w: 360, h: 168, lx: 72,   ly: 56 },
-      { label: 'BAY 3', x: 470, y: 36,  w: 620, h: 236, lx: 1078, ly: 56, anchor: 'end' },
-      { label: 'BAY 4', x: 470, y: 292, w: 620, h: 150, lx: 482,  ly: 312 },
-      { label: '5-TON OPEN FLOOR', x: 60, y: 224, w: 360, h: 250, lx: 72, ly: 244, open: true },
-      { label: 'BAY 7', x: 60,  y: 510, w: 560, h: 240, lx: 72,   ly: 530 },
-      { label: 'BAY 6', x: 660, y: 480, w: 430, h: 330, lx: 1078, ly: 500, anchor: 'end' },
+      { label: 'BAY 1', x: 60,  y: 36,  w: 360, h: 168 },
+      { label: 'BAY 3', x: 470, y: 36,  w: 620, h: 236, anchor: 'end' },
+      { label: 'BAY 4', x: 470, y: 292, w: 620, h: 150 },
+      { label: '5-TON OPEN FLOOR', x: 60, y: 224, w: 360, h: 250, open: true },
+      { label: 'BAY 7', x: 60,  y: 510, w: 560, h: 240 },
+      { label: 'BAY 6', x: 660, y: 480, w: 430, h: 330, anchor: 'end' },
     ];
     // Visual-only floor furniture (no data behind it): conveyor belts + the
     // big machine footprints, so relative positioning reads like the drawing.
@@ -880,21 +883,21 @@
     // Bay 3 alternates its stations across two rows (labels above / below)
     // so every node keeps clear space around it.
     const FAC_NODES = [
-      { key: 'st190',     id: 'st180-190', x: 264,  y: 120, name: 'ST190 · Test Bench',       stage: 'Stage 14 · test bench' },
-      { key: 'st180',     id: 'st180-190', x: 240,  y: 352, name: 'ST180 · Prova di Tenuta',  stage: 'leak test · reported with ST190', lite: true },
-      { key: 'st160',     id: 'st160',     x: 560,  y: 112 },
-      { key: 'st170',     id: 'st170',     x: 660,  y: 184, below: true },
-      { key: 'st300',     id: 'st300',     x: 760,  y: 112 },
-      { key: 'st310',     id: 'st310',     x: 858,  y: 184, below: true },
-      { key: 'pg-04',     id: 'pg-04',     x: 950,  y: 116 },
-      { key: 'st110',     id: 'st110',     x: 1048, y: 188, below: true },
-      { key: 'st150',     id: 'st150',     x: 620,  y: 368, name: 'ST150 · Pinion Complete', stage: 'Stage 10 · brake test' },
-      { key: 'st140',     id: 'st140',     x: 800,  y: 368 },
-      { key: 'st130-135', id: 'st130-135', x: 975,  y: 368 },
-      { key: 'st500-520', id: 'st500-520', x: 420,  y: 630 },
-      { key: 'st200-220', id: 'st200-220', x: 880,  y: 560 },
-      { key: 'st400-410', id: 'st400-410', x: 770,  y: 706, nodata: 'no data — report covers a Quad Track build' },
-      { key: 'st700-710', id: 'st710',     x: 1000, y: 706 },
+      { key: 'st190',     id: 'st180-190', x: 264,  y: 120, bay: 'BAY 1', name: 'ST190 · Test Bench',       stage: 'Stage 14 · test bench' },
+      { key: 'st180',     id: 'st180-190', x: 240,  y: 352, bay: '5-TON OPEN FLOOR', name: 'ST180 · Prova di Tenuta',  stage: 'leak test · reported with ST190', lite: true },
+      { key: 'st160',     id: 'st160',     x: 560,  y: 112, bay: 'BAY 3' },
+      { key: 'st170',     id: 'st170',     x: 660,  y: 184, bay: 'BAY 3', below: true },
+      { key: 'st300',     id: 'st300',     x: 760,  y: 112, bay: 'BAY 3' },
+      { key: 'st310',     id: 'st310',     x: 858,  y: 184, bay: 'BAY 3', below: true },
+      { key: 'pg-04',     id: 'pg-04',     x: 950,  y: 116, bay: 'BAY 3' },
+      { key: 'st110',     id: 'st110',     x: 1048, y: 188, bay: 'BAY 3', below: true },
+      { key: 'st150',     id: 'st150',     x: 620,  y: 368, bay: 'BAY 4', name: 'ST150 · Pinion Complete', stage: 'Stage 10 · brake test' },
+      { key: 'st140',     id: 'st140',     x: 800,  y: 368, bay: 'BAY 4' },
+      { key: 'st130-135', id: 'st130-135', x: 975,  y: 368, bay: 'BAY 4' },
+      { key: 'st500-520', id: 'st500-520', x: 420,  y: 630, bay: 'BAY 7' },
+      { key: 'st200-220', id: 'st200-220', x: 880,  y: 560, bay: 'BAY 6' },
+      { key: 'st400-410', id: 'st400-410', x: 770,  y: 706, bay: 'BAY 6', nodata: 'no data — report covers a Quad Track build' },
+      { key: 'st700-710', id: 'st710',     x: 1000, y: 706, bay: 'BAY 6' },
     ];
     const FAC_EDGES = [
       // main line, in stage order: 1 → 2 → 8 → 9 → 10 → 11 → 12-13 → tests
@@ -906,14 +909,54 @@
       ['st200-220', 'st500-520'], ['st200-220', 'st130-135'],
     ];
 
+    // Everything a node renders (dot + halo, name/stage stack, counts,
+    // report line or twin pill, fullscreen hoist ring), as a padded bbox.
+    // Bays are sized from these, so a station growing later can't overflow.
+    function nodeFootprint(n, s, full) {
+      const r = s.active ? 32 : 24;
+      const name = n.name || s.label;
+      const stage = n.stage || s.stage || '';
+      const noteLen = s.report
+        ? `x ${s.report.nok}/${s.report.checks} checks NOT OK`.length
+        : (n.lite ? 0 : (n.nodata || 'no MES data yet').length);
+      // Half-widths from string lengths (12px sans names ≈ 6.6px/char,
+      // 8.5px mono ≈ 5.2px/char, 8px mono report ≈ 4.8px/char).
+      const halfW = Math.max(r + 12, name.length * 3.3, stage.length * 2.6, noteLen * 2.4);
+      const ringR = full ? ((FAC_HOISTS.find((h) => h.key === n.key) || {}).r || 0) + 12 : 0;
+      const top = n.below ? Math.max(r + 10, ringR) : Math.max(r + 34, ringR);
+      const bottom = n.below ? Math.max(r + 58, ringR) : Math.max(r + 44, ringR);
+      const pad = 8;
+      return {
+        x0: n.x - Math.max(halfW, ringR) - pad,
+        x1: n.x + Math.max(halfW, ringR) + pad,
+        y0: n.y - top - pad,
+        y1: n.y + bottom + pad,
+      };
+    }
+
     function renderFacility() {
       const svg = $('facility-svg');
       const full = $('facility-canvas').classList.contains('is-full');
-      const bays = FAC_BAYS.map((b) => `
+      // Grow each bay to wrap the rendered footprint of its stations.
+      const bayBoxes = {};
+      FAC_BAYS.forEach((b) => { bayBoxes[b.label] = { x0: b.x, y0: b.y, x1: b.x + b.w, y1: b.y + b.h }; });
+      FAC_NODES.forEach((n) => {
+        const bb = n.bay && bayBoxes[n.bay];
+        const s = stations.find((st) => st.id === n.id);
+        if (!bb || !s) return;
+        const f = nodeFootprint(n, s, full);
+        bb.x0 = Math.min(bb.x0, f.x0); bb.y0 = Math.min(bb.y0, f.y0);
+        bb.x1 = Math.max(bb.x1, f.x1); bb.y1 = Math.max(bb.y1, f.y1);
+      });
+      const bays = FAC_BAYS.map((b) => {
+        const bb = bayBoxes[b.label];
+        const lx = b.anchor === 'end' ? bb.x1 - 12 : bb.x0 + 12;
+        return `
         <g class="fac-bay ${b.open ? 'open' : ''}">
-          <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="3"/>
-          <text x="${b.lx}" y="${b.ly}" ${b.anchor ? `text-anchor="${b.anchor}"` : ''}>${esc(b.label)}</text>
-        </g>`).join('');
+          <rect x="${bb.x0}" y="${bb.y0}" width="${bb.x1 - bb.x0}" height="${bb.y1 - bb.y0}" rx="3"/>
+          <text x="${lx}" y="${bb.y0 + 20}" ${b.anchor ? `text-anchor="${b.anchor}"` : ''}>${esc(b.label)}</text>
+        </g>`;
+      }).join('');
       const belts = FAC_BELTS.map((b) => {
         const horiz = b.w >= b.h;
         const ticks = [];
