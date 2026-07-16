@@ -167,7 +167,8 @@
     }
     .fac-blueprint img {
       display: block; width: 100%; height: auto;
-      filter: saturate(0.62) brightness(0.96);
+      /* rendered straight from the native DWG on the platform background —
+         no correction filter needed */
     }
     .fac-blueprint .bp-caption {
       padding: 9px 14px; border-top: 1px solid var(--line-2);
@@ -607,8 +608,8 @@
         <span id="fac-expand-label">Show the 2D plant drawing</span>
       </button>
       <div class="fac-blueprint" id="fac-blueprint" hidden>
-        <img src="/lab/assets/comer-plant-blueprint.png" alt="Comer Rockford plant — 2D CAD layout drawing" loading="lazy" />
-        <div class="bp-caption">Comer Rockford — 2D plant layout (CAD) · the map above is traced from this drawing · circled letters = hoist zones · yellow = bay boundaries</div>
+        <img src="/lab/assets/comer-plant-blueprint.png?v=2" alt="Comer Rockford plant — 2D CAD layout drawing" loading="lazy" />
+        <div class="bp-caption">Comer Rockford — 2D plant layout, rendered from the native CAD drawing (CNH Layout 1.dwg) · the map above is traced from it · circled letters = hoist zones · yellow = aisle striping &amp; bay boundaries</div>
       </div>
     </section>
 
