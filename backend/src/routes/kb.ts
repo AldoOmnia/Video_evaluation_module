@@ -71,9 +71,11 @@ const STATIONS = [
     report: { sheet: "ST300", phases: 9, checks: 30, ok: 4, nok: 26, sample: "small/big gear bearing cup · bearing cone press · backlash" } },
   { id: "st310", label: "ST310 · Tear Dropbox", stage: "Stage 11 · with ST300", desc: "Dropbox on center housing · plugs · Loctite", tier: "outer", active: false, procedureId: null,
     report: { sheet: "ST310", phases: 6, checks: 123, ok: 122, nok: 1, sample: "dropbox on center housing DX/SX · plug M18x1.5 · Loctite" } },
-  // On the floor plan (Bay 6, "STAGE 3 SUB") but absent from the MES export —
-  // scaffold entry so the plant map is complete; fills in once data lands.
-  { id: "st400-410", label: "ST400-410 · Subassembly", stage: "Stage 3 · sub", desc: "Subassembly — no MES data yet", tier: "outer", active: false, procedureId: null,
+  // On the floor plan (Bay 6, "STAGE 3 SUB") but absent from the MES export.
+  // Per Mohammed (Comer mechanical engineer): the report covers a Quad Track
+  // axle build; ST400 is the axle mount for the LW and SW models, so it saw
+  // no acquisitions in this snapshot. ST400 vs ST500 usage follows the model.
+  { id: "st400-410", label: "ST400-410 · Subassembly", stage: "Stage 3 · sub", desc: "Axle mount for LW / SW models — idle in this Quad Track report", tier: "outer", active: false, procedureId: null,
     report: null },
   { id: "st500-520", label: "ST500-520 · Sub Starship", stage: "Stage 6 · sub", desc: "Cone/cup bearing onto shaft · nut tighten · plugs", tier: "outer", active: false, procedureId: null,
     report: { sheet: "ST500_510_520", phases: 8, checks: 125, ok: 75, nok: 50, sample: "cone bearing onto shaft · cup bearing · nut tighten · bolts on nut" } },
@@ -201,7 +203,7 @@ export function findGlassesComponent(sku: string): KbComponent | null {
  */
 const GLASSES_IMG_BASE = "/lab/assets/pinion-components";
 /** Bump when GLASSES_COMPONENTS / GLASSES_ARTIFACTS / station reports grow so live stores re-merge. */
-const GLASSES_SYNC_VERSION = 10;
+const GLASSES_SYNC_VERSION = 11;
 const GLASSES_REPO = "https://github.com/AldoOmnia/comer-rokid-demo";
 
 interface CataloguePart {
@@ -296,7 +298,7 @@ const GLASSES_ARTIFACTS: Array<
   { name: "Historical error rates", type: "csv", file: "error-rates.csv", note: "Defect rates per step — grounds the 'most common mistakes' answers" },
   // Stable id: this entry's display name changes as fact blocks land — without
   // it, every rename would re-seed as a new artifact (learned the hard way).
-  { id: "glasses-art-supervisor-knowledge", name: "Operator tribal knowledge — 13 curated fact blocks", type: "other", repoPath: "backend/data/supervisor-knowledge", note: "Matteo + Mohammed audio-transcribed facts + line-engineer cup & cone orientation rules (2026-07-14) — AUTHORITATIVE shop-floor notes in the glasses prompt; mirrored in chat retrieval here" },
+  { id: "glasses-art-supervisor-knowledge", name: "Operator tribal knowledge — 14 curated fact blocks", type: "other", repoPath: "backend/data/supervisor-knowledge", note: "Matteo + Mohammed audio-transcribed facts + line-engineer cup & cone orientation rules (2026-07-14) + station-vs-axle-model note (ST400 = LW/SW axle mount, report build = Quad Track, 2026-07-16) — AUTHORITATIVE shop-floor notes; mirrored in chat retrieval here" },
   { name: "KB errors doc — engineer-verified orientation rules", type: "other", file: "errors-pinion-guide-for-kb.txt", note: "errors_pinion_guide_for_KB.txt — the authoritative TIMKEN-side rules for all four orientation-sensitive parts + the fixture/driver confusion note" },
   { name: "Pinion phase sheets — Phase 1–12 PDFs", type: "pdf", repoPath: "docs/source-material/Comer_industries_pinion_steps", note: "Original Comer work instructions the ST.100 steps + VLM keyframes were extracted from" },
   { name: "Comer knowledge-base catalogues — 5 product PDFs", type: "pdf", repoPath: "Comer_industries_knowledge_base", note: "Rockford fan clutch, Walterscheid PTO, gearboxes, planetary drives, Synergy driveshafts" },

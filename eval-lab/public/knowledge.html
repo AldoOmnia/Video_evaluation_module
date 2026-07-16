@@ -105,12 +105,41 @@
       font-weight: 600; letter-spacing: 0.14em;
     }
     .fac-note { fill: #3d3d3d; font-family: var(--mono); font-size: 8px; letter-spacing: 0.06em; }
+    /* Visual-only floor furniture: conveyors + machine footprints (no data) */
+    .fac-belt rect { fill: rgba(255,255,255,0.015); stroke: var(--line-2); stroke-width: 1; }
+    .fac-belt line { stroke: var(--line-2); stroke-width: 1; }
+    .fac-machine { fill: rgba(255,255,255,0.012); stroke: #262626; stroke-width: 1; }
+    /* Expand control + 2D drawing miniature */
+    .fac-expand {
+      display: flex; align-items: center; gap: 8px; margin: 6px auto 0;
+      background: transparent; border: 1px solid var(--line-2); border-radius: 999px;
+      color: var(--ink-3); font-family: var(--mono); font-size: 9px;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 7px 14px; cursor: pointer;
+      transition: border-color 140ms ease, color 140ms ease;
+    }
+    .fac-expand:hover { border-color: var(--primary-dim); color: var(--primary); }
+    .fac-expand svg { transition: transform 180ms ease; }
+    .fac-expand[aria-expanded="true"] svg { transform: rotate(180deg); }
+    .fac-blueprint {
+      margin: 14px auto 4px; border: 1px solid var(--line-2); border-radius: 10px;
+      overflow: hidden; background: #101418;
+    }
+    .fac-blueprint img {
+      display: block; width: 100%; height: auto;
+      filter: saturate(0.62) brightness(0.96);
+    }
+    .fac-blueprint .bp-caption {
+      padding: 9px 14px; border-top: 1px solid var(--line-2);
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em;
+      color: var(--ink-3); text-transform: uppercase;
+    }
     .fac-node { cursor: pointer; }
     .fac-node circle.core {
-      fill: #0f1512; stroke: var(--line-2); stroke-width: 1.5;
+      fill: #0f1512; stroke: var(--line-2); stroke-width: 2.2;
       transition: stroke 140ms ease;
     }
-    .fac-node.is-active circle.core { stroke: var(--primary); }
+    .fac-node.is-active circle.core { stroke: var(--primary); stroke-width: 2.6; }
     .fac-node:hover circle.core { stroke: var(--primary); }
     .fac-node circle.halo { fill: none; stroke: rgba(0,229,160,0.25); stroke-width: 1; }
     .fac-node text { fill: var(--ink-1); font-family: var(--sans); font-weight: 600; }
@@ -510,7 +539,7 @@
         historical MES checks and knowledge counts. The digital-twin capture (and all its viewpoints) lives inside ST100 · Pinion Guide. Click a station to open it.</p>
       </div>
       <div class="facility-canvas">
-        <svg id="facility-svg" viewBox="0 0 1140 740" role="img" aria-label="Facility station map on the plant floor layout"></svg>
+        <svg id="facility-svg" viewBox="0 0 1140 850" role="img" aria-label="Facility station map on the plant floor layout"></svg>
       </div>
       <div class="fac-legend">
         <span><span class="dot" style="background:var(--primary)"></span>active station — full graph live</span>
@@ -519,6 +548,17 @@
         <span style="color:var(--ok);">✓ twin — digital twin available</span>
         <span>counts: keysteps · material · components</span>
         <span style="color:var(--warn,#f5a524);">⚠ checks — MES acquisitions outside limits (Full_stations_report)</span>
+      </div>
+      <button type="button" class="fac-expand" id="fac-expand" aria-expanded="false" aria-controls="fac-blueprint">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path d="M2 2.5 L6 6 L10 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 6.5 L6 10 L10 6.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span id="fac-expand-label">Show the 2D plant drawing</span>
+      </button>
+      <div class="fac-blueprint" id="fac-blueprint" hidden>
+        <img src="/lab/assets/comer-plant-blueprint.png" alt="Comer Rockford plant — 2D CAD layout drawing" loading="lazy" />
+        <div class="bp-caption">Comer Rockford — 2D plant layout (CAD) · the map above is traced from this drawing · circled letters = hoist zones · yellow = bay boundaries</div>
       </div>
     </section>
 
@@ -740,32 +780,45 @@
     //   Bay 6  — Stage 5 subdifferential (ST200-220) · Stage 3 sub
     //            (ST400-410) · Stage 4 sub (ST700-710)
     const FAC_BAYS = [
-      { label: 'BAY 1', x: 170, y: 40,  w: 370, h: 130, lx: 182,  ly: 60 },
-      { label: 'BAY 3', x: 520, y: 158, w: 512, h: 118, lx: 1022, ly: 178, anchor: 'end' },
-      { label: 'BAY 4', x: 520, y: 276, w: 512, h: 112, lx: 532,  ly: 296 },
-      { label: '5-TON OPEN FLOOR', x: 170, y: 170, w: 350, h: 300, lx: 182, ly: 190, open: true },
-      { label: 'BAY 7', x: 95,  y: 488, w: 615, h: 225, lx: 107,  ly: 508 },
-      { label: 'BAY 6', x: 743, y: 400, w: 324, h: 313, lx: 755,  ly: 420 },
+      { label: 'BAY 1', x: 60,  y: 36,  w: 360, h: 168, lx: 72,   ly: 56 },
+      { label: 'BAY 3', x: 470, y: 36,  w: 620, h: 236, lx: 1078, ly: 56, anchor: 'end' },
+      { label: 'BAY 4', x: 470, y: 292, w: 620, h: 150, lx: 482,  ly: 312 },
+      { label: '5-TON OPEN FLOOR', x: 60, y: 224, w: 360, h: 250, lx: 72, ly: 244, open: true },
+      { label: 'BAY 7', x: 60,  y: 510, w: 560, h: 240, lx: 72,   ly: 530 },
+      { label: 'BAY 6', x: 660, y: 480, w: 430, h: 330, lx: 1078, ly: 500, anchor: 'end' },
+    ];
+    // Visual-only floor furniture (no data behind it): conveyor belts + the
+    // big machine footprints, so relative positioning reads like the drawing.
+    const FAC_BELTS = [
+      { x: 500, y: 274, w: 560, h: 12 },  // main conveyor along the bay 3 / bay 4 corridor
+      { x: 864, y: 446, w: 12,  h: 30 },  // spur down into bay 6
+    ];
+    const FAC_MACHINES = [
+      { x: 100, y: 76,  w: 90, h: 76 },   // bay 1 — stage-14 test bench block
+      { x: 120, y: 596, w: 66, h: 40 },   // bay 7 — roll-over benches
+      { x: 206, y: 596, w: 66, h: 40 },
     ];
     // key = unique map spot · id = KB station it opens. ST180 and ST190 are
     // two physical spots sharing one MES sheet (st180-190) — the ST180 dot is
     // "lite": no counts/report so the shared numbers aren't double-shown.
+    // Bay 3 alternates its stations across two rows (labels above / below)
+    // so every node keeps clear space around it.
     const FAC_NODES = [
-      { key: 'st190',     id: 'st180-190', x: 330,  y: 112, name: 'ST190 · Test Bench',       stage: 'Stage 14 · test bench' },
-      { key: 'st180',     id: 'st180-190', x: 410,  y: 430, name: 'ST180 · Prova di Tenuta',  stage: 'leak test · reported with ST190', lite: true },
-      { key: 'st160',     id: 'st160',     x: 585,  y: 205 },
-      { key: 'st170',     id: 'st170',     x: 655,  y: 234, below: true },
-      { key: 'st300',     id: 'st300',     x: 725,  y: 205 },
-      { key: 'st310',     id: 'st310',     x: 795,  y: 234, below: true },
-      { key: 'pg-04',     id: 'pg-04',     x: 915,  y: 212 },
-      { key: 'st110',     id: 'st110',     x: 1005, y: 246, below: true },
-      { key: 'st150',     id: 'st150',     x: 630,  y: 330, below: true, name: 'ST150 · Pinion Complete', stage: 'Stage 10 · brake test' },
-      { key: 'st140',     id: 'st140',     x: 785,  y: 330, below: true },
-      { key: 'st130-135', id: 'st130-135', x: 925,  y: 335, below: true },
-      { key: 'st500-520', id: 'st500-520', x: 545,  y: 590 },
-      { key: 'st200-220', id: 'st200-220', x: 895,  y: 472 },
-      { key: 'st400-410', id: 'st400-410', x: 815,  y: 625 },
-      { key: 'st700-710', id: 'st710',     x: 995,  y: 605 },
+      { key: 'st190',     id: 'st180-190', x: 264,  y: 120, name: 'ST190 · Test Bench',       stage: 'Stage 14 · test bench' },
+      { key: 'st180',     id: 'st180-190', x: 240,  y: 352, name: 'ST180 · Prova di Tenuta',  stage: 'leak test · reported with ST190', lite: true },
+      { key: 'st160',     id: 'st160',     x: 560,  y: 112 },
+      { key: 'st170',     id: 'st170',     x: 660,  y: 184, below: true },
+      { key: 'st300',     id: 'st300',     x: 760,  y: 112 },
+      { key: 'st310',     id: 'st310',     x: 858,  y: 184, below: true },
+      { key: 'pg-04',     id: 'pg-04',     x: 950,  y: 116 },
+      { key: 'st110',     id: 'st110',     x: 1048, y: 188, below: true },
+      { key: 'st150',     id: 'st150',     x: 620,  y: 368, name: 'ST150 · Pinion Complete', stage: 'Stage 10 · brake test' },
+      { key: 'st140',     id: 'st140',     x: 800,  y: 368 },
+      { key: 'st130-135', id: 'st130-135', x: 975,  y: 368 },
+      { key: 'st500-520', id: 'st500-520', x: 420,  y: 630 },
+      { key: 'st200-220', id: 'st200-220', x: 880,  y: 560 },
+      { key: 'st400-410', id: 'st400-410', x: 770,  y: 706, nodata: 'no data — report covers a Quad Track build' },
+      { key: 'st700-710', id: 'st710',     x: 1000, y: 706 },
     ];
     const FAC_EDGES = [
       // main line, in stage order: 1 → 2 → 8 → 9 → 10 → 11 → 12-13 → tests
@@ -784,7 +837,20 @@
           <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="3"/>
           <text x="${b.lx}" y="${b.ly}" ${b.anchor ? `text-anchor="${b.anchor}"` : ''}>${esc(b.label)}</text>
         </g>`).join('');
-      const notes = `<text class="fac-note" x="230" y="610" text-anchor="middle">roll-over benches</text>`;
+      const belts = FAC_BELTS.map((b) => {
+        const horiz = b.w >= b.h;
+        const ticks = [];
+        const step = 22;
+        if (horiz) {
+          for (let tx = b.x + step; tx < b.x + b.w; tx += step) ticks.push(`<line x1="${tx}" y1="${b.y + 2}" x2="${tx}" y2="${b.y + b.h - 2}"/>`);
+        } else {
+          for (let ty = b.y + step / 2; ty < b.y + b.h; ty += step / 2) ticks.push(`<line x1="${b.x + 2}" y1="${ty}" x2="${b.x + b.w - 2}" y2="${ty}"/>`);
+        }
+        return `<g class="fac-belt"><rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${Math.min(b.w, b.h) / 2}"/>${ticks.join('')}</g>`;
+      }).join('');
+      const machines = FAC_MACHINES.map((m) => `<rect class="fac-machine" x="${m.x}" y="${m.y}" width="${m.w}" height="${m.h}" rx="2"/>`).join('');
+      const notes = `<text class="fac-note" x="196" y="652" text-anchor="middle">roll-over benches</text>
+        <text class="fac-note" x="145" y="68" text-anchor="middle">test bench</text>`;
       const byKey = {};
       FAC_NODES.forEach((n) => { byKey[n.key] = n; });
       const edges = FAC_EDGES.map(([a, b]) => {
@@ -795,7 +861,7 @@
       const nodes = FAC_NODES.map((n) => {
         const s = stations.find((st) => st.id === n.id);
         if (!s) return '';
-        const r = s.active ? 30 : 22;
+        const r = s.active ? 32 : 24;
         const c = s.counts || {};
         const countsTxt = `${c.keysteps || 0} · ${c.artifacts || 0} · ${c.components || 0}`;
         const twin = TWIN_STATIONS.has(s.id);
@@ -821,7 +887,7 @@
               s.report.nok > 0 ? `⚠ ${s.report.nok}/${s.report.checks} checks NOT OK` : `✓ ${s.report.checks} checks OK`
             }</text>` : ''}
             ${!s.report && !n.lite ? `
-            <text class="nd-report" x="${n.x}" y="${reportY}" text-anchor="middle" fill="#3d3d3d">no MES data yet</text>` : ''}
+            <text class="nd-report" x="${n.x}" y="${reportY}" text-anchor="middle" fill="#3d3d3d">${esc(n.nodata || 'no MES data yet')}</text>` : ''}
             ${twin ? `
             <g class="fac-twin" data-twin="${s.id}" role="link" aria-label="Open the digital twin viewer">
               <rect x="${n.x - 46}" y="${n.y + r + 23}" width="92" height="17" rx="8.5"/>
@@ -829,7 +895,7 @@
             </g>` : ''}
           </g>`;
       }).join('');
-      svg.innerHTML = bays + notes + edges + nodes;
+      svg.innerHTML = bays + belts + machines + notes + edges + nodes;
       svg.querySelectorAll('.fac-node').forEach((g) => {
         const open = () => showStation(g.dataset.station);
         g.addEventListener('click', open);
@@ -840,6 +906,16 @@
         window.open(TWIN_URL, '_blank');
       }));
     }
+
+    // Double-arrow expander: reveals the actual 2D CAD drawing the map is
+    // traced from, as a miniature under the schematic.
+    $('fac-expand').addEventListener('click', () => {
+      const bp = $('fac-blueprint');
+      const open = bp.hidden;
+      bp.hidden = !open;
+      $('fac-expand').setAttribute('aria-expanded', String(open));
+      $('fac-expand-label').textContent = open ? 'Hide the 2D plant drawing' : 'Show the 2D plant drawing';
+    });
 
     /* ── Station graph ────────────────────────── */
     let ringNodes = [];      // last rendered ring — index-aligned with data-ring
