@@ -4940,18 +4940,19 @@ async function wireStationPicker() {
   // Fallback mirrors the backend list so the picker still works if /api is down.
   let stations = [
     { id: 'pg-04', label: 'ST100 · Pinion Guide', desc: 'Pinion cover pre-assembly — pilot: glasses + digital twin live', active: true },
-    { id: 'st110', label: 'ST110 · Carrier Bearing', desc: 'Expanding plug · bearing cone · LH diff carrier assy', active: false },
-    { id: 'st130-135', label: 'ST130-135 · Diff Carrier', desc: 'Diff carrier bolts · preload · shims · brake shim check', active: false },
-    { id: 'st140', label: 'ST140 · Brake Piston', desc: 'Brake piston bore · self-adjust stack', active: false },
-    { id: 'st150', label: 'ST150 · Pinion Cover On Housing', desc: 'Cover to housing · manifold bolts · elbows · plugs', active: false },
-    { id: 'st160', label: 'ST160 · Bolting 1', desc: '500QT bolt tightening', active: false },
-    { id: 'st170', label: 'ST170 · Bolting 2', desc: '500QT bolt tightening', active: false },
-    { id: 'st180-190', label: 'ST180-190 · Test Bench', desc: 'Leakage · filling · brake tests · run-in · pollution', active: false },
-    { id: 'st200-220', label: 'ST200-220 · Riveter + Diff', desc: 'Riveting · thrust washer · diff bolts · bearing cup', active: false },
-    { id: 'st300', label: 'ST300 · Gear Bearing Press', desc: 'Gear bearing cups/cones · backlash', active: false },
-    { id: 'st310', label: 'ST310 · Dropbox', desc: 'Dropbox on center housing · plugs · Loctite', active: false },
-    { id: 'st500-520', label: 'ST500-520 · Shaft Bearings', desc: 'Cone/cup bearing onto shaft · nut tighten · plugs', active: false },
-    { id: 'st710', label: 'ST710 · Victory Tightening', desc: 'Pin positioning · Victory release/tightening cycles', active: false },
+    { id: 'st110', label: 'ST110 · Brake & Cover', desc: 'Stage 2 — expanding plug · bearing cone · LH diff carrier assy', active: false },
+    { id: 'st130-135', label: 'ST130-135 · Shimming', desc: 'Stage 8 — diff carrier bolts · preload · shims · brake shim check', active: false },
+    { id: 'st140', label: 'ST140 · Brake Complete', desc: 'Stage 9 — brake piston bore · self-adjust stack', active: false },
+    { id: 'st150', label: 'ST150 · Pinion Complete & Brake Test', desc: 'Stage 10 — cover to housing · manifold bolts · elbows · plugs', active: false },
+    { id: 'st160', label: 'ST160 · Axle Mount', desc: 'Stage 12-13 — 500QT bolt tightening (with ST170)', active: false },
+    { id: 'st170', label: 'ST170 · Axle Mount', desc: 'Stage 12-13 — 500QT bolt tightening (with ST160)', active: false },
+    { id: 'st180-190', label: 'ST180-190 · Prova di Tenuta + Test Bench', desc: 'Leak test + Stage 14 — leakage · filling · brake tests · run-in', active: false },
+    { id: 'st200-220', label: 'ST200-220 · Subdifferential', desc: 'Stage 5 — riveting · thrust washer · diff bolts · bearing cup', active: false },
+    { id: 'st300', label: 'ST300 · Tear Dropbox', desc: 'Stage 11 — gear bearing cups/cones · backlash (with ST310)', active: false },
+    { id: 'st310', label: 'ST310 · Tear Dropbox', desc: 'Stage 11 — dropbox on center housing · plugs · Loctite (with ST300)', active: false },
+    { id: 'st400-410', label: 'ST400-410 · Subassembly', desc: 'Stage 3 — subassembly · no MES data yet', active: false },
+    { id: 'st500-520', label: 'ST500-520 · Sub Starship', desc: 'Stage 6 — cone/cup bearing onto shaft · nut tighten · plugs', active: false },
+    { id: 'st710', label: 'ST700-710 · Subassembly', desc: 'Stage 4 — pin positioning · Victory release/tightening cycles', active: false },
   ];
   try {
     const d = await (await fetch('/api/kb/stations', { cache: 'no-store' })).json();
