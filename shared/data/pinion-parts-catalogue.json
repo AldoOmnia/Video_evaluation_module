@@ -1,0 +1,307 @@
+{
+  "_source": "docs/source-material/pinion-components/Comer_Parts_Catalogue_v2.xlsx",
+  "_note": "Authoritative Comer ↔ CNH cross-reference + step mapping for the pinion cover procedure ST.100. Kept in lock-step with docs/source-material/pinion_guide_steps_rear_updated.csv. Regenerate via scripts/extract-pinion-parts-xlsx.mjs when the XLSX changes.",
+  "pinion_cover_procedure_id": "ST.100",
+  "parts": [
+    {
+      "part_number_comer": "0900.7108",
+      "part_number_cnh": "191713A1",
+      "description": "SPACER, RETAINER",
+      "category": "Spacers",
+      "specifications": "Flat washer-style shim ring; stacked in bulk",
+      "visual_fingerprint": "Thin FLAT RING / washer with a large central bore (donut-shaped). Looks like a stamped steel ring — outer diameter much bigger than the thickness. Typically shown stacked in a bin. NOT cylindrical, NOT a pin — if you see a solid cylindrical rod, it is NOT this part.",
+      "image_filename": "part_IMG_3074.png; part_IMG_3074_1.png",
+      "used_in_steps": [
+        7
+      ],
+      "notes": "Used in shimpack assembly; verify thickness before use"
+    },
+    {
+      "part_number_comer": "9540.244.077",
+      "part_number_cnh": "628-8016",
+      "description": "BOLT M8 X 16 10.9 PHC",
+      "category": "Fasteners",
+      "specifications": "M8 x 16mm hex head bolt; Grade 10.9; phosphate hex cap",
+      "visual_fingerprint": "HEX-HEAD BOLT with an external six-sided head and a threaded shank along its length. Medium size (M8 x 16 mm, so shank length roughly ~2x head width). Dark phosphate finish. Distinct from a socket-head screw (has a visible hexagonal OUTSIDE, not a hex socket INSIDE).",
+      "image_filename": "part_IMG_3075.png",
+      "used_in_steps": [],
+      "used_in_steps_note": "Not referenced in current procedure",
+      "notes": "May be used in upstream/downstream assembly"
+    },
+    {
+      "part_number_comer": "9540.180.019",
+      "part_number_cnh": "14441231",
+      "description": "SCREW, HEX SOC, M6x12 FULL 10.9 Z",
+      "category": "Fasteners",
+      "specifications": "M6 x 12mm full-thread hex socket cap screw; Grade 10.9; zinc",
+      "visual_fingerprint": "SOCKET-HEAD CAP SCREW with a cylindrical head and a hexagonal SOCKET recess on top (Allen key drive). Fully threaded. Small — M6 x 12 mm. Zinc finish (bright / silver). Distinct from a HEX-HEAD bolt (which has a six-sided external head).",
+      "image_filename": "part_IMG_3076.png",
+      "used_in_steps": [
+        16
+      ],
+      "notes": "2x screws assembled on ring snap retainer; bin nearly empty — restock"
+    },
+    {
+      "part_number_comer": "9490.404.001",
+      "part_number_cnh": "837-12030",
+      "description": "PIN, DOWEL; 12.018 X 30 MM HTS PLN",
+      "category": "Pins",
+      "specifications": "Dowel pin 12.018mm dia x 30mm; heat-treated; plain finish",
+      "visual_fingerprint": "SOLID CYLINDRICAL ROD / PIN — smooth, ground, no head, no threads, no socket, no internal bore. Length about 2.5x the diameter (30 mm x 12 mm). Looks like a short polished steel cylinder / peg. Often shown lying in a bin of identical cylindrical pins. If you see a short headless un-threaded cylinder, IT IS THIS DOWEL PIN — NOT a bolt, NOT a screw, NOT a spacer / ring.",
+      "image_filename": "part_IMG_3077.png; part_IMG_3077_2.png",
+      "used_in_steps": [
+        17
+      ],
+      "notes": "2x dowel pins; precision fit — do not substitute"
+    },
+    {
+      "part_number_comer": "0900.7142",
+      "part_number_cnh": "92203637",
+      "description": "RING, RETAINER, THICK",
+      "category": "Rings / Retainers",
+      "specifications": "Large-diameter thick retainer ring; machined; 2-hole eccentric pattern",
+      "visual_fingerprint": "LARGE CLOSED MACHINED RING — thicker than a washer, a finished steel ring with exactly TWO through-holes ~180° apart (one on each side). BRUSHED / satin grey finish (not mirror-bright). The inner bore is OFF-CENTRE / eccentric, so the ring wall is noticeably WIDER on one side than the other. The stamped code '92203637' is usually visible on the face — when legible, that code is authoritative. Distinct from the snap retainer 92203640 (also a closed 2-hole ring, but MIRROR-POLISHED with a near-uniform/concentric ring wall and stamped '92203640') and from the open C-shaped circlip 229515A2 (which has a gap). Much thicker than a shim or spacer.",
+      "image_filename": "part_IMG_3078.png",
+      "used_in_steps": [
+        7,
+        8,
+        9
+      ],
+      "notes": "Marked '92203637' on face; verify orientation during assembly"
+    },
+    {
+      "part_number_comer": "191440A1",
+      "part_number_cnh": "191440A1",
+      "description": "BEARING, CUP, 140.0048 OD X 28.4734 W",
+      "category": "Bearings",
+      "specifications": "Tapered roller bearing cup; OD 140.0048mm; W 28.4734mm",
+      "visual_fingerprint": "TAPERED ROLLER BEARING CUP — a thick steel ring with a visibly TAPERED inner race (cone-shaped inside, cup-shaped outside). Large OD (~140 mm) and fairly wide (~28 mm). The inner surface is smooth and angled, not flat like a shim. CORRECTLY ORIENTED (line-engineer verified: assembled TIMKEN side facing DOWN) the face pointing TOWARD the camera is the bright machined TAPERED RACEWAY with NO stamped lettering; the stamped maker text ('TIMKEN', '572 CD1 RM VN') points DOWN when correct. Smaller cover-bearing cup — distinguish from the bigger Step-1 cup 248114A1 (stamp 'NP241715') by outer diameter / bin label. NOTE — the BIG cup 248114A1 uses the OPPOSITE convention (its TIMKEN face goes UP); do not carry one cup's rule onto the other. SIDE VIEW ('side_1' reference): only the plain smooth cylindrical outer wall is visible — the taper is internal, so a side view identifies the part but NOT its orientation; never call FLIP from a side view alone. SIDE-BY-SIDE reference ('bearing_cups_..._timken_down'): both cups photographed together with TIMKEN faces DOWN (raceways up) — the SMALL cup (right, correct this way) next to the big cup (left, which is INVERTED this way); use it to calibrate relative size. RIM-WIDTH CUE: when the small cup is (wrongly) TIMKEN face up, its stamped rim is a NARROW band — much thinner than the big cup 248114A1's broad stamped annulus; rim width plus outer diameter decide which cup is in view.",
+      "image_filename": "part_IMG_3079.png; part_IMG_3079_2.png; part_IMG_3079_3.png; bearing_cup_191440a1_1.png; bearing_cup_191440a1_pos_correct_1.png; bearing_cup_191440a1_pos_correct_2.png; bearing_cup_191440a1_pos_correct_3.png; bearing_cup_191440a1_side_1.png; bearing_cups_248114a1_191440a1_timken_down.png",
+      "used_in_steps": [
+        2
+      ],
+      "notes": "Small bearing cup pressed onto cover at Step 2; shim selection note visible (0.813). Correct orientation per the line engineer: TIMKEN stamped side facing DOWN (bright raceway up) — opposite of the big cup 248114A1. Stamp on the maker face reads 'TIMKEN 572 CD1 RM VN'. Identification cue vs the big cup: the small cup's stamped rim is a NARROW band, the big cup's is much thicker (see side-by-side photos bearing_cups_248114a1_191440a1_timken_up/down.png)."
+    },
+    {
+      "part_number_comer": "0900.7703",
+      "part_number_cnh": "191712A1",
+      "description": "SHIM, BEVEL PINION BEARING .130",
+      "category": "Shims",
+      "specifications": "Bevel pinion bearing shim; thickness 0.130 in; large-bore ring",
+      "visual_fingerprint": "THIN FLAT SHIM RING with a large central bore — similar outline to the .101 shim but noticeably THICKER (0.130 inch vs 0.101). Shim packs may stamp thickness on the face. If thickness is in doubt between .130 and .101, ask the wearer to read the stamped code.",
+      "image_filename": "part_IMG_3080.png",
+      "used_in_steps": [
+        7
+      ],
+      "used_in_steps_note": "Step 7 (shim selection)",
+      "notes": "Thickness critical — measure before install; Putaway Loc: 2800-09-C-12"
+    },
+    {
+      "part_number_comer": "0900.7702",
+      "part_number_cnh": "191711A1",
+      "description": "SHIM, BEVEL PINION BEARING .101",
+      "category": "Shims",
+      "specifications": "Bevel pinion bearing shim; thickness 0.101 in; large-bore ring",
+      "visual_fingerprint": "THIN FLAT SHIM RING with a large central bore — THINNER than the .130 shim (0.101 inch vs 0.130). Same diameter / outline — distinguished only by thickness and/or stamped code. Usually sits on top of a Timken bearing cone in the same bin.",
+      "image_filename": "part_IMG_3081.png",
+      "used_in_steps": [
+        7
+      ],
+      "used_in_steps_note": "Step 7 (shim selection)",
+      "notes": "Timken bearing in same bin; shim sits atop bearing cone"
+    },
+    {
+      "part_number_comer": "",
+      "part_number_cnh": "248114A1",
+      "description": "BEARING, CUP, INBOARD BEVEL PINION (BIG BEARING CUP)",
+      "category": "Bearings",
+      "specifications": "Tapered roller bearing CUP (outer race only, no rollers); big bearing cup pressed onto the cover at Step 1; inboard bevel pinion P900",
+      "visual_fingerprint": "TAPERED ROLLER BEARING CUP (outer race) — a solid steel RING with a smooth CONE-SHAPED (tapered) inner bore and NO rollers and NO cage. CORRECTLY ORIENTED (line-engineer verified: assembled TIMKEN side facing UP) the face pointing TOWARD the camera is the STAMPED MAKER face — a flat-ish rim carrying engraved/etched text ('TIMKEN', 'NP241715', 'USA') around the bore. The bright smooth wide tapered raceway points DOWN when correct. Bin label reads 'BEARING CUP 248114A1 / CUP-INBOARD BEVEL PINION P900'. Distinct from a bearing CONE (248118A1 / 67190R91), which carries a ring of rollers; and from a flat shim/spacer ring, which has a straight bore and no taper. Larger and wider than the small cover cup 191440A1 (whose stamp reads '572 CD1 RM VN'). NOTE — the SMALL cup 191440A1 uses the OPPOSITE convention (its TIMKEN face goes DOWN); do not carry one cup's rule onto the other. SIDE VIEW: from the side only the plain smooth cylindrical outer wall is visible — the taper is internal, so a side view identifies the part but NOT its orientation; never call FLIP from a side view alone. SIDE-BY-SIDE reference ('bearing_cups_..._timken_up'): both cups photographed together with TIMKEN faces UP — the BIG cup (left, correct this way) is clearly larger than the small cup (right, which is INVERTED this way); use it to calibrate relative size. RIM-WIDTH CUE: the big cup's stamped TIMKEN rim is noticeably THICKER/WIDER (broad flat annulus between outer edge and bore) than the small cup 191440A1's narrow stamped band — use rim width plus outer diameter to tell the cups apart. The Phase-1 work instruction (Phase1.pdf, 'INSERT BEARING CUP' panel) shows this cup correctly seated on the fixture with the stamped face UP.",
+      "image_filename": "bearing_cup_248114a1_pos_correct_1.png; bearing_cups_248114a1_191440a1_timken_up.png; part_bearing_cup_248114a1.png; part_bearing_cup_248114a1_2.png",
+      "used_in_steps": [
+        1
+      ],
+      "notes": "Big bearing cup pressed onto the cover at Step 1 (PHASE 1) on punch fixture cod.3187.111.100.09. Correct orientation per the line engineer: TIMKEN stamped side facing UP (stamp reads 'TIMKEN NP241715') — matches the 'INSERT BEARING CUP' panel in Phase1.pdf. Identification cue vs the small cup 191440A1: the big cup's stamped TIMKEN rim is visibly THICKER/WIDER (see side-by-side photos bearing_cups_248114a1_191440a1_timken_up/down.png). Orientation/position check belongs to Step 1 — pressing it inverted is the cup half of the documented inverted cup/cone error (errors_pinion_guide_for_KB.txt): the press flags it out-of-range, but once pressed wrong it is very hard to remove and usually damages the part."
+    },
+    {
+      "part_number_comer": "",
+      "part_number_cnh": "248118A1",
+      "description": "BEARING, CONE, INBOARD BEVEL PINION",
+      "category": "Bearings",
+      "specifications": "Tapered roller bearing CONE (rollers held in a cage); inboard bevel pinion P900",
+      "visual_fingerprint": "TAPERED ROLLER BEARING CONE (INBOARD BEVEL PINION P900), correctly oriented per the engineer's position reference photos — LARGER than the step-6 cone 67190R91 and uses the OPPOSITE convention. CORRECT: the face pointing TOWARD the camera is the ANGLED ROLLER CAGE around a WIDE polished tapered bore — slanted rollers visible from above, NO stamped text on the up-face; the flat stamped TIMKEN face points DOWN. SIDE VIEW: the rollers flare WIDER toward the TOP and the SMOOTH roller-free steel band (back rib of the stamped face) sits along the BOTTOM edge. Bin label '248118A1 (CNH) / CONE-INBOARD BEVEL PINION P900'. Same physical part as 248118A1-FLIP; roller cage up / band on bottom = this (correct) identity. Distinct from a bearing CUP (248114A1, no rollers) and from the smaller 67190R91 cone at step 6 — NOTE the step-6 cone uses the OPPOSITE rule (its stamped face UP is correct).",
+      "image_filename": "bearing_cone_248118a1_pos_correct_1.png; bearing_cone_248118a1_pos_correct_2.png; bearing_cone_248118a1_pos_correct_3.png; bearing_cone_248118a1_pos_correct_4.png; part_cone_inboard_bevel_pinion_248118a1.png; part_cone_inboard_bevel_pinion_248118a1_2.png; part_cone_inboard_bevel_pinion_248118a1_3.png; part_cone_inboard_bevel_pinion_248118a1_4.png; part_cone_inboard_bevel_pinion_248118a1_5.png",
+      "used_in_steps": [
+        4
+      ],
+      "notes": "Inboard bevel pinion bearing cone pressed onto pinion shaft at Step 4 (PHASE 4) with punch fixture cod.3187.111.100.07. Correct orientation per the position reference photos: roller cage / wide tapered mouth facing UP, stamped TIMKEN face DOWN — opposite of the step-6 cone 67190R91. Orientation check belongs to Step 4 — pressing the cone upside-down causes part damage / rework documented in errors_pinion_guide_for_KB.txt."
+    },
+    {
+      "part_number_comer": "",
+      "part_number_cnh": "67190R91",
+      "description": "BEARING, CONE, 82.5 X 36.0",
+      "category": "Bearings",
+      "specifications": "Tapered roller bearing cone; OD ~82.5 mm x ~36.0 mm wide",
+      "visual_fingerprint": "TAPERED ROLLER BEARING CONE, correctly oriented. The face pointing TOWARD the camera is a FLAT, SOLID machined steel ring with stamped 'TIMKEN' and 'INDIA' text around an open center bore; the rollers angle DOWN / inward AWAY from the camera, so you do NOT see a cage of rollers standing up. SIDE VIEW (held sideways, rollers seen edge-on as a row of bars): the SMOOTH solid roller-free steel band (the back rib of the flat stamped face) runs along the TOP edge ABOVE the rollers, and the roller band tapers SMALLER toward the bottom. Smaller cone — bin label '67190R91 (CNH) / BEARING, CONE, 82.5X36.0'. This is the SAME physical part as 67190R91-FLIP; the ONLY difference is orientation — flat stamped face up / smooth band on top = this (correct) identity.",
+      "image_filename": "bearing_cone_67190r91_pos_correct_1.png; bearing_cone_67190r91_pos_correct_2.png; bearing_cone_67190r91_pos_correct_3.png; bearing_cone_67190r91_pos_correct_side.png",
+      "used_in_steps": [
+        6
+      ],
+      "notes": "Upper pinion bearing cone. Placed onto the cover at Step 6, then pressed with driver cod.3187.111.180.00. Orientation/position check belongs to Step 6."
+    },
+    {
+      "part_number_comer": "9010.528.000",
+      "part_number_cnh": "229515A2",
+      "description": "RING, RETAINING, EXTERNAL, REG 40MM",
+      "category": "Rings / Retainers",
+      "specifications": "External retaining ring (snap ring / circlip); open C-shape; ~40 mm",
+      "visual_fingerprint": "EXTERNAL RETAINING RING / SNAP RING (circlip) — a thin, flat, DARK/black spring-steel ring with an OPEN GAP at one point and two TAPERED / POINTED ends framing the gap (NOT a closed ring). Thin flat cross-section, dark finish, ~40 mm, and NO mounting holes or stamped code. Distinct from the closed machined retainer rings 92203637 and 92203640 (both solid CLOSED rings with NO gap, two mounting holes, and a stamped part number) and from flat shims/spacers (closed rings).",
+      "image_filename": "part_9010.528.000_229515a2_ring_retainer_ext.png; part_9010.528.000_229515a2_ring_retainer_ext_2.png; part_9010.528.000_229515a2_ring_retainer_ext_3.png",
+      "used_in_steps": [],
+      "used_in_steps_note": "Not referenced in current procedure",
+      "notes": "Pinion station part — recognizable but not used in current rear-axle pinion-cover procedure; tasks TBD"
+    },
+    {
+      "part_number_comer": "3187.111.180.00",
+      "part_number_cnh": "3187.111.180.00",
+      "description": "DRIVER cod.3187.111.180.00 — bearing-cone press driver (Step 6)",
+      "category": "Press Tooling / Drivers",
+      "specifications": "Press driver/sleeve for seating the upper bearing cone 67190R91 onto the cover at Step 6",
+      "visual_fingerprint": "Dark/black hardened-steel PRESS DRIVER that is HOLLOW / OPEN-ENDED — a thick-walled SLEEVE / cup whose working end is an open round BORE (you can see straight into the tube) with a stepped rim. This open-bore sleeve shape is what tells it apart from the SOLID flanged disc-top drivers 3187.111.100.27 and 3187.111.100.28 (those have a closed flat disc head, no through-bore). The code 'cod.3187.111.180.00' is engraved around the rim — when legible the engraved code is AUTHORITATIVE. Used at Step 6 only.",
+      "image_filename": "driver_3187_111_180_00.png",
+      "used_in_steps": [
+        6
+      ],
+      "notes": "Step 6 driver: placed OVER the bearing cone 67190R91 then pressed. Selecting the wrong driver is one of the top line errors (errors_pinion_guide_for_KB.txt) — read the engraved cod. number, do not pick by eye."
+    },
+    {
+      "part_number_comer": "3187.111.100.27",
+      "part_number_cnh": "3187.111.100.27",
+      "description": "PUNCH FIXTURE / DRIVER cod.3187.111.100.27 — ring-retainer press (Step 8)",
+      "category": "Press Tooling / Drivers",
+      "specifications": "Punch fixture/driver for pressing the ring retainer 92203637 onto the pinion shaft at Step 8",
+      "visual_fingerprint": "SOLID hardened-steel PRESS DRIVER with a wide flat circular FLANGE / disc head on a narrower cylindrical body (mushroom/anvil silhouette); the flat top disc shows concentric machining rings and there is NO open through-bore. Engraved 'cod.3187.111.100.27' around the flange edge. VISUALLY NEARLY IDENTICAL to driver 3187.111.100.28 — the ONLY reliable discriminator is the engraved code's last two digits (…100.27 vs …100.28), so the engraved code is AUTHORITATIVE; never pick between .27 and .28 by shape. Distinct from the hollow open-bore cone driver 3187.111.180.00 (which has a through-bore). Used at Step 8.",
+      "image_filename": "driver_3187_111_100_27.png",
+      "used_in_steps": [
+        8
+      ],
+      "notes": "Step 8 punch fixture for pressing the ring retainer. Looks almost identical to the Step 14 driver 3187.111.100.28 — confusing these is the documented wrong-driver error; verify the engraved last digits before pressing.",
+      "decoy_on_steps": [
+        14
+      ],
+      "warning": {
+        "headline": "WRONG DRIVER",
+        "action": "Put it back — step 14 uses driver cod.3187.111.100.28; read the engraved last digits (.27 vs .28)"
+      }
+    },
+    {
+      "part_number_comer": "3187.111.100.28",
+      "part_number_cnh": "3187.111.100.28",
+      "description": "DRIVER cod.3187.111.100.28 — shim-pack disassembly driver (Step 14)",
+      "category": "Press Tooling / Drivers",
+      "specifications": "Driver collected in MANUAL mode to disassemble the shim pack when rolling torque fails at Step 14",
+      "visual_fingerprint": "SOLID hardened-steel PRESS DRIVER with a wide flat circular FLANGE / disc head on a tapered cylindrical body (mushroom/anvil silhouette); flat top disc with brushed/swirl machining and NO open through-bore. Engraved 'cod.3187.111.100.28' around the flange edge. VISUALLY NEARLY IDENTICAL to driver 3187.111.100.27 — the ONLY reliable discriminator is the engraved code's last two digits (…100.28 vs …100.27), so the engraved code is AUTHORITATIVE; never pick between .28 and .27 by shape. Distinct from the hollow open-bore cone driver 3187.111.180.00 (which has a through-bore). Used at Step 14.",
+      "image_filename": "driver_3187_111_100_28.png",
+      "used_in_steps": [
+        14
+      ],
+      "notes": "Step 14 driver: collected in MANUAL mode to press/disassemble the shim pack if rolling torque (5.6-20.3Nm) fails. Looks almost identical to the Step 8 fixture 3187.111.100.27 — confusing these is the documented wrong-driver error; verify the engraved last digits.",
+      "decoy_on_steps": [
+        8
+      ],
+      "warning": {
+        "headline": "WRONG DRIVER",
+        "action": "Put it back — step 8 uses punch fixture cod.3187.111.100.27; read the engraved last digits (.27 vs .28)"
+      }
+    },
+    {
+      "part_number_comer": "0900.7145",
+      "part_number_cnh": "92203640",
+      "description": "RING, SNAP RETAINER",
+      "category": "Rings / Retainers",
+      "specifications": "Large closed machined flange ring; polished steel; 2-hole pattern; secured with 2 screws",
+      "visual_fingerprint": "LARGE CLOSED machined polished-steel FLANGE RING (a flat annular disc / wide steel ring, MIRROR-like bright finish with a near-uniform/concentric ring wall). The stamped code '92203640' is clearly visible on the flat upper face. Has exactly TWO through-holes positioned ~180° apart (one on each side) for mounting screws. It is a FULLY CLOSED ring with NO gap. Distinct from: the thick retainer ring 92203637 (ALSO a closed 2-hole ring, but with a BRUSHED/satin finish and an OFF-CENTRE/eccentric bore, stamped '92203637'); the external snap ring / circlip 229515A2 (a thin C-SHAPED ring with an OPEN GAP — 92203640 has no gap); and flat shims/spacers (which are thinner and have no stamped code or mounting holes). When the stamped number '92203640' is legible, that code is authoritative — use it to tell 92203640 and 92203637 apart.",
+      "image_filename": "part_n_92203640.png",
+      "used_in_steps": [
+        16
+      ],
+      "notes": "Marked '92203640' on face; ring snap retainer assembled with 2 screws cod.14441231 at step 16. Visually close to 92203637 (brushed eccentric 2-hole) and the C-ring 229515A2 (open gap) — use finish, gap, and stamped code to disambiguate."
+    },
+    {
+      "part_number_comer": "",
+      "part_number_cnh": "191440A1-FLIP",
+      "description": "SMALL BEARING CUP 191440A1 — PLACED UPSIDE-DOWN / INVERTED (WRONG ORIENTATION)",
+      "category": "Bearings",
+      "specifications": "Synthetic wrong-state identity of small cup 191440A1 — same part, inverted orientation at Step 2",
+      "visual_fingerprint": "SMALL TAPERED ROLLER BEARING CUP turned UPSIDE-DOWN (WRONG orientation). The face pointing TOWARD the camera is the STAMPED MAKER face — a flat-ish rim carrying engraved/etched text ('TIMKEN', '572 CD1 RM VN') around the bore — instead of the bright wide tapered raceway. So: stamped TIMKEN text legible on the UP face ⇒ inverted ⇒ 191440A1-FLIP; bare bright tapered raceway with NO text up ⇒ correct ⇒ 191440A1 (line-engineer verified: the small cup's TIMKEN side faces DOWN when assembled — OPPOSITE of the big cup 248114A1). Same physical part as 191440A1; the ONLY difference is orientation. Assign this identity ONLY when stamped text on the up-face is unmistakable; when ambiguous (tilted, edge-on, glare, unreadable), DEFAULT TO CORRECT (191440A1) — a false wrong-orientation alarm is worse than a miss. Rim-width cue: the small cup's stamped rim is a NARROW band — if you see a broad thick stamped annulus instead, you are looking at the BIG cup 248114A1 in its CORRECT pose, not a flipped small cup.",
+      "image_filename": "bearing_cup_191440a1_flip_1.png; bearing_cup_191440a1_flip_2.png; bearing_cup_191440a1_flip_3.png; bearing_cup_191440a1_flip_4.png",
+      "used_in_steps": [
+        2
+      ],
+      "notes": "Synthetic decoy identity (not a real CNH part number). Flags the small bearing cup being placed/pressed upside-down at Step 2, mirroring the Step-1 big-cup decoy (248114A1-FLIP) and the Step-6 cone decoy (67190R91-FLIP).",
+      "_synthetic": true,
+      "decoy_for": "191440A1",
+      "warning": {
+        "headline": "WRONG ORIENTATION",
+        "action": "Flip it — the bright tapered raceway must face UP; the stamped TIMKEN face goes DOWN"
+      }
+    },
+    {
+      "part_number_comer": "",
+      "part_number_cnh": "248118A1-FLIP",
+      "description": "BEARING CONE 248118A1 — INSTALLED UPSIDE-DOWN (WRONG ORIENTATION)",
+      "category": "Bearings",
+      "specifications": "Synthetic wrong-state identity of cone 248118A1 — same part, flipped orientation at Step 4",
+      "visual_fingerprint": "TAPERED ROLLER BEARING CONE (INBOARD BEVEL PINION P900) turned UPSIDE-DOWN (WRONG orientation) — LARGER than 67190R91. FACE-ON: the face pointing TOWARD the camera is the FLAT solid machined steel RING with stamped maker text ('TIMKEN', 'NP6...', 'CD1') around the center bore — NO standing roller cage visible from above. SIDE VIEW: the SMOOTH solid roller-free steel band sits along the TOP edge ABOVE the rollers. Same physical part as 248118A1; assign this identity ONLY when the stamped text face is clearly UP or a side view clearly shows the smooth band on TOP — when ambiguous (tilted, glare, text unreadable), DEFAULT TO CORRECT (248118A1); a false wrong-orientation alarm is worse than a miss. NOTE — OPPOSITE of the step-6 cone 67190R91, where stamped face up is CORRECT.",
+      "image_filename": "bearing_cone_248118a1_flip.png; bearing_cone_248118a1_flip_2.png; bearing_cone_248118a1_flip_3.png",
+      "used_in_steps": [
+        4
+      ],
+      "notes": "Synthetic decoy identity (not a real CNH part number). Flags the inboard bevel pinion cone being placed/pressed upside-down at Step 4 (stamped TIMKEN face up = inverted, per the engineer's position reference photos — opposite convention from the step-6 cone 67190R91). Pressing the cone flipped causes part damage / rework documented in errors_pinion_guide_for_KB.txt.",
+      "_synthetic": true,
+      "decoy_for": "248118A1",
+      "warning": {
+        "headline": "WRONG ORIENTATION",
+        "action": "Flip it — the roller cage / wide tapered mouth must face UP; the stamped TIMKEN face goes DOWN"
+      }
+    },
+    {
+      "part_number_comer": "",
+      "part_number_cnh": "248114A1-FLIP",
+      "description": "BEARING CUP 248114A1 — PLACED UPSIDE-DOWN / INVERTED (WRONG ORIENTATION)",
+      "category": "Bearings",
+      "specifications": "Synthetic wrong-state identity of cup 248114A1 — same part, inverted orientation at Step 1",
+      "visual_fingerprint": "BIG TAPERED ROLLER BEARING CUP 248114A1 turned UPSIDE-DOWN (WRONG orientation) on the fixture/cover. The face pointing TOWARD the camera is the BRIGHT, smooth, polished TAPERED RACEWAY — a machined cone wall angling DOWN and INWARD with the WIDE mouth of the taper up — and NO stamped lettering anywhere on the up-face. So: bare bright wide tapered raceway with NO text on the up face ⇒ inverted ⇒ 248114A1-FLIP; stamped text ('TIMKEN', 'NP241715') legible on the UP face ⇒ correct ⇒ 248114A1 (line-engineer verified: TIMKEN side faces UP when assembled). Same physical part as 248114A1; the ONLY difference is orientation. NOTE — the SMALL cup 191440A1 uses the OPPOSITE convention; size the cup first. Assign this identity ONLY when the bare textless raceway face is clearly UP; when the pose is ambiguous (tilted, edge-on, glare, text possibly present but unreadable), DEFAULT TO CORRECT (248114A1) — a false wrong-orientation alarm is worse than a miss. Rim-width cue: if a stamped face IS visible and the rim is a broad thick annulus, it is the big cup the right way up (248114A1) — the thick TIMKEN rim UP is exactly the correct pose shown in Phase1.pdf.",
+      "image_filename": "bearing_cup_248114a1_flip_1.png",
+      "used_in_steps": [
+        1
+      ],
+      "notes": "Synthetic decoy identity (not a real CNH part number). Flags the big bearing cup being placed/pressed upside-down at Step 1, mirroring the Step 6 bearing-cone orientation decoy (67190R91-FLIP). Pressing the cup inverted causes the part damage / hard-removal downtime documented in errors_pinion_guide_for_KB.txt.",
+      "_synthetic": true,
+      "decoy_for": "248114A1",
+      "warning": {
+        "headline": "WRONG ORIENTATION",
+        "action": "Flip it — the stamped TIMKEN face must be UP; the bright tapered raceway goes DOWN"
+      }
+    },
+    {
+      "part_number_comer": "",
+      "part_number_cnh": "67190R91-FLIP",
+      "description": "BEARING CONE 67190R91 — INSTALLED UPSIDE-DOWN (WRONG ORIENTATION)",
+      "category": "Bearings",
+      "specifications": "Synthetic wrong-state identity of cone 67190R91 — same part, flipped orientation at Step 6",
+      "visual_fingerprint": "TAPERED ROLLER BEARING CONE turned UPSIDE-DOWN (WRONG orientation). FACE-ON: the face pointing TOWARD the camera is the ANGLED ROLLER CAGE standing up — a ring of slanted polished cylindrical rollers narrowing toward a smaller tapered opening, with NO flat stamped 'TIMKEN' / 'INDIA' text face visible on top. SIDE VIEW (held sideways, rollers seen edge-on as a row of bars): the ROLLERS reach the TOP rim and flare WIDER toward the top, while the SMOOTH solid roller-free steel band sits along the BOTTOM edge BELOW the rollers. Same physical part as 67190R91; the ONLY difference is orientation. Assign this identity when the standing roller cage faces the camera OR a side view shows the smooth band at the BOTTOM — otherwise it is the correctly-oriented 67190R91.",
+      "image_filename": "bearing_cone_67190r91_flip.png; bearing_cone_67190r91_flip_2.png; bearing_cone_67190r91_flip_3.png; bearing_cone_67190r91_flip_side.png",
+      "used_in_steps": [
+        6
+      ],
+      "notes": "Synthetic decoy identity (not a real CNH part number). Flags the bearing cone being placed/pressed upside-down at Step 6, mirroring the Step 7 C-ring wrong-part warning. Pressing the cone flipped causes the part damage / rework documented in errors_pinion_guide_for_KB.txt.",
+      "_synthetic": true,
+      "decoy_for": "67190R91",
+      "warning": {
+        "headline": "WRONG ORIENTATION",
+        "action": "Flip it — flat stamped face (TIMKEN) must face up"
+      }
+    }
+  ]
+}

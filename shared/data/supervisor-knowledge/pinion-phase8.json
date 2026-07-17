@@ -1,0 +1,155 @@
+{
+  "_kind": "supervisor-knowledge/v1",
+  "_source_video": "docs/source-material/pinion-videos/raw/Phase_8_Video.MP4",
+  "_phase_tag": "PHASE 8",
+  "_step_codes": [
+    "pinion-8"
+  ],
+  "_step_title": "4900.12001 P100 RING RETAINER",
+  "_recorded_by": "Comer line operator (narrating video)",
+  "_transcribed_by": "gemini-2.5-flash",
+  "_distilled_by": "claude-sonnet-4-6",
+  "_ingested_at": "2026-05-29T18:07:29.437Z",
+  "_verified_by": "human reconcile 2026-06-01: shim-pack stacking order corrected to authoritative CORRECT_Order video (thick 92203637 -> shims -> thin 191713A1). Facts pinion-phase8-001/002 originally distilled the phase-8 video's imprecise 'thin one down first' narration, which contradicted the reference; reconciled to defer to the correct-order video.",
+  "_full_transcript": "[00:00] Yeah.\n[00:00] Yes, please.\n[00:02] For phase eight, snap ring.\n[00:06] Orientation of the shims.\n[00:09] Thin one down first.\n[00:13] Thin shim.\n[00:16] And then show me the pictures that you see for phase eight.\n[00:18] Can I, can I put help?\n[00:20] Yeah.\n[00:23] Phase six, amazing.\n[00:25] Phase eight is phase six.\n[00:36] Okay.\n[00:41] Yeah, these instructions kind of suck because they won't tell you everything.\n[00:45] Shims.\n[00:50] Thick spacer.\n[00:59] Feeler gauge.\n[01:02] Tells us if it's okay.\n[01:05] If it goes in about that much.\n[01:08] Mhm.\n[01:09] It may be too low, but we can try.\n[01:19] Snap ring.\n[01:36] And now we must make sure it's flat and it's inside the groove.\n[01:41] We use our tool.\n[01:49] Okay.\n[02:13] Before we press, we want to make sure the assembly is correct.\n[02:20] With this tool.\n[02:25] You see it?\n[02:26] Right, you show me the, if it moves all the way down.\n[02:27] If it moves down.\n[02:29] I should have showed you before what a bad one looks like.\n[02:32] Moves smoothly.\n[02:35] It's okay.\n[02:37] Right, if it doesn't move smoothly, then it's not mounted current.\n[02:40] Yeah.\n[02:43] Fixture.\n[02:44] Okay, so basically the phase eight picture is just the final thing.\n[02:48] All right.\n[02:49] It doesn't tell you anything about putting the snap ring on, like it should.\n[02:53] Is like this.\n[02:55] Oh.\n[02:56] Yeah.\n[02:57] Yeah, this is a very new line so the pictures and everything is a work in progress.\n[03:02] Drawer.\n[03:04] Out.\n[03:07] Okay, okay, yes.\n[03:08] Now, now I'm understanding.\n[03:17] I don't know if this is relevant but if it's in.\n[03:21] No go.\n[03:24] Go.\n[03:29] No, no, everything is relevant.\n[03:31] Every little trick that you guys know that is not there is relevant.\n[03:36] Okay.\n[03:51] Yeah, this thing is hurt.\n[03:55] Now.\n[04:00] Technically, when we checked it before, this is a different.",
+  "facts": [
+    {
+      "id": "pinion-phase8-001",
+      "topic": "shim orientation",
+      "step_codes": [
+        "pinion-8"
+      ],
+      "fact": "Shim pack stacking orientation is critical and cannot be inverted. AUTHORITATIVE order (per the CORRECT_Order reference video): thick spacer (cod.92203637) goes down first, then the shims, then the thin spacer (cod.191713A1) on top. NOTE: this phase-8 video narration said 'thin one down first' — that is the imprecise shop narration that this check guards against; always defer to the correct-order reference (thick -> shims -> thin).",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase_8_Video.MP4",
+        "audio_offset_s": 9,
+        "transcript_quote": "Thin one down first."
+      },
+      "keyframes": [
+        "docs/source-material/pinion-videos/frames/Phase_8_Video/frame-003.jpg",
+        "docs/source-material/pinion-videos/frames/Phase_8_Video/frame-004.jpg"
+      ],
+      "confidence": "high",
+      "verified": true
+    },
+    {
+      "id": "pinion-phase8-002",
+      "topic": "shim sequence",
+      "step_codes": [
+        "pinion-8"
+      ],
+      "fact": "Authoritative assembly order on the pinion shaft (per the CORRECT_Order reference video): thick spacer (cod.92203637) down first, then the shims, then the thin spacer (cod.191713A1) on top — NOT 'thin shim first'. The phase-8 narration's 'thin shim, then thick spacer' is exactly the common mix-up to avoid; always build thick -> shims -> thin.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase_8_Video.MP4",
+        "audio_offset_s": 50,
+        "transcript_quote": "Thin shim. And then... Thick spacer."
+      },
+      "keyframes": [
+        "docs/source-material/pinion-videos/frames/Phase_8_Video/frame-005.jpg",
+        "docs/source-material/pinion-videos/frames/Phase_8_Video/frame-006.jpg"
+      ],
+      "confidence": "high",
+      "verified": true
+    },
+    {
+      "id": "pinion-phase8-003",
+      "topic": "assembly check",
+      "step_codes": [
+        "pinion-8"
+      ],
+      "fact": "A feeler gauge is used before pressing to verify the shim stack height is within acceptable range — the gauge should go in about the correct amount to confirm the assembly is okay.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase_8_Video.MP4",
+        "audio_offset_s": 59,
+        "transcript_quote": "Feeler gauge. Tells us if it's okay. If it goes in about that much."
+      },
+      "keyframes": [
+        "docs/source-material/pinion-videos/frames/Phase_8_Video/frame-010.jpg",
+        "docs/source-material/pinion-videos/frames/Phase_8_Video/frame-011.jpg"
+      ],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "pinion-phase8-004",
+      "topic": "snap ring seating",
+      "step_codes": [
+        "pinion-8"
+      ],
+      "fact": "After placing the snap ring, you must verify it is fully flat and seated inside the groove before pressing, using a dedicated tool to confirm seating.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase_8_Video.MP4",
+        "audio_offset_s": 96,
+        "transcript_quote": "We must make sure it's flat and it's inside the groove. We use our tool."
+      },
+      "keyframes": [
+        "docs/source-material/pinion-videos/frames/Phase_8_Video/frame-015.jpg",
+        "docs/source-material/pinion-videos/frames/Phase_8_Video/frame-016.jpg"
+      ],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "pinion-phase8-005",
+      "topic": "pre-press check",
+      "step_codes": [
+        "pinion-8"
+      ],
+      "fact": "Before pressing with the punch fixture, use a check tool to verify the assembly moves smoothly all the way down; if it does not move smoothly, the assembly is not mounted correctly and must be corrected.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase_8_Video.MP4",
+        "audio_offset_s": 133,
+        "transcript_quote": "If it doesn't move smoothly, then it's not mounted correct."
+      },
+      "keyframes": [
+        "docs/source-material/pinion-videos/frames/Phase_8_Video/frame-020.jpg",
+        "docs/source-material/pinion-videos/frames/Phase_8_Video/frame-021.jpg",
+        "docs/source-material/pinion-videos/frames/Phase_8_Video/frame-022.jpg"
+      ],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "pinion-phase8-006",
+      "topic": "go/no-go gauge",
+      "step_codes": [
+        "pinion-8"
+      ],
+      "fact": "A go/no-go gauge is used as part of the assembly verification; the 'no go' side must not pass and the 'go' side must pass to confirm correctness.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase_8_Video.MP4",
+        "audio_offset_s": 201,
+        "transcript_quote": "No go. Go."
+      },
+      "keyframes": [
+        "docs/source-material/pinion-videos/frames/Phase_8_Video/frame-030.jpg",
+        "docs/source-material/pinion-videos/frames/Phase_8_Video/frame-031.jpg"
+      ],
+      "confidence": "medium",
+      "verified": false
+    },
+    {
+      "id": "pinion-phase8-007",
+      "topic": "documentation gap",
+      "step_codes": [
+        "pinion-8"
+      ],
+      "fact": "The phase 8 procedure picture only shows the final pressed result and does not document the intermediate steps of installing the snap ring or shims, so workers must rely on verbal knowledge not captured in the formal instructions.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase_8_Video.MP4",
+        "audio_offset_s": 169,
+        "transcript_quote": "It doesn't tell you anything about putting the snap ring on, like it should."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    }
+  ]
+}

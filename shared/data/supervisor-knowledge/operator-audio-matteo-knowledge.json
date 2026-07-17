@@ -1,0 +1,68 @@
+{
+  "_kind": "supervisor-knowledge/v1",
+  "_source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Matteo knowledge comer.m4a",
+  "_phase_tag": "Comer visit (Jun 1) — Matteo: part-code matching & 425 variant",
+  "_step_codes": [
+    "pinion-7"
+  ],
+  "_step_title": "Comer visit (Jun 1) — Matteo: part-code matching & 425 variant",
+  "_recorded_by": "Matteo (Comer line operator), factory visit 2026-06-01",
+  "_transcribed_by": "gemini-2.5-flash",
+  "_distilled_by": "claude-sonnet-4-6",
+  "_ingested_at": "2026-06-01T20:17:14.647Z",
+  "_verified_by": null,
+  "_full_transcript": "[00:00] (silence)\n[00:03] They match.\n[00:04] And it's 425 this ground.\n[00:07] Uh-huh.\n[00:08] Mhm.\n[00:11] But we have a spot which could be good.\n[00:16] Okay, so for the operators, these parts arrive already with like\n[00:20] Oh, it needs to be, okay.\n[00:23] It's the same, it's the same.\n[00:27] Okay.\n[00:28] Okay, I see.\n[00:30] Okay.\n[00:31] So just for context, this is for matching the code on uh the parts with the code on the machine.\n[00:38] And this applies for all the procedures of the opinion guide.\n[00:46] Okay, not for for 425.\n[00:48] Right.\n[00:51] And and why not for 425?\n[00:54] Because it's different.\n[00:56] Okay.\n[00:58] But like this this method is not used for 425 or there's different code for 425.\n[01:03] Okay, there's Okay, okay, perfect.\n[01:06] But it's not you don't care that is not used for 425, there is no code here now.\n[01:12] No.\n[01:13] It's not code.\n[01:15] Okay.\n[01:16] It's standard and we have all the drawings.\n[01:18] Mhm.\n[01:21] Okay.\n[01:21] Okay, sure.",
+  "facts": [
+    {
+      "id": "matteo-knowledge-001",
+      "topic": "variant rule",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "Matching the code on parts with the code on the machine applies to all pinion procedures except the 425 variant.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Matteo knowledge comer.m4a",
+        "audio_offset_s": 31,
+        "transcript_quote": "matching the code on the parts with the code on the machine, this applies for all the procedures of the opinion guide"
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "matteo-knowledge-002",
+      "topic": "variant rule",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "The 425 variant does not use code matching; instead, standard drawings are used for assembly.",
+      "applies_when": "assembling the 425 variant",
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Matteo knowledge comer.m4a",
+        "audio_offset_s": 66,
+        "transcript_quote": "it's not code, it's standard and we have all the drawings"
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "matteo-knowledge-003",
+      "topic": "variant rule",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "For the 425 variant there is no part code to match, so operators must rely on drawings rather than code-to-machine matching.",
+      "applies_when": "assembling the 425 variant",
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Matteo knowledge comer.m4a",
+        "audio_offset_s": 58,
+        "transcript_quote": "you don't care that is not used for 425, there is no code here now"
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    }
+  ]
+}

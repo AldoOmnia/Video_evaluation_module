@@ -1,0 +1,39 @@
+{
+  "_kind": "supervisor-knowledge/v1",
+  "_phase_tag": "Rockford line — station usage by axle model",
+  "_step_codes": [],
+  "_step_title": "ST400/ST500 subassembly stations vs axle model",
+  "_recorded_by": "Mohammed Pulikkal (Comer mechanical engineer), platform note 2026-07-16",
+  "_ingested_at": "2026-07-16T19:30:00.000Z",
+  "_verified_by": "relayed directly by Mohammed for the plant-layout mapping work",
+  "facts": [
+    {
+      "id": "stations-axle-models-001",
+      "topic": "station data coverage",
+      "step_codes": [],
+      "fact": "There is no data for stations ST400-410 in the Full_stations_report because the axle model covered by that report is a Quad Track. ST400 is the axle mount (Stage 3 subassembly) used for other types of axles — the LW and SW models.",
+      "applies_when": "when asked why ST400-410 shows no MES data on the facility map",
+      "citation": {
+        "source_audio": null,
+        "transcript_quote": "No data for station 400-410 because the axle model in the report is a Quad Track, and 400 is the axle mount for other types of axles (LW and SW)."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": true
+    },
+    {
+      "id": "stations-axle-models-002",
+      "topic": "station usage by axle model",
+      "step_codes": [],
+      "fact": "Whether a build runs through ST400 or ST500 depends on the model of the axle being built: ST400 serves the LW and SW axle models, while the Quad Track build in the current report uses ST500. The station set for any given order follows the axle model.",
+      "applies_when": "when asked which stations a given axle model uses, or why some stations are idle for a build",
+      "citation": {
+        "source_audio": null,
+        "transcript_quote": "The use of ST400 and ST500 depends on the model of the axle build."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": true
+    }
+  ]
+}

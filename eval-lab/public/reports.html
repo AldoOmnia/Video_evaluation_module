@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Warnings &amp; savings report · Comer Industries</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #050505;
+      --bg-2: #0d0d0d;
+      --bg-3: #141414;
+      --ink-1: #f5f5f5;
+      --ink-2: #a3a3a3;
+      --ink-3: #6b6b6b;
+      --line: #1f1f1f;
+      --line-2: #2a2a2a;
+      --primary: #00E5A0;
+      --primary-dim: #00996B;
+      --ok: #4ade80;
+      --warn: #f59e0b;
+      --err: #ef4444;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --mono: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; }
+    body {
+      background: var(--bg); color: var(--ink-1);
+      font-family: var(--sans); font-size: 14px; line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    .bg { position: fixed; inset: 0; z-index: -1;
+      background:
+        radial-gradient(1100px 500px at 80% -10%, rgba(0,229,160,0.05), transparent 60%),
+        radial-gradient(900px 500px at 0% 110%, rgba(0,229,160,0.04), transparent 55%);
+    }
+
+    .topbar {
+      display: flex; align-items: center; gap: 14px;
+      padding: 13px 22px; border-bottom: 1px solid var(--line);
+      background: rgba(5,5,5,0.85); backdrop-filter: blur(10px);
+      position: sticky; top: 0; z-index: 20;
+    }
+    .back-home {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--ink-2); text-decoration: none;
+      border: 1px solid var(--line-2); border-radius: 6px; padding: 6px 10px;
+      transition: color 140ms ease, border-color 140ms ease;
+    }
+    .back-home:hover { color: var(--primary); border-color: var(--primary-dim); }
+    .topbar-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+    .topbar-title strong { color: var(--ink-1); font-weight: 500; }
+    .refresh {
+      margin-left: auto;
+      background: transparent; border: 1px solid var(--line-2); border-radius: 6px;
+      color: var(--ink-2); font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 6px 12px; cursor: pointer;
+      transition: color 140ms ease, border-color 140ms ease;
+    }
+    .refresh:hover { color: var(--primary); border-color: var(--primary-dim); }
+
+    .wrap { max-width: 980px; margin: 0 auto; padding: 26px 22px 70px; }
+    .head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+    .head h1 { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
+    .head .chip {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 3px 9px; border-radius: 12px; border: 1px solid var(--line-2); color: var(--ink-3);
+    }
+    .head .chip.live { color: var(--ok); border-color: rgba(74,222,128,0.35); }
+    .head .chip.stub { color: var(--warn); border-color: rgba(245,158,11,0.35); }
+    .head .period { font-family: var(--mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.06em; text-transform: uppercase; }
+    .sub { color: var(--ink-2); font-size: 12.5px; max-width: 640px; margin-bottom: 22px; }
+
+    .rep-totals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 24px; }
+    @media (max-width: 640px) { .rep-totals { grid-template-columns: repeat(2, 1fr); } }
+    .rep-totals .cell {
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      border-radius: 10px; padding: 16px 10px; text-align: center;
+    }
+    .rep-totals .n { font-family: var(--mono); font-size: 24px; font-weight: 500; }
+    .rep-totals .n.good { color: var(--ok); }
+    .rep-totals .n.bad { color: var(--err); }
+    .rep-totals .n.eur { color: var(--primary); }
+    .rep-totals .l {
+      font-family: var(--mono); font-size: 8.5px;
+      letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-top: 5px;
+    }
+
+    .sec-h {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--ink-3); margin: 0 0 10px 2px;
+    }
+    .workers { display: flex; flex-direction: column; gap: 12px; }
+    .worker-row {
+      display: flex; flex-direction: column; gap: 9px;
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      border-radius: 12px; padding: 15px 17px;
+    }
+    .worker-top { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+    .worker-top .nm { font-size: 14px; font-weight: 600; }
+    .worker-top .id { font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+    .worker-top .dev { font-family: var(--mono); font-size: 10px; color: var(--ink-3); margin-left: auto; }
+    .warn-bar {
+      display: flex; height: 12px; border-radius: 6px; overflow: hidden;
+      background: var(--bg-3); border: 1px solid var(--line);
+    }
+    .warn-bar .seg-avoided { background: linear-gradient(90deg, var(--primary-dim), var(--primary)); }
+    .warn-bar .seg-missed { background: rgba(239,68,68,0.65); }
+    .warn-legend {
+      display: flex; gap: 14px; flex-wrap: wrap;
+      font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+    }
+    .warn-legend .good { color: var(--ok); }
+    .warn-legend .bad { color: var(--err); }
+    .frames { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 3px; }
+    .frame {
+      width: 172px; border: 1px solid var(--line-2); border-radius: 8px;
+      overflow: hidden; background: #000;
+    }
+    .frame img { display: block; width: 100%; aspect-ratio: 16/10; object-fit: cover; }
+    .frame .cap {
+      font-family: var(--mono); font-size: 9px; color: var(--ink-3);
+      padding: 5px 7px; line-height: 1.4;
+      border-top: 1px solid var(--line);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .frame .cap .code { color: var(--warn); }
+
+    .note {
+      font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+      line-height: 1.7; margin-top: 22px; border-top: 1px solid var(--line); padding-top: 14px;
+    }
+    .status { font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.05em; padding: 40px 0; text-align: center; }
+    .status.err { color: var(--err); }
+  </style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <a class="back-home" href="/home/" data-i18n="nav.backHome">← Home</a>
+    <span class="topbar-title" data-i18n="rep.topbarTitle"><strong>Warnings &amp; savings report</strong> · glasses fleet</span>
+    <button class="refresh" id="refresh" data-i18n="rep.refresh">Refresh</button>
+  </header>
+
+  <div class="wrap">
+    <div class="head">
+      <h1 data-i18n="rep.h1">Glasses warnings</h1>
+      <span class="chip" id="mode-chip">—</span>
+      <span class="period" id="period">—</span>
+    </div>
+    <p class="sub" data-i18n="rep.sub">Per worker and per pair of glasses: warnings fired on the line, the POV frames captured
+      when they fired, mistakes avoided after the warning — and the rework cost that avoided.</p>
+
+    <div id="report-body"><div class="status" data-i18n="rep.loading">loading the warnings report…</div></div>
+  </div>
+
+  <script>
+    /* ── Session gate ─────────────────────────── */
+    try {
+      const s = JSON.parse(localStorage.getItem('omnia.session') || 'null');
+      if (!s || s.tenant !== 'comer' || s.expiresAt <= Date.now()) window.location.replace('/login');
+    } catch { window.location.replace('/login'); }
+
+    function esc(s) {
+      return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      }[c]));
+    }
+    function eur(n) { return '€' + Number(n || 0).toLocaleString('en-US'); }
+    const T = (k, en) => (window.OmniaI18n ? window.OmniaI18n.t(k, en) : en);
+
+    function render(d) {
+      const t = d.totals || {};
+      const chip = document.getElementById('mode-chip');
+      chip.textContent = d.mode === 'live' ? 'live' : T('rep.demoData', 'demo data');
+      chip.className = 'chip ' + (d.mode === 'live' ? 'live' : 'stub');
+      document.getElementById('period').textContent = d.period || '';
+
+      const workers = (d.workers || []).map((w) => {
+        const total = Math.max(1, w.warningsFired);
+        const pctAvoided = Math.round((w.avoided / total) * 100);
+        const frames = (w.frames || []).map((f) =>
+          `<div class="frame"><img src="${esc(f.src)}" alt="${esc(f.label)}" loading="lazy"/>
+            <div class="cap"><span class="code">${esc(f.code || '')}</span> ${esc(f.label)}</div></div>`).join('');
+        return `<div class="worker-row">
+          <div class="worker-top"><span class="nm">${esc(w.workerName)}</span>
+            <span class="id">#${esc(w.workerId)}</span>
+            <span class="dev">${esc(w.device || '')}</span></div>
+          <div class="warn-bar" title="${w.avoided} avoided / ${w.missed} missed">
+            <div class="seg-avoided" style="width:${pctAvoided}%"></div>
+            <div class="seg-missed" style="width:${100 - pctAvoided}%"></div>
+          </div>
+          <div class="warn-legend">
+            <span>${w.warningsFired} ${esc(T('rep.legFired', 'warnings fired'))}</span>
+            <span class="good">${w.avoided} ${esc(T('rep.legAvoided', 'avoided'))}</span>
+            <span class="bad">${w.missed} ${esc(T('rep.legMissed', 'missed'))}</span>
+            <span>top: ${esc(w.topError || '—')}</span>
+          </div>
+          ${frames ? `<div class="frames">${frames}</div>` : ''}
+        </div>`;
+      }).join('');
+
+      document.getElementById('report-body').innerHTML = `
+        <div class="rep-totals">
+          <div class="cell"><div class="n">${t.warningsFired ?? '—'}</div><div class="l">${esc(T('rep.warningsFired', 'warnings fired'))}</div></div>
+          <div class="cell"><div class="n good">${t.avoided ?? '—'}</div><div class="l">${esc(T('rep.mistakesAvoided', 'mistakes avoided'))}</div></div>
+          <div class="cell"><div class="n bad">${t.missed ?? '—'}</div><div class="l">${esc(T('rep.slippedThrough', 'slipped through'))}</div></div>
+          <div class="cell"><div class="n eur">${eur(t.estimatedSavingsEur)}</div><div class="l">${esc(T('rep.reworkSaved', 'est. rework saved'))}</div></div>
+        </div>
+        <div class="sec-h">${esc(T('rep.perWorker', 'Per worker · per pair of glasses'))}</div>
+        <div class="workers">${workers}</div>
+        <div class="note">
+          ${esc(T('rep.note1', 'Savings = avoided × '))}${eur(d.avgReworkCostEur)}${esc(T('rep.note2', ' avg rework (labor + parts). POV frames are captured by the glasses the moment a warning fires. '))}
+          ${d.mode === 'live' ? '' : esc(d.detail || '')}
+        </div>`;
+    }
+
+    async function load() {
+      try {
+        const r = await fetch('/api/line/report', { cache: 'no-store' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        render(await r.json());
+      } catch (e) {
+        document.getElementById('report-body').innerHTML =
+          `<div class="status err">${esc(T('rep.loadErr', 'could not load the report — '))}${esc(e.message)}</div>`;
+      }
+    }
+    document.getElementById('refresh').addEventListener('click', load);
+    // First render waits for DOMContentLoaded so the deferred i18n.js has
+    // executed — otherwise the totals labels can race it and stay English.
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', load);
+    else load();
+    setInterval(load, 60_000);
+  </script>
+
+  <!-- Platform-wide Brain dock -->
+  <script>
+    window.BrainDockContext = () => ({
+      page: 'Warnings & savings report',
+      view: 'glasses fleet — warnings fired, avoided, rework saved',
+    });
+  </script>
+  <script src="/lab/assets/i18n.js?v=2" defer></script>
+  <script src="/lab/assets/brain-dock.js?v=9" defer></script>
+</body>
+</html>

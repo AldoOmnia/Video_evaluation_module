@@ -1,0 +1,92 @@
+{
+  "_kind": "supervisor-knowledge/v1",
+  "_source_video": "docs/source-material/pinion-videos/raw/Phase6_Video.MP4",
+  "_phase_tag": "PHASE 6",
+  "_step_codes": [
+    "pinion-6"
+  ],
+  "_step_title": "4900.12001 P100 SUP BEARING ON PINION",
+  "_recorded_by": "Comer line operator (narrating video)",
+  "_transcribed_by": "gemini-2.5-flash",
+  "_distilled_by": "claude-sonnet-4-6",
+  "_ingested_at": "2026-05-29T18:07:46.751Z",
+  "_verified_by": null,
+  "_full_transcript": "[00:00] Okay, step six.\n[00:02] Okay, go ahead.\n[00:04] Yeah.\n[00:05] So I I checked, right?\n[00:08] Okay.\n[00:17] We may have, yeah, we do have pictures.\n[00:25] Yeah, it goes with that.\n[00:27] They have it labeled wrong.\n[00:30] They wrote it.\n[00:31] So on our system, it's correct, but they just labeled this wrong.\n[00:35] Phase four.\n[00:37] They labeled it incorrect.\n[00:37] Man, it's so confusing.\n[00:38] So.\n[00:39] Okay, so phase six, yeah, because I put phase four should be phase six.\n[00:43] Yeah, yeah, yeah.\n[00:44] So it's okay.\n[00:45] And phase four, can we see what's the picture?\n[00:49] No, not right now.\n[00:49] We already went past it, so we can't see the picture.\n[00:52] Maybe Robert can show you.\n[00:54] Okay.\n[00:54] Robert or Racine, they can show you, but right now, no, I can't.\n[00:58] We've already gone past it.\n[01:00] Okay, so yeah, let me do it from now on.\n[01:02] Let's let's do them all from now on.\n[01:05] I I've done uh phase five video, and now we're doing phase six.\n[01:13] Which also has the phase four PDF.\n[01:16] Yeah.\n[01:17] Yeah.\n[01:18] Yeah.\n[01:21] Yeah.\n[01:40] Yeah.\n[01:42] Oops.\n[01:47] Okay.\n[02:09] In the AR glasses, you could put the orientation of the bearing comb, because it does matter.\n[02:14] You can only put it this way.\n[02:16] Oh, okay.\n[02:17] Only this way.\n[02:18] You try to go the other way.\n[02:24] So I don't know if that's something you want to put on the program, but yeah.\n[02:27] Yeah.\n[02:28] The orientation will.\n[02:28] You want to show me like how what?\n[02:30] Where do you just.\n[02:31] Where do you determine the the orientation?\n[02:34] Let me.\n[02:47] Right.\n[02:48] Right.\n[02:49] Right.\n[02:51] No, not really.\n[02:52] See.\n[02:53] You can't.\n[03:00] Okay.\n[03:01] Yeah.\n[03:04] Yeah.\n[03:14] Okay.\n[03:17] And then I need to press.\n[03:26] And now it's going to move to phase seven, right, automatically?\n[03:29] After we press this successfully, it'll automatically move on.\n[03:34] Jeff, what's the number at?\n[03:35] Tell me if I go over.\n[03:39] Yeah, by enough.\n[03:42] Am I over?\n[03:45] Okay.\n[03:46] Okay, so step seven.",
+  "facts": [
+    {
+      "id": "pinion-phase6-001",
+      "topic": "bearing orientation",
+      "step_codes": [
+        "pinion-6"
+      ],
+      "fact": "The bearing cone cod.67190R91 has a mandatory orientation when placed onto the cover — it can only be installed one way, and attempting to place it in the opposite orientation will not work.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase6_Video.MP4",
+        "audio_offset_s": 129,
+        "transcript_quote": "the orientation of the bearing comb, because it does matter. You can only put it this way."
+      },
+      "keyframes": [
+        "docs/source-material/pinion-videos/frames/Phase6_Video/frame-026.jpg",
+        "docs/source-material/pinion-videos/frames/Phase6_Video/frame-027.jpg",
+        "docs/source-material/pinion-videos/frames/Phase6_Video/frame-028.jpg"
+      ],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "pinion-phase6-002",
+      "topic": "phase labeling error",
+      "step_codes": [
+        "pinion-6"
+      ],
+      "fact": "The PDF associated with this phase is labeled 'Phase 4' in the document but the correct phase number in the system is Phase 6 — workers should not be confused by the mislabeled PDF.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase6_Video.MP4",
+        "audio_offset_s": 39,
+        "transcript_quote": "phase six, yeah, because I put phase four should be phase six."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "pinion-phase6-003",
+      "topic": "press monitoring",
+      "step_codes": [
+        "pinion-6"
+      ],
+      "fact": "During the press operation, a second person should monitor the press force readout and call out if the value goes over the acceptable limit.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase6_Video.MP4",
+        "audio_offset_s": 214,
+        "transcript_quote": "Jeff, what's the number at? Tell me if I go over."
+      },
+      "keyframes": [
+        "docs/source-material/pinion-videos/frames/Phase6_Video/frame-043.jpg",
+        "docs/source-material/pinion-videos/frames/Phase6_Video/frame-044.jpg"
+      ],
+      "confidence": "medium",
+      "verified": false
+    },
+    {
+      "id": "pinion-phase6-004",
+      "topic": "workflow automation",
+      "step_codes": [
+        "pinion-6"
+      ],
+      "fact": "After the press operation for Phase 6 is completed successfully, the AR/system interface automatically advances to Phase 7 without manual navigation.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase6_Video.MP4",
+        "audio_offset_s": 206,
+        "transcript_quote": "After we press this successfully, it'll automatically move on."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    }
+  ]
+}

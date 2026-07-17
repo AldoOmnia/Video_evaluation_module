@@ -1,0 +1,102 @@
+{
+  "_kind": "supervisor-knowledge/v1",
+  "_source_video": "docs/source-material/pinion-videos/raw/Phase_9_Video.MP4",
+  "_phase_tag": "PHASE 9",
+  "_step_codes": [
+    "pinion-9"
+  ],
+  "_step_title": "4900.12001 P100 RING RETAINER CHECK",
+  "_recorded_by": "Comer line operator (narrating video)",
+  "_transcribed_by": "gemini-2.5-flash",
+  "_distilled_by": "claude-sonnet-4-6",
+  "_ingested_at": "2026-05-29T18:06:10.272Z",
+  "_verified_by": null,
+  "_full_transcript": "[00:00] Phase nine.\n[00:02] Okay.\n[00:03] We check.\n[00:06] Phase nine is phase seven.\n[00:07] Of course.\n[00:14] Yes, yes.\n[00:14] If you go to talk to them, I don't want to get into that.\n[00:21] that it's going to work.\n[00:23] Now it's relaxed.\n[00:25] Okay.\n[00:28] Phase nine.\n[00:30] So phase seven, phase nine.\n[00:31] Okay.\n[00:32] So we use the tool.\n[00:34] to make sure.\n[00:35] We used it before, but we always used that before we actually use it in phase nine to make sure the snap ring is on correctly.\n[00:43] You can do it in this step as well.\n[00:44] Doesn't matter.\n[00:46] Same thing, checking, making sure it's all the way down.\n[00:51] Spins easy.\n[00:53] Doesn't fight.\n[00:56] Right there, there's a value.\n[00:58] We don't know the correct values, what it has to be at.\n[01:01] All we do is hit record or next.\n[01:07] All we are ensuring on this is making sure that it's all the way down.",
+  "facts": [
+    {
+      "id": "pinion-phase9-001",
+      "topic": "sequence cue",
+      "step_codes": [
+        "pinion-9"
+      ],
+      "fact": "Phase nine is functionally related to phase seven — the snap ring check performed in phase seven is repeated here in phase nine to confirm the snap ring is seated correctly.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase_9_Video.MP4",
+        "audio_offset_s": 35,
+        "transcript_quote": "we always used that before we actually use it in phase nine to make sure the snap ring is on correctly"
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "pinion-phase9-002",
+      "topic": "acceptance criterion",
+      "step_codes": [
+        "pinion-9"
+      ],
+      "fact": "The primary acceptance criterion for this check is that the ring retainer is fully seated all the way down — not a specific numeric Mitutoyo value.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase_9_Video.MP4",
+        "audio_offset_s": 67,
+        "transcript_quote": "All we are ensuring on this is making sure that it's all the way down"
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "pinion-phase9-003",
+      "topic": "measurement procedure",
+      "step_codes": [
+        "pinion-9"
+      ],
+      "fact": "The operator does not verify a specific numeric target value from the Mitutoyo tool; they simply hit 'record' or 'next' to log the measurement and proceed.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase_9_Video.MP4",
+        "audio_offset_s": 61,
+        "transcript_quote": "We don't know the correct values, what it has to be at. All we do is hit record or next"
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "pinion-phase9-004",
+      "topic": "rotation check",
+      "step_codes": [
+        "pinion-9"
+      ],
+      "fact": "After confirming the ring retainer is seated, spin the assembly by hand to verify it rotates easily without resistance ('spins easy, doesn't fight') as a secondary confirmation of correct assembly.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase_9_Video.MP4",
+        "audio_offset_s": 51,
+        "transcript_quote": "Spins easy. Doesn't fight."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "pinion-phase9-005",
+      "topic": "step flexibility",
+      "step_codes": [
+        "pinion-9"
+      ],
+      "fact": "This ring retainer check can alternatively be performed during the phase seven step — it does not have to wait until phase nine.",
+      "applies_when": null,
+      "citation": {
+        "source_video": "docs/source-material/pinion-videos/raw/Phase_9_Video.MP4",
+        "audio_offset_s": 43,
+        "transcript_quote": "You can do it in this step as well. Doesn't matter."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    }
+  ]
+}

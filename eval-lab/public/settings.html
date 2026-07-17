@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings · Comer Industries</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #050505;
+      --bg-2: #0d0d0d;
+      --bg-3: #141414;
+      --ink-1: #f5f5f5;
+      --ink-2: #a3a3a3;
+      --ink-3: #6b6b6b;
+      --line: #1f1f1f;
+      --line-2: #2a2a2a;
+      --primary: #00E5A0;
+      --primary-dim: #00996B;
+      --ok: #4ade80;
+      --warn: #f59e0b;
+      --err: #ef4444;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --mono: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    html, body { min-height: 100%; }
+    body {
+      background: var(--bg); color: var(--ink-1);
+      font-family: var(--sans); font-size: 14px; line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    .bg { position: fixed; inset: 0; z-index: -1;
+      background:
+        radial-gradient(1100px 500px at 80% -10%, rgba(0,229,160,0.05), transparent 60%),
+        radial-gradient(900px 500px at 0% 110%, rgba(0,229,160,0.04), transparent 55%);
+    }
+
+    .topbar {
+      display: flex; align-items: center; gap: 14px;
+      padding: 13px 22px; border-bottom: 1px solid var(--line);
+      background: rgba(5,5,5,0.85); backdrop-filter: blur(10px);
+      position: sticky; top: 0; z-index: 20;
+    }
+    .back-home {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--ink-2); text-decoration: none;
+      border: 1px solid var(--line-2); border-radius: 6px; padding: 6px 10px;
+      transition: color 140ms ease, border-color 140ms ease;
+    }
+    .back-home:hover { color: var(--primary); border-color: var(--primary-dim); }
+    .topbar-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+    .topbar-title strong { color: var(--ink-1); font-weight: 500; }
+    .user-chip {
+      margin-left: auto;
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em;
+      padding: 4px 10px; border-radius: 20px;
+      border: 1px solid var(--line-2); color: var(--ink-2);
+      white-space: nowrap;
+    }
+
+    .wrap {
+      max-width: 1080px; margin: 0 auto; padding: 28px 22px 90px;
+      display: grid; grid-template-columns: 208px minmax(0, 1fr); gap: 34px;
+      align-items: start;
+    }
+    @media (max-width: 860px) { .wrap { grid-template-columns: 1fr; } }
+
+    /* ── Left rail ───────────────────────── */
+    .rail { position: sticky; top: 76px; display: flex; flex-direction: column; gap: 2px; }
+    @media (max-width: 860px) { .rail { position: static; flex-direction: row; flex-wrap: wrap; gap: 6px; } }
+    .rail .k {
+      font-family: var(--mono); font-size: 8px; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--ink-3); padding: 12px 10px 5px;
+    }
+    @media (max-width: 860px) { .rail .k { display: none; } }
+    .rail a {
+      display: block; padding: 7px 10px; border-radius: 7px;
+      color: var(--ink-2); text-decoration: none; font-size: 12.5px; font-weight: 500;
+      border: 1px solid transparent;
+      transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+    }
+    .rail a:hover { background: var(--bg-3); color: var(--ink-1); }
+    .rail a.is-on { background: rgba(0,229,160,0.08); border-color: rgba(0,229,160,0.25); color: var(--primary); }
+
+    /* ── Content ─────────────────────────── */
+    .content { display: flex; flex-direction: column; gap: 44px; min-width: 0; }
+    section { scroll-margin-top: 76px; }
+    .sec-kicker {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--primary); margin-bottom: 6px;
+    }
+    section h2 { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 6px; }
+    .sec-sub { color: var(--ink-2); font-size: 12.5px; max-width: 640px; margin-bottom: 18px; }
+
+    .card {
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      border-radius: 12px; padding: 18px;
+    }
+    .card + .card { margin-top: 12px; }
+    .card h3 { font-size: 13.5px; font-weight: 600; margin-bottom: 10px; }
+
+    /* profile rows */
+    .prof { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 26px; }
+    @media (max-width: 680px) { .prof { grid-template-columns: 1fr; } }
+    .prof .row {
+      display: flex; justify-content: space-between; gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.05); padding: 7px 0;
+      font-size: 12.5px;
+    }
+    .prof .row .k { color: var(--ink-3); font-family: var(--mono); font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase; align-self: center; }
+    .prof .row .v { color: var(--ink-1); text-align: right; font-family: var(--mono); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; }
+    .prof .row .v.ok { color: var(--ok); }
+
+    /* AI prefs */
+    .pref { display: flex; flex-direction: column; gap: 8px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .pref:last-child { border-bottom: 0; padding-bottom: 0; }
+    .pref:first-child { padding-top: 0; }
+    .pref .p-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+    .pref .p-name { font-size: 13px; font-weight: 600; }
+    .pref .p-desc { color: var(--ink-3); font-size: 11.5px; }
+    .seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden; width: fit-content; }
+    .seg button {
+      background: transparent; border: 0; color: var(--ink-2); cursor: pointer;
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase;
+      padding: 7px 14px; border-right: 1px solid var(--line-2);
+      transition: background 140ms ease, color 140ms ease;
+    }
+    .seg button:last-child { border-right: 0; }
+    .seg button:hover { color: var(--ink-1); }
+    .seg button.is-on { background: rgba(0,229,160,0.1); color: var(--primary); }
+    .model-rows { display: flex; flex-direction: column; gap: 6px; font-family: var(--mono); font-size: 11px; }
+    .model-rows .row { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.04); padding: 4px 0; }
+    .model-rows .k { color: var(--ink-3); }
+    .model-rows .v { color: var(--ink-1); text-align: right; }
+
+    /* ontology table */
+    .ont-group { margin-bottom: 16px; }
+    .ont-group:last-child { margin-bottom: 0; }
+    .ont-g-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+    .ont-g-head .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .ont-g-head .nm { font-size: 12.5px; font-weight: 600; }
+    .ont-g-head .ds { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); letter-spacing: 0.04em; }
+    .ont-row {
+      display: grid; grid-template-columns: 150px minmax(0,1fr) 190px; gap: 12px;
+      align-items: center; padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    @media (max-width: 720px) { .ont-row { grid-template-columns: 1fr; gap: 4px; } }
+    .ont-row .code { font-family: var(--mono); font-size: 10.5px; color: var(--ink-1); letter-spacing: 0.03em; }
+    .ont-row .desc { color: var(--ink-3); font-size: 11.5px; }
+    .ont-row input {
+      background: var(--bg-3); border: 1px solid var(--line-2); border-radius: 7px;
+      color: var(--ink-1); font-family: var(--mono); font-size: 11px;
+      padding: 6px 9px; width: 100%;
+      transition: border-color 140ms ease;
+    }
+    .ont-row input::placeholder { color: var(--ink-3); }
+    .ont-row input:focus { outline: none; border-color: var(--primary-dim); }
+    .ont-save {
+      margin-top: 14px; display: flex; align-items: center; gap: 12px;
+    }
+    .ont-save button {
+      background: var(--primary); color: #05221a; border: 0; border-radius: 8px;
+      font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+      font-weight: 600; padding: 9px 18px; cursor: pointer;
+      transition: filter 140ms ease;
+    }
+    .ont-save button:hover { filter: brightness(1.1); }
+    .ont-save .flash { font-family: var(--mono); font-size: 10px; color: var(--ok); opacity: 0; transition: opacity 200ms ease; }
+    .ont-save .flash.is-on { opacity: 1; }
+
+    /* documentation */
+    .doc-step { display: flex; gap: 14px; margin-bottom: 20px; }
+    .doc-step:last-child { margin-bottom: 0; }
+    .doc-step .n {
+      flex: none; width: 26px; height: 26px; border-radius: 50%;
+      border: 1px solid var(--primary-dim); color: var(--primary);
+      font-family: var(--mono); font-size: 11px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; margin-top: 1px;
+    }
+    .doc-step .b { min-width: 0; flex: 1; }
+    .doc-step h4 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .doc-step p { color: var(--ink-2); font-size: 12.5px; margin-bottom: 8px; }
+    .doc-step p code, .callout code, .sec-sub code {
+      font-family: var(--mono); font-size: 11px; color: var(--primary);
+      background: rgba(0,229,160,0.06); border: 1px solid rgba(0,229,160,0.15);
+      border-radius: 4px; padding: 1px 5px;
+    }
+
+    .codeblock { border: 1px solid var(--line-2); border-radius: 10px; overflow: hidden; background: #090909; margin-bottom: 10px; }
+    .codeblock:last-child { margin-bottom: 0; }
+    .cb-head {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 12px; background: var(--bg-3); border-bottom: 1px solid var(--line);
+      font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--ink-3);
+    }
+    .cb-copy {
+      margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+      background: transparent; border: 1px solid var(--line-2); border-radius: 6px;
+      color: var(--ink-2); font-family: var(--mono); font-size: 9px;
+      letter-spacing: 0.07em; text-transform: uppercase;
+      padding: 4px 9px; cursor: pointer;
+      transition: color 140ms ease, border-color 140ms ease;
+    }
+    .cb-copy:hover { color: var(--primary); border-color: var(--primary-dim); }
+    .cb-copy.is-done { color: var(--ok); border-color: rgba(74,222,128,0.4); }
+    .codeblock pre {
+      padding: 13px 14px; overflow-x: auto;
+      font-family: var(--mono); font-size: 11.5px; line-height: 1.65;
+      color: #d8d8d8; tab-size: 2;
+    }
+    .codeblock pre .c { color: var(--ink-3); }           /* comment */
+    .codeblock pre .var { color: var(--warn); }          /* open variable */
+    .codeblock pre .k { color: var(--primary); }         /* keyword-ish accent */
+
+    .callout {
+      display: flex; gap: 12px; border-radius: 10px; padding: 13px 15px;
+      font-size: 12.5px; color: var(--ink-2); margin-bottom: 14px;
+      border: 1px solid rgba(245,158,11,0.3); background: rgba(245,158,11,0.05);
+    }
+    .callout.info { border-color: rgba(0,229,160,0.25); background: rgba(0,229,160,0.04); }
+    .callout .ci { flex: none; margin-top: 2px; color: var(--warn); }
+    .callout.info .ci { color: var(--primary); }
+    .callout b { color: var(--ink-1); font-weight: 600; }
+    .callout ul { margin: 6px 0 0 16px; }
+    .callout li { margin-bottom: 3px; }
+    .callout li:last-child { margin-bottom: 0; }
+
+    .doc-note {
+      font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+      line-height: 1.7; margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <a class="back-home" href="/home/">← Home</a>
+    <span class="topbar-title"><strong>Settings</strong> · admin console</span>
+    <span class="user-chip" id="user-chip">—</span>
+  </header>
+
+  <div class="wrap">
+    <!-- Left rail -->
+    <nav class="rail" aria-label="Settings sections">
+      <span class="k">Workspace</span>
+      <a href="#profile" class="is-on">Admin profile</a>
+      <a href="#ai">AI preferences</a>
+      <a href="#ontology">Error ontology</a>
+      <span class="k">Documentation</span>
+      <a href="#docs-mcp">MCP server setup</a>
+      <a href="#docs-vpn">VPN access · Cisco</a>
+    </nav>
+
+    <div class="content">
+      <!-- ── Admin profile ─────────────────────────────────────────── -->
+      <section id="profile">
+        <div class="sec-kicker">Workspace</div>
+        <h2>Admin profile</h2>
+        <p class="sec-sub">The account signed into this console, and the scope it administers.
+          Identity and access are managed by Omnia; contact your Omnia representative for role changes.</p>
+        <div class="card">
+          <div class="prof">
+            <div>
+              <div class="row"><span class="k">Account</span><span class="v" id="pf-user">—</span></div>
+              <div class="row"><span class="k">Role</span><span class="v">Platform administrator</span></div>
+              <div class="row"><span class="k">Tenant</span><span class="v">Comer Industries</span></div>
+              <div class="row"><span class="k">Site</span><span class="v">Rockford, IL · axle line</span></div>
+            </div>
+            <div>
+              <div class="row"><span class="k">Session expires</span><span class="v" id="pf-exp">—</span></div>
+              <div class="row"><span class="k">MES scope</span><span class="v">UNICOMM · SSL04_FARGO</span></div>
+              <div class="row"><span class="k">Glasses fleet</span><span class="v">Rokid · 3 units</span></div>
+              <div class="row"><span class="k">Data policy</span><span class="v ok">read-only MES access</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── AI preferences ────────────────────────────────────────── -->
+      <section id="ai">
+        <div class="sec-kicker">Workspace</div>
+        <h2>AI preferences</h2>
+        <p class="sec-sub">How Comer AI answers across the platform — the home chat, the Ask Comer AI dock,
+          and the Eval Lab brain all read these preferences.</p>
+        <div class="card">
+          <div class="pref">
+            <div class="p-head"><span class="p-name">Answer language</span>
+              <span class="p-desc">Part numbers, station ids (ST100), step refs (S07) and tool codes stay unchanged in either language.</span></div>
+            <span class="seg" id="set-lang" role="group" aria-label="Answer language">
+              <button type="button" data-lang="en">English</button>
+              <button type="button" data-lang="it">Italiano</button>
+            </span>
+          </div>
+          <div class="pref">
+            <div class="p-head"><span class="p-name">Response register</span>
+              <span class="p-desc">The voice Comer AI uses when answering. All registers stay grounded in the same knowledge base.</span></div>
+            <span class="seg" id="set-tone" role="group" aria-label="Response register">
+              <button type="button" data-tone="enterprise">Enterprise</button>
+              <button type="button" data-tone="technical">Technical</button>
+              <button type="button" data-tone="coaching">Coaching</button>
+            </span>
+            <span class="p-desc" id="tone-desc">Concise, formal, decision-ready — written for plant directors and managers.</span>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Models in service</h3>
+          <div class="model-rows">
+            <div class="row"><span class="k">Knowledge &amp; reasoning</span><span class="v">Claude — same pipeline as the glasses /query endpoint</span></div>
+            <div class="row"><span class="k">Component vision</span><span class="v">Gemini Flash — same VLM-observe loop &amp; reference set as the glasses</span></div>
+            <div class="row"><span class="k">Live line</span><span class="v">UNICOMM MES connector · read-only</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Error ontology ────────────────────────────────────────── -->
+      <section id="ontology">
+        <div class="sec-kicker">Workspace</div>
+        <h2>Error ontology mapping</h2>
+        <p class="sec-sub">The Omnia error taxonomy every warning, report and knowledge-graph edge is coded against.
+          Add a plant alias where your teams use a different name on the floor — aliases appear alongside the
+          canonical code in reports and station views. Canonical codes never change: they are shared vocabulary
+          with the glasses build.</p>
+        <div class="card" id="ont-body"><!-- rendered by JS --></div>
+      </section>
+
+      <!-- ── Documentation · MCP server ────────────────────────────── -->
+      <section id="docs-mcp">
+        <div class="sec-kicker">Documentation · for Comer IT &amp; enterprise developers</div>
+        <h2>MCP server setup — UNICOMM line connector</h2>
+        <p class="sec-sub">The live-line service on this platform is fed by a read-only
+          <b>Model Context Protocol</b> server that sits next to the MES database and exposes a small set of
+          curated tools — never raw SQL. This is the same connector developed for the Comer Rokid build
+          (<code>connectors/mssql-unicomm-database</code>). Installing it on an on-site host is a
+          15-minute job for IT personnel with database and network access.</p>
+
+        <div class="callout info">
+          <span class="ci">◈</span>
+          <div><b>Design guarantees.</b> The connector opens the SQL connection with read-only intent, ships
+            no write path, and exposes only curated tools (workstation snapshot, phase results, technician on task,
+            measurement history, session state). Plant directors query it in natural language from this platform —
+            no SQL knowledge required on the floor.</div>
+        </div>
+
+        <div class="doc-step">
+          <span class="n">1</span>
+          <div class="b">
+            <h4>Prerequisites</h4>
+            <p>An on-site host (VM or container) with Node.js 20+, a <b>read-only</b> SQL login on the line
+              database, and network reach to the MES SQL host — at Rockford that is
+              <code>WARKFSQL002</code> / database <code>SSL04_FARGO</code>. If the host is off the plant
+              network, set up VPN access first (next section).</p>
+            <div class="codeblock">
+              <div class="cb-head"><span>shell · smoke-test connectivity</span>
+                <button class="cb-copy" type="button"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button></div>
+              <pre><span class="c"># confirm the SQL host answers before installing anything</span>
+sqlcmd -S WARKFSQL002,1433 -d SSL04_FARGO -U <span class="var">&lt;READONLY_SQL_USER&gt;</span> -Q "SELECT 1"</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="doc-step">
+          <span class="n">2</span>
+          <div class="b">
+            <h4>Install the connector</h4>
+            <p>The connector lives on the <code>connectors/mssql-unicomm-database</code> branch of the
+              Comer Rokid repository. Access to the repository is granted by Omnia per developer.</p>
+            <div class="codeblock">
+              <div class="cb-head"><span>shell · install</span>
+                <button class="cb-copy" type="button"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button></div>
+              <pre>git clone https://github.com/AldoOmnia/comer-rokid-demo.git
+cd comer-rokid-demo
+git checkout connectors/mssql-unicomm-database
+cd connectors/mssql-unicomm-database
+npm install &amp;&amp; npm run build</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="doc-step">
+          <span class="n">3</span>
+          <div class="b">
+            <h4>Configure the environment</h4>
+            <p>All open values are flagged — host and database names are per-site and owned by Comer IT.
+              Never commit this file.</p>
+            <div class="codeblock">
+              <div class="cb-head"><span>.env</span>
+                <button class="cb-copy" type="button"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button></div>
+              <pre>MSSQL_HOST=WARKFSQL002            <span class="c"># ← MES SQL host — per site</span>
+MSSQL_PORT=1433
+MSSQL_DATABASE=SSL04_FARGO        <span class="c"># ← line database — Rockford axle line</span>
+MSSQL_USER=<span class="var">&lt;READONLY_SQL_USER&gt;</span>      <span class="c"># ← read-only login provisioned by Comer IT</span>
+MSSQL_PASSWORD=<span class="var">&lt;READONLY_SQL_PASSWORD&gt;</span>
+MSSQL_ENCRYPT=true
+STATION_NUMBER=100                <span class="c"># ← default station in scope (ST100 · Pinion Guide)</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="doc-step">
+          <span class="n">4</span>
+          <div class="b">
+            <h4>Register the MCP server with a client</h4>
+            <p>Any MCP-capable client (Cursor, Claude Desktop, an internal agent runtime) registers the
+              connector with a stanza like this:</p>
+            <div class="codeblock">
+              <div class="cb-head"><span>mcp.json</span>
+                <button class="cb-copy" type="button"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button></div>
+              <pre>{
+  "mcpServers": {
+    "unicomm-mssql-readonly": {
+      "command": "node",
+      "args": ["dist/server.js"],
+      "cwd": "<span class="var">&lt;ABSOLUTE_PATH&gt;</span>/comer-rokid-demo/connectors/mssql-unicomm-database",
+      "env": {
+        "MSSQL_HOST": "WARKFSQL002",
+        "MSSQL_DATABASE": "SSL04_FARGO"
+      }
+    }
+  }
+}</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="doc-step">
+          <span class="n">5</span>
+          <div class="b">
+            <h4>What the connector code looks like</h4>
+            <p>A representative excerpt: a read-only connection pool and one curated tool. The full connector
+              ships five tools shaped exactly like this — no free-form SQL surface.</p>
+            <div class="codeblock">
+              <div class="cb-head"><span>src/connector.ts · sample</span>
+                <button class="cb-copy" type="button"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button></div>
+              <pre>import sql from "mssql";
+
+<span class="c">// Read-only intent at the driver level — the connector has no write path.</span>
+const pool = new sql.ConnectionPool({
+  server: process.env.MSSQL_HOST!,        <span class="c">// WARKFSQL002</span>
+  database: process.env.MSSQL_DATABASE!,  <span class="c">// SSL04_FARGO</span>
+  user: process.env.MSSQL_USER,
+  password: process.env.MSSQL_PASSWORD,
+  options: { encrypt: true, <span class="k">readOnlyIntent: true</span> },
+  pool: { max: 4 },
+});
+
+<span class="c">/** Curated tool: the live snapshot for one workstation. */</span>
+export async function fetchWorkstationSnapshot(stationNumber = 100) {
+  const db = await pool.connect();
+  const r = await db.request()
+    .input("station", sql.Int, stationNumber)
+    .query(<span class="c">/* parameterized TOP-1 snapshot query — station, step,
+             technician, serial, latest measurements + verdicts */</span> QUERY);
+  return r.recordset[0] ?? null;
+}</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="doc-step">
+          <span class="n">6</span>
+          <div class="b">
+            <h4>Point this platform at the bridge</h4>
+            <p>Once the connector's HTTPS façade (<code>/v1/unicomm/health</code>,
+              <code>/v1/unicomm/workstation</code>) is reachable, set two environment variables on the
+              platform deployment. The Live line card on the home page switches from demo data to live
+              automatically — no UI work.</p>
+            <div class="codeblock">
+              <div class="cb-head"><span>platform environment · Render</span>
+                <button class="cb-copy" type="button"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button></div>
+              <pre>LINE_BRIDGE_URL=https://<span class="var">&lt;ON_SITE_BRIDGE_HOST&gt;</span>:8443   <span class="c"># ← the on-site connector façade</span>
+LINE_BRIDGE_API_KEY=<span class="var">&lt;ROTATED_API_KEY&gt;</span>              <span class="c"># ← issued per deployment, rotate quarterly</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="doc-note">The connector never leaves the plant network — this platform reaches it only through
+          the authenticated HTTPS façade above. SQL credentials stay on the on-site host.</div>
+      </section>
+
+      <!-- ── Documentation · VPN ───────────────────────────────────── -->
+      <section id="docs-vpn">
+        <div class="sec-kicker">Documentation · for Comer IT &amp; enterprise developers</div>
+        <h2>VPN access — Cisco</h2>
+        <p class="sec-sub">The MES SQL host is only reachable from the plant network. Comer's remote access
+          runs on the <b>Cisco</b> stack (Secure Client / AnyConnect). Off-site connector hosts and developer
+          workstations connect through it before anything in the MCP section will resolve.</p>
+
+        <div class="callout">
+          <span class="ci">▲</span>
+          <div><b>Open variables — confirm with Comer IT before rollout.</b> These values are site- and
+            provider-specific; the network provider can change and the gateway, group profile and DNS values
+            move with it. Nothing below is hard-coded in the connector.
+            <ul>
+              <li><code>&lt;VPN_GATEWAY&gt;</code> — the Cisco headend, e.g. <code>vpn.comer-plant.example</code></li>
+              <li><code>&lt;GROUP_PROFILE&gt;</code> — the tunnel group assigned to MES/engineering access</li>
+              <li><code>&lt;AD_USERNAME&gt;</code> — the Active Directory account (MFA push follows)</li>
+              <li><code>&lt;BRIDGE_HOST_IP&gt;</code> — the on-site host running the MCP connector</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="doc-step">
+          <span class="n">1</span>
+          <div class="b">
+            <h4>Interactive access — Cisco Secure Client</h4>
+            <p>Developer workstations use the Secure Client UI or its CLI. Install from the Comer IT
+              software portal, then:</p>
+            <div class="codeblock">
+              <div class="cb-head"><span>shell · macOS / linux CLI</span>
+                <button class="cb-copy" type="button"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button></div>
+              <pre><span class="c"># Cisco Secure Client CLI (macOS path shown; Windows: "Cisco Secure Client" app)</span>
+/opt/cisco/secureclient/bin/vpn connect <span class="var">&lt;VPN_GATEWAY&gt;</span>
+<span class="c"># → group: <span class="var">&lt;GROUP_PROFILE&gt;</span> · user: <span class="var">&lt;AD_USERNAME&gt;</span> · approve the MFA push</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="doc-step">
+          <span class="n">2</span>
+          <div class="b">
+            <h4>Headless access — connector host</h4>
+            <p>For the unattended host that runs the MCP connector, <code>openconnect</code> speaks the
+              AnyConnect protocol and runs cleanly under systemd:</p>
+            <div class="codeblock">
+              <div class="cb-head"><span>shell · headless host</span>
+                <button class="cb-copy" type="button"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button></div>
+              <pre>sudo openconnect --protocol=anyconnect \
+  --user=<span class="var">&lt;AD_USERNAME&gt;</span> \
+  --authgroup=<span class="var">&lt;GROUP_PROFILE&gt;</span> \
+  <span class="var">&lt;VPN_GATEWAY&gt;</span></pre>
+            </div>
+            <p>Prefer a service account with a certificate profile over a personal AD login for anything
+              unattended — request it from Comer IT.</p>
+          </div>
+        </div>
+
+        <div class="doc-step">
+          <span class="n">3</span>
+          <div class="b">
+            <h4>Firewall / split-tunnel request</h4>
+            <p>The connector needs exactly two flows. Submitting this as the firewall request keeps the
+              access review simple:</p>
+            <div class="codeblock">
+              <div class="cb-head"><span>access request · two rules</span>
+                <button class="cb-copy" type="button"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button></div>
+              <pre><span class="c"># 1 — connector host to the MES SQL server (read-only login)</span>
+allow tcp <span class="var">&lt;BRIDGE_HOST_IP&gt;</span> -&gt; WARKFSQL002:1433
+
+<span class="c"># 2 — platform egress to the connector's HTTPS façade</span>
+allow tcp <span class="var">&lt;PLATFORM_EGRESS_IP&gt;</span> -&gt; <span class="var">&lt;BRIDGE_HOST_IP&gt;</span>:8443</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="doc-step">
+          <span class="n">4</span>
+          <div class="b">
+            <h4>Verify end-to-end</h4>
+            <div class="codeblock">
+              <div class="cb-head"><span>shell · through the tunnel</span>
+                <button class="cb-copy" type="button"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button></div>
+              <pre><span class="c"># SQL reachability (expect one row: 1)</span>
+sqlcmd -S WARKFSQL002,1433 -d SSL04_FARGO -U <span class="var">&lt;READONLY_SQL_USER&gt;</span> -Q "SELECT 1"
+
+<span class="c"># connector façade health (expect JSON with "config")</span>
+curl -H "x-api-key: <span class="var">&lt;ROTATED_API_KEY&gt;</span>" https://<span class="var">&lt;BRIDGE_HOST_IP&gt;</span>:8443/v1/unicomm/health</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="doc-note">Provider note: Comer runs Cisco today. If the network provider changes, only the
+          gateway, group profile and client software in this section change — the MCP connector, the firewall
+          rule shapes and the platform wiring above stay identical.</div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    /* ── Session gate ─────────────────────────── */
+    let SESSION = null;
+    try {
+      SESSION = JSON.parse(localStorage.getItem('omnia.session') || 'null');
+      if (!SESSION || SESSION.tenant !== 'comer' || SESSION.expiresAt <= Date.now()) window.location.replace('/login');
+    } catch { window.location.replace('/login'); }
+
+    function esc(s) {
+      return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      }[c]));
+    }
+
+    /* ── Profile ──────────────────────────────── */
+    if (SESSION) {
+      const u = SESSION.user;
+      const who = (u && typeof u === 'object' ? (u.display || u.username) : u) || SESSION.username || 'signed in';
+      document.getElementById('user-chip').textContent = who;
+      document.getElementById('pf-user').textContent =
+        (u && typeof u === 'object' && u.username) ? u.username : who;
+      const exp = new Date(SESSION.expiresAt);
+      document.getElementById('pf-exp').textContent =
+        exp.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    }
+
+    /* ── AI preferences ───────────────────────── */
+    const LANG_KEY = 'omnia.lang';
+    const SET_KEY = 'omnia.settings';
+    const getLang = () => (localStorage.getItem(LANG_KEY) === 'it' ? 'it' : 'en');
+    const getSettings = () => { try { return JSON.parse(localStorage.getItem(SET_KEY) || '{}') || {}; } catch { return {}; } };
+    const saveSettings = (patch) => localStorage.setItem(SET_KEY, JSON.stringify({ ...getSettings(), ...patch }));
+
+    function paintLang() {
+      document.querySelectorAll('#set-lang button').forEach((b) =>
+        b.classList.toggle('is-on', b.dataset.lang === getLang()));
+    }
+    document.querySelectorAll('#set-lang button').forEach((b) => {
+      b.addEventListener('click', () => {
+        if (window.OmniaLang) window.OmniaLang.set(b.dataset.lang);
+        else localStorage.setItem(LANG_KEY, b.dataset.lang === 'it' ? 'it' : 'en');
+        paintLang();
+      });
+    });
+    window.addEventListener('omnia:lang', paintLang);
+    paintLang();
+
+    const TONE_COPY = {
+      enterprise: 'Concise, formal, decision-ready — written for plant directors and managers.',
+      technical: 'Specs first — torque values, SKUs and detection logic up front, minimal framing.',
+      coaching: 'Step-by-step and instructional — written the way a trainer walks an operator through it.',
+    };
+    const getTone = () => TONE_COPY[getSettings().tone] ? getSettings().tone : 'enterprise';
+    function paintTone() {
+      const t = getTone();
+      document.querySelectorAll('#set-tone button').forEach((b) =>
+        b.classList.toggle('is-on', b.dataset.tone === t));
+      document.getElementById('tone-desc').textContent = TONE_COPY[t];
+    }
+    document.querySelectorAll('#set-tone button').forEach((b) => {
+      b.addEventListener('click', () => { saveSettings({ tone: b.dataset.tone }); paintTone(); });
+    });
+    paintTone();
+
+    /* ── Error ontology ───────────────────────── */
+    const ONT_KEY = 'omnia.ontology';
+    const TAXONOMY = [
+      { g: 'A · Sequence', color: '#0284c7', desc: 'when actions happen', codes: [
+        ['OMISSION', 'Required step not performed'],
+        ['INSERTION', 'Extra action outside the procedure'],
+        ['ORDER', 'Right steps, wrong sequence'],
+        ['INCOMPLETE', 'Step entered but not fully done'],
+      ]},
+      { g: 'B · Execution', color: '#7c3aed', desc: 'what happens within a step', codes: [
+        ['SUBSTITUTION', 'Right step, wrong object'],
+        ['ORIENTATION', 'Right object, wrong way around'],
+        ['OMITTED_OBJECT', 'Required object not present'],
+        ['EXTRA_OBJECT', 'Forbidden object present'],
+      ]},
+      { g: 'C · Specification', color: '#0891b2', desc: 'measurements and values', codes: [
+        ['OUT_OF_SPEC', 'Measured value outside acceptance range'],
+        ['UNVERIFIED', 'Required measurement never taken'],
+        ['BORDERLINE', 'Within spec but near tolerance edge'],
+      ]},
+      { g: 'D · Intent-vs-reality', color: '#c2410c', desc: 'OEM-fusion exclusive', codes: [
+        ['INTENT_MISMATCH', 'MES says step N, vision observes step M'],
+        ['PHANTOM_PROGRESS', 'MES advanced but vision sees no work'],
+        ['UNREPORTED_PROGRESS', 'Vision sees completion, MES not updated'],
+        ['STATE_REPAIR', 'Worker recognized own error and is fixing it'],
+      ]},
+      { g: 'E · System', color: '#525252', desc: 'agent perception limits', codes: [
+        ['CV_UNCERTAIN', 'Vision confidence below threshold'],
+        ['STATE_AMBIGUOUS', 'Multiple procedure states equally plausible'],
+        ['OEM_UNAVAILABLE', 'MES signal stale or missing'],
+        ['OUT_OF_DISTRIBUTION', 'Vision detects unknown object class'],
+      ]},
+    ];
+    const getAliases = () => { try { return JSON.parse(localStorage.getItem(ONT_KEY) || '{}') || {}; } catch { return {}; } };
+
+    function renderOntology() {
+      const aliases = getAliases();
+      document.getElementById('ont-body').innerHTML = TAXONOMY.map((grp) => `
+        <div class="ont-group">
+          <div class="ont-g-head">
+            <span class="dot" style="background:${grp.color}"></span>
+            <span class="nm">${esc(grp.g)}</span>
+            <span class="ds">${esc(grp.desc)}</span>
+          </div>
+          ${grp.codes.map(([code, desc]) => `
+            <div class="ont-row">
+              <span class="code">${esc(code)}</span>
+              <span class="desc">${esc(desc)}</span>
+              <input type="text" data-code="${esc(code)}" placeholder="plant alias — optional"
+                     value="${esc(aliases[code] || '')}" maxlength="40" />
+            </div>`).join('')}
+        </div>`).join('') + `
+        <div class="ont-save">
+          <button type="button" id="ont-save-btn">Save aliases</button>
+          <span class="flash" id="ont-flash">saved to this workspace</span>
+        </div>`;
+      document.getElementById('ont-save-btn').addEventListener('click', () => {
+        const out = {};
+        document.querySelectorAll('#ont-body input[data-code]').forEach((i) => {
+          const v = i.value.trim();
+          if (v) out[i.dataset.code] = v;
+        });
+        localStorage.setItem(ONT_KEY, JSON.stringify(out));
+        const f = document.getElementById('ont-flash');
+        f.classList.add('is-on');
+        setTimeout(() => f.classList.remove('is-on'), 1800);
+      });
+    }
+    renderOntology();
+
+    /* ── Copy buttons ─────────────────────────── */
+    document.querySelectorAll('.cb-copy').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const pre = btn.closest('.codeblock').querySelector('pre');
+        const text = pre.innerText;
+        let ok = false;
+        try { await navigator.clipboard.writeText(text); ok = true; }
+        catch {
+          // Older browsers / non-secure contexts — textarea + execCommand fallback.
+          const ta = document.createElement('textarea');
+          ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta); ta.select();
+          try { ok = document.execCommand('copy'); } catch { /* leave ok=false */ }
+          ta.remove();
+        }
+        if (!ok) return;
+        const orig = btn.innerHTML;
+        btn.classList.add('is-done');
+        btn.innerHTML = btn.innerHTML.replace(/Copy$/, 'Copied');
+        setTimeout(() => { btn.classList.remove('is-done'); btn.innerHTML = orig; }, 1600);
+      });
+    });
+
+    /* ── Rail scroll-spy ──────────────────────── */
+    const railLinks = Array.from(document.querySelectorAll('.rail a'));
+    const sections = railLinks.map((a) => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+    function spy() {
+      let active = sections[0];
+      for (const s of sections) if (s.getBoundingClientRect().top <= 120) active = s;
+      railLinks.forEach((a) => a.classList.toggle('is-on', a.getAttribute('href') === '#' + active.id));
+    }
+    document.addEventListener('scroll', spy, { passive: true });
+    spy();
+  </script>
+
+  <!-- Platform-wide Comer AI dock -->
+  <script>
+    window.BrainDockContext = () => ({
+      page: 'Settings · admin console',
+      view: 'admin profile, AI preferences, error ontology, MCP & VPN documentation',
+    });
+  </script>
+  <script src="/lab/assets/i18n.js?v=2" defer></script>
+  <script src="/lab/assets/brain-dock.js?v=9" defer></script>
+</body>
+</html>

@@ -1,0 +1,462 @@
+{
+ "video": "phase8_pov.mp4",
+ "station": "pg-04",
+ "stationLabel": "ST100 \u00b7 Pinion Guide",
+ "generatedAt": "2026-07-17T15:03:40.425Z",
+ "model": "gemini-3.5-flash",
+ "intervalS": 5,
+ "frames": [
+  {
+   "t": 0,
+   "caption": "A worker stands in front of the assembly line station holding a large retaining ring and some small components in gloved hands.",
+   "step": null,
+   "observed": [
+    "External retaining ring 229515A2"
+   ],
+   "deviation": null,
+   "confidence": 0.9
+  },
+  {
+   "t": 5,
+   "caption": "The operator stands near the press machine where a pinion shaft assembly is positioned on the sliding fixture. He is preparing to initiate the press cycle.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.85
+  },
+  {
+   "t": 10,
+   "caption": "The operator holds a shim pack over the pinion assembly at the workstation.",
+   "step": null,
+   "observed": [
+    "Shim .130 \u2014 bevel pinion bearing (191712A1)",
+    "Shim .101 \u2014 bevel pinion bearing (191711A1)"
+   ],
+   "deviation": null,
+   "confidence": 0.95
+  },
+  {
+   "t": 15,
+   "caption": "The camera captures a blurry, motion-swept view of the assembly station while the operator is walking. A UNICOMM MES touchscreen and machine console are visible in the background.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.95
+  },
+  {
+   "t": 20,
+   "caption": "The operator interacts with the UNICOMM MES touchscreen terminal, which displays instructions for Phase 6.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.95
+  },
+  {
+   "t": 25,
+   "caption": "The operator is using a laptop computer on the workbench next to a smartphone and a bearing cup. In the background, storage bins containing parts are visible on a rack.",
+   "step": null,
+   "observed": [
+    "Bearing cup 248114A1"
+   ],
+   "deviation": null,
+   "confidence": 0.95
+  },
+  {
+   "t": 30,
+   "caption": "The operator is typing on a laptop keyboard at the workstation. A bearing cone is visible on the workbench to the left.",
+   "step": null,
+   "observed": [
+    "Bearing cone 248118A1"
+   ],
+   "deviation": null,
+   "confidence": 0.95
+  },
+  {
+   "t": 35,
+   "caption": "The operator is typing on a laptop keyboard at the workstation, with parts bins visible in the background.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 1
+  },
+  {
+   "t": 40,
+   "caption": "The operator stands in front of the UNICOMM MES touchscreen terminal and the press machine fixture. No active assembly work is currently being performed.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.95
+  },
+  {
+   "t": 45,
+   "caption": "The operator is positioning the pinion shaft assembly into the guide fixture at the workstation.",
+   "step": 4,
+   "observed": [
+    "Bearing cone 248118A1"
+   ],
+   "deviation": null,
+   "confidence": 0.85,
+   "stepLabel": "Press Pinion into Guide"
+  },
+  {
+   "t": 50,
+   "caption": "An operator wearing black gloves positions the pinion shaft into the guide housing fixture at the assembly station.",
+   "step": 4,
+   "observed": [
+    "Bearing cone 248118A1"
+   ],
+   "deviation": null,
+   "confidence": 0.85,
+   "stepLabel": "Press Pinion into Guide"
+  },
+  {
+   "t": 55,
+   "caption": "The camera view is blocked by another worker standing directly in front of the operator. The background shows industrial machinery and control panels at the station.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0
+  },
+  {
+   "t": 60,
+   "caption": "The operator is positioning the pinion shaft assembly into the guide fixture at the workstation.",
+   "step": 3,
+   "observed": [
+    "Bearing cone 248118A1"
+   ],
+   "deviation": null,
+   "confidence": 0.85,
+   "stepLabel": "Position Guide Bearing"
+  },
+  {
+   "t": 65,
+   "caption": "The operator is positioning the pinion guide housing onto the fixture with both hands.",
+   "step": 3,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.85,
+   "stepLabel": "Position Guide Bearing"
+  },
+  {
+   "t": 70,
+   "caption": "The operator positions the pinion shaft assembly into the guide fixture at the workstation.",
+   "step": 3,
+   "observed": [
+    "Bearing cone 248118A1"
+   ],
+   "deviation": null,
+   "confidence": 0.85,
+   "stepLabel": "Position Guide Bearing"
+  },
+  {
+   "t": 75,
+   "caption": "The operator positions the pinion cover assembly onto the fixture at the workstation.",
+   "step": null,
+   "observed": [
+    "Bearing cone 248118A1"
+   ],
+   "deviation": null,
+   "confidence": 0.85
+  },
+  {
+   "t": 80,
+   "caption": "The operator uses a pair of red-handled pliers to install a retaining ring into the housing assembly at the workstation.",
+   "step": null,
+   "observed": [
+    "External retaining ring 229515A2"
+   ],
+   "deviation": null,
+   "confidence": 0.85
+  },
+  {
+   "t": 85,
+   "caption": "The operator uses retaining ring pliers to install an external retaining ring onto the pinion shaft assembly.",
+   "step": null,
+   "observed": [
+    "External retaining ring 229515A2"
+   ],
+   "deviation": null,
+   "confidence": 0.85
+  },
+  {
+   "t": 90,
+   "caption": "The operator is manually positioning and aligning a component onto the fixture at the assembly station.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.8
+  },
+  {
+   "t": 95,
+   "caption": "The operator holds a depth gauge over the pre-assembled pinion shaft and housing to verify the press depth.",
+   "step": null,
+   "observed": [
+    "Bearing cone 248118A1"
+   ],
+   "deviation": null,
+   "confidence": 0.95
+  },
+  {
+   "t": 100,
+   "caption": "The operator uses a hammer and a specialized punch fixture to secure a component on the pinion assembly.",
+   "step": null,
+   "observed": [
+    "Punch fixture cod.3187.111.100.27 (Step 8 retainer)"
+   ],
+   "deviation": null,
+   "confidence": 0.9
+  },
+  {
+   "t": 105,
+   "caption": "The operator uses a hand tool to position and align components on the pinion cover assembly fixture.",
+   "step": null,
+   "observed": [
+    "Bearing cone 248118A1"
+   ],
+   "deviation": null,
+   "confidence": 0.85
+  },
+  {
+   "t": 110,
+   "caption": "An operator is manually rotating the pinion shaft assembly mounted in the housing fixture to check its rotation.",
+   "step": null,
+   "observed": [
+    "Bearing cone 248118A1"
+   ],
+   "deviation": null,
+   "confidence": 0.85
+  },
+  {
+   "t": 115,
+   "caption": "The operator uses a yellow-handled mallet to tap a component into place on the pinion assembly fixture.",
+   "step": null,
+   "observed": [
+    "Bearing cone 248118A1"
+   ],
+   "deviation": null,
+   "confidence": 0.85
+  },
+  {
+   "t": 120,
+   "caption": "An operator uses a hammer and punch fixture to secure a retaining ring on the pinion assembly at the workstation.",
+   "step": null,
+   "observed": [
+    "Punch fixture cod.3187.111.100.27",
+    "Ring retainer, thick 92203637"
+   ],
+   "deviation": null,
+   "confidence": 0.95
+  },
+  {
+   "t": 125,
+   "caption": "An operator uses a hammer and a punch fixture to secure a component on the assembly fixture.",
+   "step": null,
+   "observed": [
+    "Punch fixture cod.3187.111.100.27 (Step 8 retainer)",
+    "Ring retainer, thick 92203637"
+   ],
+   "deviation": null,
+   "confidence": 0.85
+  },
+  {
+   "t": 130,
+   "caption": "The operator stands in front of the assembly fixture holding the pinion shaft and guide assembly. The UNICOMM MES touchscreen and workstation background are visible.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.9
+  },
+  {
+   "t": 135,
+   "caption": "The operator stands in front of the assembly fixture holding a pinion cover assembly with the splined pinion shaft protruding upward.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.9
+  },
+  {
+   "t": 140,
+   "caption": "An operator wearing safety glasses and gloves positions a cylindrical component onto the pinion assembly at the workstation.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.85
+  },
+  {
+   "t": 145,
+   "caption": "The operator positions the pinion guide assembly onto the press fixture at the station.",
+   "step": 4,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.85,
+   "stepLabel": "Press Pinion into Guide"
+  },
+  {
+   "t": 150,
+   "caption": "The operator positions a cylindrical press driver tool onto the pinion assembly at the workstation.",
+   "step": 4,
+   "observed": [
+    "Press driver cod.3187.111.180.00"
+   ],
+   "deviation": null,
+   "confidence": 0.85,
+   "stepLabel": "Press Pinion into Guide"
+  },
+  {
+   "t": 155,
+   "caption": "The operator stands in front of the assembly fixture holding a pinion shaft assembly. The station's control panels and a laptop are visible in the background.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.9
+  },
+  {
+   "t": 160,
+   "caption": "An operator is manually positioning a component onto the pinion guide assembly fixture at the workstation.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.8
+  },
+  {
+   "t": 165,
+   "caption": "The operator walks past a colleague standing near the control panel of the assembly station. No active assembly work is being performed in this frame.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.95
+  },
+  {
+   "t": 170,
+   "caption": "The operator interacts with the UNICOMM MES touchscreen terminal, which displays instructions for Phase 6 of the assembly process.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.95
+  },
+  {
+   "t": 175,
+   "caption": "The operator interacts with the UNICOMM MES touchscreen terminal displaying instructions for Phase 6.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.95
+  },
+  {
+   "t": 180,
+   "caption": "An operator stands at the assembly station next to a fixture holding a pinion housing assembly.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.9
+  },
+  {
+   "t": 185,
+   "caption": "The operator stands in front of the assembly fixture on the conveyor line, preparing to interact with the control panel.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.9
+  },
+  {
+   "t": 190,
+   "caption": "The operator is standing in front of the press machine, holding the dual-hand control buttons to initiate the pressing cycle.",
+   "step": 4,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.9,
+   "stepLabel": "Press Pinion into Guide"
+  },
+  {
+   "t": 195,
+   "caption": "The operator presses the dual-control buttons to initiate the press cycle on the pinion guide assembly.",
+   "step": 4,
+   "observed": [
+    "Bearing cone 248118A1"
+   ],
+   "deviation": null,
+   "confidence": 0.9,
+   "stepLabel": "Press Pinion into Guide"
+  },
+  {
+   "t": 200,
+   "caption": "An operator is working at the press station, positioning a component into the fixture beneath the press ram.",
+   "step": 4,
+   "observed": [
+    "Press driver cod.3187.111.180.00"
+   ],
+   "deviation": null,
+   "confidence": 0.85,
+   "stepLabel": "Press Pinion into Guide"
+  },
+  {
+   "t": 205,
+   "caption": "The operator presses the dual-hand safety buttons to initiate the automatic press cycle for the pinion guide assembly.",
+   "step": 4,
+   "observed": [
+    "Press driver cod.3187.111.180.00"
+   ],
+   "deviation": null,
+   "confidence": 0.9,
+   "stepLabel": "Press Pinion into Guide"
+  },
+  {
+   "t": 210,
+   "caption": "An operator stands in front of the press machine, monitoring the automated pressing process behind the safety enclosure.",
+   "step": 4,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.85,
+   "stepLabel": "Press Pinion into Guide"
+  },
+  {
+   "t": 215,
+   "caption": "The operator walks past a UNICOMM MES touchscreen terminal and a machine enclosure. Another worker is visible in the background of the assembly line.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0
+  },
+  {
+   "t": 220,
+   "caption": "The operator walks past the automated press machine and the UNICOMM MES touchscreen terminal.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.95
+  },
+  {
+   "t": 225,
+   "caption": "The operator stands at the press station, preparing to initiate the pressing cycle for the pinion assembly.",
+   "step": 4,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.85,
+   "stepLabel": "Press Pinion into Guide"
+  },
+  {
+   "t": 230,
+   "caption": "The operator reaches for a control panel with push buttons mounted on the side of the assembly line structure.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.9
+  },
+  {
+   "t": 235,
+   "caption": "The operator stands in front of the assembly fixture where a pinion cover assembly is positioned on the conveyor line.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.9
+  },
+  {
+   "t": 240,
+   "caption": "The operator stands in front of the press machine where a pinion assembly is positioned on the sliding fixture.",
+   "step": null,
+   "observed": [],
+   "deviation": null,
+   "confidence": 0.9
+  }
+ ]
+}

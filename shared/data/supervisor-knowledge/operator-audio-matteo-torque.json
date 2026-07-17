@@ -1,0 +1,85 @@
+{
+  "_kind": "supervisor-knowledge/v1",
+  "_source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Matteo torque comer.m4a",
+  "_phase_tag": "Comer visit (Jun 1) — Matteo on shim-pack torque",
+  "_step_codes": [
+    "pinion-7"
+  ],
+  "_step_title": "4900.12001 P100 SHIM PACK",
+  "_recorded_by": "Matteo (Comer line operator), factory visit 2026-06-01",
+  "_transcribed_by": "gemini-2.5-flash",
+  "_distilled_by": "claude-sonnet-4-6",
+  "_ingested_at": "2026-06-01T20:04:02.401Z",
+  "_verified_by": null,
+  "_full_transcript": "[00:01] going by the computer.\n[00:03] But but what people are telling them to do on the pre-go.\n[00:05] This seems.\n[00:06] From five to twenty.\n[00:08] Or it's better to be higher, I know because this one is lower side.\n[00:11] That's what I heard because when Ali left the first time, he said he wants fourteen, it's better like twenty, yes.\n[00:17] But we cannot say that it is low, it's bad.\n[00:19] We can't say.\n[00:20] So if he already knows a little bit how to adjust it, but if some parts are lower for team, the computer will always save that it's good because it's good.\n[00:30] Yeah, that's what I'm.\n[00:31] He just.\n[00:31] He's just the best practice to be in the higher, higher and higher.\n[00:34] So if he can, he need to be higher, but with a shim it's not always easy to be higher.\n[00:38] Yeah, that's what I'm saying because especially if we're supposed to have like thirty minutes per part or twenty-five minutes per part.\n[00:44] There's been times where we've tried to adhere to fourteen nineteen strictly.\n[00:48] And it can take an hour or two on one part.\n[00:51] Waste a lot of time.\n[00:52] Yeah, but he's not the bottleneck, so you need to.\n[00:57] Let's try to always be in the higher.\n[01:01] If you see that in forty-five, fifty minutes, you cannot reach it.\n[01:04] Go ahead, you know.\n[01:06] Okay.\n[01:07] Okay.\n[01:07] So I was trying to be in the haggerty.\n[01:08] Okay.\n[01:09] Yes, try to be if it's you see that it's not possible, not possible, not possible.\n[01:13] If it's still in the range, it's okay.\n[01:15] Okay, okay, I got you.\n[01:16] Clear?\n[01:17] Clear?\n[01:18] This is what step it is?\n[01:20] This is step number nine, I think.\n[01:24] Okay, thank you.\n[01:26] No.\n[01:28] This is for step.\n[01:30] Shim pack, right?\n[01:32] This is a step.\n[01:35] (silence)\n[01:38] Ah, they don't say it on this one.\n[01:40] (silence)\n[01:44] It could be either fifteen, they don't say it on this one specifically.\n[01:47] What's what's the exact if you were to make a statement of?\n[01:50] Five point six to twenty point three for the Newton meters.\n[01:53] Okay, yeah.\n[01:55] Uh, for the uh rolling torque or preload.\n[01:58] Um they don't say the range on the computer on here, on this one.\n[02:02] They haven't put that text in.\n[02:03] Okay.\n[02:04] On the other models, they have that text there, that specific text.\n[02:07] On this one, it's not written down.\n[02:11] Yeah, because well, I would have to know.",
+  "facts": [
+    {
+      "id": "matteo-torque-001",
+      "topic": "preload target",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "The rolling torque / preload target range for this shim pack step is 5.6 to 20.3 Newton-metres.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Matteo torque comer.m4a",
+        "audio_offset_s": 110,
+        "transcript_quote": "Five point six to twenty point three for the Newton meters, for the rolling torque or preload."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "matteo-torque-002",
+      "topic": "preload target",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "The computer screen for this specific model (P100) does not display the 5.6–20.3 Nm rolling-torque range text; it must be looked up separately.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Matteo torque comer.m4a",
+        "audio_offset_s": 118,
+        "transcript_quote": "they don't say the range on the computer on here, on this one. They haven't put that text in."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "matteo-torque-003",
+      "topic": "best practice",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "Best practice is to target the higher end of the 5.6–20.3 Nm preload range rather than the lower end whenever shimming allows it.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Matteo torque comer.m4a",
+        "audio_offset_s": 31,
+        "transcript_quote": "best practice to be in the higher, higher and higher. So if he can, he need to be higher."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "matteo-torque-004",
+      "topic": "time management",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "If after approximately 45–50 minutes you cannot reach the higher end of the preload range, accept a reading that is still within the 5.6–20.3 Nm range and move on.",
+      "applies_when": "operator cannot achieve higher-end preload after ~45–50 minutes of shimming attempts",
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Matteo torque comer.m4a",
+        "audio_offset_s": 61,
+        "transcript_quote": "If you see that in forty-five, fifty minutes, you cannot reach it. Go ahead, you know. If it's still in the range, it's okay."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    }
+  ]
+}

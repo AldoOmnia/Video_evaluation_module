@@ -1,0 +1,26 @@
+{
+  "show": false,
+  "uniformScaleMult": 0.588844,
+  "offsetX": 0.1,
+  "offsetY": 0.45,
+  "offsetZ": -0.03,
+  "rotYDeg": 0,
+  "savedAt": "2026-06-26T18:00:00.000Z",
+  "operator": {
+    "glbUrl": "/lab/assets/worker_blender_v5.glb",
+    "scale": 0.925,
+    "fwd": -0.34,
+    "side": -0.06,
+    "lift": 0,
+    "yaw": -180,
+    "targetHeightM": 1.65,
+    "shoulderHalfWidthM": 0.22,
+    "clearanceMarginM": 0.06,
+    "naturalMaterials": true,
+    "collisionWithMesh": false,
+    "groundDebug": false,
+    "anchorX": 0.1437,
+    "anchorZ": 0.2499,
+    "faceYaw": 0.1747
+  }
+}

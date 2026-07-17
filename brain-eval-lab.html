@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Brain · Eval Lab</title>
+<title>Comer AI · Eval Lab</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
 <script type="module">
@@ -47,8 +47,8 @@
     --c-data:      #22d3ee;
     --c-tribal:    #fbbf24;
 
-    --mono: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
-    --sans: 'Geist', system-ui, sans-serif;
+    --mono: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
@@ -139,6 +139,52 @@
     background: var(--acc); box-shadow: 0 0 8px var(--acc); animation: pulse 1.6s infinite;
   }
   @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+  /* ── Station picker + empty station state ── */
+  .station-picker {
+    margin-left: 8px;
+    background: var(--bg-3); border: 1px solid var(--line-2); border-radius: 2px;
+    color: var(--ink); font-family: var(--mono); font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 5px 8px; outline: none; cursor: pointer; max-width: 210px;
+  }
+  .station-picker:hover, .station-picker:focus { border-color: var(--acc-dim); }
+
+  .station-empty {
+    position: absolute; inset: 0; z-index: 40;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg);
+  }
+  .station-empty[hidden] { display: none; }
+  .station-empty .box { text-align: center; max-width: 480px; padding: 32px 24px; }
+  .station-empty .ring {
+    width: 74px; height: 74px; margin: 0 auto 18px; border-radius: 50%;
+    border: 1.5px dashed var(--line-2);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-3); font-size: 26px;
+  }
+  .station-empty h2 { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+  .station-empty .se-desc {
+    font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px;
+  }
+  .station-empty .se-msg { font-size: 12.5px; color: var(--ink-2); margin-top: 14px; line-height: 1.65; }
+  .station-empty .se-actions { display: flex; gap: 10px; justify-content: center; margin-top: 22px; flex-wrap: wrap; }
+  .station-empty .se-cta {
+    display: inline-block; text-decoration: none;
+    background: rgba(0,229,160,0.12); color: var(--acc);
+    border: 1px solid rgba(0,229,160,0.4); border-radius: 3px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em;
+    padding: 9px 16px; cursor: pointer; transition: background 120ms ease;
+  }
+  .station-empty .se-cta:hover { background: rgba(0,229,160,0.2); }
+  .station-empty .se-back {
+    background: transparent; color: var(--ink-2);
+    border: 1px solid var(--line-2); border-radius: 3px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em;
+    padding: 9px 16px; cursor: pointer; transition: border-color 120ms ease, color 120ms ease;
+  }
+  .station-empty .se-back:hover { border-color: var(--acc-dim); color: var(--acc); }
 
   /* ── Workspace base ──────────────────── */
   main.workspace { position: relative; overflow: hidden; min-height: 0; }
@@ -1163,7 +1209,7 @@
     width: 85%;
     padding: 12px 14px;
     background: rgba(0,0,0,0.85);
-    font-family: var(--mono, ui-monospace, "SF Mono", Menlo, monospace);
+    font-family: var(--mono);
     display: flex; flex-direction: column; gap: 4px;
   }
   .answer-card .ac-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1413,13 +1459,23 @@
 <div class="app">
 
   <header class="bar">
+    <a href="/home/" class="client-pill" title="Back to the platform home"
+       style="text-decoration:none;color:var(--ink-2);flex-shrink:0;">
+      ← Home
+    </a>
     <div class="brand">
-      <span class="dot">●</span>BRAIN · EVAL LAB <span class="v">v0.5 — taxonomy-aware</span>
+      <span class="dot">●</span>COMER AI · EVAL LAB <span class="v">v0.5 — taxonomy-aware</span>
     </div>
     <div class="mode-toggle">
-      <button class="active" data-mode="brain">Brain</button>
+      <button class="active" data-mode="brain">Comer AI</button>
       <button data-mode="eval">Evaluate</button>
     </div>
+    <select class="station-picker" id="lab-station-picker" title="Switch station"></select>
+    <a id="synthetic-pov-link" href="/synthetic-pov?zone=1" class="client-pill" hidden
+       style="text-decoration:none;color:var(--primary);border-color:rgba(0,229,160,0.35);"
+       title="Digital twin — splat + operator viewer (dev only)">
+      Digital twin ↗
+    </a>
     <span class="client-pill">
       <span class="pill-label">client</span>Comer Industries
     </span>
@@ -1438,6 +1494,23 @@
   </header>
 
   <main class="workspace">
+
+    <!-- ── Empty station state — shown when the selected station has no knowledge yet ── -->
+    <div class="station-empty" id="station-empty" hidden>
+      <div class="box">
+        <div class="ring">◌</div>
+        <h2 id="se-label">Station</h2>
+        <div class="se-desc" id="se-desc">—</div>
+        <p class="se-msg">
+          Nothing is loaded for this station yet — no procedure graph, training material,
+          or component references. Start feeding Comer AI from the knowledge base.
+        </p>
+        <div class="se-actions">
+          <a class="se-cta" id="se-kb-link" href="/knowledge/">＋ Start adding material ↗</a>
+          <button type="button" class="se-back" id="se-back">← Back to Pinion Guide</button>
+        </div>
+      </div>
+    </div>
 
     <!-- ───────────────────────── BRAIN MODE ───────────────────────── -->
     <div class="mode-container active" id="brain-mode">
@@ -1554,7 +1627,7 @@
           </div>
         </div>
         <div class="chat-input-wrap">
-          <input class="chat-input" id="chat-input" placeholder="Ask the brain anything…" />
+          <input class="chat-input" id="chat-input" placeholder="Ask Comer AI anything…" />
           <button class="chat-send" id="chat-send">Ask</button>
         </div>
       </section>
@@ -1615,7 +1688,7 @@
             <div><div class="k">activity</div><div class="v">Pinion Guide</div></div>
             <div><div class="k">keysteps</div><div class="v" id="ev-keysteps">12</div></div>
             <div><div class="k">artifacts</div><div class="v" id="ev-artifacts">—</div></div>
-            <div><div class="k">source</div><div class="v">Brain</div></div>
+            <div><div class="k">source</div><div class="v">Comer AI</div></div>
           </div>
           <button class="btn btn-secondary" id="ev-gen-btn" style="margin-top: 10px;">
             Generate simulated session
@@ -2128,7 +2201,7 @@ const cyStyle = [
       'border-color': '#2a3431',
       'label': 'data(label)',
       'color': '#97a59e',
-      'font-family': 'Geist, system-ui, sans-serif',
+      'font-family': 'Inter, system-ui, sans-serif',
       'font-size': 9,
       'text-valign': 'bottom',
       'text-halign': 'center',
@@ -2311,7 +2384,7 @@ function renderRightPanel() {
       </div>
       <div class="chat-body" id="chat-body">${chatBodyHTML()}</div>
       <div class="chat-input-wrap">
-        <input class="chat-input" id="chat-input" placeholder="Ask the brain anything…" />
+        <input class="chat-input" id="chat-input" placeholder="Ask Comer AI anything…" />
         <button class="chat-send" id="chat-send">Ask</button>
       </div>`;
     wireChat();
@@ -2536,7 +2609,7 @@ function setChatBusy(busy) {
   const send = document.getElementById('chat-send');
   if (input) {
     input.disabled = busy;
-    input.placeholder = busy ? 'Waiting for response…' : 'Ask the brain anything…';
+    input.placeholder = busy ? 'Waiting for response…' : 'Ask Comer AI anything…';
     if (busy) input.classList.remove('chat-input-filled');
   }
   if (send) send.disabled = busy;
@@ -4157,7 +4230,7 @@ async function runEvaluation(annotations, hwId, stratId, mode) {
     const events = sessionEventsForApi(annotations);
     const anomalyCount = events.filter(e => e.label === 'incorrect').length;
     if (anomalyCount === 0) {
-      throw new Error('No mistake clips in this session — tag segments as "mistake / anomaly" in Brain, or import a CSV with label=incorrect.');
+      throw new Error('No mistake clips in this session — tag segments as "mistake / anomaly" in Comer AI mode, or import a CSV with label=incorrect.');
     }
     toast(`Calling Claude for ${anomalyCount} anomaly clip${anomalyCount === 1 ? '' : 's'} (~3–8s each)…`);
     const t0 = performance.now();
@@ -4758,7 +4831,7 @@ document.getElementById('ev-gen-btn').onclick = generateEvalSession;
 document.getElementById('ev-from-clips-btn').onclick = () => {
   const segments = (state.brain.artifacts || []).filter(a => a.type === 'VideoSegment');
   if (segments.length === 0) {
-    toast('No VideoSegment artifacts yet. Drop a video-index CSV (and your videos) in Brain mode first.');
+    toast('No VideoSegment artifacts yet. Drop a video-index CSV (and your videos) in Comer AI mode first.');
     return;
   }
   const validErrors = new Set(Object.keys(ERROR_TAXONOMY));
@@ -4783,7 +4856,7 @@ document.getElementById('ev-from-clips-btn').onclick = () => {
   renderEvalSession();
   toast(mistakes > 0
     ? `Loaded ${session.length} clip${session.length === 1 ? '' : 's'} · ${mistakes} mistake clip${mistakes === 1 ? '' : 's'} ready for LIVE LLM`
-    : `Loaded ${session.length} clip${session.length === 1 ? '' : 's'} — all marked correct; tag mistake clips in Brain for LIVE eval`);
+    : `Loaded ${session.length} clip${session.length === 1 ? '' : 's'} — all marked correct; tag mistake clips in Comer AI mode for LIVE eval`);
 };
 async function runOnce(mode) {
   if (!state.eval.session) return;
@@ -4854,6 +4927,71 @@ function wireSignOut() {
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
+   STATION PICKER
+   The lab's full graph + eval tools are live for the pilot station (pinion
+   guide). Every other station is selectable too — it shows an empty state
+   that points at the knowledge base until material is loaded for it.
+   ════════════════════════════════════════════════════════════════════════════ */
+async function wireStationPicker() {
+  const picker = document.getElementById('lab-station-picker');
+  const overlay = document.getElementById('station-empty');
+  if (!picker || !overlay) return;
+
+  // Fallback mirrors the backend list so the picker still works if /api is down.
+  let stations = [
+    { id: 'pg-04', label: 'ST100 · Pinion Guide', desc: 'Pinion cover pre-assembly — pilot: glasses + digital twin live', active: true },
+    { id: 'st110', label: 'ST110 · Brake & Cover', desc: 'Stage 2 — expanding plug · bearing cone · LH diff carrier assy', active: false },
+    { id: 'st130-135', label: 'ST130-135 · Shimming', desc: 'Stage 8 — diff carrier bolts · preload · shims · brake shim check', active: false },
+    { id: 'st140', label: 'ST140 · Brake Complete', desc: 'Stage 9 — brake piston bore · self-adjust stack', active: false },
+    { id: 'st150', label: 'ST150 · Pinion Complete & Brake Test', desc: 'Stage 10 — cover to housing · manifold bolts · elbows · plugs', active: false },
+    { id: 'st160', label: 'ST160 · Axle Mount', desc: 'Stage 12-13 — 500QT bolt tightening (with ST170)', active: false },
+    { id: 'st170', label: 'ST170 · Axle Mount', desc: 'Stage 12-13 — 500QT bolt tightening (with ST160)', active: false },
+    { id: 'st180-190', label: 'ST180-190 · Prova di Tenuta + Test Bench', desc: 'Leak test + Stage 14 — leakage · filling · brake tests · run-in', active: false },
+    { id: 'st200-220', label: 'ST200-220 · Subdifferential', desc: 'Stage 5 — riveting · thrust washer · diff bolts · bearing cup', active: false },
+    { id: 'st300', label: 'ST300 · Tear Dropbox', desc: 'Stage 11 — gear bearing cups/cones · backlash (with ST310)', active: false },
+    { id: 'st310', label: 'ST310 · Tear Dropbox', desc: 'Stage 11 — dropbox on center housing · plugs · Loctite (with ST300)', active: false },
+    { id: 'st400-410', label: 'ST400-410 · Subassembly', desc: 'Stage 3 — axle mount for LW / SW models · idle in the Quad Track report', active: false },
+    { id: 'st500-520', label: 'ST500-520 · Sub Starship', desc: 'Stage 6 — cone/cup bearing onto shaft · nut tighten · plugs', active: false },
+    { id: 'st710', label: 'ST700-710 · Subassembly', desc: 'Stage 4 — pin positioning · Victory release/tightening cycles', active: false },
+  ];
+  try {
+    const d = await (await fetch('/api/kb/stations', { cache: 'no-store' })).json();
+    if (Array.isArray(d.stations) && d.stations.length) stations = d.stations;
+  } catch { /* fallback list above */ }
+
+  picker.innerHTML = stations
+    .map(s => `<option value="${escapeHTML(s.id)}">${escapeHTML(s.label)}</option>`)
+    .join('');
+
+  const homeId = (stations.find(s => s.active) || stations[0]).id;
+
+  function setStation(id) {
+    const st = stations.find(s => s.id === id) || stations[0];
+    picker.value = st.id;
+    const loaded = !!st.active; // only the pilot station has a Brain today
+    overlay.hidden = loaded;
+    const statusEl = document.getElementById('header-status-text');
+    if (loaded) {
+      if (statusEl) statusEl.textContent = '12 keysteps · pinion guide';
+      if (state.graph) setTimeout(() => state.graph.resize(), 60);
+    } else {
+      document.getElementById('se-label').textContent = st.label;
+      document.getElementById('se-desc').textContent = st.desc || '';
+      document.getElementById('se-kb-link').href = '/knowledge/?station=' + encodeURIComponent(st.id);
+      if (statusEl) statusEl.textContent = '0 keysteps · ' + st.label.toLowerCase();
+    }
+    history.replaceState(null, '',
+      loaded ? location.pathname : location.pathname + '?station=' + encodeURIComponent(st.id));
+  }
+
+  picker.addEventListener('change', () => setStation(picker.value));
+  document.getElementById('se-back').addEventListener('click', () => setStation(homeId));
+
+  const requested = new URLSearchParams(location.search).get('station');
+  setStation(requested || homeId);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
    INITIAL RENDER
    ════════════════════════════════════════════════════════════════════════════ */
 window.addEventListener('load', () => {
@@ -4866,6 +5004,7 @@ window.addEventListener('load', () => {
   renderArtifactList();
   wireChat();
   wireSignOut();
+  wireStationPicker();
 
   if (restored) toast(`Restored ${state.brain.artifacts.length} artifact${state.brain.artifacts.length===1?'':'s'} from last session`);
 
@@ -4886,11 +5025,19 @@ window.addEventListener('load', () => {
   if (typeof cytoscape === 'undefined') {
     document.getElementById('cy').innerHTML =
       '<div style="padding:40px;color:var(--err);font-family:var(--mono);font-size:11px;text-align:center;">' +
-      'Cytoscape failed to load from CDN. Brain mode unavailable, but Evaluate mode works — switch to it via the toggle.</div>';
+      'Cytoscape failed to load from CDN. Comer AI mode unavailable, but Evaluate mode works — switch to it via the toggle.</div>';
     return;
   }
   setTimeout(() => initGraph(), 100);
+
+  const povLink = document.getElementById('synthetic-pov-link');
+  if (povLink && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+    povLink.hidden = false;
+  }
 });
 </script>
+
+<!-- No Brain dock here: the eval lab IS the full Brain view — its chat
+     panel is the fixed UI, a floating "Ask the Brain" pill would duplicate it. -->
 </body>
 </html>

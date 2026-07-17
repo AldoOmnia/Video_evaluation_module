@@ -14,6 +14,7 @@
     "validate": "tsx scripts/validate-specs.ts",
     "gen:apk": "tsx scripts/generate-kotlin-specs.ts",
     "lab": "echo 'Open http://localhost:3001/lab/ after running npm run dev'",
+    "pov": "echo 'Synthetic POV preview: http://localhost:3001/synthetic-pov?zone=1 (requires npm run dev)'",
     "start": "npm --workspace backend run start"
   },
   "devDependencies": {

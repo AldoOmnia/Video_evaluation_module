@@ -22,6 +22,8 @@ const BodySchema = z.object({
   model: z.string().optional(),
   k: z.number().int().positive().max(12).optional(),
   artifacts: z.array(ClientArtifactSchema).max(50).optional(),
+  lang: z.enum(["en", "it"]).optional(),
+  tone: z.enum(["enterprise", "technical", "coaching"]).optional(),
 });
 
 export const brainChatRouter = Router();
@@ -40,9 +42,11 @@ brainChatRouter.post("/", async (req, res, next) => {
     const result = await runGlassesQuery({
       transcript: body.query,
       artifactNodes,
-      k: body.k ?? 5,
-      maxTokens: 320,
+      k: body.k ?? 8,
+      maxTokens: 480,
       model: body.model,
+      lang: body.lang,
+      tone: body.tone,
     });
 
     const answer =

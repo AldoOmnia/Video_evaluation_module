@@ -1,0 +1,353 @@
+{
+  "_kind": "supervisor-knowledge/v1",
+  "_source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Recording matteo knowledge comer.m4a",
+  "_phase_tag": "Comer visit (Jun 1) — Matteo: most common line errors & shimming",
+  "_step_codes": [
+    "pinion-7",
+    "pinion-14",
+    "pinion-1",
+    "pinion-2",
+    "pinion-4",
+    "pinion-6"
+  ],
+  "_step_title": "Comer visit (Jun 1) — Matteo: most common line errors & shimming",
+  "_recorded_by": "Matteo (Comer line operator), factory visit 2026-06-01",
+  "_transcribed_by": "gemini-2.5-flash",
+  "_distilled_by": "claude-sonnet-4-6",
+  "_ingested_at": "2026-06-01T20:18:02.436Z",
+  "_verified_by": "human reconcile 2026-06-02: facts 006 (inverted bearing cup/cone) and 016 (incorrect fixture/driver selection) enriched and verified against curated source docs/source-material/errors_pinion_guide_for_KB.txt — these are the two most error-prone tasks on the station and are surfaced on the initial scene description. Fact 006 updated 2026-07-14 with the line engineer's verified TIMKEN-side orientation for both cups (248114A1 UP, 191440A1 DOWN).",
+  "_full_transcript": "[00:01] So, I'm going to say what I'm doing right now.\n[00:02] I'm trying to create an AI model that has the knowledge that you guys have.\n[00:07] Um, and I'm trying to basically collect data, um, audio data and video data.\n[00:13] Now, um, if you can kind of like rank the four average steps, like what are the most common errors that you see happening here on the on this line, even without Ethan, like if if there was a new operator that, uh, were to start, what are the most common ones?\n[00:31] The most common errors here.\n[00:32] Yes, and consider that, uh, this is what I have in terms of starting points.\n[00:37] Inverted bearing cup and cone assembly.\n[00:41] Missing O-rings.\n[00:43] And then incorrect fixture and driver selection.\n[00:46] What O-rings we don't use.\n[00:48] It might mean the snap ring.\n[00:50] I think I think that's what he meant, yeah.\n[00:52] Okay, okay.\n[00:54] I'll ask clarification though.\n[00:55] What did you guys have trouble with when me and Jeff for the?\n[00:58] when you guys were.\n[00:59] I know I know for fact me, I started over here, but since we get new new models, I'm not new at that stuff.\n[01:06] Our biggest problem was the shimmy.\n[01:09] The shimmy.\n[01:10] He told you.\n[01:11] Yeah, that's the only only shimmy.\n[01:14] So, um, um, you get called over from people that are performing the shimmy after the fact.\n[01:20] Yeah.\n[01:21] Or before they make the.\n[01:23] Just before or after?\n[01:24] For what?\n[01:25] For the shimmy.\n[01:26] Like, when they when when they're unsure about something, do they call you already?\n[01:31] Like before they make a mistake or after the fact?\n[01:33] No, when they're not sure about what they're they're not confident of what, they always call me and trying to get a game plan of of what to do things before we go move forward with our production.\n[01:45] Do they have like do you have uh roughly an idea of how many times you get pulled over for this shimming uh issue, if you think this is the the most common one?\n[01:56] I would say maybe what, three, four times a day?\n[01:59] Sometimes, not maybe.\n[02:00] Usually usually know the issue, like I know the issue is like it's too low I have to hire or something like that.\n[02:07] Like, but you usually perform here most of the times, right?\n[02:10] Yeah, that's if you get if if if there's like a cross ship, like if there's someone else that substitutes you, do they have the same knowledge?\n[02:18] No, that we would not know because we only got one shift right now.\n[02:22] And it's him.\n[02:22] And it's him.\n[02:23] I'm the only guy that runs this station.\n[02:24] I got another guy, but he hasn't been here, so I don't know it's you.\n[02:27] So, and we know for sure that if there was someone else new that is not him, then there's going to be some mistakes that he probably went through, right?\n[02:34] Yes, quite since.\n[02:35] The main issue we have though is just knowing where to start to get acceptable values.\n[02:39] So maybe what the glasses could do is, they could record the data from previous shimming attempts, make an average, and then they could say, this is the shim pack you should start with.\n[02:49] That's the goal.\n[02:50] We don't have to know the exact value to get like, you know, the good torque value or not.\n[02:55] We just have to get a starting point so we don't waste too much production time.\n[02:58] Yeah.\n[02:59] This is the part that wastes the most time.\n[03:02] I agree on that.\n[03:05] At least you get an idea.\n[03:07] So, you cannot tell me like give or take, how often does a wrong shim get picked?\n[03:12] Every time.\n[03:13] Every time.\n[03:14] Because you're kind of you're kind of guessing in the dark, and you're kind of trying to especially with the range we have, 14 to 19, which is what they prefer.\n[03:22] You're trying to reach that first time, which doesn't always happen.\n[03:26] So, as a wrong shim ever made it past the station and been caught later?\n[03:31] Um, no, because the computer will record the data, and if it's within range, it'll pass.\n[03:37] If it's not within range, it doesn't pass.\n[03:39] It will let you know that hey, you know, you are too high, you're too low, computer will stop you from moving forward in the process.\n[03:46] Yeah, so what we're trying to do is instead of like putting the component and measuring the torque and then the machine says it's wrong, doing it preventively, especially with parts that might need the rework cycle or are difficult to take off, like the inverted bearing cone.\n[04:02] Um, would you say that's that's, uh, that's something like this part here.\n[04:08] Operators occasionally assemble the bearing cup and cones inverted, and once a part is pressed incorrectly, it is incredibly difficult to remove.\n[04:18] is how difficult?\n[04:20] I can't say we've been doing that part where it's inverted, um.\n[04:23] Okay.\n[04:24] Sometimes, though, I don't know if it's the machine itself, but it'll press it, and I don't know if it's seated correctly or not, or it presses enough, but it passes our test, but it'll come back wrong.\n[04:34] It'll be, I don't know, it's an engineering issue, I think.\n[04:37] I don't really know much about that.\n[04:39] Okay.\n[04:40] Okay.\n[04:41] But we can record like, um, something.\n[04:44] We could record an inverted wrong position.\n[04:46] We could do that.\n[04:47] Okay.\n[04:51] Mateo, right?\n[04:52] Yes.\n[04:53] Um, so Mateo, what can you tell me about like the most common mistakes here?\n[04:56] I'm just trying to record data and I think that one goal can be let's try to make one part so you see the process.\n[05:04] Yeah, I'm going to do it with him.\n[05:05] Yeah, so after you can tell you I mean probably the preload is the most complicated ones.\n[05:11] Yeah.\n[05:11] You can see why we're doing it yeah.\n[05:14] And you get pulled over when someone gets stuck or is it Julio?\n[05:17] Like who exactly gets pulled over?\n[05:19] Whoever is available?\n[05:21] Yeah, I mean, it's just a time that he needs to redo it, redo it again.\n[05:26] And and what's the target, um, uh, time that you're trying to get to?\n[05:31] 30 minutes.\n[05:32] You told me last time like the whole procedure takes 40 minutes, right?\n[05:35] Give or take.\n[05:36] Cuz we were trying to stick within that range, 14 and 19.\n[05:39] But since we can now go lower if it's giving us trouble, we might be able to reach 30 minutes.\n[05:46] Okay.\n[05:52] Okay, so now I'll rephrase the question.\n[05:53] What is something that you know about this station that it's not written on the machine, it's not written in the training material, and it just it might be just living with you as a as tribal knowledge, but it has to be passed over to someone else.\n[06:10] Um, I don't know if it's clear the question.\n[06:12] There's a small thing that CNH told us.\n[06:15] They said that whenever you put this thing on, you want to keep it like this, assembled.\n[06:20] Because if it comes apart, they said there's a chance that this could this seal won't be uh, it could leak in the future.\n[06:27] Okay.\n[06:28] So they told us that when you put in the part, you have to try and keep it together as much as possible.\n[06:34] That's not written on any of the uh, things over there.\n[06:37] So what's that part?\n[06:39] What's that part?\n[06:40] This step is step 18.\n[06:48] Oh, step 18?\n[06:49] Yes.\n[06:55] We added more steps or no?\n[06:57] This is a different model, so that's why it has that's why it has different.\n[07:01] Before we did the one series, I think the 425 series, which doesn't have all this extra stuff.\n[07:05] Okay.\n[07:06] This is a 600 series, so a different type of axle.\n[07:09] Okay.\n[07:10] So that's why it's different.\n[07:12] Okay, cuz I'm not doing that one.\n[07:14] Oh, you're doing the the one that we were doing the last time.\n[07:18] The one that I have 17 steps.\n[07:20] You're doing that for the 425.\n[07:22] I think you recorded data for 425s.\n[07:24] We don't have any data recorded for 600s, which is all we've been doing.\n[07:32] Cuz we're doing 600s for, yeah.\n[07:36] We're only doing 600s.\n[07:36] I mean, I'll talk to Mateo about that, but, um, so how many how many, uh, procedures you do on this station alone?\n[07:42] We have four, I don't know how many models we have, but we have four different main types of axles.\n[07:48] 425 front, 425 rear, 600 front, 600 rear.\n[07:54] Okay, so the one that I was doing is the rear, I believe, right?\n[07:58] You were doing a 425 series.\n[08:00] 425, okay.\n[08:01] The one that has 17 steps.\n[08:03] I have 17 steps loaded here.\n[08:04] Yeah, it's another one, yeah.\n[08:06] It's not what we do today, no.\n[08:08] Okay.\n[08:09] Okay.\n[08:09] It's a different model.\n[08:10] Cuz I don't want to mix and match then.\n[08:12] Um, yeah.\n[08:13] May maybe we can do it probably next week.\n[08:16] Yeah, it will be next week.\n[08:19] Or yeah, late this week, depends.\n[08:22] And, uh, um, which one of the four is the the one that has the highest errors?\n[08:29] Highest what?\n[08:29] Errors.\n[08:30] Errors.\n[08:31] The 600 series.\n[08:32] This one?\n[08:33] Yeah.\n[08:34] And why why is that?\n[08:36] The shimming.\n[08:37] Okay, the shimming, still the shimming.\n[08:38] Okay.\n[08:38] The shimming and it has more steps, so it takes a little bit longer.\n[08:43] So, remind me the one with the CNH part assembly with the step 18 is.\n[08:50] This is a 600 rear series.\n[08:57] We call it LWR for.\n[08:59] It's the same in UTR.\n[09:02] So, pinion guide has four different procedures.\n[09:12] Yes, so if you can check like the one that I have on on my end.\n[09:22] Is that a?\n[09:23] No, it's a.\n[09:32] deve vedere un po' che deve come gioca con i ragazzi, deve vedere.\n[09:37] No, deve vedere.\n[09:42] Okay, so 17 steps.\n[09:46] I have a note here of the part is getting the pack.\n[09:50] No, no, no, this is for a 425, uh, I can tell you which one this is for.\n[09:58] That's for a 425 rear series.\n[10:00] Is this here?\n[10:01] So you can put it in your notes, 425 rear axle.\n[10:05] 425 rear axle.\n[10:18] If you want, if you want, if you want me to speak Italian, maybe it's easier.\n[10:22] And then you follow me.\n[10:24] Bè, sì, tanto devo devo registrare comunque, poi farà translation.\n[10:29] Sì, sì.\n[10:30] Oh, we are for English.\n[10:31] Okay, okay.\n[10:32] Okay, okay.\n[10:33] Okay.\n[10:35] Okay.\n[10:35] Just because we need some parts also so I mean, I can answer to all the questions to him so you can focus and he can watch you assemble.\n[10:44] So you want me to start?\n[10:44] Yeah.\n[10:45] Okay, sure.\n[10:46] Yes, so the other, um, yes, the other time we were not recording this.\n[10:51] this one is a new part for you.\n[10:52] Yeah, and I need to stay finishing the other one.\n[10:57] 425 or this one?\n[10:59] This one.\n[11:00] Uh, 425 rear axle.\n[11:02] Eh, but it's not the one he's he's uh like this.\n[11:10] Yeah, this one is the one we were doing.\n[11:13] It's completely different.\n[11:15] Also the bearings are different.\n[11:18] The seal is different.\n[11:21] Yeah, because I have to do one procedure at a time.\n[11:27] I have to wait.\n[11:37] we did a lot two weeks ago.\n[11:42] You can start.\n[11:44] So, today I can't record video of, No, you can, but of a different model.\n[11:49] Oh, no, because then the data, I don't have all the data of one thing and the other.\n[11:58] We haven't done 425.\n[12:01] this is a good.\n[12:04] Okay.\n[12:08] I'll just do it really quick.\n[12:13] And Friday, um, um, will it be possible to have this?\n[12:18] Next Friday.\n[12:19] No, this Friday.\n[12:20] Oh, this Friday.\n[12:21] I have to see what the schedule is.\n[12:22] Because Friday, the managing director of a company that is using my software in automotive manufacturing will come and wanted to test the glasses for this type of station.\n[12:38] Um, and will come with the Director of IT of his company to see the type of integration because we have connected the glasses to the Unicom software.\n[12:48] Okay.\n[12:48] So that the operators don't don't control the glasses, meaning the glasses only become an extension.\n[12:54] So if the software says, you are at step seven, the glasses are at step seven.\n[13:01] And they are not disconnected.\n[13:02] However, I needed to make a video recording of the parts in case they were bad, you know.\n[13:10] And also photos can be done?\n[13:12] Photos, we have the photos.\n[13:15] Like of the inverted bearing cone.\n[13:18] No, of the errors.\n[13:19] Oh, yes, I should do those.\n[13:22] But they can't be done today.\n[13:23] No.\n[13:25] Well, they're not the parts, you see, it's not like they tell you.\n[13:27] Yes, the components aren't there.\n[13:29] No.\n[13:30] Okay.\n[13:31] Because they only have the material.\n[13:34] So I have photos of the right stuff.\n[13:38] Which is fine.\n[13:39] Which are the ones in the procedure, but maybe.\n[13:41] Meaning these, these.\n[13:42] They should have been there.\n[13:47] I have this.\n[13:48] Exactly.\n[13:49] This, this.\n[13:50] Okay, yes, I need correct and then wrong.\n[13:56] So you confirm that this is the 425.\n[14:02] Okay.\n[14:02] Okay.\n[14:03] Yes, yes.\n[14:05] So this one, this one.\n[14:08] So I organized them like this, then I did the CCV call, the parts correctly because some steps don't match the step on the software.\n[14:19] I put some notes that he told me last time.\n[14:24] And I put the components.\n[14:26] Okay.\n[14:26] So that with the glasses, if you point the camera at one of the components, you can ask which step to use this component and it tells you.\n[14:37] Um, I don't know if there are any other questions.\n[14:48] Oh, okay, this is an interesting question.\n[14:50] So, if you were to do you mind if we do it in English?\n[14:52] Yeah, it's fine.\n[14:53] So, if you were training a brand new technician on this station with the 425, the one that I'm with this, um, what would you tell them in the first 10 minutes?\n[15:02] Like at the very beginning.\n[15:04] What is this something that you would train them on at the very beginning?\n[15:10] Um, how to use the software and how to not get hurt for sure for safety because these are heavy material so and uh after how to approach the the software of Unicorn.\n[15:24] So Okay.\n[15:25] Uh, they need to follow the steps.\n[15:27] They need to open the picture every time.\n[15:31] And uh.\n[15:32] So the training material, look at the training material.\n[15:34] Yes.\n[15:35] For sure.\n[15:36] I mean this is not in 10 minutes.\n[15:38] I mean this will need probably.\n[15:40] Okay, yeah, yeah.\n[15:41] One week to train, you know, so 10 minutes is just nothing.\n[15:47] But make sure.\n[15:48] So your onboarding time, how long is it for a new worker?\n[15:51] Like one week, you said?\n[15:52] One week, yeah.\n[15:53] One week.\n[15:54] Okay.\n[15:55] Easy one week.\n[15:57] One week with, um, a supervisor assisting them.\n[16:01] Yes, correct.\n[16:02] Okay.\n[16:03] And, um, roughly how many times, um, um, the supervisor gets gets called over during that week.\n[16:12] I need to be one operator together with the new operator.\n[16:17] Okay.\n[16:17] Always assist them.\n[16:18] So side by side.\n[16:19] Okay, okay.\n[16:21] And uh the supervisor, we hope that the supervisor is not called out, but I mean if an operator needs helps, yes, you need to go with the supervisor.\n[16:33] Okay.\n[16:36] The supervisor is you or there's someone else?\n[16:37] Yeah, or Julio.\n[16:38] Yeah.\n[16:39] Or Julio.\n[16:40] Okay, okay.\n[16:41] supervisor of the line.\n[17:20] So another another question.\n[17:21] So, um, all of these steps are used for the opinion guides.\n[17:26] The parts.\n[17:26] Yeah, all of these parts.\n[17:27] Yes.\n[17:28] All of these components are used for the opinion guides, but for 425 or for all the four procedures that you run?\n[17:37] No, for all.\n[17:38] For all the procedures.\n[17:40] Um.\n[17:41] Yes.\n[17:42] I mean, I don't know exactly.\n[17:43] Maybe they use also some bearings, for example, like here.\n[17:47] Yeah.\n[17:48] So that big fat.\n[17:50] Okay.\n[17:51] Yes.\n[17:52] Um, yeah, cuz I need to, um, associate each component to each step and make sure that it's actually correct.\n[18:00] Yes.\n[18:02] Um, but the good the good thing is that here there is written the fixture and the part number.\n[18:09] So.\n[18:09] Yeah, and I already synced it with with yeah, yeah, yeah, it's already synced.\n[18:13] Um, but it's synced only for the 425.\n[18:16] Yeah.\n[18:17] I don't have all the other ones.\n[18:18] So.\n[18:19] Yeah, but the new the other recipe, this one is the other recipe is the same.\n[18:23] So they have a part number and code.\n[18:26] So both are aligned let's say.\n[18:30] Like if I go on the on the other procedure, it's going to have the same components.\n[18:34] This one, this one.\n[18:35] This one is the other procedure for, but for the round one, and they have a part number and yeah, everything.\n[18:42] So.\n[18:42] So, okay, so when when an operator looks at the code here.\n[18:46] Yes.\n[18:47] They need to match it with the code of the actual components.\n[18:50] Correct.\n[18:50] Um, does that usually take a long time?\n[18:53] Mm, no.\n[18:54] Like does it take a long time at the beginning or?\n[18:58] Uh.\n[18:59] How how does the operator get comfortable in picking the components, uh, based on the code indicated here?\n[19:05] Because I don't I don't think they'll know right away, right?\n[19:08] But after you did it a lot, after they already recognized what to pick.\n[19:14] So, uh, there can be some there can be always some mistakes, you know.\n[19:20] For example, this one is they need to there is something written here, you know, and they need to match this one.\n[19:29] Uh, so this one is a Okay, so if if you're pointing, let me record with the glass.\n[19:33] If you don't mind.\n[19:46] Let's see if I can do it.",
+  "facts": [
+    {
+      "id": "matteo-knowledge-2-001",
+      "topic": "error frequency",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "The biggest and most common problem on the pinion guide station is the shimming step, which causes operators to call for help approximately three to four times a day.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Recording matteo knowledge comer.m4a",
+        "audio_offset_s": 66,
+        "transcript_quote": "Our biggest problem was the shimmy... I would say maybe what, three, four times a day?"
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "matteo-knowledge-2-002",
+      "topic": "common mistake",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "A wrong shim is effectively picked every time because operators are guessing without a reliable starting point, making first-attempt success rare.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Recording matteo knowledge comer.m4a",
+        "audio_offset_s": 192,
+        "transcript_quote": "Every time. Because you're kind of guessing in the dark."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "matteo-knowledge-2-003",
+      "topic": "shimming",
+      "step_codes": [
+        "pinion-7",
+        "pinion-14"
+      ],
+      "fact": "The acceptable rolling-torque range for shimming on the P100 pinion guide is 14 to 19 (units as specified by engineering), and operators must try to reach that range on the first attempt.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Recording matteo knowledge comer.m4a",
+        "audio_offset_s": 204,
+        "transcript_quote": "especially with the range we have, 14 to 19, which is what they prefer."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "matteo-knowledge-2-004",
+      "topic": "shimming",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "The main issue with shimming is not knowing where to start to reach acceptable torque values; a recommended starting shim pack based on historical data would eliminate most wasted production time.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Recording matteo knowledge comer.m4a",
+        "audio_offset_s": 155,
+        "transcript_quote": "The main issue we have though is just knowing where to start to get acceptable values."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "matteo-knowledge-2-005",
+      "topic": "error prevention",
+      "step_codes": [
+        "pinion-14"
+      ],
+      "fact": "If the rolling torque value is out of range, the Unicom computer system will flag it and stop the operator from moving forward in the process, preventing an out-of-spec part from passing the station.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Recording matteo knowledge comer.m4a",
+        "audio_offset_s": 211,
+        "transcript_quote": "the computer will record the data, and if it's within range, it'll pass. If it's not within range, it doesn't pass."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "matteo-knowledge-2-006",
+      "topic": "common mistake",
+      "step_codes": [
+        "pinion-1",
+        "pinion-2",
+        "pinion-4",
+        "pinion-6"
+      ],
+      "fact": "Inverted bearing cup and cone assembly is one of the two most error-prone tasks on the station. Operators occasionally assemble the bearing cup and cones inverted. The press detects this immediately (it flags an out-of-range position), but once a part has been pressed in the wrong orientation it is incredibly difficult to remove — removal frequently damages the component and causes significant downtime. Line-engineer verified orientations (2026-07-14): the BIG bearing cup cod.248114A1 is assembled TIMKEN side facing UP, and the SMALL bearing cup cod.191440A1 is assembled TIMKEN side facing DOWN, the inboard cone cod.248118A1 (Step 4) TIMKEN side facing DOWN (roller cage up), and the upper cone cod.67190R91 (Step 6) TIMKEN side facing UP — both the cup pair and the cone pair use opposite conventions, so never carry one part's rule onto its sibling.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Recording matteo knowledge comer.m4a",
+        "audio_offset_s": 247,
+        "transcript_quote": "Operators occasionally assemble the bearing cup and cones inverted, and once a part is pressed incorrectly, it is incredibly difficult to remove.",
+        "curated_source": "docs/source-material/errors_pinion_guide_for_KB.txt"
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": true
+    },
+    {
+      "id": "matteo-knowledge-2-007",
+      "topic": "quality issue",
+      "step_codes": [
+        "pinion-1",
+        "pinion-2"
+      ],
+      "fact": "Sometimes the bearing cup/cone presses far enough to pass the station test but is not seated correctly and will come back as a field failure; this is considered an engineering-level issue.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Recording matteo knowledge comer.m4a",
+        "audio_offset_s": 264,
+        "transcript_quote": "it'll press it, and I don't know if it's seated correctly or not... it passes our test, but it'll come back wrong."
+      },
+      "keyframes": [],
+      "confidence": "medium",
+      "verified": false
+    },
+    {
+      "id": "matteo-knowledge-2-008",
+      "topic": "tribal knowledge",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "CNH specified that a particular seal assembly (step 18 on the 600 series) must be kept together as a unit when installed; if it comes apart during assembly there is a risk the seal will leak in service, and this instruction is not documented in the written training material.",
+      "applies_when": "600 series axle assembly (LWR / UTR)",
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Recording matteo knowledge comer.m4a",
+        "audio_offset_s": 372,
+        "transcript_quote": "CNH told us... whenever you put this thing on, you want to keep it like this, assembled. Because if it comes apart... this seal won't be uh, it could leak in the future."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "matteo-knowledge-2-009",
+      "topic": "variant rule",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "The pinion guide station runs four distinct procedures: 425 front axle, 425 rear axle, 600 front axle, and 600 rear axle.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Recording matteo knowledge comer.m4a",
+        "audio_offset_s": 467,
+        "transcript_quote": "425 front, 425 rear, 600 front, 600 rear."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "matteo-knowledge-2-010",
+      "topic": "variant rule",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "The 600 series axle has more steps and different bearings and seals compared to the 425 series, making it a completely different assembly process.",
+      "applies_when": "600 series axle",
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Recording matteo knowledge comer.m4a",
+        "audio_offset_s": 673,
+        "transcript_quote": "It's completely different. Also the bearings are different. The seal is different."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "matteo-knowledge-2-011",
+      "topic": "error frequency",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "The 600 series has the highest error rate of the four axle variants, primarily due to shimming complexity and the greater number of assembly steps.",
+      "applies_when": "600 series axle",
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Recording matteo knowledge comer.m4a",
+        "audio_offset_s": 511,
+        "transcript_quote": "The 600 series... The shimming and it has more steps, so it takes a little bit longer."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "matteo-knowledge-2-012",
+      "topic": "cycle time",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "The target cycle time for the full pinion guide procedure is 30 minutes; the current average is approximately 40 minutes, largely due to shimming rework iterations.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Recording matteo knowledge comer.m4a",
+        "audio_offset_s": 331,
+        "transcript_quote": "30 minutes... the whole procedure takes 40 minutes, right? Give or take."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "matteo-knowledge-2-013",
+      "topic": "shimming",
+      "step_codes": [
+        "pinion-7",
+        "pinion-14"
+      ],
+      "fact": "When the torque target of 14–19 is proving difficult to reach, operators are now allowed to accept a lower value, which can reduce total cycle time to approximately 30 minutes.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Recording matteo knowledge comer.m4a",
+        "audio_offset_s": 339,
+        "transcript_quote": "since we can now go lower if it's giving us trouble, we might be able to reach 30 minutes."
+      },
+      "keyframes": [],
+      "confidence": "medium",
+      "verified": false
+    },
+    {
+      "id": "matteo-knowledge-2-014",
+      "topic": "onboarding",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "A new operator requires approximately one full week of side-by-side training with an experienced operator or supervisor (Julio or Mateo) before working independently on the pinion guide station.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Recording matteo knowledge comer.m4a",
+        "audio_offset_s": 951,
+        "transcript_quote": "One week to train... I need to be one operator together with the new operator. Always assist them."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "matteo-knowledge-2-015",
+      "topic": "onboarding",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "When onboarding a new technician, the first priorities are safety (parts are heavy) and learning to navigate the Unicom software and follow the step-by-step pictures before anything else.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Recording matteo knowledge comer.m4a",
+        "audio_offset_s": 920,
+        "transcript_quote": "how to use the software and how to not get hurt for sure for safety because these are heavy material."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "matteo-knowledge-2-016",
+      "topic": "component selection",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "Incorrect fixture and driver selection is one of the two most error-prone tasks on the station. Operators must match the fixture/driver code printed on the Unicom step screen to the code physically marked on the actual components. The correct drivers and fixtures are clearly detailed in the Work Instructions and regular operators know them well, but errors spike during cross-training or shift coverage — when a regular operator is on leave, a cross-trained backup is much more likely to select the wrong driver.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Recording matteo knowledge comer.m4a",
+        "audio_offset_s": 1099,
+        "transcript_quote": "they need to match this one... there can be always some mistakes, you know.",
+        "curated_source": "docs/source-material/errors_pinion_guide_for_KB.txt"
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": true
+    },
+    {
+      "id": "matteo-knowledge-2-017",
+      "topic": "knowledge concentration",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "Only one operator (Ethan) currently runs the pinion guide station on the single active shift; a substitute operator would not have the same shimming knowledge and is likely to make errors.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Recording matteo knowledge comer.m4a",
+        "audio_offset_s": 143,
+        "transcript_quote": "I'm the only guy that runs this station... if there was someone else new that is not him, then there's going to be some mistakes."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "matteo-knowledge-2-018",
+      "topic": "variant rule",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "The 17-step procedure captured previously corresponds to the 425 rear axle; the 600 series procedure is a separate recipe with additional steps and is the model currently in production.",
+      "applies_when": "425 rear axle vs. 600 series",
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Recording matteo knowledge comer.m4a",
+        "audio_offset_s": 598,
+        "transcript_quote": "That's for a 425 rear series... The one that has 17 steps. You're doing that for the 425."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    },
+    {
+      "id": "matteo-knowledge-2-019",
+      "topic": "shimming",
+      "step_codes": [
+        "pinion-7"
+      ],
+      "fact": "During shimming, operators generally know the direction of the required correction (too high or too low) but lack a reliable first-attempt starting value, which is the root cause of repeated iterations.",
+      "applies_when": null,
+      "citation": {
+        "source_audio": "docs/source-material/operator-audio/Audio_Knoweldge_Comer_June1/Recording matteo knowledge comer.m4a",
+        "audio_offset_s": 120,
+        "transcript_quote": "Usually know the issue, like I know the issue is like it's too low I have to hire or something like that."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": false
+    }
+  ]
+}

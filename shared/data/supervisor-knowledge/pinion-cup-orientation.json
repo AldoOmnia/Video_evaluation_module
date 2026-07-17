@@ -1,0 +1,70 @@
+{
+  "_kind": "supervisor-knowledge/v1",
+  "_source_audio": null,
+  "_source_video": null,
+  "_phase_tag": "PRESS STATION — bearing cup orientation (TIMKEN side)",
+  "_step_codes": [
+    "pinion-1",
+    "pinion-2"
+  ],
+  "_step_title": "Steps 1–2 — big & small bearing cup orientation on the cover",
+  "_recorded_by": "Comer line mechanical engineer (errors_pinion_guide_for_KB.txt), relayed by Omnia 2026-07-14",
+  "_transcribed_by": null,
+  "_distilled_by": "manual entry (claude, from line-engineer note)",
+  "_ingested_at": "2026-07-14T22:00:00.000Z",
+  "_verified_by": "line mechanical engineer 2026-07-14: orientation of both cups confirmed on the line; reference photos re-shot to match. Curated source docs/source-material/errors_pinion_guide_for_KB.txt.",
+  "facts": [
+    {
+      "id": "pinion-cup-orientation-001",
+      "topic": "orientation rule",
+      "step_codes": [
+        "pinion-1"
+      ],
+      "fact": "The BIG bearing cup cod.248114A1 (Step 1, pressed onto the cover) is assembled with the TIMKEN stamped side facing UP — the engraved TIMKEN maker text must be visible on the up-face when the cup sits on the punch fixture. If the bare bright tapered raceway (no lettering) is facing up, the cup is INVERTED: stop and flip it before pressing. The press flags an inverted cup out-of-range, but once pressed wrong it is incredibly difficult to remove and usually damages the part.",
+      "applies_when": "step 1 — big bearing cup on cover",
+      "citation": {
+        "source": "line mechanical engineer note, 2026-07-14",
+        "transcript_quote": "The Bearing cup cod. 248114A1 assembled TIMKEN side facing UP",
+        "curated_source": "docs/source-material/errors_pinion_guide_for_KB.txt"
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": true
+    },
+    {
+      "id": "pinion-cup-orientation-002",
+      "topic": "orientation rule",
+      "step_codes": [
+        "pinion-2"
+      ],
+      "fact": "The SMALL bearing cup cod.191440A1 (Step 2, fixed on the cover) is assembled with the TIMKEN stamped side facing DOWN — the bright smooth tapered raceway faces up and NO lettering is visible on the up-face. If the stamped TIMKEN text is visible facing up, the cup is INVERTED: stop and flip it before pressing.",
+      "applies_when": "step 2 — small bearing cup on cover",
+      "citation": {
+        "source": "line mechanical engineer note, 2026-07-14",
+        "transcript_quote": "the small bearing cup cod. 191440A1 assembled TIMKEN facing down",
+        "curated_source": "docs/source-material/errors_pinion_guide_for_KB.txt"
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": true
+    },
+    {
+      "id": "pinion-cup-orientation-003",
+      "topic": "orientation rule",
+      "step_codes": [
+        "pinion-1",
+        "pinion-2"
+      ],
+      "fact": "The two bearing cups use OPPOSITE orientation conventions and this is the trap: big cup 248114A1 goes TIMKEN side UP, small cup 191440A1 goes TIMKEN side DOWN. Never carry one cup's rule onto the other — check which cup is in hand (outer diameter / bin label / current step) before judging its orientation. A fast visual tell photographed side-by-side: the big cup's stamped TIMKEN rim is a visibly THICKER/WIDER flat annulus than the small cup's narrow stamped band. The big cup's correct pose (TIMKEN face up on the fixture) is also what the Phase-1 'INSERT BEARING CUP' work-instruction photo (Phase1.pdf) shows. Inverted cup/cone assembly is one of the two most error-prone tasks on this station.",
+      "applies_when": "any cup placement at steps 1–2",
+      "citation": {
+        "source": "line mechanical engineer note, 2026-07-14",
+        "transcript_quote": "The Bearing cup cod. 248114A1 assembled TIMKEN side facing UP and the small bearing cup cod. 191440A1 assembled TIMKEN facing down.",
+        "curated_source": "docs/source-material/errors_pinion_guide_for_KB.txt"
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": true
+    }
+  ]
+}
