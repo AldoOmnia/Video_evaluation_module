@@ -122,74 +122,35 @@
     .fac-fullbtn .ico-collapse { display: none; }
     .facility-canvas.is-full .fac-fullbtn .ico-expand { display: none; }
     .facility-canvas.is-full .fac-fullbtn .ico-collapse { display: block; }
-    /* High-fidelity layer (fullscreen only): hoist coverage circles with the
-       drawing's zone letters, column grid, aisle striping, runway captions */
-    .fac-hoist circle { fill: none; stroke: rgba(255,255,255,0.15); stroke-width: 1; }
-    .fac-hoist circle.hz-ring { stroke: rgba(255,255,255,0.06); }
-    .fac-hoist text { fill: rgba(255,255,255,0.25); font-family: var(--mono); font-size: 10px; font-weight: 600; }
-    /* Fullscreen furniture from the drawing: axle units on the floor, parts
-       pallets, and the CAD-style operator manikins (blue, seen from above) */
-    .fac-part { stroke: rgba(255,255,255,0.14); fill: none; stroke-width: 1; }
-    .fac-pallet circle { stroke: rgba(255,255,255,0.09); fill: none; stroke-width: 1; }
+    /* The real plant drawing (rendered from the native CNH Layout 1.dwg)
+       sits under the interactive layer, dimmed in the minimal view and
+       brought forward in fullscreen where all its detail is readable. */
+    .fac-bp { opacity: 0.30; transition: opacity 220ms ease; }
+    .facility-canvas.is-full .fac-bp { opacity: 0.66; }
+    .fac-src { fill: #3a3a3a; font-family: var(--mono); font-size: 8px; letter-spacing: 0.06em; }
+    /* CAD-style operator manikins (blue, seen from above) — fullscreen only */
     .fac-operator ellipse { fill: rgba(96,165,250,0.14); stroke: rgba(96,165,250,0.55); stroke-width: 1; }
     .fac-operator circle { fill: rgba(96,165,250,0.5); }
     .fac-operator line { stroke: rgba(96,165,250,0.45); stroke-width: 1; stroke-linecap: round; }
-    .fac-grid { stroke: rgba(255,255,255,0.07); stroke-width: 1; }
-    .fac-aisle { stroke: rgba(245,197,66,0.20); stroke-width: 3; stroke-dasharray: 14 10; fill: none; }
-    .fac-runway { fill: #3a3a3a; font-family: var(--mono); font-size: 7.5px; letter-spacing: 0.05em; }
     .fac-edge { stroke: rgba(0,229,160,0.18); stroke-width: 1.6; stroke-dasharray: 5 5; }
-    .fac-bay rect { fill: rgba(245,197,66,0.015); stroke: rgba(245,197,66,0.20); stroke-width: 1.2; }
-    .fac-bay.open rect { fill: none; stroke: rgba(245,197,66,0.12); stroke-dasharray: 4 4; }
-    .fac-bay text {
-      fill: rgba(245,197,66,0.38); font-family: var(--mono); font-size: 11px;
-      font-weight: 600; letter-spacing: 0.14em;
-    }
-    .fac-note { fill: #3d3d3d; font-family: var(--mono); font-size: 8px; letter-spacing: 0.06em; }
-    /* Visual-only floor furniture: conveyors + machine footprints (no data) */
-    .fac-belt rect { fill: rgba(255,255,255,0.015); stroke: var(--line-2); stroke-width: 1; }
-    .fac-belt line { stroke: var(--line-2); stroke-width: 1; }
-    .fac-machine { fill: rgba(255,255,255,0.012); stroke: #262626; stroke-width: 1; }
-    /* Expand control + 2D drawing miniature */
-    .fac-expand {
-      display: flex; align-items: center; gap: 8px; margin: 6px auto 0;
-      background: transparent; border: 1px solid var(--line-2); border-radius: 999px;
-      color: var(--ink-3); font-family: var(--mono); font-size: 9px;
-      letter-spacing: 0.08em; text-transform: uppercase;
-      padding: 7px 14px; cursor: pointer;
-      transition: border-color 140ms ease, color 140ms ease;
-    }
-    .fac-expand:hover { border-color: var(--primary-dim); color: var(--primary); }
-    .fac-expand svg { transition: transform 180ms ease; }
-    .fac-expand[aria-expanded="true"] svg { transform: rotate(180deg); }
-    .fac-blueprint {
-      margin: 14px auto 4px; border: 1px solid var(--line-2); border-radius: 10px;
-      overflow: hidden; background: #101418;
-    }
-    .fac-blueprint img {
-      display: block; width: 100%; height: auto;
-      /* rendered straight from the native DWG on the platform background —
-         no correction filter needed */
-    }
-    .fac-blueprint .bp-caption {
-      padding: 9px 14px; border-top: 1px solid var(--line-2);
-      font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em;
-      color: var(--ink-3); text-transform: uppercase;
-    }
     .fac-node { cursor: pointer; }
     .fac-node circle.core {
-      fill: #0f1512; stroke: var(--line-2); stroke-width: 2.2;
+      fill: rgba(15,21,18,0.82); stroke: var(--line-2); stroke-width: 2;
       transition: stroke 140ms ease;
     }
-    .fac-node.is-active circle.core { stroke: var(--primary); stroke-width: 2.6; }
+    .fac-node.is-active circle.core { stroke: var(--primary); stroke-width: 2.4; }
     .fac-node:hover circle.core { stroke: var(--primary); }
     .fac-node circle.halo { fill: none; stroke: rgba(0,229,160,0.25); stroke-width: 1; }
-    .fac-node text { fill: var(--ink-1); font-family: var(--sans); font-weight: 600; }
-    .fac-node .nd-label { font-size: 12px; }
-    .fac-node .nd-desc { fill: var(--ink-3); font-family: var(--mono); font-size: 8.5px; font-weight: 400; letter-spacing: 0.03em; }
-    .fac-node .nd-stage { fill: var(--ink-3); font-family: var(--mono); font-size: 8.5px; font-weight: 400; letter-spacing: 0.04em; }
-    .fac-node .nd-counts { fill: var(--primary); font-family: var(--mono); font-size: 8.5px; font-weight: 400; }
-    .fac-node .nd-report { font-family: var(--mono); font-size: 8px; font-weight: 400; letter-spacing: 0.03em; }
-    .fac-node .nd-report.ok { fill: #3d5c50; }
+    /* Dark stroke behind every label so text stays readable on the drawing */
+    .fac-node text {
+      fill: var(--ink-1); font-family: var(--sans); font-weight: 600;
+      paint-order: stroke; stroke: rgba(8,10,9,0.88); stroke-width: 3px; stroke-linejoin: round;
+    }
+    .fac-node .nd-label { font-size: 11px; }
+    .fac-node .nd-stage { fill: var(--ink-3); font-family: var(--mono); font-size: 8px; font-weight: 400; letter-spacing: 0.04em; }
+    .fac-node .nd-counts { fill: var(--primary); font-family: var(--mono); font-size: 8px; font-weight: 400; }
+    .fac-node .nd-report { font-family: var(--mono); font-size: 7.5px; font-weight: 400; letter-spacing: 0.03em; }
+    .fac-node .nd-report.ok { fill: #4a7a66; }
     .fac-node .nd-report.warn { fill: var(--warn, #f5a524); }
     .fac-twin { cursor: pointer; }
     .fac-twin rect { fill: rgba(74,222,128,0.06); stroke: rgba(74,222,128,0.4); stroke-width: 1; transition: fill 140ms ease; }
@@ -576,11 +537,11 @@
     <section class="facility-view is-active" id="facility-view">
       <div class="facility-head">
         <h1>The line, as Comer AI sees it</h1>
-        <p>The real Rockford stations, laid out as they sit on the plant floor — bays 1 · 3 · 4 · 6 · 7 from the facility drawing, each station at its physical spot with its stage,
-        historical MES checks and knowledge counts. The digital-twin capture (and all its viewpoints) lives inside ST100 · Pinion Guide. Click a station to open it.</p>
+        <p>The real Rockford stations, live on the actual plant drawing (CNH Layout 1.dwg) — each dot sits at its physical spot with its stage,
+        historical MES checks and knowledge counts. The digital-twin capture (and all its viewpoints) lives inside ST100 · Pinion Guide. Click a station to open it; expand full screen for the drawing's full detail.</p>
       </div>
       <div class="facility-canvas" id="facility-canvas">
-        <svg id="facility-svg" viewBox="0 0 1140 850" role="img" aria-label="Facility station map on the plant floor layout"></svg>
+        <svg id="facility-svg" viewBox="0 0 1140 770" role="img" aria-label="Facility station map on the plant floor layout"></svg>
         <button type="button" class="fac-fullbtn" id="fac-fullbtn" title="Expand the plant view full screen" aria-label="Expand the plant view full screen">
           <svg class="ico-expand" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
             <path d="M8.5 1.5 H12.5 V5.5 M12.5 1.5 L8 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
@@ -595,21 +556,10 @@
       <div class="fac-legend">
         <span><span class="dot" style="background:var(--primary)"></span>active station — full graph live</span>
         <span><span class="dot" style="background:#2a2a2a"></span>scaffold — awaiting material</span>
-        <span style="color:rgba(245,197,66,0.55);">▭ bay — outline from the Comer plant layout drawing</span>
         <span style="color:var(--ok);">✓ twin — digital twin available</span>
         <span>counts: keysteps · material · components</span>
         <span style="color:var(--warn,#f5a524);">⚠ checks — MES acquisitions outside limits (Full_stations_report)</span>
-      </div>
-      <button type="button" class="fac-expand" id="fac-expand" aria-expanded="false" aria-controls="fac-blueprint">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-          <path d="M2 2.5 L6 6 L10 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M2 6.5 L6 10 L10 6.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span id="fac-expand-label">Show the 2D plant drawing</span>
-      </button>
-      <div class="fac-blueprint" id="fac-blueprint" hidden>
-        <img src="/lab/assets/comer-plant-blueprint.png?v=2" alt="Comer Rockford plant — 2D CAD layout drawing" loading="lazy" />
-        <div class="bp-caption">Comer Rockford — 2D plant layout, rendered from the native CAD drawing (CNH Layout 1.dwg) · the map above is traced from it · circled letters = hoist zones · yellow = aisle striping &amp; bay boundaries</div>
+        <span style="color:rgba(245,197,66,0.55);">underlay — the 2D plant drawing (yellow = aisles &amp; bays) · expand for full detail</span>
       </div>
     </section>
 
@@ -817,91 +767,15 @@
     picker.addEventListener('change', () => showStation(picker.value, false));
 
     /* ── Facility graph ───────────────────────── */
-    // Geometry traced from the Comer Rockford plant layout drawing
-    // (Comer_Plant_Layout): bay outlines + one dot per physical station spot,
-    // at its real position on the floor. Stage mapping per the plant:
-    //   Bay 3  — Stage 12-13 axle mount (ST160/170) · Stage 11 tear dropbox
-    //            (ST300/310) · Stage 1 pinion guide (ST100) · Stage 2 brake &
-    //            cover (ST110)
-    //   Bay 4  — Stage 10 (ST150) · Stage 9 (ST140) · Stage 8 shimming
-    //            (ST130-135)
-    //   Bay 1  — Stage 14 test bench (ST190) · open 5-ton floor holds the
-    //            leak-test station (ST180, stazione prova di tenuta)
-    //   Bay 7  — Stage 6 sub starship (ST500-520)
-    //   Bay 6  — Stage 5 subdifferential (ST200-220) · Stage 3 sub
-    //            (ST400-410) · Stage 4 sub (ST700-710)
-    // Base bay rectangles (plant proportions). At render time each bay grows
-    // to wrap the full footprint of its stations — dot, label stack, badges —
-    // so nodes never spill outside as stations gain material or go active.
-    const FAC_BAYS = [
-      { label: 'BAY 1', x: 60,  y: 36,  w: 360, h: 168 },
-      { label: 'BAY 3', x: 470, y: 36,  w: 620, h: 236, anchor: 'end' },
-      { label: 'BAY 4', x: 470, y: 292, w: 620, h: 150 },
-      { label: '5-TON OPEN FLOOR', x: 60, y: 224, w: 360, h: 250, open: true },
-      { label: 'BAY 7', x: 60,  y: 510, w: 560, h: 240 },
-      { label: 'BAY 6', x: 660, y: 480, w: 430, h: 330, anchor: 'end' },
-    ];
-    // Visual-only floor furniture (no data behind it): conveyor belts + the
-    // big machine footprints, so relative positioning reads like the drawing.
-    const FAC_BELTS = [
-      { x: 500, y: 274, w: 560, h: 12 },  // main conveyor along the bay 3 / bay 4 corridor
-      { x: 864, y: 446, w: 12,  h: 30 },  // spur down into bay 6
-    ];
-    const FAC_MACHINES = [
-      { x: 100, y: 76,  w: 90, h: 76 },   // bay 1 — stage-14 test bench block
-      { x: 120, y: 596, w: 66, h: 40 },   // bay 7 — roll-over benches
-      { x: 206, y: 596, w: 66, h: 40 },
-    ];
-    // High-fidelity layer, drawn only in fullscreen: the drawing's hoist
-    // coverage circles with their zone letters (C…X), structural column grid,
-    // aisle striping and runway captions. Letters follow the CAD drawing;
-    // entries with `key` ring the matching station node.
-    const FAC_HOISTS = [
-      { letter: 'C', x: 150, y: 118, r: 44 },
-      { letter: 'D', key: 'st190', r: 54 },
-      { letter: 'E', x: 370, y: 112, r: 44 },
-      { letter: 'F', x: 150, y: 316, r: 52 },
-      { letter: 'G', x: 300, y: 396, r: 52 },
-      { letter: '',  key: 'st160', r: 48 },
-      { letter: '',  key: 'st170', r: 48 },
-      { letter: 'H', key: 'st300', r: 50 },
-      { letter: 'I', key: 'st310', r: 50 },
-      { letter: 'K', key: 'pg-04', r: 56 },
-      { letter: 'L', key: 'st110', r: 50 },
-      { letter: 'M', key: 'st150', r: 52 },
-      { letter: 'N', key: 'st140', r: 52 },
-      { letter: 'P', key: 'st130-135', r: 52 },
-      { letter: 'Q', x: 140, y: 585, r: 40 },
-      { letter: 'R', x: 300, y: 585, r: 40 },
-      { letter: 'S', key: 'st500-520', r: 50 },
-      { letter: 'T', x: 530, y: 690, r: 38 },
-      { letter: 'U', key: 'st200-220', r: 50 },
-      { letter: 'V', x: 990, y: 560, r: 36 },
-      { letter: 'W', key: 'st400-410', r: 50 },
-      { letter: 'X', key: 'st700-710', r: 50 },
-    ];
-    const FAC_RUNWAYS = [
-      { text: 'RUNWAY 4000 lbs · 4 BRIDGES @ 2000 lbs ea', x: 482, y: 434 },
-      { text: 'RUNWAY 1000 lbs · 2 BRIDGES @ 500 lbs ea',  x: 72,  y: 196 },
-      { text: 'RUNWAY 1000 lbs · 2 BRIDGES @ 500 lbs ea',  x: 672, y: 800 },
-    ];
-    // Axle units sitting on the floor (top view), as drawn on the plan:
-    // west staging column, bay 7 bottom row, finished units near bay 6 out.
-    const FAC_AXLES = [
-      { x: 96,  y: 262, rot: 90 }, { x: 96,  y: 330, rot: 90 }, { x: 96, y: 398, rot: 90 },
-      { x: 150, y: 706 }, { x: 250, y: 706 }, { x: 350, y: 706 },
-      { x: 940, y: 782 }, { x: 1030, y: 782 },
-    ];
-    // Round-part pallet grids (bearing/cup staging) — rows of circles on the
-    // drawing, above bay 3, in bay 1 and beside the subdifferential cell.
-    const FAC_PALLETS = [
-      { x: 530, y: 12, rows: 2, cols: 5 },
-      { x: 640, y: 12, rows: 2, cols: 5 },
-      { x: 330, y: 50, rows: 1, cols: 4 },
-      { x: 1036, y: 520, rows: 3, cols: 3 },
-    ];
+    // The interactive layer sits directly on the real plant drawing
+    // (rendered from CNH Layout 1.dwg into a 1140×770 frame). Node
+    // coordinates are the true CAD positions of each stage's text label in
+    // the model space, mapped through the same extents used for the render
+    // (x: 1536045…1593370 · y: −1856480…−1817741), then nudged so paired
+    // stations on one cell don't overlap.
+    const FAC_BP_URL = '/lab/assets/comer-plant-blueprint.png?v=2';
     // Operator manikins (blue, top view) at their working side of each
-    // station, facing the machine — matches the CAD figures.
+    // station, facing the machine — matches the CAD figures. Fullscreen only.
     const FAC_OPERATORS = [
       { key: 'st190', side: 'w' }, { key: 'st180', side: 'e' },
       { key: 'st160', side: 'w' }, { key: 'st170', side: 'e' },
@@ -909,29 +783,27 @@
       { key: 'pg-04', side: 'e' }, { key: 'st110', side: 'e' },
       { key: 'st150', side: 'w' }, { key: 'st140', side: 'w' }, { key: 'st130-135', side: 'w' },
       { key: 'st500-520', side: 'w' }, { key: 'st200-220', side: 'w' },
-      { key: 'st400-410', side: 'w' }, { key: 'st700-710', side: 'w' },
+      { key: 'st400-410', side: 'w' }, { key: 'st700-710', side: 'e' },
     ];
     // key = unique map spot · id = KB station it opens. ST180 and ST190 are
     // two physical spots sharing one MES sheet (st180-190) — the ST180 dot is
     // "lite": no counts/report so the shared numbers aren't double-shown.
-    // Bay 3 alternates its stations across two rows (labels above / below)
-    // so every node keeps clear space around it.
     const FAC_NODES = [
-      { key: 'st190',     id: 'st180-190', x: 264,  y: 120, bay: 'BAY 1', name: 'ST190 · Test Bench',       stage: 'Stage 14 · test bench' },
-      { key: 'st180',     id: 'st180-190', x: 240,  y: 352, bay: '5-TON OPEN FLOOR', name: 'ST180 · Prova di Tenuta',  stage: 'leak test · reported with ST190', lite: true },
-      { key: 'st160',     id: 'st160',     x: 560,  y: 112, bay: 'BAY 3' },
-      { key: 'st170',     id: 'st170',     x: 660,  y: 184, bay: 'BAY 3', below: true },
-      { key: 'st300',     id: 'st300',     x: 760,  y: 112, bay: 'BAY 3' },
-      { key: 'st310',     id: 'st310',     x: 858,  y: 184, bay: 'BAY 3', below: true },
-      { key: 'pg-04',     id: 'pg-04',     x: 950,  y: 116, bay: 'BAY 3' },
-      { key: 'st110',     id: 'st110',     x: 1048, y: 188, bay: 'BAY 3', below: true },
-      { key: 'st150',     id: 'st150',     x: 620,  y: 368, bay: 'BAY 4', name: 'ST150 · Pinion Complete', stage: 'Stage 10 · brake test' },
-      { key: 'st140',     id: 'st140',     x: 800,  y: 368, bay: 'BAY 4' },
-      { key: 'st130-135', id: 'st130-135', x: 975,  y: 368, bay: 'BAY 4' },
-      { key: 'st500-520', id: 'st500-520', x: 420,  y: 630, bay: 'BAY 7' },
-      { key: 'st200-220', id: 'st200-220', x: 880,  y: 560, bay: 'BAY 6' },
-      { key: 'st400-410', id: 'st400-410', x: 770,  y: 706, bay: 'BAY 6', nodata: 'no data — report covers a Quad Track build' },
-      { key: 'st700-710', id: 'st710',     x: 1000, y: 706, bay: 'BAY 6' },
+      { key: 'st190',     id: 'st180-190', x: 300,  y: 203, name: 'ST190 · Test Bench',       stage: 'Stage 14 · test bench' },
+      { key: 'st180',     id: 'st180-190', x: 293,  y: 327, name: 'ST180 · Prova di Tenuta',  stage: 'leak test · reported with ST190', lite: true },
+      { key: 'st160',     id: 'st160',     x: 552,  y: 212 },
+      { key: 'st170',     id: 'st170',     x: 638,  y: 248, below: true },
+      { key: 'st300',     id: 'st300',     x: 800,  y: 200 },
+      { key: 'st310',     id: 'st310',     x: 856,  y: 242 },
+      { key: 'pg-04',     id: 'pg-04',     x: 947,  y: 222, below: true },
+      { key: 'st110',     id: 'st110',     x: 1012, y: 167 },
+      { key: 'st150',     id: 'st150',     x: 742,  y: 320, name: 'ST150 · Pinion Complete', stage: 'Stage 10 · brake test' },
+      { key: 'st140',     id: 'st140',     x: 880,  y: 336, below: true },
+      { key: 'st130-135', id: 'st130-135', x: 986,  y: 308, below: true },
+      { key: 'st500-520', id: 'st500-520', x: 558,  y: 690 },
+      { key: 'st200-220', id: 'st200-220', x: 1022, y: 556 },
+      { key: 'st400-410', id: 'st400-410', x: 943,  y: 690, nodata: 'no data — report covers a Quad Track build' },
+      { key: 'st700-710', id: 'st710',     x: 527,  y: 78,  below: true },
     ];
     const FAC_EDGES = [
       // main line, in stage order: 1 → 2 → 8 → 9 → 10 → 11 → 12-13 → tests
@@ -943,124 +815,24 @@
       ['st200-220', 'st500-520'], ['st200-220', 'st130-135'],
     ];
 
-    // Everything a node renders (dot + halo, name/stage stack, counts,
-    // report line or twin pill, fullscreen hoist ring), as a padded bbox.
-    // Bays are sized from these, so a station growing later can't overflow.
-    function nodeFootprint(n, s, full) {
-      const r = s.active ? 32 : 24;
-      const name = n.name || s.label;
-      const stage = n.stage || s.stage || '';
-      const noteLen = s.report
-        ? `x ${s.report.nok}/${s.report.checks} checks NOT OK`.length
-        : (n.lite ? 0 : (n.nodata || 'no MES data yet').length);
-      // Half-widths from string lengths (12px sans names ≈ 6.6px/char,
-      // 8.5px mono ≈ 5.2px/char, 8px mono report ≈ 4.8px/char).
-      const halfW = Math.max(r + 12, name.length * 3.3, stage.length * 2.6, noteLen * 2.4);
-      const ringR = full ? ((FAC_HOISTS.find((h) => h.key === n.key) || {}).r || 0) + 12 : 0;
-      const top = n.below ? Math.max(r + 10, ringR) : Math.max(r + 34, ringR);
-      const bottom = n.below ? Math.max(r + 58, ringR) : Math.max(r + 44, ringR);
-      const pad = 8;
-      return {
-        x0: n.x - Math.max(halfW, ringR) - pad,
-        x1: n.x + Math.max(halfW, ringR) + pad,
-        y0: n.y - top - pad,
-        y1: n.y + bottom + pad,
-      };
-    }
-
     function renderFacility() {
       const svg = $('facility-svg');
       const full = $('facility-canvas').classList.contains('is-full');
-      // Grow each bay to wrap the rendered footprint of its stations.
-      const bayBoxes = {};
-      FAC_BAYS.forEach((b) => { bayBoxes[b.label] = { x0: b.x, y0: b.y, x1: b.x + b.w, y1: b.y + b.h }; });
-      FAC_NODES.forEach((n) => {
-        const bb = n.bay && bayBoxes[n.bay];
-        const s = stations.find((st) => st.id === n.id);
-        if (!bb || !s) return;
-        const f = nodeFootprint(n, s, full);
-        bb.x0 = Math.min(bb.x0, f.x0); bb.y0 = Math.min(bb.y0, f.y0);
-        bb.x1 = Math.max(bb.x1, f.x1); bb.y1 = Math.max(bb.y1, f.y1);
-      });
-      const bays = FAC_BAYS.map((b) => {
-        const bb = bayBoxes[b.label];
-        const lx = b.anchor === 'end' ? bb.x1 - 12 : bb.x0 + 12;
-        return `
-        <g class="fac-bay ${b.open ? 'open' : ''}">
-          <rect x="${bb.x0}" y="${bb.y0}" width="${bb.x1 - bb.x0}" height="${bb.y1 - bb.y0}" rx="3"/>
-          <text x="${lx}" y="${bb.y0 + 20}" ${b.anchor ? `text-anchor="${b.anchor}"` : ''}>${esc(b.label)}</text>
-        </g>`;
-      }).join('');
-      const belts = FAC_BELTS.map((b) => {
-        const horiz = b.w >= b.h;
-        const ticks = [];
-        const step = 22;
-        if (horiz) {
-          for (let tx = b.x + step; tx < b.x + b.w; tx += step) ticks.push(`<line x1="${tx}" y1="${b.y + 2}" x2="${tx}" y2="${b.y + b.h - 2}"/>`);
-        } else {
-          for (let ty = b.y + step / 2; ty < b.y + b.h; ty += step / 2) ticks.push(`<line x1="${b.x + 2}" y1="${ty}" x2="${b.x + b.w - 2}" y2="${ty}"/>`);
-        }
-        return `<g class="fac-belt"><rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${Math.min(b.w, b.h) / 2}"/>${ticks.join('')}</g>`;
-      }).join('');
-      const machines = FAC_MACHINES.map((m) => `<rect class="fac-machine" x="${m.x}" y="${m.y}" width="${m.w}" height="${m.h}" rx="2"/>`).join('');
-      const notes = `<text class="fac-note" x="196" y="652" text-anchor="middle">roll-over benches</text>
-        <text class="fac-note" x="145" y="68" text-anchor="middle">test bench</text>`;
       const byKey = {};
       FAC_NODES.forEach((n) => { byKey[n.key] = n; });
-      // Fullscreen-only fidelity layer, matching the CAD drawing.
+      // The real drawing is the floor. Dimmed under the minimal view,
+      // brought forward in fullscreen where its detail is readable.
+      const underlay = `<image class="fac-bp" href="${FAC_BP_URL}" x="0" y="0" width="1140" height="770" preserveAspectRatio="none"/>
+        <text class="fac-src" x="12" y="762">CNH LAYOUT 1.DWG · LIVE OVERLAY</text>`;
+      // Fullscreen-only: the blue CAD-style operator manikins at each
+      // station's working position (shoulders + head + reaching arms).
       let detail = '';
       if (full) {
-        const hoists = FAC_HOISTS.map((h) => {
-          const anchor = h.key ? byKey[h.key] : h;
-          if (!anchor) return '';
-          const cx = anchor.x, cy = anchor.y;
-          let out = `<circle class="hz-ring" cx="${cx}" cy="${cy}" r="${h.r}"/>`;
-          if (h.letter) {
-            // Letter tag sits on the ring, dodging the node's label stack:
-            // NE for below-labeled nodes, SE otherwise; centered when free.
-            let lx = cx, ly = cy;
-            if (h.key) {
-              const d = h.r * 0.71;
-              lx = cx + d;
-              ly = anchor.below ? cy - d : cy + d;
-            }
-            out += `<circle cx="${lx}" cy="${ly}" r="9"/>
-              <text x="${lx}" y="${ly + 3.5}" text-anchor="middle">${esc(h.letter)}</text>`;
-          }
-          return out;
-        }).join('');
-        const gridMarks = [];
-        for (const gy of [36, 292, 480, 810]) {
-          for (let gx = 60; gx <= 1090; gx += 103) {
-            gridMarks.push(`<line class="fac-grid" x1="${gx - 5}" y1="${gy}" x2="${gx + 5}" y2="${gy}"/>
-              <line class="fac-grid" x1="${gx}" y1="${gy - 5}" x2="${gx}" y2="${gy + 5}"/>`);
-          }
-        }
-        const aisles = `<path class="fac-aisle" d="M 42 24 V 832"/><path class="fac-aisle" d="M 42 832 H 1100"/>`;
-        const runways = FAC_RUNWAYS.map((r) => `<text class="fac-runway" x="${r.x}" y="${r.y}">${esc(r.text)}</text>`).join('');
-        // Axle units: housing + shaft + wheel-end blocks, like the plan's
-        // top-view part symbols.
-        const axles = FAC_AXLES.map((a) => `
-          <g class="fac-part" transform="translate(${a.x} ${a.y}) rotate(${a.rot || 0})">
-            <line x1="-18" y1="0" x2="18" y2="0"/>
-            <rect x="-23" y="-5" width="5" height="10" rx="1"/>
-            <rect x="18" y="-5" width="5" height="10" rx="1"/>
-            <circle cx="0" cy="0" r="6"/><circle cx="0" cy="0" r="2.5"/>
-          </g>`).join('');
-        const pallets = FAC_PALLETS.map((p) => {
-          const cs = [];
-          for (let i = 0; i < p.rows; i++) for (let j = 0; j < p.cols; j++) {
-            cs.push(`<circle cx="${p.x + j * 13}" cy="${p.y + i * 13}" r="4.5"/>`);
-          }
-          return `<g class="fac-pallet">${cs.join('')}</g>`;
-        }).join('');
-        // Operator manikins: shoulders + head + reaching arms, rotated to
-        // face the station dot from their working side.
-        const ops = FAC_OPERATORS.map((o) => {
+        detail = FAC_OPERATORS.map((o) => {
           const n = byKey[o.key];
           const s = n && stations.find((st) => st.id === n.id);
           if (!n || !s) return '';
-          const d = (s.active ? 32 : 24) + 22;
+          const d = (s.active ? 22 : 15) + 20;
           const p = {
             w: [n.x - d, n.y, 90], e: [n.x + d, n.y, -90],
             s: [n.x, n.y + d, 0],  n: [n.x, n.y - d, 180],
@@ -1073,7 +845,6 @@
             <circle cx="0" cy="-2" r="3.2"/>
           </g>`;
         }).join('');
-        detail = aisles + gridMarks.join('') + `<g class="fac-hoist">${hoists}</g>` + runways + axles + pallets + ops;
       }
       const edges = FAC_EDGES.map(([a, b]) => {
         const p = byKey[a], q = byKey[b];
@@ -1083,41 +854,45 @@
       const nodes = FAC_NODES.map((n) => {
         const s = stations.find((st) => st.id === n.id);
         if (!s) return '';
-        const r = s.active ? 32 : 24;
+        const r = s.active ? 22 : 15;
         const c = s.counts || {};
         const countsTxt = `${c.keysteps || 0} · ${c.artifacts || 0} · ${c.components || 0}`;
         const twin = TWIN_STATIONS.has(s.id);
         const name = n.name || s.label;
         const stage = n.stage || s.stage || '';
-        // "below" nodes hang their name/stage under the dot so adjacent
-        // stations on the same bay row don't collide.
-        const nameY  = n.below ? n.y + r + 16 : n.y - r - 20;
-        const stageY = n.below ? n.y + r + 28 : n.y - r - 8;
-        const countsY = n.below ? n.y + r + 41 : n.y + r + 16;
-        const reportY = countsY + 12;
+        // Minimal view keeps just the essentials (name + MES report line);
+        // fullscreen restores the full stack (stage + knowledge counts).
+        const nameY  = n.below ? n.y + r + 14 : n.y - r - (full && stage ? 22 : 10);
+        const stageY = n.below ? n.y + r + 26 : n.y - r - 10;
+        const belowStack = n.below ? r + (full && stage ? 26 : 14) : r;
+        const countsY = n.y + belowStack + 14;
+        const reportY = full ? countsY + 12 : n.y + belowStack + 14;
+        // Twin pill: above the dot when the label stack hangs below it,
+        // after the stack otherwise.
+        const pillY = n.below ? n.y - r - 25 : (full ? reportY + 6 : reportY - 6);
         return `
           <g class="fac-node ${s.active ? 'is-active' : ''}" data-station="${s.id}" tabindex="0" role="button"
              aria-label="Open ${esc(name)}">
-            ${s.active ? `<circle class="halo" cx="${n.x}" cy="${n.y}" r="${r + 8}"/>` : ''}
+            ${s.active ? `<circle class="halo" cx="${n.x}" cy="${n.y}" r="${r + 6}"/>` : ''}
             <circle class="core" cx="${n.x}" cy="${n.y}" r="${r}"/>
-            <circle cx="${n.x}" cy="${n.y}" r="4" fill="${s.active ? 'var(--primary)' : '#3a3a3a'}"/>
+            <circle cx="${n.x}" cy="${n.y}" r="3.4" fill="${s.active ? 'var(--primary)' : '#3a3a3a'}"/>
             <text class="nd-label" x="${n.x}" y="${nameY}" text-anchor="middle">${esc(name)}</text>
-            ${stage ? `<text class="nd-stage" x="${n.x}" y="${stageY}" text-anchor="middle">${esc(stage)}</text>` : ''}
-            ${n.lite ? '' : `<text class="nd-counts" x="${n.x}" y="${countsY}" text-anchor="middle">${countsTxt}</text>`}
+            ${full && stage ? `<text class="nd-stage" x="${n.x}" y="${stageY}" text-anchor="middle">${esc(stage)}</text>` : ''}
+            ${full && !n.lite ? `<text class="nd-counts" x="${n.x}" y="${countsY}" text-anchor="middle">${countsTxt}</text>` : ''}
             ${s.report && !twin && !n.lite ? `
             <text class="nd-report ${s.report.nok > 0 ? 'warn' : 'ok'}" x="${n.x}" y="${reportY}" text-anchor="middle">${
               s.report.nok > 0 ? `⚠ ${s.report.nok}/${s.report.checks} checks NOT OK` : `✓ ${s.report.checks} checks OK`
             }</text>` : ''}
             ${!s.report && !n.lite ? `
-            <text class="nd-report" x="${n.x}" y="${reportY}" text-anchor="middle" fill="#3d3d3d">${esc(n.nodata || 'no MES data yet')}</text>` : ''}
+            <text class="nd-report" x="${n.x}" y="${reportY}" text-anchor="middle" fill="#4a4a4a">${esc(n.nodata || 'no MES data yet')}</text>` : ''}
             ${twin ? `
             <g class="fac-twin" data-twin="${s.id}" role="link" aria-label="Open the digital twin viewer">
-              <rect x="${n.x - 46}" y="${n.y + r + 23}" width="92" height="17" rx="8.5"/>
-              <text x="${n.x}" y="${n.y + r + 35}" text-anchor="middle">✓ digital twin</text>
+              <rect x="${n.x - 46}" y="${pillY}" width="92" height="17" rx="8.5"/>
+              <text x="${n.x}" y="${pillY + 12}" text-anchor="middle">✓ digital twin</text>
             </g>` : ''}
           </g>`;
       }).join('');
-      svg.innerHTML = bays + detail + belts + machines + notes + edges + nodes;
+      svg.innerHTML = underlay + detail + edges + nodes;
       svg.querySelectorAll('.fac-node').forEach((g) => {
         const open = () => showStation(g.dataset.station);
         g.addEventListener('click', open);
@@ -1130,8 +905,8 @@
     }
 
     // Bottom-right double-arrow: full-screen takeover of the plant view.
-    // Fullscreen re-renders with the high-fidelity CAD layer (hoist zones,
-    // column grid, aisle striping, runway captions).
+    // Fullscreen brightens the drawing underlay and re-renders with the
+    // full info stack (stage, counts) plus the blue operator manikins.
     function setFacFull(on) {
       $('facility-canvas').classList.toggle('is-full', on);
       document.body.classList.toggle('fac-fullscreen', on);
@@ -1146,16 +921,6 @@
     });
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && $('facility-canvas').classList.contains('is-full')) setFacFull(false);
-    });
-
-    // Double-arrow expander: reveals the actual 2D CAD drawing the map is
-    // traced from, as a miniature under the schematic.
-    $('fac-expand').addEventListener('click', () => {
-      const bp = $('fac-blueprint');
-      const open = bp.hidden;
-      bp.hidden = !open;
-      $('fac-expand').setAttribute('aria-expanded', String(open));
-      $('fac-expand-label').textContent = open ? 'Hide the 2D plant drawing' : 'Show the 2D plant drawing';
     });
 
     /* ── Station graph ────────────────────────── */
