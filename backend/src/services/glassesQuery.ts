@@ -5,6 +5,7 @@ import { specs } from "./specs.js";
 import { flattenProcedure, scoreNodes, type GraphNode } from "./retrieval.js";
 import { knowledgeNodes } from "./knowledge.js";
 import { llmCall } from "./anthropic.js";
+import { buildStationScopeGuard } from "../routes/kb.js";
 import {
   buildGlassesQuerySystemPrompt,
   buildGlassesQueryUserMessage,
@@ -68,8 +69,16 @@ export async function runGlassesQuery(
       ? scored.slice(0, k).map((s) => s.node)
       : procedureNodes.slice(0, k); // empty/no-match query fallback
 
+  // Anti-hallucination: if the question touches stations other than ST100,
+  // tell the model exactly what little data exists for them. Added AFTER
+  // retrieval scoring so the guard text itself doesn't skew ranking.
+  const scopeGuard = buildStationScopeGuard(input.transcript);
+  const promptTranscript = scopeGuard
+    ? `${scopeGuard}\n\n${input.transcript}`
+    : input.transcript;
+
   const userMsg = buildGlassesQueryUserMessage(
-    input.transcript,
+    promptTranscript,
     merged.map((n) => ({
       id: n.id,
       type: n.type,
