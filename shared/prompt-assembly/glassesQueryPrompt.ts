@@ -41,7 +41,7 @@ export function buildGlassesQuerySystemPrompt(
     "the user to questions this Brain answers well, e.g.:",
     '  "What are the most common mistakes on the pinion guide?"',
     '  "What do operators say about the shim pack step?"',
-    '  "What torque for the pinion nut?"',
+    '  "How should the big bearing cup be oriented?"',
     "",
     "OUTPUT — exactly one JSON object. No markdown, no prose outside JSON.",
     "Schema:",
