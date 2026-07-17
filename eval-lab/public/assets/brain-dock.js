@@ -215,21 +215,66 @@
   });
   window.BrainDock = { open, close };
 
-  /* ── Attach ── */
+  /* ── Attach ──
+     Phone photos are 8–12 MB; the /api/assist schema caps dataBase64 at
+     6M chars (~4.5 MB). Downscale + re-encode to JPEG client-side — same
+     resolution class as the frames the glasses send to the VLM. */
+  const IMG_MAX_DIM = 1600;
+  const IMG_MAX_B64 = 4_500_000;
+
+  function fileToDataUrl(f) {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = () => rej(r.error || new Error('read failed'));
+      r.readAsDataURL(f);
+    });
+  }
+
+  async function compressImage(f) {
+    const raw = await fileToDataUrl(f);
+    let img;
+    try {
+      img = new Image();
+      await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = raw; });
+    } catch {
+      // Browser can't decode this format (e.g. HEIC outside Safari) —
+      // pass through if it fits, otherwise surface a clear error.
+      if (raw.length <= IMG_MAX_B64) return { dataBase64: raw, mimeType: f.type || 'image/jpeg' };
+      throw new Error('This image format is too large to send — please use a JPG or PNG.');
+    }
+    const scale = Math.min(1, IMG_MAX_DIM / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
+    if (scale === 1 && raw.length <= IMG_MAX_B64) return { dataBase64: raw, mimeType: f.type || 'image/jpeg' };
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    let q = 0.85;
+    let out = canvas.toDataURL('image/jpeg', q);
+    while (out.length > IMG_MAX_B64 && q > 0.35) {
+      q -= 0.15;
+      out = canvas.toDataURL('image/jpeg', q);
+    }
+    return { dataBase64: out, mimeType: 'image/jpeg' };
+  }
+
   $('bd-attach').addEventListener('click', () => $('bd-file').click());
-  $('bd-file').addEventListener('change', () => {
+  $('bd-file').addEventListener('change', async () => {
     const f = $('bd-file').files[0];
     $('bd-file').value = '';
     if (!f) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      attached = { name: f.name, dataBase64: reader.result, mimeType: f.type || 'image/jpeg', previewUrl: reader.result };
+    try {
+      const { dataBase64, mimeType } = await compressImage(f);
+      attached = { name: f.name, dataBase64, mimeType, previewUrl: dataBase64 };
       $('bd-preview-img').src = attached.previewUrl;
       $('bd-preview-name').textContent = f.name;
       $('bd-preview').classList.add('is-on');
       input.focus();
-    };
-    reader.readAsDataURL(f);
+    } catch (e) {
+      attached = null;
+      $('bd-preview').classList.remove('is-on');
+      push(`<b>Image error:</b> ${esc(e && e.message ? e.message : 'Could not read that image.')}`, 'brain');
+    }
   });
   $('bd-preview-x').addEventListener('click', () => {
     attached = null;
