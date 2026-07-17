@@ -242,6 +242,39 @@
       text-transform: uppercase;
     }
 
+    /* Procedure variants strip — the pinion guide runs 4 recipes; the KB
+       below covers only the trained one (425 rear axle). */
+    .proc-variants {
+      display: none; align-items: center; gap: 10px; flex-wrap: wrap;
+      margin-top: 10px; padding: 8px 12px;
+      background: var(--panel-2, rgba(255,255,255,0.02));
+      border: 1px solid var(--line-2); border-radius: 9px;
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.04em;
+      color: var(--ink-3);
+    }
+    .proc-variants.is-on { display: flex; }
+    .proc-variants .cap { text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); }
+    .proc-variants .chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      border: 1px solid var(--line-2); border-radius: 5px;
+      padding: 3px 8px; color: var(--ink-3); white-space: nowrap;
+    }
+    .proc-variants .chip.is-trained {
+      color: var(--primary); border-color: rgba(0,229,160,0.4);
+      background: rgba(0,229,160,0.07); font-weight: 600;
+    }
+    .proc-variants .chip.is-trained::after {
+      content: "TRAINED"; font-size: 8px; letter-spacing: 0.1em;
+      color: var(--bg, #0a0f0d); background: var(--primary);
+      border-radius: 3px; padding: 1px 4px;
+    }
+    .proc-variants .matrix-link {
+      margin-left: auto; color: var(--ink-2); text-decoration: none;
+      border-bottom: 1px dotted var(--ink-3);
+    }
+    .proc-variants .matrix-link:hover { color: var(--primary); border-bottom-color: var(--primary); }
+    .proc-variants .note { flex-basis: 100%; color: var(--ink-3); line-height: 1.5; }
+
     /* 01 spans full width above; below it: 02 (left) | 03+04 stacked (right).
        stretch keeps the two sides the same visual height — the long lists
        inside scroll rather than growing the page. */
@@ -606,6 +639,9 @@
         <span class="desc" id="st-desc">—</span>
         <a class="lab-link" id="st-lab-link" href="/lab/" hidden>Full graph + eval tools ↗</a>
       </div>
+
+      <!-- Procedure variants — the pinion guide runs 4 recipes; KB covers the trained one -->
+      <div class="proc-variants" id="proc-variants"></div>
 
       <!-- Provenance strip — shown when this station mirrors the live glasses build -->
       <div class="glasses-sync" id="glasses-sync">
@@ -1259,6 +1295,26 @@
       box.innerHTML = head + body;
     }
 
+    /* ── Procedure variants strip ─────────────── */
+    function renderProcVariants(p) {
+      const box = $('proc-variants');
+      if (!p || !Array.isArray(p.variants) || !p.variants.length) {
+        box.classList.remove('is-on');
+        box.innerHTML = '';
+        return;
+      }
+      const chips = p.variants
+        .map((v) => `<span class="chip${v.trained ? ' is-trained' : ''}">${esc(v.label)}</span>`)
+        .join('');
+      const matrix = p.matrixImage
+        ? `<a class="matrix-link" href="${esc(p.matrixImage)}" target="_blank" rel="noopener">${esc(p.matrixLabel || 'Part matrix per axle model')} ↗</a>`
+        : '';
+      box.innerHTML =
+        `<span class="cap">Station runs ${p.variants.length} procedures</span>${chips}${matrix}` +
+        (p.note ? `<span class="note">${esc(p.note)}</span>` : '');
+      box.classList.add('is-on');
+    }
+
     /* ── Data loads ───────────────────────────── */
     async function loadStations() {
       const d = await (await fetch('/api/kb/stations', { cache: 'no-store' })).json();
@@ -1276,6 +1332,7 @@
       $('st-lab-link').hidden = false;
       $('st-lab-link').href = '/lab/?station=' + encodeURIComponent(id);
       $('st-lab-link').textContent = d.station.active ? 'Full graph + eval tools ↗' : 'Open in eval lab ↗';
+      renderProcVariants(d.station.procedures);
       // Glasses-build provenance strip (PG-04 today)
       $('glasses-sync').classList.toggle('is-on', !!d.glassesSync);
       if (d.glassesSync && d.glassesSync.repo) $('glasses-sync-repo').href = d.glassesSync.repo;

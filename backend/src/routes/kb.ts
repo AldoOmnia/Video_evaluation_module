@@ -46,6 +46,27 @@ const STATIONS = [
     tier: "core",
     active: true,
     procedureId: "proc:pinion-guide",
+    // The pinion guide runs FOUR distinct procedures (Matteo, Jun 1 visit —
+    // supervisor-knowledge facts): 425 front / 425 rear / 600 front / 600
+    // rear. Everything trained here + on the glasses (the 17-step recipe,
+    // components, POVs, digital twin) is the 425 REAR axle procedure. The
+    // 600 series is a separate recipe: more steps, different bearings and
+    // seals, and the highest error rate of the four. 425 builds use standard
+    // drawings — no part-code matching (fixture 3187.A00.020.0 part matrix).
+    procedures: {
+      variants: [
+        { id: "425-front", label: "425 front axle", trained: false },
+        { id: "425-rear", label: "425 rear axle", trained: true },
+        { id: "600-front", label: "600 front axle", trained: false },
+        { id: "600-rear", label: "600 rear axle", trained: false },
+      ],
+      note:
+        "All knowledge below (17-step recipe, components, POVs, digital twin) is the 425 rear axle " +
+        "procedure. 600 series = separate recipe — more steps, different bearings/seals, highest " +
+        "error rate of the four (Matteo). 425 uses standard drawings, no part-code matching.",
+      matrixImage: "/lab/assets/rear-axle-425-procedure-matrix.jpg",
+      matrixLabel: "Fixture 3187.A00.020.0 — part matrix per axle model",
+    },
     report: { sheet: "ST100", phases: 17, checks: 96, ok: 86, nok: 10, sample: "bearing cups · inf/sup bearing press · shim pack · ring retainer · rolling torque" },
   },
   { id: "st110", label: "ST110 · Brake & Cover", stage: "Stage 2", desc: "Expanding plug · bearing cone · LH diff carrier assy", tier: "core", active: false, procedureId: null,
