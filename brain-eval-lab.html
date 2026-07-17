@@ -6,7 +6,7 @@
 <title>Comer AI · Eval Lab</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
 <script type="module">
@@ -47,8 +47,8 @@
     --c-data:      #22d3ee;
     --c-tribal:    #fbbf24;
 
-    --mono: 'Space Grotesk', 'Geist', system-ui, sans-serif;
-    --sans: 'Geist', system-ui, sans-serif;
+    --mono: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
@@ -1209,7 +1209,7 @@
     width: 85%;
     padding: 12px 14px;
     background: rgba(0,0,0,0.85);
-    font-family: var(--mono, ui-monospace, "SF Mono", Menlo, monospace);
+    font-family: var(--mono);
     display: flex; flex-direction: column; gap: 4px;
   }
   .answer-card .ac-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -2201,7 +2201,7 @@ const cyStyle = [
       'border-color': '#2a3431',
       'label': 'data(label)',
       'color': '#97a59e',
-      'font-family': 'Geist, system-ui, sans-serif',
+      'font-family': 'Inter, system-ui, sans-serif',
       'font-size': 9,
       'text-valign': 'bottom',
       'text-halign': 'center',
