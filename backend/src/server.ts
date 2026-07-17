@@ -24,6 +24,7 @@ import {
   HOME_HTML,
   KNOWLEDGE_HTML,
   REPORTS_HTML,
+  SETTINGS_HTML,
   SYNTHETIC_POV_HTML,
   SHARED_DIR,
 } from "./paths.js";
@@ -383,6 +384,12 @@ app.get(["/knowledge", "/knowledge/"], (_req, res) => {
 app.get(["/reports", "/reports/"], (_req, res) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
   res.sendFile(REPORTS_HTML);
+});
+
+// Admin settings — profile, AI preferences, error ontology, MCP/VPN docs.
+app.get(["/settings", "/settings/"], (_req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.sendFile(SETTINGS_HTML);
 });
 
 app.get("/lab/", (_req, res) => {
