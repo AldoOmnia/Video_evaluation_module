@@ -62,6 +62,15 @@
     cursor: pointer; padding: 2px 6px; flex: none;
   }
   .bd-close:hover { color: #f5f5f5; }
+  .bd-lang {
+    display: flex; flex: none; border: 1px solid #2a2a2a; border-radius: 6px; overflow: hidden;
+  }
+  .bd-lang button {
+    background: none; border: none; cursor: pointer; padding: 3px 8px;
+    font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+    font-size: 9px; letter-spacing: 0.08em; color: #6b6b6b;
+  }
+  .bd-lang button.is-on { background: rgba(0,229,160,0.12); color: #00E5A0; }
   .bd-msgs { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
   .bd-msg { max-width: 94%; font-size: 12.5px; line-height: 1.55; }
   .bd-msg.user {
@@ -135,6 +144,24 @@
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   }[c]));
 
+  /* ── Language (EN default / ITA) — shared across every page ──
+     For now the toggle drives the CHAT language (Claude + Gemini answer in
+     Italian); UI chrome translation comes as a second pass on the same key. */
+  const LANG_KEY = 'omnia.lang';
+  const getLang = () => (localStorage.getItem(LANG_KEY) === 'it' ? 'it' : 'en');
+  /* Response register — set on the /settings page (omnia.settings.tone). */
+  const getTone = () => {
+    try {
+      const t = (JSON.parse(localStorage.getItem('omnia.settings') || '{}') || {}).tone;
+      return ['enterprise', 'technical', 'coaching'].includes(t) ? t : undefined;
+    } catch { return undefined; }
+  };
+  function setLang(l) {
+    localStorage.setItem(LANG_KEY, l === 'it' ? 'it' : 'en');
+    window.dispatchEvent(new CustomEvent('omnia:lang', { detail: { lang: getLang() } }));
+  }
+  window.OmniaLang = { get: getLang, set: setLang };
+
   /* ── DOM ── */
   const toggle = document.createElement('button');
   toggle.className = 'bd-toggle';
@@ -149,6 +176,10 @@
     <div class="bd-head">
       <span class="t">Comer AI</span>
       <span class="ctx" id="bd-ctx"></span>
+      <span class="bd-lang" id="bd-lang" role="group" aria-label="Answer language">
+        <button type="button" data-lang="en" title="Answer in English">EN</button>
+        <button type="button" data-lang="it" title="Rispondi in italiano">ITA</button>
+      </span>
       <button class="bd-close" type="button" title="Close (Esc)">✕</button>
     </div>
     <div class="bd-msgs" id="bd-msgs">
@@ -204,6 +235,18 @@
     const c = getContext();
     $('bd-ctx').textContent = [c.page, c.station, c.view].filter(Boolean).join(' · ');
   }
+
+  /* ── Language toggle ── */
+  function paintLang() {
+    drawer.querySelectorAll('#bd-lang button').forEach((b) => {
+      b.classList.toggle('is-on', b.dataset.lang === getLang());
+    });
+  }
+  drawer.querySelectorAll('#bd-lang button').forEach((b) => {
+    b.addEventListener('click', () => { setLang(b.dataset.lang); });
+  });
+  window.addEventListener('omnia:lang', paintLang);
+  paintLang();
 
   /* ── Open / close ── */
   function open() { drawer.classList.add('is-open'); refreshCtxLabel(); setTimeout(() => input.focus(), 220); }
@@ -321,9 +364,11 @@
       html += '</div>';
     }
     const brief = d.labBrief || {};
-    html += `<b>${esc(brief.headline || d.answer || '—')}</b>`;
+    // Citations ([[kb:...]]) are for the retrieval meta line, not prose.
+    const stripCites = (s) => String(s || '').replace(/\s*\[\[[^\]]*\]\]/g, '').trim();
+    html += `<b>${esc(stripCites(brief.headline || d.answer) || '—')}</b>`;
     if (brief.bullets && brief.bullets.length) {
-      html += '<ul>' + brief.bullets.map((b) => `<li>${esc(b)}</li>`).join('') + '</ul>';
+      html += '<ul>' + brief.bullets.map(stripCites).filter(Boolean).map((b) => `<li>${esc(b)}</li>`).join('') + '</ul>';
     }
     const srcs = (d.retrieved || []).slice(0, 4).map((n) => esc(n.label)).join(' · ');
     html += `<div class="bd-meta">${d.stubbed ? 'STUB MODE — set ANTHROPIC_API_KEY for live answers<br/>' : ''}` +
@@ -379,6 +424,8 @@
           query: q,
           images: img ? [{ name: img.name, dataBase64: img.dataBase64, mimeType: img.mimeType }] : [],
           context: getContext(),
+          lang: getLang(),
+          tone: getTone(),
         }),
       });
       const d = await r.json();

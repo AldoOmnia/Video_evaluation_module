@@ -101,6 +101,15 @@
     .llm-pill.is-live { color: var(--ok); border-color: rgba(74,222,128,0.4); }
     .llm-pill.is-stub { color: var(--warn); border-color: rgba(245,158,11,0.4); }
     .user-chip { text-transform: lowercase; color: var(--ink-2); }
+    .lang-toggle {
+      display: flex; border: 1px solid var(--line-2); border-radius: 20px; overflow: hidden;
+    }
+    .lang-toggle button {
+      background: none; border: none; cursor: pointer; padding: 4px 10px;
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--ink-3);
+    }
+    .lang-toggle button.is-on { background: rgba(0,229,160,0.1); color: var(--primary); }
 
     /* ── Sidebar ─────────────────────────── */
     .scrim {
@@ -580,6 +589,10 @@
       <span class="ico">✦</span> Digital twin <span class="ext">↗</span>
     </a>
     <div class="nav-foot">
+      <a class="nav-item" href="/settings/">
+        <span class="ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+        Settings <span class="ext">↗</span>
+      </a>
       <span class="nav-user" id="nav-user">—</span>
       <button class="nav-signout" id="nav-signout">Sign out</button>
     </div>
@@ -592,6 +605,10 @@
     </button>
     <span class="topbar-title">Omnia · Comer platform</span>
     <div class="topbar-right">
+      <span class="lang-toggle" id="lang-toggle" role="group" aria-label="Answer language">
+        <button type="button" data-lang="en" title="Answer in English">EN</button>
+        <button type="button" data-lang="it" title="Rispondi in italiano">ITA</button>
+      </span>
       <span class="llm-pill" id="llm-pill">LLM · …</span>
       <span class="user-chip" id="user-chip">—</span>
     </div>
@@ -844,6 +861,34 @@
       });
     });
 
+    /* ── Language toggle (EN default / ITA) ─────────────────
+       Same localStorage key as the Comer AI dock ('omnia.lang') so the
+       choice follows the user across pages. Drives the chat answer
+       language for now; UI chrome translation is a later pass. */
+    const LANG_KEY = 'omnia.lang';
+    const getLang = () => (localStorage.getItem(LANG_KEY) === 'it' ? 'it' : 'en');
+    /* Response register — set on the /settings page (omnia.settings.tone). */
+    const getTone = () => {
+      try {
+        const t = (JSON.parse(localStorage.getItem('omnia.settings') || '{}') || {}).tone;
+        return ['enterprise', 'technical', 'coaching'].includes(t) ? t : undefined;
+      } catch { return undefined; }
+    };
+    function paintLangToggle() {
+      document.querySelectorAll('#lang-toggle button').forEach((b) => {
+        b.classList.toggle('is-on', b.dataset.lang === getLang());
+      });
+    }
+    document.querySelectorAll('#lang-toggle button').forEach((b) => {
+      b.addEventListener('click', () => {
+        if (window.OmniaLang) window.OmniaLang.set(b.dataset.lang); // keeps the dock in sync
+        else localStorage.setItem(LANG_KEY, b.dataset.lang);
+        paintLangToggle();
+      });
+    });
+    window.addEventListener('omnia:lang', paintLangToggle);
+    paintLangToggle();
+
     /* ── Brain answer (knowledge / training material) ──────── */
     async function renderBrainAnswer(q) {
       sendBtn.disabled = true;
@@ -852,7 +897,7 @@
         const r = await fetch('/api/brain/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: q }),
+          body: JSON.stringify({ query: q, lang: getLang(), tone: getTone() }),
         });
         if (!r.ok) throw new Error('HTTP ' + r.status);
         const d = await r.json();
@@ -892,6 +937,8 @@
             query: q,
             images: [{ name: img.name, dataBase64: img.dataBase64, mimeType: img.mimeType }],
             context: { page: 'Home' },
+            lang: getLang(),
+            tone: getTone(),
           }),
         });
         if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -1113,6 +1160,6 @@
       view: document.body.classList.contains('in-chat') ? 'chat conversation' : 'services overview',
     });
   </script>
-  <script src="/lab/assets/brain-dock.js?v=5" defer></script>
+  <script src="/lab/assets/brain-dock.js?v=7" defer></script>
 </body>
 </html>

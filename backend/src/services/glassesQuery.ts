@@ -24,7 +24,47 @@ export interface GlassesQueryInput {
   k?: number;
   maxTokens?: number;
   model?: string;
+  /** UI language — "it" makes every user-facing string Italian. */
+  lang?: "en" | "it";
+  /** Response register — set from the platform admin settings. */
+  tone?: "enterprise" | "technical" | "coaching";
 }
+
+/** Admin-selected response register. Grounding, citations and the four-role
+ *  lens contract are identical in every register — only the voice changes. */
+const TONE_DIRECTIVES: Record<string, string> = {
+  enterprise: [
+    "",
+    "REGISTER: the workspace is set to ENTERPRISE. Write for plant directors",
+    "and managers — concise, formal, decision-ready. Lead with the conclusion,",
+    "keep bullets tight, no filler.",
+  ].join("\n"),
+  technical: [
+    "",
+    "REGISTER: the workspace is set to TECHNICAL. Write for process and test",
+    "engineers — specs first: torque values, SKUs, tolerances and detection",
+    "logic up front, minimal framing around them.",
+  ].join("\n"),
+  coaching: [
+    "",
+    "REGISTER: the workspace is set to COACHING. Write the way a trainer walks",
+    "an operator through the task — step by step, plain instructions, name the",
+    "mistake to avoid and how to recover from it.",
+  ].join("\n"),
+};
+
+/** Appended to the system prompt when the platform toggle is on ITA.
+ *  Technical identity stays untouched: part numbers, SKUs, station ids,
+ *  step refs (S07) and [[citations]] are shared vocabulary on the line. */
+const ITALIAN_DIRECTIVE = [
+  "",
+  "LINGUA: the user's interface is set to ITALIAN. Write ALL user-facing text",
+  "in Italian — glassesMessage label/value/action/source AND labBrief headline",
+  "and bullets. Use natural shop-floor Italian (registro tecnico, dare del",
+  '"tu" all\'operatore). Keep unchanged: part numbers/SKUs, station ids',
+  "(ST100), step refs (S07), tool codes, [[citations]], and proper nouns",
+  "(TIMKEN, UNICOMM). Numbers keep their units as-is (Nm, mm).",
+].join("\n");
 
 export interface GlassesQueryResult {
   lens: FourRoleLens;
@@ -87,11 +127,17 @@ export async function runGlassesQuery(
     })),
   );
 
-  const sys = buildGlassesQuerySystemPrompt(specs.procedure, hw);
+  const sys =
+    buildGlassesQuerySystemPrompt(specs.procedure, hw) +
+    (input.tone && TONE_DIRECTIVES[input.tone] ? TONE_DIRECTIVES[input.tone] : "") +
+    (input.lang === "it" ? ITALIAN_DIRECTIVE : "");
+  // Italian prose runs ~25-40% longer than English for the same content —
+  // without headroom the JSON gets truncated mid-string and parsing fails.
+  const baseTokens = input.maxTokens ?? 320;
   const llm = await llmCall({
     system: sys,
     user: userMsg,
-    maxTokens: input.maxTokens ?? 320,
+    maxTokens: input.lang === "it" ? Math.round(baseTokens * 1.5) : baseTokens,
     model: input.model,
   });
 

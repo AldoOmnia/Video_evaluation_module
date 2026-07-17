@@ -43,6 +43,8 @@ const BodySchema = z.object({
   images: z.array(ImageSchema).max(3).default([]),
   context: ContextSchema.optional(),
   k: z.number().int().positive().max(12).optional(),
+  lang: z.enum(["en", "it"]).optional(),
+  tone: z.enum(["enterprise", "technical", "coaching"]).optional(),
 });
 
 /* ── Reference library (same content the glasses attach) ─────────────── */
@@ -122,6 +124,7 @@ interface VisionId {
 async function identifyImage(
   img: { dataBase64: string; mimeType?: string },
   question: string,
+  lang?: "en" | "it",
 ): Promise<{ id: VisionId; model: string; latencyMs: number; stubbed: boolean }> {
   const refs = referenceLibrary();
   const prompt =
@@ -138,7 +141,10 @@ async function identifyImage(
     'Answer ONLY with raw JSON: {"sku": string|null, "className": string, ' +
     '"confidence": number 0-1, "flipped": boolean, "reasoning": string ' +
     "(1-2 sentences, mention the distinguishing features you used)}." +
-    (question ? ` The user also asked: "${question}" — factor it into reasoning.` : "");
+    (question ? ` The user also asked: "${question}" — factor it into reasoning.` : "") +
+    (lang === "it"
+      ? " The user's interface is ITALIAN: write className and reasoning in Italian (keep SKUs and proper nouns unchanged)."
+      : "");
 
   const parts: GeminiPart[] = [{ text: prompt }];
   for (const r of refs) {
@@ -223,7 +229,7 @@ assistRouter.post("/", async (req, res, next) => {
     } | null = null;
 
     if (body.images.length > 0) {
-      const v = await identifyImage(body.images[0], body.query);
+      const v = await identifyImage(body.images[0], body.query, body.lang);
       const kbComp = v.id.sku ? findGlassesComponent(v.id.sku) : null;
       const cfg = v.id.sku ? GLASSES_COMPONENTS[v.id.sku] : undefined;
       vision = {
@@ -265,6 +271,8 @@ assistRouter.post("/", async (req, res, next) => {
       transcript: transcriptParts.join("\n"),
       k: body.k ?? 8,
       maxTokens: 480,
+      lang: body.lang,
+      tone: body.tone,
     });
 
     res.json({
