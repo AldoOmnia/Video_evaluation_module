@@ -123,10 +123,14 @@
     .facility-canvas.is-full .fac-fullbtn .ico-expand { display: none; }
     .facility-canvas.is-full .fac-fullbtn .ico-collapse { display: block; }
     /* The real plant drawing (rendered from the native CNH Layout 1.dwg)
-       sits under the interactive layer, dimmed in the minimal view and
-       brought forward in fullscreen where all its detail is readable. */
-    .fac-bp { opacity: 0.30; transition: opacity 220ms ease; }
-    .facility-canvas.is-full .fac-bp { opacity: 0.66; }
+       sits under the interactive layer in two passes: the white linework is
+       kept faint so the clickable stations pop, while the yellow accent
+       layer (aisle striping, bay boundaries, conveyors — none of which
+       overlap the dots) stays contrasty. Fullscreen brightens both. */
+    .fac-bp { opacity: 0.16; transition: opacity 220ms ease; }
+    .facility-canvas.is-full .fac-bp { opacity: 0.60; }
+    .fac-bp-accent { opacity: 0.62; transition: opacity 220ms ease; }
+    .facility-canvas.is-full .fac-bp-accent { opacity: 0.9; }
     .fac-src { fill: #3a3a3a; font-family: var(--mono); font-size: 8px; letter-spacing: 0.06em; }
     /* CAD-style operator manikins (blue, seen from above) — fullscreen only */
     .fac-operator ellipse { fill: rgba(96,165,250,0.14); stroke: rgba(96,165,250,0.55); stroke-width: 1; }
@@ -804,7 +808,8 @@
     // the model space, mapped through the same extents used for the render
     // (x: 1536045…1593370 · y: −1856480…−1817741), then nudged so paired
     // stations on one cell don't overlap.
-    const FAC_BP_URL = '/lab/assets/comer-plant-blueprint.png?v=2';
+    const FAC_BP_URL = '/lab/assets/comer-plant-blueprint.png?v=3';
+    const FAC_BP_ACCENT_URL = '/lab/assets/comer-plant-accent.png?v=3';
     // Operator manikins (blue, top view) at their working side of each
     // station, facing the machine — matches the CAD figures. Fullscreen only.
     const FAC_OPERATORS = [
@@ -858,6 +863,7 @@
       // The real drawing is the floor. Dimmed under the minimal view,
       // brought forward in fullscreen where its detail is readable.
       const underlay = `<image class="fac-bp" href="${FAC_BP_URL}" x="0" y="0" width="1140" height="770" preserveAspectRatio="none"/>
+        <image class="fac-bp-accent" href="${FAC_BP_ACCENT_URL}" x="0" y="0" width="1140" height="770" preserveAspectRatio="none"/>
         <text class="fac-src" x="12" y="762">CNH LAYOUT 1.DWG · LIVE OVERLAY</text>`;
       // Fullscreen-only: the blue CAD-style operator manikins at each
       // station's working position (shoulders + head + reaching arms).
