@@ -35,7 +35,13 @@
       font-size: 14px;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
+      /* the landing view is sized to the viewport — nothing scrolls */
+      overflow: hidden;
+      height: 100vh;
+      display: flex; flex-direction: column;
     }
+    /* small screens stack the services, so let them scroll again */
+    @media (max-width: 820px), (max-height: 770px) { body { overflow: auto; height: auto; } }
     .bg {
       position: fixed; inset: 0; z-index: -2;
       background:
@@ -174,13 +180,21 @@
     .nav-signout:hover { border-color: var(--err); color: var(--err); }
 
     /* ── Main column ─────────────────────── */
+    /* One viewport, no scroll: hero up top, chat + services centered in the
+       remaining space (auto margins above the chat and above the footer
+       split the slack evenly), Omnia footer pinned to the bottom. */
     .stage {
+      width: 100%;
       max-width: 880px;
       margin: 0 auto;
-      padding: 34px 22px 60px;
+      padding: 26px 22px 0;
+      flex: 1 1 auto; min-height: 0;
       display: flex; flex-direction: column; align-items: center;
-      gap: 22px;
+      gap: 20px;
     }
+    @media (max-width: 820px), (max-height: 770px) { .stage { flex: none; padding-bottom: 40px; } }
+    .chat-panel { margin-top: auto; }
+    .foot { margin-top: auto; padding: 14px 0 16px; }
     .hero { text-align: center; }
     .hero img.logo { height: 46px; object-fit: contain; display: block; margin: 0 auto 12px; }
     .hero h1 {
@@ -203,6 +217,7 @@
     body.in-chat .chat-panel {
       display: flex; flex-direction: column;
       height: calc(100vh - 160px); min-height: 420px;
+      margin-top: 0;
     }
     .show-services {
       display: none;
