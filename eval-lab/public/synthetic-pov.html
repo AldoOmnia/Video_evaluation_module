@@ -630,6 +630,49 @@
     .cam-body { position: relative; background: #000; aspect-ratio: 16/10; overflow: hidden; }
     .cam-body video, .cam-body img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .cam-hud { position: absolute; inset: 0; pointer-events: none; }
+    /* AI interpretation — Cosmos-style reasoner card over the worker POV.
+       Content comes from the pre-annotated timeline (Gemini vision over the
+       walkthrough, grounded in the PG-04 procedure KB) — zero runtime cost. */
+    .ai-toggle {
+      margin-left: 8px; flex-shrink: 0;
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em;
+      color: var(--ink-3); background: transparent;
+      border: 1px solid var(--line-2); border-radius: 3px;
+      padding: 2px 7px; cursor: pointer; text-transform: uppercase;
+    }
+    .ai-toggle:hover { color: var(--primary); border-color: var(--primary-dim); }
+    .ai-toggle.is-on {
+      color: var(--primary); border-color: var(--primary-dim);
+      background: rgba(0,229,160,0.10);
+    }
+    .ai-card {
+      position: absolute; top: 26px; left: 8px; z-index: 4;
+      max-width: min(340px, 74%);
+      font-family: var(--mono); font-size: 10px; color: var(--ink-2);
+      background: rgba(4,6,6,0.82); border: 1px solid var(--line-2);
+      border-radius: 6px; padding: 7px 10px; line-height: 1.5;
+      backdrop-filter: blur(5px); pointer-events: none;
+    }
+    .ai-card-head {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--ink-3); margin-bottom: 3px;
+    }
+    .ai-card-head .ai-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--primary);
+      animation: pulse 1.6s infinite;
+    }
+    .ai-card-head b { color: var(--primary); font-weight: 500; }
+    .ai-card-cap { color: var(--ink-1); font-size: 10.5px; }
+    .ai-card-obs { margin-top: 3px; color: var(--ink-3); font-size: 9px; }
+    .ai-card-obs span { color: var(--ink-2); }
+    .ai-card-dev {
+      margin-top: 4px; padding: 3px 7px; border-radius: 4px;
+      border: 1px solid rgba(245,158,11,0.45); background: rgba(245,158,11,0.10);
+      color: var(--amber); font-size: 9.5px;
+    }
+    html.embed-splat .ai-card { display: none !important; }
+
     /* Worker-POV source: report-frame still overlay + source picker */
     .pov-still { position: absolute; inset: 0; z-index: 3; background: #000; }
     .pov-still img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -827,7 +870,11 @@
 
         <!-- Q1 top-left: real video -->
         <div class="quad" data-quad="video">
-          <div class="panel-head"><span class="grip">⠿</span><span class="pi" style="color:var(--violet)">●</span> RGB · worker POV <span class="tag">2400×1800</span></div>
+          <div class="panel-head"><span class="grip">⠿</span><span class="pi" style="color:var(--violet)">●</span> RGB · worker POV
+            <button type="button" class="ai-toggle" id="aiInterpBtn"
+                    title="AI interpretation — Gemini vision over this walkthrough, grounded in the PG-04 procedure knowledge base">✦ AI reasoner</button>
+            <span class="tag">2400×1800</span>
+          </div>
           <div class="q-body cam-body" id="camBody">
             <video id="povVideo" poster="/lab/assets/phase8_frame.jpg" muted loop playsinline></video>
             <div class="pov-still" id="povStill" hidden>
@@ -838,6 +885,12 @@
               <div class="cam-ts" id="camTs">00:00.0</div>
               <div class="cam-rec"><span class="rd"></span>REC</div>
               <div class="cam-cross"></div>
+            </div>
+            <div class="ai-card" id="aiCard" hidden>
+              <div class="ai-card-head"><span class="ai-dot"></span>AI reasoner · <b id="aiCardStep">observing</b></div>
+              <div class="ai-card-cap" id="aiCardCap"></div>
+              <div class="ai-card-obs" id="aiCardObs" hidden></div>
+              <div class="ai-card-dev" id="aiCardDev" hidden></div>
             </div>
             <div class="pov-src-bar">
               <select id="povSource" title="Worker POV source" aria-label="Worker POV source">
@@ -2134,6 +2187,65 @@
       });
     })();
 
+    // ── AI interpretation — pre-annotated reasoner timeline ───────────
+    // Gemini vision was run offline over the walkthrough (1 frame / 5 s),
+    // grounded in the PG-04 procedure KB (scripts/annotate-pov.mjs). The
+    // viewer just replays the cached timeline in sync with the video.
+    const aiInterp = (function setupAiInterp() {
+      const btn = document.getElementById("aiInterpBtn");
+      const card = document.getElementById("aiCard");
+      const stepEl = document.getElementById("aiCardStep");
+      const capEl = document.getElementById("aiCardCap");
+      const obsEl = document.getElementById("aiCardObs");
+      const devEl = document.getElementById("aiCardDev");
+      if (!btn || !card) return { update() {} };
+      let on = false;
+      let data = null;
+      let lastIdx = -1;
+
+      async function load() {
+        if (data) return;
+        try {
+          data = await (await fetch("/lab/assets/phase8-pov-annotations.json")).json();
+        } catch {
+          data = { frames: [], intervalS: 5 };
+        }
+      }
+
+      btn.addEventListener("click", async () => {
+        on = !on;
+        btn.classList.toggle("is-on", on);
+        card.hidden = !on;
+        if (on) { await load(); lastIdx = -1; }
+      });
+
+      function builtinPovActive() {
+        const sel = document.getElementById("povSource");
+        return !sel || sel.value === "builtin";
+      }
+
+      function update(t) {
+        if (!on || !data) return;
+        if (!builtinPovActive()) { card.hidden = true; return; }
+        const iv = data.intervalS || 5;
+        const idx = Math.min((data.frames?.length || 0) - 1, Math.max(0, Math.floor(t / iv)));
+        if (idx === lastIdx) return;
+        lastIdx = idx;
+        const f = data.frames?.[idx];
+        if (!f) { card.hidden = true; return; }
+        card.hidden = false;
+        stepEl.textContent = f.step != null
+          ? `step ${String(f.step).padStart(2, "0")} · ${f.stepLabel || ""}`
+          : "observing";
+        capEl.textContent = f.caption || "";
+        obsEl.hidden = !(f.observed && f.observed.length);
+        if (!obsEl.hidden) obsEl.textContent = "sees: " + f.observed.join(" · ");
+        devEl.hidden = !f.deviation;
+        if (!devEl.hidden) devEl.textContent = f.deviation;
+      }
+      return { update };
+    })();
+
     // ── Three.js synthetic SLAM scene ─────────────────────────────────
     const canvas = document.getElementById("scene");
     const viewport = document.getElementById("viewport");
@@ -3030,6 +3142,7 @@
         // readouts
         document.getElementById("curTime").textContent = fmt(playT);
         document.getElementById("camTs").textContent = fmt(playT);
+        aiInterp.update(playT);
 
         // gaze + live SLAM mono cameras
         drawGaze();
