@@ -142,21 +142,21 @@
   <div class="bg" aria-hidden="true"></div>
 
   <header class="topbar">
-    <a class="back-home" href="/home/">← Home</a>
-    <span class="topbar-title"><strong>Warnings &amp; savings report</strong> · glasses fleet</span>
-    <button class="refresh" id="refresh">Refresh</button>
+    <a class="back-home" href="/home/" data-i18n="nav.backHome">← Home</a>
+    <span class="topbar-title" data-i18n="rep.topbarTitle"><strong>Warnings &amp; savings report</strong> · glasses fleet</span>
+    <button class="refresh" id="refresh" data-i18n="rep.refresh">Refresh</button>
   </header>
 
   <div class="wrap">
     <div class="head">
-      <h1>Glasses warnings</h1>
+      <h1 data-i18n="rep.h1">Glasses warnings</h1>
       <span class="chip" id="mode-chip">—</span>
       <span class="period" id="period">—</span>
     </div>
-    <p class="sub">Per worker and per pair of glasses: warnings fired on the line, the POV frames captured
+    <p class="sub" data-i18n="rep.sub">Per worker and per pair of glasses: warnings fired on the line, the POV frames captured
       when they fired, mistakes avoided after the warning — and the rework cost that avoided.</p>
 
-    <div id="report-body"><div class="status">loading the warnings report…</div></div>
+    <div id="report-body"><div class="status" data-i18n="rep.loading">loading the warnings report…</div></div>
   </div>
 
   <script>
@@ -172,11 +172,12 @@
       }[c]));
     }
     function eur(n) { return '€' + Number(n || 0).toLocaleString('en-US'); }
+    const T = (k, en) => (window.OmniaI18n ? window.OmniaI18n.t(k, en) : en);
 
     function render(d) {
       const t = d.totals || {};
       const chip = document.getElementById('mode-chip');
-      chip.textContent = d.mode === 'live' ? 'live' : 'demo data';
+      chip.textContent = d.mode === 'live' ? 'live' : T('rep.demoData', 'demo data');
       chip.className = 'chip ' + (d.mode === 'live' ? 'live' : 'stub');
       document.getElementById('period').textContent = d.period || '';
 
@@ -195,9 +196,9 @@
             <div class="seg-missed" style="width:${100 - pctAvoided}%"></div>
           </div>
           <div class="warn-legend">
-            <span>${w.warningsFired} warnings fired</span>
-            <span class="good">${w.avoided} avoided</span>
-            <span class="bad">${w.missed} missed</span>
+            <span>${w.warningsFired} ${esc(T('rep.legFired', 'warnings fired'))}</span>
+            <span class="good">${w.avoided} ${esc(T('rep.legAvoided', 'avoided'))}</span>
+            <span class="bad">${w.missed} ${esc(T('rep.legMissed', 'missed'))}</span>
             <span>top: ${esc(w.topError || '—')}</span>
           </div>
           ${frames ? `<div class="frames">${frames}</div>` : ''}
@@ -206,16 +207,15 @@
 
       document.getElementById('report-body').innerHTML = `
         <div class="rep-totals">
-          <div class="cell"><div class="n">${t.warningsFired ?? '—'}</div><div class="l">warnings fired</div></div>
-          <div class="cell"><div class="n good">${t.avoided ?? '—'}</div><div class="l">mistakes avoided</div></div>
-          <div class="cell"><div class="n bad">${t.missed ?? '—'}</div><div class="l">slipped through</div></div>
-          <div class="cell"><div class="n eur">${eur(t.estimatedSavingsEur)}</div><div class="l">est. rework saved</div></div>
+          <div class="cell"><div class="n">${t.warningsFired ?? '—'}</div><div class="l">${esc(T('rep.warningsFired', 'warnings fired'))}</div></div>
+          <div class="cell"><div class="n good">${t.avoided ?? '—'}</div><div class="l">${esc(T('rep.mistakesAvoided', 'mistakes avoided'))}</div></div>
+          <div class="cell"><div class="n bad">${t.missed ?? '—'}</div><div class="l">${esc(T('rep.slippedThrough', 'slipped through'))}</div></div>
+          <div class="cell"><div class="n eur">${eur(t.estimatedSavingsEur)}</div><div class="l">${esc(T('rep.reworkSaved', 'est. rework saved'))}</div></div>
         </div>
-        <div class="sec-h">Per worker · per pair of glasses</div>
+        <div class="sec-h">${esc(T('rep.perWorker', 'Per worker · per pair of glasses'))}</div>
         <div class="workers">${workers}</div>
         <div class="note">
-          Savings = avoided × ${eur(d.avgReworkCostEur)} avg rework (labor + parts).
-          POV frames are captured by the glasses the moment a warning fires.
+          ${esc(T('rep.note1', 'Savings = avoided × '))}${eur(d.avgReworkCostEur)}${esc(T('rep.note2', ' avg rework (labor + parts). POV frames are captured by the glasses the moment a warning fires. '))}
           ${d.mode === 'live' ? '' : esc(d.detail || '')}
         </div>`;
     }
@@ -227,11 +227,14 @@
         render(await r.json());
       } catch (e) {
         document.getElementById('report-body').innerHTML =
-          `<div class="status err">could not load the report — ${esc(e.message)}</div>`;
+          `<div class="status err">${esc(T('rep.loadErr', 'could not load the report — '))}${esc(e.message)}</div>`;
       }
     }
     document.getElementById('refresh').addEventListener('click', load);
-    load();
+    // First render waits for DOMContentLoaded so the deferred i18n.js has
+    // executed — otherwise the totals labels can race it and stay English.
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', load);
+    else load();
     setInterval(load, 60_000);
   </script>
 
@@ -242,6 +245,7 @@
       view: 'glasses fleet — warnings fired, avoided, rework saved',
     });
   </script>
-  <script src="/lab/assets/brain-dock.js?v=8" defer></script>
+  <script src="/lab/assets/i18n.js?v=1" defer></script>
+  <script src="/lab/assets/brain-dock.js?v=9" defer></script>
 </body>
 </html>

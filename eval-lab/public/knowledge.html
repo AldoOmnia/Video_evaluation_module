@@ -582,11 +582,11 @@
   <div class="bg" aria-hidden="true"></div>
 
   <header class="topbar">
-    <a class="back-home" href="/home/">← Home</a>
-    <span class="topbar-title"><strong>Facility knowledge base</strong> · what Comer AI knows about the plant</span>
+    <a class="back-home" href="/home/" data-i18n="nav.backHome">← Home</a>
+    <span class="topbar-title" data-i18n="kb.topbarTitle"><strong>Facility knowledge base</strong> · what Comer AI knows about the plant</span>
     <div class="view-toggle" role="tablist">
-      <button id="vt-facility" class="is-active" role="tab">Facility</button>
-      <button id="vt-station" role="tab">Station</button>
+      <button id="vt-facility" class="is-active" role="tab" data-i18n="kb.vtFacility">Facility</button>
+      <button id="vt-station" role="tab" data-i18n="kb.vtStation">Station</button>
     </div>
     <select class="station-picker" id="station-picker" hidden></select>
   </header>
@@ -596,8 +596,8 @@
     <!-- ── Facility view ─────────────────────── -->
     <section class="facility-view is-active" id="facility-view">
       <div class="facility-head">
-        <h1>The line, as Comer AI sees it</h1>
-        <p>The real Rockford stations, live on the actual plant drawing (CNH Layout 1.dwg) — each dot sits at its physical spot with its stage,
+        <h1 data-i18n="kb.facH1">The line, as Comer AI sees it</h1>
+        <p data-i18n="kb.facP">The real Rockford stations, live on the actual plant drawing (CNH Layout 1.dwg) — each dot sits at its physical spot with its stage,
         historical MES checks and knowledge counts. The digital-twin capture (and all its viewpoints) lives inside ST100 · Pinion Guide. Click a station to open it; expand full screen for the drawing's full detail.</p>
       </div>
       <div class="facility-canvas" id="facility-canvas">
@@ -617,24 +617,24 @@
           <div class="tc-body">
             <b id="tc-name">ST100 · Pinion Guide</b>
             <span id="tc-mes">UNICOMM · SSL04_FARGO · sheet ST100</span>
-            <span class="tc-open">open the digital twin ↗</span>
+            <span class="tc-open" data-i18n="kb.twincardOpen">open the digital twin ↗</span>
           </div>
         </div>
       </div>
       <div class="fac-legend">
-        <span><span class="dot" style="background:var(--primary)"></span>active station — full graph live</span>
-        <span><span class="dot" style="background:#2a2a2a"></span>scaffold — awaiting material</span>
-        <span style="color:var(--ok);">✓ twin — digital twin available</span>
-        <span>counts: keysteps · material · components</span>
-        <span style="color:var(--warn,#f5a524);">⚠ checks — MES acquisitions outside limits (Full_stations_report)</span>
-        <span style="color:rgba(245,197,66,0.55);">underlay — the 2D plant drawing (yellow = aisles &amp; bays) · expand for full detail</span>
+        <span><span class="dot" style="background:var(--primary)"></span><span data-i18n="kb.legActive">active station — full graph live</span></span>
+        <span><span class="dot" style="background:#2a2a2a"></span><span data-i18n="kb.legScaffold">scaffold — awaiting material</span></span>
+        <span style="color:var(--ok);" data-i18n="kb.legTwin">✓ twin — digital twin available</span>
+        <span data-i18n="kb.legCounts">counts: keysteps · material · components</span>
+        <span style="color:var(--warn,#f5a524);" data-i18n="kb.legChecks">⚠ checks — MES acquisitions outside limits (Full_stations_report)</span>
+        <span style="color:rgba(245,197,66,0.55);" data-i18n="kb.legUnderlay">underlay — the 2D plant drawing (yellow = aisles &amp; bays) · expand for full detail</span>
       </div>
     </section>
 
     <!-- ── Station view ──────────────────────── -->
     <section class="station-view" id="station-view">
       <div class="station-head">
-        <button type="button" class="back-fac" id="back-fac" title="Back to the facility view">← All stations</button>
+        <button type="button" class="back-fac" id="back-fac" data-i18n="kb.backFac" data-i18n-title="kb.backFacTitle" title="Back to the facility view">← All stations</button>
         <h1 id="st-title">—</h1>
         <span class="desc" id="st-desc">—</span>
         <a class="lab-link" id="st-lab-link" href="/lab/" hidden>Full graph + eval tools ↗</a>
@@ -646,18 +646,18 @@
       <!-- Provenance strip — shown when this station mirrors the live glasses build -->
       <div class="glasses-sync" id="glasses-sync">
         <span class="dot"></span>
-        <span><b>Synced from the glasses build</b> — every component, reference image and warning below is what the
+        <span data-i18n="kb.glassesSync"><b>Synced from the glasses build</b> — every component, reference image and warning below is what the
         Rokid glasses run today (<a id="glasses-sync-repo" href="#" target="_blank" rel="noopener">comer-rokid-demo ↗</a>).
         One-way for now: what you add here stays on the platform and is not pushed to the glasses.</span>
       </div>
 
       <!-- 01 · Node graph + asset inspector — full width -->
       <div class="panel graph-panel" style="margin-top:12px;">
-        <div class="panel-h"><span class="n">01</span> Station knowledge graph</div>
+        <div class="panel-h"><span class="n">01</span> <span data-i18n="kb.p01">Station knowledge graph</span></div>
         <div class="graph-body">
           <div class="graph-canvas">
             <svg id="station-svg" viewBox="0 0 560 430" role="img" aria-label="Station knowledge graph"></svg>
-            <div class="graph-hint" id="graph-hint">procedure · material · components · POV — click any node to trace why Comer AI knows it</div>
+            <div class="graph-hint" id="graph-hint" data-i18n="kb.graphHint">procedure · material · components · POV — click any node to trace why Comer AI knows it</div>
           </div>
           <aside class="node-inspect" id="node-inspect" aria-live="polite"></aside>
         </div>
@@ -666,64 +666,64 @@
       <div class="station-grid">
         <!-- 02 · Procedure POV recordings — left column -->
         <div class="panel">
-          <div class="panel-h"><span class="n">02</span> Procedure POV recordings <span class="count" id="pov-count">0</span></div>
+          <div class="panel-h"><span class="n">02</span> <span data-i18n="kb.p02">Procedure POV recordings</span> <span class="count" id="pov-count">0</span></div>
           <div class="pov-form">
               <button type="button" class="pick-imgs" id="pov-pick">
-                <span id="pov-pick-label">＋ POV recording of the full procedure (.mp4 / .mov / .webm)</span>
+                <span id="pov-pick-label" data-i18n="kb.povPick">＋ POV recording of the full procedure (.mp4 / .mov / .webm)</span>
               </button>
               <input type="file" id="pov-file" accept=".mp4,.mov,.webm,video/*" hidden />
               <div class="seg" id="pov-seg">
-                <button type="button" class="correct is-on" data-tag="correct">✓ done correctly</button>
-                <button type="button" class="mistake" data-tag="mistake">✕ contains mistakes</button>
+                <button type="button" class="correct is-on" data-tag="correct" data-i18n="kb.povCorrect">✓ done correctly</button>
+                <button type="button" class="mistake" data-tag="mistake" data-i18n="kb.povMistake">✕ contains mistakes</button>
               </div>
-              <textarea id="pov-transcript" placeholder="Audio transcript — what was said / heard in the recording. Typed for now; auto-transcription (ASR) fills this once wired."></textarea>
-              <textarea id="pov-note" style="min-height:38px;" placeholder="Operator note (optional) — what you think went wrong or should be watched…"></textarea>
+              <textarea id="pov-transcript" data-i18n-ph="kb.povTranscriptPh" placeholder="Audio transcript — what was said / heard in the recording. Typed for now; auto-transcription (ASR) fills this once wired."></textarea>
+              <textarea id="pov-note" style="min-height:38px;" data-i18n-ph="kb.povNotePh" placeholder="Operator note (optional) — what you think went wrong or should be watched…"></textarea>
               <div class="row" style="display:flex;align-items:center;gap:12px;">
-                <button type="button" class="btn-save" id="pov-save">Add recording</button>
+                <button type="button" class="btn-save" id="pov-save" data-i18n="kb.povSave">Add recording</button>
                 <span class="form-status" id="pov-status"></span>
               </div>
             </div>
           <div class="pov-list" id="pov-list"></div>
-          <div class="empty-note" id="pov-empty">no POV recordings yet — add correct and wrong executions to teach the warning logic</div>
+          <div class="empty-note" id="pov-empty" data-i18n="kb.povEmpty">no POV recordings yet — add correct and wrong executions to teach the warning logic</div>
         </div>
 
         <!-- 03 + 04 stacked — right column, together matching 02's height -->
         <div class="station-col">
         <!-- 03 · Training material -->
         <div class="panel">
-          <div class="panel-h"><span class="n">03</span> Training material <span class="count" id="art-count">0</span></div>
+          <div class="panel-h"><span class="n">03</span> <span data-i18n="kb.p03">Training material</span> <span class="count" id="art-count">0</span></div>
           <div class="drop" id="art-drop">
-            <span class="big">Drop or click to add material</span>
-            becomes part of this station's graph
+            <span class="big" data-i18n="kb.dropBig">Drop or click to add material</span>
+            <span data-i18n="kb.dropSub">becomes part of this station's graph</span>
             <div class="fmt">.pdf · .csv / .tsv · .mp4 / .mov / .webm</div>
           </div>
           <input type="file" id="art-file" multiple hidden
                  accept=".pdf,.csv,.tsv,.mp4,.mov,.webm" />
           <div class="art-list" id="art-list"></div>
-          <div class="empty-note" id="art-empty">no material yet — Comer AI has nothing loaded for this station</div>
+          <div class="empty-note" id="art-empty" data-i18n="kb.artEmpty">no material yet — Comer AI has nothing loaded for this station</div>
         </div>
 
         <!-- 04 · Component recognition references -->
         <div class="panel comp-panel">
-          <div class="panel-h"><span class="n">04</span> Component recognition references <span class="count" id="comp-count">0</span></div>
+          <div class="panel-h"><span class="n">04</span> <span data-i18n="kb.p04">Component recognition references</span> <span class="count" id="comp-count">0</span></div>
           <div class="comp-list" id="comp-list"></div>
-          <div class="empty-note" id="comp-empty">no components mapped yet</div>
+          <div class="empty-note" id="comp-empty" data-i18n="kb.compEmpty">no components mapped yet</div>
 
           <div class="add-comp">
             <div class="add-comp-cols">
               <div class="add-comp-left">
-                <input type="text" id="comp-name" placeholder="Component name — e.g. Guide bearing, Crush sleeve…" />
+                <input type="text" id="comp-name" data-i18n-ph="kb.compNamePh" placeholder="Component name — e.g. Guide bearing, Crush sleeve…" />
                 <button type="button" class="pick-imgs" id="comp-pick">
-                  <span id="comp-pick-label">＋ Reference images (what the CV / VLM should recognize)</span>
+                  <span id="comp-pick-label" data-i18n="kb.compPick">＋ Reference images (what the CV / VLM should recognize)</span>
                 </button>
                 <input type="file" id="comp-files" accept="image/*" multiple hidden />
                 <div class="row" style="align-items:center;gap:12px;">
-                  <button type="button" class="btn-save" id="comp-save">Save component</button>
+                  <button type="button" class="btn-save" id="comp-save" data-i18n="kb.compSave">Save component</button>
                   <span class="form-status" id="comp-status"></span>
                 </div>
               </div>
               <div class="add-comp-right">
-                <div class="form-status" style="margin-bottom:5px;">Map against the error taxonomy — which failures involve this component?</div>
+                <div class="form-status" style="margin-bottom:5px;" data-i18n="kb.taxNote">Map against the error taxonomy — which failures involve this component?</div>
                 <div class="tax-select" id="tax-select"></div>
               </div>
             </div>
@@ -734,17 +734,17 @@
 
       <!-- Station digital twin (only stations with a capture — today: pinion guide) -->
       <div class="panel" style="margin-top:16px;" id="st-twin-panel" hidden>
-        <div class="panel-h"><span class="n">05</span> Digital twin <span class="count" style="color:var(--ok);">✓ available</span></div>
+        <div class="panel-h"><span class="n">05</span> <span data-i18n="kb.p05">Digital twin</span> <span class="count" style="color:var(--ok);" data-i18n="kb.twinAvail">✓ available</span></div>
         <div class="twin-shell" id="st-twin-shell">
           <button type="button" class="twin-launch" id="st-twin-launch">
             <span class="play">▶</span>
-            <span id="st-twin-title">Load the pinion guide digital twin</span>
-            <span class="sub">gaussian-splat capture of the pinion guide area · operator + station geometry</span>
+            <span id="st-twin-title" data-i18n="kb.twinLoad">Load the pinion guide digital twin</span>
+            <span class="sub" data-i18n="kb.twinSub">gaussian-splat capture of the pinion guide area · operator + station geometry</span>
           </button>
         </div>
         <div class="twin-foot">
-          <span>same capture the warning logic will be simulated against (Omniverse next)</span>
-          <a id="st-twin-open" href="/synthetic-pov" target="_blank">Open full viewer ↗</a>
+          <span data-i18n="kb.twinFoot">same capture the warning logic will be simulated against (Omniverse next)</span>
+          <a id="st-twin-open" href="/synthetic-pov" target="_blank" data-i18n="kb.twinOpen">Open full viewer ↗</a>
         </div>
       </div>
     </section>
@@ -1309,8 +1309,10 @@
       const matrix = p.matrixImage
         ? `<a class="matrix-link" href="${esc(p.matrixImage)}" target="_blank" rel="noopener">${esc(p.matrixLabel || 'Part matrix per axle model')} ↗</a>`
         : '';
+      const runsCap = (window.OmniaI18n ? OmniaI18n.t('kb.procRuns', 'Station runs {n} procedures') : 'Station runs {n} procedures')
+        .replace('{n}', p.variants.length);
       box.innerHTML =
-        `<span class="cap">Station runs ${p.variants.length} procedures</span>${chips}${matrix}` +
+        `<span class="cap">${esc(runsCap)}</span>${chips}${matrix}` +
         (p.note ? `<span class="note">${esc(p.note)}</span>` : '');
       box.classList.add('is-on');
     }
@@ -1331,7 +1333,9 @@
       // Lab is reachable for every station — inactive ones land on its empty state.
       $('st-lab-link').hidden = false;
       $('st-lab-link').href = '/lab/?station=' + encodeURIComponent(id);
-      $('st-lab-link').textContent = d.station.active ? 'Full graph + eval tools ↗' : 'Open in eval lab ↗';
+      $('st-lab-link').textContent = d.station.active
+        ? (window.OmniaI18n ? OmniaI18n.t('kb.labLinkFull', 'Full graph + eval tools ↗') : 'Full graph + eval tools ↗')
+        : (window.OmniaI18n ? OmniaI18n.t('kb.labLinkOpen', 'Open in eval lab ↗') : 'Open in eval lab ↗');
       renderProcVariants(d.station.procedures);
       // Glasses-build provenance strip (PG-04 today)
       $('glasses-sync').classList.toggle('is-on', !!d.glassesSync);
@@ -1736,6 +1740,7 @@
       };
     };
   </script>
-  <script src="/lab/assets/brain-dock.js?v=8" defer></script>
+  <script src="/lab/assets/i18n.js?v=1" defer></script>
+  <script src="/lab/assets/brain-dock.js?v=9" defer></script>
 </body>
 </html>

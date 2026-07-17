@@ -134,7 +134,32 @@
   .bd-foot {
     font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; font-size: 8px; color: #4a4a4a;
     letter-spacing: 0.05em; text-transform: uppercase; text-align: center; margin-top: 8px;
-  }`;
+  }
+  .bd-lang-ov {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(3px);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .bd-lang-modal {
+    width: min(400px, 90vw); background: #0d0d0d;
+    border: 1px solid #2a2a2a; border-radius: 14px; padding: 22px 24px;
+    font-family: 'Inter', -apple-system, system-ui, sans-serif; color: #f5f5f5;
+    box-shadow: 0 18px 60px rgba(0,0,0,0.6);
+  }
+  .bd-lang-modal .mh { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 8px; }
+  .bd-lang-modal .mb { font-size: 12.5px; line-height: 1.6; color: #a3a3a3; margin-bottom: 18px; }
+  .bd-lang-modal .mf { display: flex; justify-content: flex-end; gap: 10px; }
+  .bd-lang-modal .mf button {
+    border-radius: 8px; padding: 8px 14px; cursor: pointer;
+    font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+    font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .bd-lang-modal .mc-cancel { background: none; border: 1px solid #2a2a2a; color: #a3a3a3; }
+  .bd-lang-modal .mc-cancel:hover { color: #f5f5f5; border-color: #4a4a4a; }
+  .bd-lang-modal .mc-ok {
+    background: rgba(0,229,160,0.12); border: 1px solid rgba(0,229,160,0.45); color: #00E5A0;
+  }
+  .bd-lang-modal .mc-ok:hover { background: rgba(0,229,160,0.2); }`;
 
   const style = document.createElement('style');
   style.textContent = css;
@@ -145,8 +170,9 @@
   }[c]));
 
   /* ── Language (EN default / ITA) — shared across every page ──
-     For now the toggle drives the CHAT language (Claude + Gemini answer in
-     Italian); UI chrome translation comes as a second pass on the same key. */
+     The toggle drives the chat answer language AND the UI chrome (i18n.js).
+     Switching goes through a confirm modal and reloads the page so every
+     string — static and JS-generated — renders in the new language. */
   const LANG_KEY = 'omnia.lang';
   const getLang = () => (localStorage.getItem(LANG_KEY) === 'it' ? 'it' : 'en');
   /* Response register — set on the /settings page (omnia.settings.tone). */
@@ -160,13 +186,77 @@
     localStorage.setItem(LANG_KEY, l === 'it' ? 'it' : 'en');
     window.dispatchEvent(new CustomEvent('omnia:lang', { detail: { lang: getLang() } }));
   }
-  window.OmniaLang = { get: getLang, set: setLang };
+  function requestLang(l) {
+    const next = l === 'it' ? 'it' : 'en';
+    if (next === getLang()) return;
+    const copy = next === 'it'
+      ? {
+          title: "Passare all'italiano?",
+          body: "L'interfaccia della piattaforma e le risposte di Comer AI passeranno all'italiano. La pagina verrà ricaricata.",
+          confirm: "Passa all'italiano",
+          cancel: 'Annulla',
+        }
+      : {
+          title: 'Switch back to English?',
+          body: 'The platform interface and Comer AI answers will switch back to English. The page will reload.',
+          confirm: 'Switch to English',
+          cancel: 'Cancel · Annulla',
+        };
+    const ov = document.createElement('div');
+    ov.className = 'bd-lang-ov';
+    ov.innerHTML = `
+      <div class="bd-lang-modal" role="alertdialog" aria-label="${esc(copy.title)}">
+        <div class="mh">${esc(copy.title)}</div>
+        <div class="mb">${esc(copy.body)}</div>
+        <div class="mf">
+          <button type="button" class="mc-cancel">${esc(copy.cancel)}</button>
+          <button type="button" class="mc-ok">${esc(copy.confirm)}</button>
+        </div>
+      </div>`;
+    const dismiss = () => ov.remove();
+    ov.addEventListener('click', (e) => { if (e.target === ov) dismiss(); });
+    document.addEventListener('keydown', function onEsc(e) {
+      if (e.key === 'Escape') { dismiss(); document.removeEventListener('keydown', onEsc); }
+    });
+    ov.querySelector('.mc-cancel').addEventListener('click', dismiss);
+    ov.querySelector('.mc-ok').addEventListener('click', () => {
+      setLang(next);
+      location.reload();
+    });
+    document.body.appendChild(ov);
+    ov.querySelector('.mc-ok').focus();
+  }
+  window.OmniaLang = { get: getLang, set: setLang, request: requestLang };
+
+  /* Dock chrome strings — resolved at build time; a language switch reloads
+     the page, so the dock DOM is always built in the current language. */
+  const IT_DOCK = {
+    pill: 'Chiedi a Comer AI',
+    empty: "Chiedi di <b>quello che vedi a schermo</b> — procedure, tolleranze, errori comuni — oppure allega la <b>foto di un componente</b> e chiedi cos'è.<br/><br/>Gli stessi modelli degli occhiali: Gemini per la visione, Claude per la knowledge base.",
+    placeholder: "Chiedi… o allega una foto e domanda “cos'è questo?”",
+    attachTitle: 'Allega la foto di un componente',
+    removeTitle: 'Rimuovi immagine',
+    closeTitle: 'Chiudi (Esc)',
+    sendTitle: 'Invia',
+    thinkVision: 'gemini vision + recupero claude',
+    thinkKb: 'ricerca nella knowledge base',
+    whatIsThis: 'Che componente è questo?',
+    imageError: 'Errore immagine:',
+    broke: 'Qualcosa non ha funzionato:',
+    usedIn: 'usato in',
+    watchedFor: 'sorvegliato per:',
+    ifWrong: 'se sbagliato:',
+    wouldFire: '(scatterebbe sugli occhiali adesso)',
+    noMatch: 'nessuna corrispondenza a catalogo',
+    groundedOn: 'basato su:',
+  };
+  const TD = (key, en) => (getLang() === 'it' && IT_DOCK[key] != null ? IT_DOCK[key] : en);
 
   /* ── DOM ── */
   const toggle = document.createElement('button');
   toggle.className = 'bd-toggle';
   toggle.type = 'button';
-  toggle.innerHTML = '<span class="dot"></span> Ask Comer AI';
+  toggle.innerHTML = '<span class="dot"></span> ' + esc(TD('pill', 'Ask Comer AI'));
   document.body.appendChild(toggle);
 
   const drawer = document.createElement('aside');
@@ -180,30 +270,30 @@
         <button type="button" data-lang="en" title="Answer in English">EN</button>
         <button type="button" data-lang="it" title="Rispondi in italiano">ITA</button>
       </span>
-      <button class="bd-close" type="button" title="Close (Esc)">✕</button>
+      <button class="bd-close" type="button" title="${esc(TD('closeTitle', 'Close (Esc)'))}">✕</button>
     </div>
     <div class="bd-msgs" id="bd-msgs">
-      <div class="bd-empty" id="bd-empty">
+      <div class="bd-empty" id="bd-empty">${TD('empty', `
         Ask about <b>what's on screen</b> — procedures, tolerances, common mistakes —
         or attach a <b>photo of a component</b> and ask what it is.<br/><br/>
-        Same models as the glasses: Gemini for vision, Claude for the knowledge base.
+        Same models as the glasses: Gemini for vision, Claude for the knowledge base.`)}
       </div>
     </div>
     <div class="bd-inrow">
       <div class="bd-attach-preview" id="bd-preview">
         <img id="bd-preview-img" alt=""/>
         <span id="bd-preview-name"></span>
-        <button type="button" id="bd-preview-x" title="Remove image">✕</button>
+        <button type="button" id="bd-preview-x" title="${esc(TD('removeTitle', 'Remove image'))}">✕</button>
       </div>
       <div class="bd-inflex">
-        <button class="bd-btn" type="button" id="bd-attach" title="Attach a component photo" aria-label="Attach a component photo">
+        <button class="bd-btn" type="button" id="bd-attach" title="${esc(TD('attachTitle', 'Attach a component photo'))}" aria-label="${esc(TD('attachTitle', 'Attach a component photo'))}">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
           </svg>
         </button>
         <textarea class="bd-input" id="bd-input" rows="1"
-          placeholder="Ask… or attach a photo and ask “what is this?”"></textarea>
-        <button class="bd-btn send" type="button" id="bd-send" title="Send" aria-label="Send">
+          placeholder="${esc(TD('placeholder', 'Ask… or attach a photo and ask “what is this?”'))}"></textarea>
+        <button class="bd-btn send" type="button" id="bd-send" title="${esc(TD('sendTitle', 'Send'))}" aria-label="${esc(TD('sendTitle', 'Send'))}">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <line x1="22" y1="2" x2="11" y2="13"/>
             <polygon points="22 2 15 22 11 13 2 9 22 2"/>
@@ -243,7 +333,7 @@
     });
   }
   drawer.querySelectorAll('#bd-lang button').forEach((b) => {
-    b.addEventListener('click', () => { setLang(b.dataset.lang); });
+    b.addEventListener('click', () => { requestLang(b.dataset.lang); });
   });
   window.addEventListener('omnia:lang', paintLang);
   paintLang();
@@ -318,7 +408,7 @@
     } catch (e) {
       attached = null;
       $('bd-preview').classList.remove('is-on');
-      push(`<b>Image error:</b> ${esc(e && e.message ? e.message : 'Could not read that image.')}`, 'brain');
+      push(`<b>${esc(TD('imageError', 'Image error:'))}</b> ${esc(e && e.message ? e.message : 'Could not read that image.')}`, 'brain');
     }
   });
   $('bd-preview-x').addEventListener('click', () => {
@@ -348,17 +438,17 @@
         html += `<b>${esc(v.className)}</b><div class="conf">${esc(v.reasoning)}</div>`;
       } else if (v.sku) {
         html += `<b>${esc(comp ? comp.name : v.className)}</b> <span class="conf">· SKU ${esc(v.sku)} · ${(v.confidence * 100).toFixed(0)}%</span>`;
-        if (comp && comp.steps && comp.steps.length) html += `<div class="conf">used in ${comp.steps.map(esc).join(' · ')}</div>`;
-        if (comp && comp.errorCodes && comp.errorCodes.length) html += `<div class="conf">watched for: ${comp.errorCodes.map(esc).join(' · ')}</div>`;
+        if (comp && comp.steps && comp.steps.length) html += `<div class="conf">${esc(TD('usedIn', 'used in'))} ${comp.steps.map(esc).join(' · ')}</div>`;
+        if (comp && comp.errorCodes && comp.errorCodes.length) html += `<div class="conf">${esc(TD('watchedFor', 'watched for:'))} ${comp.errorCodes.map(esc).join(' · ')}</div>`;
         if (v.flipped && comp && comp.warning && comp.warning.headline) {
           // Same overlay the glasses fire when the VLM resolves a FLIP decoy.
-          html += `<div class="warn"><b>${esc(comp.warning.headline)}</b> — ${esc(comp.warning.action)} <span class="conf">(would fire on the glasses now)</span></div>`;
+          html += `<div class="warn"><b>${esc(comp.warning.headline)}</b> — ${esc(comp.warning.action)} <span class="conf">${esc(TD('wouldFire', '(would fire on the glasses now)'))}</span></div>`;
         } else if (comp && comp.warning && comp.warning.headline) {
-          html += `<div class="conf">if wrong: ${esc(comp.warning.headline)} — ${esc(comp.warning.action)}</div>`;
+          html += `<div class="conf">${esc(TD('ifWrong', 'if wrong:'))} ${esc(comp.warning.headline)} — ${esc(comp.warning.action)}</div>`;
         }
         if (v.reasoning) html += `<div class="conf" style="margin-top:4px;">${esc(v.reasoning)}</div>`;
       } else {
-        html += `<b>${esc(v.className)}</b> <span class="conf">· no catalogue match</span>` +
+        html += `<b>${esc(v.className)}</b> <span class="conf">· ${esc(TD('noMatch', 'no catalogue match'))}</span>` +
           (v.reasoning ? `<div class="conf">${esc(v.reasoning)}</div>` : '');
       }
       html += '</div>';
@@ -372,7 +462,7 @@
     }
     const srcs = (d.retrieved || []).slice(0, 4).map((n) => esc(n.label)).join(' · ');
     html += `<div class="bd-meta">${d.stubbed ? 'STUB MODE — set ANTHROPIC_API_KEY for live answers<br/>' : ''}` +
-      (srcs ? `grounded on: ${srcs}<br/>` : '') +
+      (srcs ? `${esc(TD('groundedOn', 'grounded on:'))} ${srcs}<br/>` : '') +
       `${d.latencyMs != null ? d.latencyMs + 'ms · ' : ''}${esc((d.models && d.models.vision) || '')}</div>`;
     return html;
   }
@@ -409,13 +499,13 @@
     if (!q && !attached) return;
     busy = true; $('bd-send').disabled = true;
 
-    let userHtml = esc(q || 'What is this component?');
+    let userHtml = esc(q || TD('whatIsThis', 'What is this component?'));
     if (attached) userHtml += `<img src="${attached.previewUrl}" alt="${esc(attached.name)}"/>`;
     push(userHtml, 'user');
     const img = attached;
     input.value = ''; attached = null; $('bd-preview').classList.remove('is-on');
 
-    const thinking = push(`<span class="bd-thinking">${img ? 'gemini vision + claude retrieval' : 'searching the knowledge base'}</span>`, 'brain');
+    const thinking = push(`<span class="bd-thinking">${esc(img ? TD('thinkVision', 'gemini vision + claude retrieval') : TD('thinkKb', 'searching the knowledge base'))}</span>`, 'brain');
     try {
       const r = await fetch('/api/assist', {
         method: 'POST',
@@ -438,7 +528,7 @@
         ...((d.retrieved || []).map((n) => n.label || '')),
       ].join(' \n '));
     } catch (e) {
-      thinking.innerHTML = `<b>Something broke:</b> ${esc(e.message)}`;
+      thinking.innerHTML = `<b>${esc(TD('broke', 'Something broke:'))}</b> ${esc(e.message)}`;
     } finally {
       busy = false; $('bd-send').disabled = false;
       msgs.scrollTop = msgs.scrollHeight;

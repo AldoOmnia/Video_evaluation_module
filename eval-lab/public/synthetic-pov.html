@@ -837,14 +837,14 @@
       <div class="panel streams-panel" id="streamsPanel">
         <div class="panel-head">
           <span class="pi">▣</span><span class="sb-full">Streams</span>
-          <span class="tag sb-full">recording</span>
+          <span class="tag sb-full" data-i18n="tw.recording">recording</span>
           <button type="button" class="sb-min" id="sbMinBtn" title="Minimize streams panel" aria-label="Minimize streams panel">⟨</button>
         </div>
         <div class="tree">
-          <div class="tree-cap">Layers</div>
+          <div class="tree-cap" data-i18n="tw.layers">Layers</div>
           <label class="t-row layer-row" data-layer="video">
             <span class="ico cam"></span>
-            <span class="layer-txt">RGB · worker POV<small>cameras/rgb · 2400×1800</small></span>
+            <span class="layer-txt"><span data-i18n="tw.rgbPov">RGB · worker POV</span><small>cameras/rgb · 2400×1800</small></span>
             <input type="checkbox" checked />
           </label>
           <label class="t-row layer-row" data-layer="splat">
@@ -854,12 +854,12 @@
           </label>
           <label class="t-row layer-row" data-layer="world">
             <span class="ico path"></span>
-            <span class="layer-txt">World view<small>points <b id="ptCount">0</b> · trajectory · glasses pose</small></span>
+            <span class="layer-txt"><span data-i18n="tw.worldView">World view</span><small>points <b id="ptCount">0</b> · trajectory · glasses pose</small></span>
             <input type="checkbox" checked />
           </label>
           <label class="t-row layer-row" data-layer="slam">
             <span class="ico gaze"></span>
-            <span class="layer-txt">SLAM + eye<small>4× mono slam · eye gaze · imu</small></span>
+            <span class="layer-txt"><span data-i18n="tw.slamEye">SLAM + eye</span><small>4× mono slam · eye gaze · imu</small></span>
             <input type="checkbox" checked />
           </label>
         </div>
@@ -870,8 +870,8 @@
 
         <!-- Q1 top-left: real video -->
         <div class="quad" data-quad="video">
-          <div class="panel-head"><span class="grip">⠿</span><span class="pi" style="color:var(--violet)">●</span> RGB · worker POV
-            <button type="button" class="ai-toggle" id="aiInterpBtn"
+          <div class="panel-head"><span class="grip">⠿</span><span class="pi" style="color:var(--violet)">●</span> <span data-i18n="tw.rgbPov">RGB · worker POV</span>
+            <button type="button" class="ai-toggle" id="aiInterpBtn" data-i18n="tw.aiReasoner"
                     title="AI interpretation — Gemini vision over this walkthrough, grounded in the PG-04 procedure knowledge base">✦ AI reasoner</button>
             <span class="tag">2400×1800</span>
           </div>
@@ -887,17 +887,17 @@
               <div class="cam-cross"></div>
             </div>
             <div class="ai-card" id="aiCard" hidden>
-              <div class="ai-card-head"><span class="ai-dot"></span>AI reasoner · <b id="aiCardStep">observing</b></div>
+              <div class="ai-card-head"><span class="ai-dot"></span><span data-i18n="tw.aiCardHead">AI reasoner · </span><b id="aiCardStep">observing</b></div>
               <div class="ai-card-cap" id="aiCardCap"></div>
               <div class="ai-card-obs" id="aiCardObs" hidden></div>
               <div class="ai-card-dev" id="aiCardDev" hidden></div>
             </div>
             <div class="pov-src-bar">
               <select id="povSource" title="Worker POV source" aria-label="Worker POV source">
-                <option value="builtin">PG-04 walkthrough · built-in</option>
+                <option value="builtin" data-i18n="tw.povBuiltin">PG-04 walkthrough · built-in</option>
               </select>
-              <button type="button" id="povSyncBtn" title="Pull captured warning POVs from the Reports tab">⟳ sync reports</button>
-              <button type="button" id="povUploadBtn" title="Upload an additional POV recording (mp4 / webm / mov)">+ upload</button>
+              <button type="button" id="povSyncBtn" data-i18n="tw.syncReports" title="Pull captured warning POVs from the Reports tab">⟳ sync reports</button>
+              <button type="button" id="povUploadBtn" data-i18n="tw.upload" title="Upload an additional POV recording (mp4 / webm / mov)">+ upload</button>
               <input type="file" id="povUploadInput" accept="video/*" hidden />
             </div>
           </div>
@@ -930,7 +930,7 @@
             <div class="splat-hotspots" id="splatHotspots"></div>
             <div class="splat-info" id="splatInfo">
               <span class="si-station" id="splatInfoStation">Station 1 · Vertical press fixture machine</span>
-              <span>eye level <span class="si-eye" id="splatInfoEye">1.85 m</span></span>
+              <span><span data-i18n="tw.eyeLevel">eye level</span> <span class="si-eye" id="splatInfoEye">1.85 m</span></span>
             </div>
             <div class="splat-src dev-only" id="splatSrc" hidden></div>
             <div class="splat-cal dev-only" id="splatCal">
@@ -2234,12 +2234,13 @@
         const f = data.frames?.[idx];
         if (!f) { card.hidden = true; return; }
         card.hidden = false;
+        const tt = (k, en) => (window.OmniaI18n ? window.OmniaI18n.t(k, en) : en);
         stepEl.textContent = f.step != null
-          ? `step ${String(f.step).padStart(2, "0")} · ${f.stepLabel || ""}`
-          : "observing";
+          ? `${tt("tw.step", "step")} ${String(f.step).padStart(2, "0")} · ${f.stepLabel || ""}`
+          : tt("tw.observing", "observing");
         capEl.textContent = f.caption || "";
         obsEl.hidden = !(f.observed && f.observed.length);
-        if (!obsEl.hidden) obsEl.textContent = "sees: " + f.observed.join(" · ");
+        if (!obsEl.hidden) obsEl.textContent = tt("tw.sees", "sees: ") + f.observed.join(" · ");
         devEl.hidden = !f.deviation;
         if (!devEl.hidden) devEl.textContent = f.deviation;
       }
@@ -7126,8 +7127,12 @@
         } catch { /* viewer not ready yet */ }
         return { page: 'Digital twin', station: 'ST100 · Pinion Guide', view: zone || undefined };
       };
+      const i = document.createElement('script');
+      i.src = '/lab/assets/i18n.js?v=1';
+      i.defer = true;
+      document.body.appendChild(i);
       const s = document.createElement('script');
-      s.src = '/lab/assets/brain-dock.js?v=8';
+      s.src = '/lab/assets/brain-dock.js?v=9';
       s.defer = true;
       document.body.appendChild(s);
     }

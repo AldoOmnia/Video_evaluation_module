@@ -566,9 +566,9 @@
   <nav class="sidebar" id="sidebar" aria-label="Platform navigation">
     <div class="sidebar-brand">
       <img src="/lab/assets/comer-logo-trim.png" alt="Comer Industries" />
-      <span class="k">Rockford pilot</span>
+      <span class="k" data-i18n="home.navPilot">Rockford pilot</span>
     </div>
-    <div class="nav-k">Platform</div>
+    <div class="nav-k" data-i18n="home.navPlatform">Platform</div>
     <button class="nav-item is-active" data-nav-home>
       <span class="ico">◈</span> Home · Chat
     </button>
@@ -576,12 +576,12 @@
       <span class="ico">⬡</span> Knowledge base <span class="ext">↗</span>
     </a>
     <button class="nav-item" data-nav-line>
-      <span class="ico">◉</span> Live line
+      <span class="ico">◉</span> <span data-i18n="home.navLiveLine">Live line</span>
     </button>
     <a class="nav-item" href="/reports/">
-      <span class="ico">▤</span> Reports <span class="ext">↗</span>
+      <span class="ico">▤</span> <span data-i18n="home.navReports">Reports</span> <span class="ext">↗</span>
     </a>
-    <div class="nav-k">Tools</div>
+    <div class="nav-k" data-i18n="home.navTools">Tools</div>
     <a class="nav-item" href="/lab/">
       <span class="ico">◳</span> Eval Lab · PG-04 <span class="ext">↗</span>
     </a>
@@ -591,10 +591,10 @@
     <div class="nav-foot">
       <a class="nav-item" href="/settings/">
         <span class="ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
-        Settings <span class="ext">↗</span>
+        <span data-i18n="home.navSettings">Settings</span> <span class="ext">↗</span>
       </a>
       <span class="nav-user" id="nav-user">—</span>
-      <button class="nav-signout" id="nav-signout">Sign out</button>
+      <button class="nav-signout" id="nav-signout" data-i18n="home.signOut">Sign out</button>
     </div>
   </nav>
 
@@ -603,7 +603,7 @@
     <button class="nav-toggle" id="nav-toggle" aria-label="Open navigation">
       <span></span><span></span><span></span>
     </button>
-    <span class="topbar-title">Omnia · Comer platform</span>
+    <span class="topbar-title" data-i18n="home.topbarTitle">Omnia · Comer platform</span>
     <div class="topbar-right">
       <span class="lang-toggle" id="lang-toggle" role="group" aria-label="Answer language">
         <button type="button" data-lang="en" title="Answer in English">EN</button>
@@ -617,8 +617,8 @@
   <main class="stage">
     <div class="hero">
       <img class="logo" src="/lab/assets/comer-logo-trim.png" alt="Comer Industries" />
-      <h1>Plant intelligence, in one place</h1>
-      <div class="sub">Ask about the line, the procedures, or the training material — or jump into a service below.</div>
+      <h1 data-i18n="home.heroTitle">Plant intelligence, in one place</h1>
+      <div class="sub" data-i18n="home.heroSub">Ask about the line, the procedures, or the training material — or jump into a service below.</div>
     </div>
 
     <!-- Chat -->
@@ -627,66 +627,66 @@
       <div class="chat-attach-preview" id="chat-preview">
         <img id="chat-preview-img" alt="" />
         <span id="chat-preview-name"></span>
-        <button type="button" id="chat-preview-x" title="Remove image" aria-label="Remove image">✕</button>
+        <button type="button" id="chat-preview-x" data-i18n-title="home.removeImage" title="Remove image" aria-label="Remove image">✕</button>
       </div>
       <form class="chat-form" id="chat-form">
-        <input id="chat-input" type="text" autocomplete="off"
+        <input id="chat-input" type="text" autocomplete="off" data-i18n-ph="home.chatPh"
                placeholder="Ask Comer AI: “most common mistakes on the pinion guide?”, “torque for the pinion nut?”…" />
-        <button type="button" class="attach" id="chat-attach" title="Attach a component photo" aria-label="Attach a component photo">
+        <button type="button" class="attach" id="chat-attach" data-i18n-title="home.attachTitle" title="Attach a component photo" aria-label="Attach a component photo">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
           </svg>
         </button>
         <input type="file" id="chat-file" accept="image/*" hidden />
-        <button type="submit" id="chat-send">Ask</button>
+        <button type="submit" id="chat-send" data-i18n="home.ask">Ask</button>
       </form>
       <div class="chat-chips" id="chat-chips">
-        <button data-q="What are the most common mistakes on the pinion guide?">Most common mistakes on pinion guide?</button>
-        <button data-q="What do operators say about the shim pack step?">Operator tips on the shim pack?</button>
-        <button data-q="What torque for the pinion nut?">Torque spec for the pinion nut?</button>
-        <button data-q="What is happening on the line right now?">What’s on the line now?</button>
-        <button data-q="Show me the glasses warnings report">Glasses warnings report</button>
+        <button data-q="What are the most common mistakes on the pinion guide?" data-i18n="home.chip1" data-i18n-q="home.chip1q">Most common mistakes on pinion guide?</button>
+        <button data-q="What do operators say about the shim pack step?" data-i18n="home.chip2" data-i18n-q="home.chip2q">Operator tips on the shim pack?</button>
+        <button data-q="What torque for the pinion nut?" data-i18n="home.chip3" data-i18n-q="home.chip3q">Torque spec for the pinion nut?</button>
+        <button data-q="What is happening on the line right now?" data-i18n="home.chip4" data-i18n-q="home.chip4q">What’s on the line now?</button>
+        <button data-q="Show me the glasses warnings report" data-i18n="home.chip5" data-i18n-q="home.chip5q">Glasses warnings report</button>
       </div>
     </section>
 
-    <button type="button" class="show-services" id="show-services">▾ show services</button>
+    <button type="button" class="show-services" id="show-services" data-i18n="home.showServices">▾ show services</button>
 
     <!-- Services -->
     <section class="services" aria-label="Platform services">
       <a class="svc" href="/knowledge/">
-        <span class="svc-tag">01 · Service</span>
-        <h3>Component recognition &amp; error detection</h3>
-        <p>The facility knowledge base — every station has its own node graph. Upload training
+        <span class="svc-tag" data-i18n="home.svcTag1">01 · Service</span>
+        <h3 data-i18n="home.svc1h">Component recognition &amp; error detection</h3>
+        <p data-i18n="home.svc1p">The facility knowledge base — every station has its own node graph. Upload training
            material and component reference images mapped against the error taxonomy.</p>
-        <span class="svc-cta">Open facility knowledge base <span class="arr">→</span></span>
+        <span class="svc-cta" data-i18n="home.svc1cta">Open facility knowledge base <span class="arr">→</span></span>
       </a>
 
       <div class="svc" id="svc-line" role="button" tabindex="0">
-        <span class="svc-tag">02 · Service</span>
-        <h3>Check your line with natural prompts</h3>
-        <p>MCP connection to the UNICOMM / Fargo MES — live step, worker on task, torque verdicts.</p>
-        <span class="mes-state demo" id="mes-state"><span id="mes-state-ico">●</span> <span id="mes-state-txt">connecting…</span></span>
+        <span class="svc-tag" data-i18n="home.svcTag2">02 · Service</span>
+        <h3 data-i18n="home.svc2h">Check your line with natural prompts</h3>
+        <p data-i18n="home.svc2p">MCP connection to the UNICOMM / Fargo MES — live step, worker on task, torque verdicts.</p>
+        <span class="mes-state demo" id="mes-state"><span id="mes-state-ico">●</span> <span id="mes-state-txt" data-i18n="home.connecting">connecting…</span></span>
         <div class="line-facts" id="line-facts">
           <div class="lf-row"><span class="k">MES</span><span class="v" id="lf-mes">—</span></div>
-          <div class="lf-row"><span class="k">Station</span><span class="v" id="lf-station">—</span></div>
-          <div class="lf-row"><span class="k">Worker</span><span class="v" id="lf-worker">—</span></div>
-          <div class="lf-row"><span class="k">Step</span><span class="v" id="lf-step">—</span></div>
-          <div class="lf-row"><span class="k">Serial</span><span class="v" id="lf-serial">—</span></div>
+          <div class="lf-row"><span class="k" data-i18n="home.lfStation">Station</span><span class="v" id="lf-station">—</span></div>
+          <div class="lf-row"><span class="k" data-i18n="home.lfWorker">Worker</span><span class="v" id="lf-worker">—</span></div>
+          <div class="lf-row"><span class="k" data-i18n="home.lfStep">Step</span><span class="v" id="lf-step">—</span></div>
+          <div class="lf-row"><span class="k" data-i18n="home.lfSerial">Serial</span><span class="v" id="lf-serial">—</span></div>
         </div>
-        <span class="svc-cta">Ask the line <span class="arr">→</span></span>
+        <span class="svc-cta" data-i18n="home.svc2cta">Ask the line <span class="arr">→</span></span>
       </div>
 
       <div class="svc" id="svc-report" role="button" tabindex="0">
-        <span class="svc-tag">03 · Service</span>
-        <h3>Warnings &amp; savings report</h3>
-        <p>Per worker and per pair of glasses: warnings fired, error frames captured from the POV,
+        <span class="svc-tag" data-i18n="home.svcTag3">03 · Service</span>
+        <h3 data-i18n="home.svc3h">Warnings &amp; savings report</h3>
+        <p data-i18n="home.svc3p">Per worker and per pair of glasses: warnings fired, error frames captured from the POV,
            mistakes avoided — and what that saved in rework.</p>
         <div class="rep-mini" id="rep-mini">
-          <div class="cell"><div class="n" id="rm-fired">—</div><div class="l">fired</div></div>
-          <div class="cell"><div class="n good" id="rm-avoided">—</div><div class="l">avoided</div></div>
-          <div class="cell"><div class="n eur" id="rm-saved">—</div><div class="l">est. saved</div></div>
+          <div class="cell"><div class="n" id="rm-fired">—</div><div class="l" data-i18n="home.rmFired">fired</div></div>
+          <div class="cell"><div class="n good" id="rm-avoided">—</div><div class="l" data-i18n="home.rmAvoided">avoided</div></div>
+          <div class="cell"><div class="n eur" id="rm-saved">—</div><div class="l" data-i18n="home.rmSaved">est. saved</div></div>
         </div>
-        <span class="svc-cta">Open report <span class="arr">→</span></span>
+        <span class="svc-cta" data-i18n="home.svc3cta">Open report <span class="arr">→</span></span>
       </div>
     </section>
 
@@ -762,13 +762,16 @@
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
       }[c]));
     }
+    // JS-generated strings — Italian when the platform toggle is on ITA
+    // (i18n.js is a deferred script, so it's loaded by the time events fire).
+    const T = (k, en) => (window.OmniaI18n ? window.OmniaI18n.t(k, en) : en);
     function addMsg(role, html, metaHtml) {
       thread.classList.add('has-messages');
       document.body.classList.add('in-chat'); // conversation mode: quadrants make way
       const el = document.createElement('div');
       el.className = 'msg ' + role;
       el.innerHTML =
-        '<span class="who">' + (role === 'user' ? 'You' : 'Omnia') + '</span>' +
+        '<span class="who">' + (role === 'user' ? esc(T('home.you', 'You')) : 'Omnia') + '</span>' +
         '<div class="bubble">' + html + '</div>' +
         (metaHtml ? '<div class="meta">' + metaHtml + '</div>' : '');
       thread.appendChild(el);
@@ -815,7 +818,7 @@
       } catch (err) {
         attached = null;
         document.getElementById('chat-preview').classList.remove('is-on');
-        addMsg('bot', '<b>Image error:</b> ' + esc((err && err.message) || 'Could not read that image.'), '<span class="chip stub">error</span>');
+        addMsg('bot', '<b>' + esc(T('home.imageError', 'Image error:')) + '</b> ' + esc((err && err.message) || 'Could not read that image.'), '<span class="chip stub">error</span>');
       }
     });
     function clearAttachment() {
@@ -833,9 +836,9 @@
         const img = attached;
         clearAttachment();
         // compressImage returns a full data: URL — usable directly as src.
-        addMsg('user', esc(q || 'What is this component?') +
+        addMsg('user', esc(q || T('home.whatIsThis', 'What is this component?')) +
           '<img class="attach-thumb" src="' + img.dataBase64 + '" alt="' + esc(img.name) + '"/>');
-        renderAssistAnswer(q || 'What is this component?', img);
+        renderAssistAnswer(q || T('home.whatIsThis', 'What is this component?'), img);
         return;
       }
       handleQuery(q);
@@ -881,9 +884,9 @@
     }
     document.querySelectorAll('#lang-toggle button').forEach((b) => {
       b.addEventListener('click', () => {
-        if (window.OmniaLang) window.OmniaLang.set(b.dataset.lang); // keeps the dock in sync
-        else localStorage.setItem(LANG_KEY, b.dataset.lang);
-        paintLangToggle();
+        // The dock owns the switch flow: confirm modal → persist → reload.
+        if (window.OmniaLang && window.OmniaLang.request) window.OmniaLang.request(b.dataset.lang);
+        else { localStorage.setItem(LANG_KEY, b.dataset.lang); location.reload(); }
       });
     });
     window.addEventListener('omnia:lang', paintLangToggle);
@@ -892,7 +895,7 @@
     /* ── Brain answer (knowledge / training material) ──────── */
     async function renderBrainAnswer(q) {
       sendBtn.disabled = true;
-      const ph = addThinking('Consulting Comer AI');
+      const ph = addThinking(T('home.thinkBrain', 'Consulting Comer AI'));
       try {
         const r = await fetch('/api/brain/chat', {
           method: 'POST',
@@ -913,13 +916,13 @@
         const bullets = ((d.labBrief && d.labBrief.bullets) || [])
           .map(stripCites).filter(Boolean)
           .map((b) => '<li>' + esc(b) + '</li>').join('');
-        const body = esc(stripCites(d.answer || d.rawAnswer) || 'No answer.') +
+        const body = esc(stripCites(d.answer || d.rawAnswer) || T('home.noAnswer', 'No answer.')) +
           (bullets ? '<ul style="margin:7px 0 0 16px;padding:0;font-size:12.5px;color:var(--ink-2);display:flex;flex-direction:column;gap:3px;">' + bullets + '</ul>' : '') +
           (d.lens && d.lens.action ? '<br><span style="color:var(--primary);font-size:12px;">→ ' + esc(d.lens.action) + '</span>' : '');
         addMsg('bot', body, meta);
       } catch (err) {
         ph.remove();
-        addMsg('bot', 'Comer AI is unreachable right now — ' + esc(err.message) + '. Try again, or check the backend.', '<span class="chip stub">error</span>');
+        addMsg('bot', esc(T('home.errBrain1', 'Comer AI is unreachable right now — ')) + esc(err.message) + esc(T('home.errBrain2', '. Try again, or check the backend.')), '<span class="chip stub">error</span>');
       } finally {
         sendBtn.disabled = false;
       }
@@ -953,22 +956,22 @@
             body += '<b>' + esc(v.className) + '</b><div class="conf">' + esc(v.reasoning) + '</div>';
           } else if (v.sku) {
             body += '<b>' + esc(comp ? comp.name : v.className) + '</b> <span class="conf">· SKU ' + esc(v.sku) + ' · ' + (v.confidence * 100).toFixed(0) + '%</span>';
-            if (comp && comp.steps && comp.steps.length) body += '<div class="conf">used in ' + comp.steps.map(esc).join(' · ') + '</div>';
+            if (comp && comp.steps && comp.steps.length) body += '<div class="conf">' + esc(T('home.usedIn', 'used in')) + ' ' + comp.steps.map(esc).join(' · ') + '</div>';
             if (v.flipped && comp && comp.warning && comp.warning.headline) {
-              body += '<div class="warn"><b>' + esc(comp.warning.headline) + '</b> — ' + esc(comp.warning.action) + ' <span style="opacity:0.7">(would fire on the glasses now)</span></div>';
+              body += '<div class="warn"><b>' + esc(comp.warning.headline) + '</b> — ' + esc(comp.warning.action) + ' <span style="opacity:0.7">' + esc(T('home.wouldFire', '(would fire on the glasses now)')) + '</span></div>';
             } else if (comp && comp.warning && comp.warning.headline) {
-              body += '<div class="conf">if wrong: ' + esc(comp.warning.headline) + ' — ' + esc(comp.warning.action) + '</div>';
+              body += '<div class="conf">' + esc(T('home.ifWrong', 'if wrong:')) + ' ' + esc(comp.warning.headline) + ' — ' + esc(comp.warning.action) + '</div>';
             }
             if (v.reasoning) body += '<div class="conf" style="margin-top:4px;">' + esc(v.reasoning) + '</div>';
           } else {
-            body += '<b>' + esc(v.className) + '</b> <span class="conf">· no catalogue match</span>' +
+            body += '<b>' + esc(v.className) + '</b> <span class="conf">· ' + esc(T('home.noMatch', 'no catalogue match')) + '</span>' +
               (v.reasoning ? '<div class="conf">' + esc(v.reasoning) + '</div>' : '');
           }
           body += '</div>';
         }
         const stripCites = (s) => String(s || '').replace(/\s*\[\[[^\]]*\]\]/g, '').trim();
         const brief = d.labBrief || {};
-        body += esc(stripCites(brief.headline || d.answer) || 'No answer.');
+        body += esc(stripCites(brief.headline || d.answer) || T('home.noAnswer', 'No answer.'));
         if (brief.bullets && brief.bullets.length) {
           body += '<ul style="margin:7px 0 0 16px;padding:0;font-size:12.5px;color:var(--ink-2);display:flex;flex-direction:column;gap:3px;">' +
             brief.bullets.map(stripCites).filter(Boolean).map((b) => '<li>' + esc(b) + '</li>').join('') + '</ul>';
@@ -995,27 +998,27 @@
       const mes = d.mes || {};
       const m = (s.measurements || [])[0];
       const stepTxt = s.step_index != null
-        ? 'Step ' + s.step_index + (s.total_steps ? '/' + s.total_steps : '') + ' · ' + esc(s.current_step_title || s.current_step_code || '')
+        ? esc(T('home.lfStep', 'Step')) + ' ' + s.step_index + (s.total_steps ? '/' + s.total_steps : '') + ' · ' + esc(s.current_step_title || s.current_step_code || '')
         : '—';
       return (
         '<div class="rich">' +
-          '<div class="rich-h"><span>Live line · ' + esc(s.station_id || 'PG-04') + '</span>' +
-          '<span class="chip ' + (live ? 'live">MES connected ✓' : 'stub">demo data') + '</span></div>' +
+          '<div class="rich-h"><span>' + esc(T('home.liveLine', 'Live line')) + ' · ' + esc(s.station_id || 'PG-04') + '</span>' +
+          '<span class="chip ' + (live ? 'live">' + esc(T('home.mesConnectedChip', 'MES connected ✓')) : 'stub">' + esc(T('home.demoData', 'demo data'))) + '</span></div>' +
           '<div class="kv-grid">' +
             '<div class="kv"><span class="k">MES</span><span class="v">' + esc((mes.host || 'WARKFSQL002') + ' / ' + (mes.database || 'SSL04_FARGO')) + '</span></div>' +
-            '<div class="kv"><span class="k">Station</span><span class="v">' + esc(s.station_id || '—') + (s.station_number ? ' (#' + s.station_number + ')' : '') + '</span></div>' +
-            '<div class="kv"><span class="k">Worker</span><span class="v">' + esc(s.technician_name || s.technician_id || '—') + (s.technician_id && s.technician_name ? ' · #' + esc(s.technician_id) : '') + '</span></div>' +
-            '<div class="kv"><span class="k">Session</span><span class="v ' + (s.session_active ? 'ok">active' : '">idle') + '</span></div>' +
-            '<div class="kv"><span class="k">Step</span><span class="v">' + stepTxt + '</span></div>' +
-            '<div class="kv"><span class="k">Unit</span><span class="v">' + esc(s.serial_number || '—') + (s.model ? ' · ' + esc(s.model) : '') + '</span></div>' +
+            '<div class="kv"><span class="k">' + esc(T('home.lfStation', 'Station')) + '</span><span class="v">' + esc(s.station_id || '—') + (s.station_number ? ' (#' + s.station_number + ')' : '') + '</span></div>' +
+            '<div class="kv"><span class="k">' + esc(T('home.lfWorker', 'Worker')) + '</span><span class="v">' + esc(s.technician_name || s.technician_id || '—') + (s.technician_id && s.technician_name ? ' · #' + esc(s.technician_id) : '') + '</span></div>' +
+            '<div class="kv"><span class="k">' + esc(T('home.kSession', 'Session')) + '</span><span class="v ' + (s.session_active ? 'ok">' + esc(T('home.sessActive', 'active')) : '">' + esc(T('home.sessIdle', 'idle'))) + '</span></div>' +
+            '<div class="kv"><span class="k">' + esc(T('home.lfStep', 'Step')) + '</span><span class="v">' + stepTxt + '</span></div>' +
+            '<div class="kv"><span class="k">' + esc(T('home.kUnit', 'Unit')) + '</span><span class="v">' + esc(s.serial_number || '—') + (s.model ? ' · ' + esc(s.model) : '') + '</span></div>' +
           '</div>' +
           (m ? (
             '<div class="measure"><span>' + esc(m.label) + '</span>' +
             '<span>' + esc(String(m.value)) + (m.unit ? ' ' + esc(m.unit) : '') +
             (m.min != null && m.max != null ? ' <span style="color:var(--ink-3)">(' + m.min + '–' + m.max + ')</span>' : '') + '</span>' +
-            '<span class="verdict ' + (m.in_range === false ? 'bad">OUT OF RANGE' : 'ok">OK') + '</span></div>'
+            '<span class="verdict ' + (m.in_range === false ? 'bad">' + esc(T('home.outOfRange', 'OUT OF RANGE')) : 'ok">OK') + '</span></div>'
           ) : '') +
-          (!live ? '<div style="font-family:var(--mono);font-size:9.5px;color:var(--ink-3);">' + esc(d.detail || '') + ' — the layout is final; the MCP line bridge fills it in.</div>' : '') +
+          (!live ? '<div style="font-family:var(--mono);font-size:9.5px;color:var(--ink-3);">' + esc(d.detail || '') + esc(T('home.layoutNote', ' — the layout is final; the MCP line bridge fills it in.')) + '</div>' : '') +
         '</div>'
       );
     }
@@ -1028,14 +1031,14 @@
 
     async function renderLineAnswer() {
       sendBtn.disabled = true;
-      const ph = addThinking('Polling the line');
+      const ph = addThinking(T('home.thinkLine', 'Polling the line'));
       try {
         const d = await fetchLineStatus();
         ph.remove();
         addMsg('bot', lineStatusCardHtml(d));
       } catch (err) {
         ph.remove();
-        addMsg('bot', 'Could not reach the line service — ' + esc(err.message), '<span class="chip stub">error</span>');
+        addMsg('bot', esc(T('home.errLine', 'Could not reach the line service — ')) + esc(err.message), '<span class="chip stub">error</span>');
       } finally {
         sendBtn.disabled = false;
       }
@@ -1051,7 +1054,7 @@
         const st = document.getElementById('mes-state');
         st.className = 'mes-state ' + (live ? 'ok' : 'demo');
         document.getElementById('mes-state-ico').textContent = live ? '✓' : '●';
-        document.getElementById('mes-state-txt').textContent = live ? 'MES connected' : 'demo data · bridge pending';
+        document.getElementById('mes-state-txt').textContent = live ? T('home.mesConnected', 'MES connected') : T('home.mesDemo', 'demo data · bridge pending');
         document.getElementById('lf-mes').textContent = (mes.host || '—') + ' / ' + (mes.database || '—');
         document.getElementById('lf-station').textContent = (s.station_id || '—') + (s.station_number ? ' · #' + s.station_number : '');
         document.getElementById('lf-worker').textContent = s.technician_name ? s.technician_name + ' · #' + (s.technician_id || '?') : (s.technician_id || '—');
@@ -1060,7 +1063,7 @@
           : '—';
         document.getElementById('lf-serial').textContent = s.serial_number || '—';
       } catch {
-        document.getElementById('mes-state-txt').textContent = 'line service offline';
+        document.getElementById('mes-state-txt').textContent = T('home.mesOffline', 'line service offline');
       }
     }
 
@@ -1088,9 +1091,9 @@
               '<div class="seg-missed" style="width:' + pctMissed + '%"></div>' +
             '</div>' +
             '<div class="warn-legend">' +
-              '<span>' + w.warningsFired + ' warnings fired</span>' +
-              '<span class="good">' + w.avoided + ' avoided</span>' +
-              '<span class="bad">' + w.missed + ' missed</span>' +
+              '<span>' + w.warningsFired + ' ' + esc(T('home.warningsFired', 'warnings fired')) + '</span>' +
+              '<span class="good">' + w.avoided + ' ' + esc(T('home.legAvoided', 'avoided')) + '</span>' +
+              '<span class="bad">' + w.missed + ' ' + esc(T('home.legMissed', 'missed')) + '</span>' +
               '<span>top: ' + esc(w.topError || '—') + '</span>' +
             '</div>' +
             (frames ? '<div class="frames">' + frames + '</div>' : '') +
@@ -1099,17 +1102,17 @@
       }).join('');
       return (
         '<div class="rich">' +
-          '<div class="rich-h"><span>Glasses warnings · ' + esc(d.period || '') + '</span>' +
-          '<span class="chip ' + (d.mode === 'live' ? 'live">live' : 'stub">demo data') + '</span></div>' +
+          '<div class="rich-h"><span>' + esc(T('home.glassesWarnings', 'Glasses warnings')) + ' · ' + esc(d.period || '') + '</span>' +
+          '<span class="chip ' + (d.mode === 'live' ? 'live">live' : 'stub">' + esc(T('home.demoData', 'demo data'))) + '</span></div>' +
           '<div class="rep-totals">' +
-            '<div class="cell"><div class="n">' + (t.warningsFired ?? '—') + '</div><div class="l">warnings fired</div></div>' +
-            '<div class="cell"><div class="n good">' + (t.avoided ?? '—') + '</div><div class="l">mistakes avoided</div></div>' +
-            '<div class="cell"><div class="n bad">' + (t.missed ?? '—') + '</div><div class="l">slipped through</div></div>' +
-            '<div class="cell"><div class="n eur">' + eur(t.estimatedSavingsEur) + '</div><div class="l">est. rework saved</div></div>' +
+            '<div class="cell"><div class="n">' + (t.warningsFired ?? '—') + '</div><div class="l">' + esc(T('home.warningsFired', 'warnings fired')) + '</div></div>' +
+            '<div class="cell"><div class="n good">' + (t.avoided ?? '—') + '</div><div class="l">' + esc(T('home.mistakesAvoided', 'mistakes avoided')) + '</div></div>' +
+            '<div class="cell"><div class="n bad">' + (t.missed ?? '—') + '</div><div class="l">' + esc(T('home.slippedThrough', 'slipped through')) + '</div></div>' +
+            '<div class="cell"><div class="n eur">' + eur(t.estimatedSavingsEur) + '</div><div class="l">' + esc(T('home.reworkSaved', 'est. rework saved')) + '</div></div>' +
           '</div>' +
           rows +
           '<div style="font-family:var(--mono);font-size:9.5px;color:var(--ink-3);">' +
-            'Savings = avoided × ' + eur(d.avgReworkCostEur) + ' avg rework. ' +
+            esc(T('home.savingsEq', 'Savings = avoided × ')) + eur(d.avgReworkCostEur) + esc(T('home.avgRework', ' avg rework. ')) +
             (d.mode === 'live' ? '' : esc(d.detail || '')) +
           '</div>' +
         '</div>'
@@ -1124,14 +1127,14 @@
 
     async function renderReportAnswer() {
       sendBtn.disabled = true;
-      const ph = addThinking('Building the warnings report');
+      const ph = addThinking(T('home.thinkReport', 'Building the warnings report'));
       try {
         const d = await fetchReport();
         ph.remove();
         addMsg('bot', reportCardHtml(d));
       } catch (err) {
         ph.remove();
-        addMsg('bot', 'Could not build the report — ' + esc(err.message), '<span class="chip stub">error</span>');
+        addMsg('bot', esc(T('home.errReport', 'Could not build the report — ')) + esc(err.message), '<span class="chip stub">error</span>');
       } finally {
         sendBtn.disabled = false;
       }
@@ -1148,8 +1151,11 @@
       } catch {}
     }
 
-    refreshLineCard();
-    refreshReportCard();
+    // First paint waits for DOMContentLoaded so the deferred i18n.js has
+    // executed — the JS-set MES/report strings would otherwise race it.
+    function firstPaint() { refreshLineCard(); refreshReportCard(); }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', firstPaint);
+    else firstPaint();
     setInterval(refreshLineCard, 30_000);
   </script>
 
@@ -1160,6 +1166,7 @@
       view: document.body.classList.contains('in-chat') ? 'chat conversation' : 'services overview',
     });
   </script>
-  <script src="/lab/assets/brain-dock.js?v=8" defer></script>
+  <script src="/lab/assets/i18n.js?v=1" defer></script>
+  <script src="/lab/assets/brain-dock.js?v=9" defer></script>
 </body>
 </html>
