@@ -268,13 +268,20 @@
     .tree-sep { height: 1px; background: var(--line); margin: 6px 8px; }
     .tree-cap { padding: 8px 10px 4px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
 
-    /* Layer toggles — show/hide the corresponding quadrant */
-    .layer-row { cursor: pointer; }
+    /* Layer toggles — show/hide the corresponding quadrant. Each row also
+       carries the signals it streams (compressed former Signals tree). */
+    .layer-row { cursor: pointer; align-items: flex-start; padding: 6px 8px; }
+    .layer-row .ico { margin-top: 3px; }
+    .layer-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+    .layer-txt small { font-size: 9px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .layer-txt small b { color: var(--primary); font-weight: 500; }
     .layer-row input[type="checkbox"] {
-      margin-left: auto; accent-color: var(--primary); width: 12px; height: 12px; cursor: pointer;
+      margin-left: auto; margin-top: 3px; flex-shrink: 0;
+      accent-color: var(--primary); width: 12px; height: 12px; cursor: pointer;
     }
     .layer-row.off { color: var(--ink-3); }
     .layer-row.off .ico { opacity: 0.35; }
+    .layer-row.off .layer-txt small { opacity: 0.55; }
 
     /* Minimizable streams panel */
     .sb-min {
@@ -792,30 +799,26 @@
         </div>
         <div class="tree">
           <div class="tree-cap">Layers</div>
-          <label class="t-row layer-row" data-layer="video"><span class="ico cam"></span>RGB · worker POV<input type="checkbox" checked /></label>
-          <label class="t-row layer-row" data-layer="splat"><span class="ico points"></span>World Labs · splat<input type="checkbox" checked /></label>
-          <label class="t-row layer-row" data-layer="world"><span class="ico path"></span>World view<input type="checkbox" checked /></label>
-          <label class="t-row layer-row" data-layer="slam"><span class="ico gaze"></span>SLAM + eye<input type="checkbox" checked /></label>
-          <div class="tree-sep"></div>
-          <div class="tree-cap">Signals</div>
-          <div class="t-row"><span class="caret">▾</span><span class="ico world"></span>world</div>
-          <div class="t-row sel indent-1"><span class="caret"></span><span class="ico points"></span>points <span class="cnt" id="ptCount">0</span></div>
-          <div class="t-row indent-1"><span class="caret"></span><span class="ico path"></span>device_trajectory</div>
-          <div class="t-row indent-1"><span class="caret"></span><span class="ico cam"></span>glasses_pose</div>
-          <div class="t-row"><span class="caret">▾</span><span class="ico cam"></span>cameras</div>
-          <div class="t-row indent-1"><span class="caret"></span><span class="ico cam"></span>rgb</div>
-          <div class="t-row indent-1"><span class="caret"></span><span class="ico cam"></span>slam_front_l</div>
-          <div class="t-row indent-1"><span class="caret"></span><span class="ico cam"></span>slam_front_r</div>
-          <div class="t-row indent-1"><span class="caret"></span><span class="ico cam"></span>slam_side_l</div>
-          <div class="t-row indent-1"><span class="caret"></span><span class="ico cam"></span>slam_side_r</div>
-          <div class="t-row"><span class="caret">▾</span><span class="ico gaze"></span>eye_gaze</div>
-          <div class="t-row indent-1"><span class="caret"></span><span class="ico gaze"></span>direction</div>
-          <div class="t-row"><span class="caret">▾</span><span class="ico imu"></span>imu</div>
-          <div class="t-row indent-1"><span class="caret"></span><span class="ico imu"></span>accel</div>
-          <div class="t-row indent-1"><span class="caret"></span><span class="ico imu"></span>gyro</div>
-          <div class="tree-sep"></div>
-          <div class="tree-cap">Reconstruction</div>
-          <div class="t-row"><span class="caret"></span><span class="ico points"></span>worldlabs_splat <span class="cnt">ext</span></div>
+          <label class="t-row layer-row" data-layer="video">
+            <span class="ico cam"></span>
+            <span class="layer-txt">RGB · worker POV<small>cameras/rgb · 2400×1800</small></span>
+            <input type="checkbox" checked />
+          </label>
+          <label class="t-row layer-row" data-layer="splat">
+            <span class="ico points"></span>
+            <span class="layer-txt">World Labs · splat<small>reconstruction · worldlabs_splat · ext</small></span>
+            <input type="checkbox" checked />
+          </label>
+          <label class="t-row layer-row" data-layer="world">
+            <span class="ico path"></span>
+            <span class="layer-txt">World view<small>points <b id="ptCount">0</b> · trajectory · glasses pose</small></span>
+            <input type="checkbox" checked />
+          </label>
+          <label class="t-row layer-row" data-layer="slam">
+            <span class="ico gaze"></span>
+            <span class="layer-txt">SLAM + eye<small>4× mono slam · eye gaze · imu</small></span>
+            <input type="checkbox" checked />
+          </label>
         </div>
       </div>
 
