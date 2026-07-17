@@ -285,6 +285,32 @@
     return html;
   }
 
+  // Map station mentions (UNICOMM table numbers or plain names) in a
+  // question/answer to platform station ids, and tell the page about them —
+  // the facility map listens and lights the matching rings up.
+  const STATION_PATTERNS = [
+    [/\bst\.?\s?-?100\b|pinion guide/i, 'pg-04'],
+    [/\bst\.?\s?-?110\b|brake\s*(&|and)\s*cover/i, 'st110'],
+    [/\bst\.?\s?-?13[05]\b|shimming/i, 'st130-135'],
+    [/\bst\.?\s?-?140\b|brake complete/i, 'st140'],
+    [/\bst\.?\s?-?150\b|pinion complete|brake test/i, 'st150'],
+    [/\bst\.?\s?-?160\b|axle mount/i, 'st160'],
+    [/\bst\.?\s?-?170\b/i, 'st170'],
+    [/\bst\.?\s?-?1[89]0\b|test bench|prova di tenuta|leak test/i, 'st180-190'],
+    [/\bst\.?\s?-?2[012]0\b|sub\s?differential/i, 'st200-220'],
+    [/\bst\.?\s?-?300\b|tear drop\s?box/i, 'st300'],
+    [/\bst\.?\s?-?310\b/i, 'st310'],
+    [/\bst\.?\s?-?4[01]0\b|sub\s?assembly|wheel axle|quad track/i, 'st400-410'],
+    [/\bst\.?\s?-?5[012]0\b|starship/i, 'st500-520'],
+    [/\bst\.?\s?-?7[01]0\b|sub\s?planetary/i, 'st710'],
+  ];
+  function announceStations(text) {
+    const ids = STATION_PATTERNS.filter(([re]) => re.test(text)).map(([, id]) => id);
+    if (ids.length) {
+      window.dispatchEvent(new CustomEvent('comerai:stations', { detail: { ids: [...new Set(ids)] } }));
+    }
+  }
+
   async function send() {
     if (busy) return;
     const q = input.value.trim();
@@ -311,6 +337,12 @@
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
       thinking.innerHTML = renderAnswer(d);
+      const brief = d.labBrief || {};
+      announceStations([
+        q, brief.headline || d.answer || '',
+        ...(brief.bullets || []),
+        ...((d.retrieved || []).map((n) => n.label || '')),
+      ].join(' \n '));
     } catch (e) {
       thinking.innerHTML = `<b>Something broke:</b> ${esc(e.message)}`;
     } finally {

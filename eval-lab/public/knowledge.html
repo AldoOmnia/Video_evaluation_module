@@ -156,6 +156,29 @@
     .fac-twin rect { fill: rgba(74,222,128,0.06); stroke: rgba(74,222,128,0.4); stroke-width: 1; transition: fill 140ms ease; }
     .fac-twin:hover rect { fill: rgba(74,222,128,0.16); }
     .fac-twin text { fill: var(--ok); font-family: var(--mono); font-size: 8.5px; font-weight: 500; letter-spacing: 0.04em; }
+    /* Comer AI lit a station: the dock (or an MCP line query) mentioned it,
+       so its ring pulses on the map for a few seconds. */
+    .fac-node.is-lit circle.core {
+      stroke: var(--primary);
+      animation: facLit 1.1s ease-in-out infinite;
+    }
+    @keyframes facLit {
+      0%, 100% { stroke-width: 2; filter: none; }
+      50% { stroke-width: 4.5; filter: drop-shadow(0 0 9px rgba(0,229,160,0.9)); }
+    }
+    /* Hover card for twin stations: World Labs splat preview + the UNICOMM
+       trio (MES table · station name · spot on the layout). */
+    .fac-twincard {
+      position: absolute; z-index: 6; width: 172px;
+      background: rgba(10,14,12,0.95); border: 1px solid rgba(74,222,128,0.35);
+      border-radius: 10px; overflow: hidden; cursor: pointer;
+      box-shadow: 0 12px 34px rgba(0,0,0,0.55);
+    }
+    .fac-twincard img { display: block; width: 100%; height: 92px; object-fit: cover; }
+    .fac-twincard .tc-body { padding: 8px 10px; display: flex; flex-direction: column; gap: 3px; }
+    .fac-twincard b { font-size: 11px; color: var(--ink-1); }
+    .fac-twincard span { font-family: var(--mono); font-size: 7.5px; color: var(--ink-3); letter-spacing: 0.05em; text-transform: uppercase; }
+    .fac-twincard .tc-open { color: var(--ok); }
     .fac-legend {
       display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
       font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em;
@@ -552,6 +575,14 @@
             <path d="M1.5 8.5 H5.5 V12.5 M5.5 8.5 L1 13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
+        <div class="fac-twincard" id="fac-twincard" hidden role="link" aria-label="Open the digital twin viewer">
+          <img src="/lab/assets/twin-thumb-pg04.jpg" alt="World Labs splat preview — pinion guide cell"/>
+          <div class="tc-body">
+            <b id="tc-name">ST100 · Pinion Guide</b>
+            <span id="tc-mes">UNICOMM · SSL04_FARGO · sheet ST100</span>
+            <span class="tc-open">open the digital twin ↗</span>
+          </div>
+        </div>
       </div>
       <div class="fac-legend">
         <span><span class="dot" style="background:var(--primary)"></span>active station — full graph live</span>
@@ -788,22 +819,26 @@
     // key = unique map spot · id = KB station it opens. ST180 and ST190 are
     // two physical spots sharing one MES sheet (st180-190) — the ST180 dot is
     // "lite": no counts/report so the shared numbers aren't double-shown.
+    // Each node carries the full addressing trio: the UNICOMM/MES sheet it
+    // reports under (`mes`), the station name, and its position on the
+    // layout — so Comer AI and the line MCP can light stations up by any of
+    // the three.
     const FAC_NODES = [
-      { key: 'st190',     id: 'st180-190', x: 300,  y: 203, name: 'ST190 · Test Bench',       stage: 'Stage 14 · test bench' },
-      { key: 'st180',     id: 'st180-190', x: 293,  y: 327, name: 'ST180 · Prova di Tenuta',  stage: 'leak test · reported with ST190', lite: true },
-      { key: 'st160',     id: 'st160',     x: 552,  y: 212 },
-      { key: 'st170',     id: 'st170',     x: 638,  y: 248, below: true },
-      { key: 'st300',     id: 'st300',     x: 800,  y: 200 },
-      { key: 'st310',     id: 'st310',     x: 856,  y: 242 },
-      { key: 'pg-04',     id: 'pg-04',     x: 947,  y: 222, below: true },
-      { key: 'st110',     id: 'st110',     x: 1012, y: 167 },
-      { key: 'st150',     id: 'st150',     x: 742,  y: 320, name: 'ST150 · Pinion Complete', stage: 'Stage 10 · brake test' },
-      { key: 'st140',     id: 'st140',     x: 880,  y: 336, below: true },
-      { key: 'st130-135', id: 'st130-135', x: 986,  y: 308, below: true },
-      { key: 'st500-520', id: 'st500-520', x: 558,  y: 690 },
-      { key: 'st200-220', id: 'st200-220', x: 1022, y: 556 },
-      { key: 'st400-410', id: 'st400-410', x: 943,  y: 690, nodata: 'no data — report covers a Quad Track build' },
-      { key: 'st700-710', id: 'st710',     x: 527,  y: 78,  below: true },
+      { key: 'st190',     id: 'st180-190', x: 300,  y: 203, mes: 'ST180 · ST190', name: 'ST190 · Test Bench',       stage: 'Stage 14 · test bench' },
+      { key: 'st180',     id: 'st180-190', x: 293,  y: 327, mes: 'ST180 · ST190', name: 'ST180 · Prova di Tenuta',  stage: 'leak test · reported with ST190', lite: true },
+      { key: 'st160',     id: 'st160',     x: 552,  y: 212, mes: 'ST160' },
+      { key: 'st170',     id: 'st170',     x: 638,  y: 248, mes: 'ST170', below: true },
+      { key: 'st300',     id: 'st300',     x: 800,  y: 200, mes: 'ST300' },
+      { key: 'st310',     id: 'st310',     x: 856,  y: 242, mes: 'ST310' },
+      { key: 'pg-04',     id: 'pg-04',     x: 947,  y: 222, mes: 'ST100', below: true },
+      { key: 'st110',     id: 'st110',     x: 1012, y: 167, mes: 'ST110' },
+      { key: 'st150',     id: 'st150',     x: 742,  y: 320, mes: 'ST150', name: 'ST150 · Pinion Complete', stage: 'Stage 10 · brake test' },
+      { key: 'st140',     id: 'st140',     x: 880,  y: 336, mes: 'ST140', below: true },
+      { key: 'st130-135', id: 'st130-135', x: 986,  y: 308, mes: 'ST130-135', below: true },
+      { key: 'st500-520', id: 'st500-520', x: 558,  y: 690, mes: 'ST500-510-520' },
+      { key: 'st200-220', id: 'st200-220', x: 1022, y: 556, mes: 'ST200-210-220' },
+      { key: 'st400-410', id: 'st400-410', x: 943,  y: 690, mes: 'ST400-410', nodata: 'no data — report covers a Quad Track build' },
+      { key: 'st700-710', id: 'st710',     x: 527,  y: 78,  mes: 'ST700-710', below: true },
     ];
     const FAC_EDGES = [
       // main line, in stage order: 1 → 2 → 8 → 9 → 10 → 11 → 12-13 → tests
@@ -871,8 +906,9 @@
         // after the stack otherwise.
         const pillY = n.below ? n.y - r - 25 : (full ? reportY + 6 : reportY - 6);
         return `
-          <g class="fac-node ${s.active ? 'is-active' : ''}" data-station="${s.id}" tabindex="0" role="button"
+          <g class="fac-node ${s.active ? 'is-active' : ''}" data-station="${s.id}" data-key="${n.key}" tabindex="0" role="button"
              aria-label="Open ${esc(name)}">
+            <title>${esc(name)}${n.mes ? ` — UNICOMM/MES sheet ${n.mes}` : ''}</title>
             ${s.active ? `<circle class="halo" cx="${n.x}" cy="${n.y}" r="${r + 6}"/>` : ''}
             <circle class="core" cx="${n.x}" cy="${n.y}" r="${r}"/>
             <circle cx="${n.x}" cy="${n.y}" r="3.4" fill="${s.active ? 'var(--primary)' : '#3a3a3a'}"/>
@@ -897,12 +933,83 @@
         const open = () => showStation(g.dataset.station);
         g.addEventListener('click', open);
         g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+        if (TWIN_STATIONS.has(g.dataset.station)) {
+          g.addEventListener('mouseenter', () => showTwinCard(g.dataset.key));
+          g.addEventListener('mouseleave', scheduleTwinCardHide);
+          g.addEventListener('focus', () => showTwinCard(g.dataset.key));
+          g.addEventListener('blur', scheduleTwinCardHide);
+        }
       });
       svg.querySelectorAll('.fac-twin').forEach((b) => b.addEventListener('click', (e) => {
         e.stopPropagation();
         window.open(TWIN_URL, '_blank');
       }));
     }
+
+    /* ── Twin hover card — splat thumbnail + the UNICOMM trio ── */
+    let twinCardTimer = null;
+    function showTwinCard(key) {
+      const n = FAC_NODES.find((x) => x.key === key);
+      const s = n && stations.find((st) => st.id === n.id);
+      if (!n || !s) return;
+      clearTimeout(twinCardTimer);
+      const card = $('fac-twincard');
+      $('tc-name').textContent = n.name || s.label;
+      $('tc-mes').textContent = `UNICOMM · SSL04_FARGO · sheet ${n.mes || '—'}`;
+      // SVG viewBox coords → canvas pixels, card floated beside the dot and
+      // clamped inside the canvas.
+      const canvas = $('facility-canvas');
+      const box = svgToCanvas(n.x, n.y);
+      card.hidden = false;
+      const cw = card.offsetWidth, ch = card.offsetHeight;
+      card.style.left = Math.max(8, Math.min(canvas.clientWidth - cw - 8, box.x - cw - 24)) + 'px';
+      card.style.top = Math.max(8, Math.min(canvas.clientHeight - ch - 8, box.y - ch / 2)) + 'px';
+    }
+    function scheduleTwinCardHide() {
+      clearTimeout(twinCardTimer);
+      twinCardTimer = setTimeout(() => { $('fac-twincard').hidden = true; }, 350);
+    }
+    function svgToCanvas(x, y) {
+      const svg = $('facility-svg');
+      const canvas = $('facility-canvas');
+      const r = svg.getBoundingClientRect();
+      const c = canvas.getBoundingClientRect();
+      return {
+        x: (r.left - c.left) + (x / 1140) * r.width,
+        y: (r.top - c.top) + (y / 770) * r.height,
+      };
+    }
+    {
+      const card = $('fac-twincard');
+      card.addEventListener('mouseenter', () => clearTimeout(twinCardTimer));
+      card.addEventListener('mouseleave', scheduleTwinCardHide);
+      card.addEventListener('click', () => window.open(TWIN_URL, '_blank'));
+    }
+
+    /* ── Comer AI lights up the map ─────────────
+       The chat dock announces which stations a question/answer touched
+       (matched over the UNICOMM table · station name · layout trio); their
+       rings pulse for a few seconds, and twin stations flash the splat card. */
+    let litTimer = null;
+    window.addEventListener('comerai:stations', (e) => {
+      const ids = (e.detail && e.detail.ids) || [];
+      if (!ids.length) return;
+      const svg = $('facility-svg');
+      svg.querySelectorAll('.fac-node.is-lit').forEach((g) => g.classList.remove('is-lit'));
+      let twinKey = null;
+      ids.forEach((id) => {
+        svg.querySelectorAll(`.fac-node[data-station="${id}"]`).forEach((g) => {
+          g.classList.add('is-lit');
+          if (TWIN_STATIONS.has(id)) twinKey = g.dataset.key;
+        });
+      });
+      if (twinKey) showTwinCard(twinKey);
+      clearTimeout(litTimer);
+      litTimer = setTimeout(() => {
+        svg.querySelectorAll('.fac-node.is-lit').forEach((g) => g.classList.remove('is-lit'));
+        scheduleTwinCardHide();
+      }, 9000);
+    });
 
     // Bottom-right double-arrow: full-screen takeover of the plant view.
     // Fullscreen brightens the drawing underlay and re-renders with the
