@@ -213,7 +213,9 @@
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && drawer.classList.contains('is-open')) close();
   });
-  window.BrainDock = { open, close };
+  // compressImage is shared with the home-page chat so both attach paths
+  // send the same downscaled JPEGs to /api/assist.
+  window.BrainDock = { open, close, compressImage };
 
   /* ── Attach ──
      Phone photos are 8–12 MB; the /api/assist schema caps dataBase64 at
