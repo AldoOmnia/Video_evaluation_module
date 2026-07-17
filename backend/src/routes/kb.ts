@@ -109,32 +109,72 @@ const STATION_QUERY_MATCHERS: ReadonlyArray<readonly [RegExp, StationId]> = [
   [/\bst\.?\s*-?\s*7[01]0\b|sub\s+planetary/i, "st710"],
 ];
 
+/** Line-wide error/quality questions get an anchoring table so every claim
+ *  lands on the right station instead of everything collapsing onto ST100. */
+const LINE_WIDE_QUESTION =
+  /\b(?:most\s+)?(?:common|frequent|typical|biggest|worst|top|main)\b[^.?!]*\b(?:error|mistake|problem|defect|failure|issue)|error\s*rates?\b|checks?\s+(?:not\s+ok|outside|failing)|\bworst\s+station|\bwhich\s+station|\b(?:across|on)\s+the\s+(?:line|plant|facility)\b/i;
+
+function mesLeaderboard(): string {
+  const rows = STATIONS.filter((s) => s.report)
+    .map((s) => ({ label: s.label, nok: s.report!.nok, checks: s.report!.checks }))
+    .sort((a, b) => b.nok - a.nok)
+    .map((r) => `${r.label}: ${r.nok}/${r.checks} outside limits`);
+  rows.push(
+    "ST400-410 · Subassembly: no data (Quad Track report — ST400 mounts LW/SW axle models)",
+  );
+  return rows.join(" · ");
+}
+
 export function buildStationScopeGuard(text: string): string {
   const ids = new Set<StationId>();
   for (const [re, id] of STATION_QUERY_MATCHERS) if (re.test(text)) ids.add(id);
+  const pinionOnly = ids.size === 1 && ids.has("pg-04");
   ids.delete("pg-04"); // the KB genuinely covers the pinion guide
-  if (ids.size === 0) return "";
-  const lines = [...ids].map((id) => {
-    const s = STATIONS.find((st) => st.id === id)!;
-    const r = s.report;
-    const data = r
-      ? `the ONLY data loaded is its MES acquisition snapshot (Full_stations_report sheet ${r.sheet}): ` +
-        `${r.phases} phases, ${r.checks} checks — ${r.ok} within limits, ${r.nok} outside limits ` +
-        `(sample checks: ${r.sample})`
-      : "NO MES data in this snapshot — the export covers a Quad Track build and this station " +
-        "mounts LW/SW axle models (per Mohammed, Comer mechanical engineer)";
-    return `- ${s.label} (${s.stage} — ${s.desc}): ${data}.`;
-  });
-  return (
-    "[STATION DATA SCOPE — DO NOT MIX STATIONS UP. The deep knowledge base " +
-    "(procedure steps, components, supervisor/tribal knowledge, common-mistake history, POV " +
-    "recordings) covers ONLY ST100 · Pinion Guide. The question touches other stations:\n" +
-    lines.join("\n") +
-    "\nFor these stations answer ONLY from the MES snapshot numbers above. Say plainly that " +
-    "deeper knowledge for them is not loaded yet — it arrives when the UNICOMM MCP server with " +
-    "VPN access to their station databases is connected. NEVER attribute ST100 pinion-guide " +
-    "mistakes, components, bearing-cup or shim-pack facts to these stations.]"
-  );
+
+  const blocks: string[] = [];
+
+  // Generic "most common errors / worst station / error rates" questions:
+  // anchor deep-KB insights to ST100 and give the real per-station MES
+  // numbers so line-wide claims land on the right stations.
+  if (LINE_WIDE_QUESTION.test(text) && !pinionOnly) {
+    blocks.push(
+      "[LINE-WIDE ANCHORING — the deep knowledge base (procedure, operator/tribal knowledge, " +
+        "common-mistake history, POV recordings) covers ONLY ST100 · Pinion Guide; label every " +
+        "insight from it as ST100. CRITICAL: all 'shimming' facts in that KB are about ST100's " +
+        "shim-pack step (Step 7 of the pinion guide), NOT the separate ST130-135 Shimming " +
+        "station. For the rest of the line the only loaded data is each station's MES " +
+        "acquisition snapshot (Full_stations_report), checks outside limits per station:\n" +
+        mesLeaderboard() +
+        "\nAnchor every claim to its correct station. Deeper per-station knowledge arrives when " +
+        "the UNICOMM MCP server with VPN access to the station databases is connected.]",
+    );
+  }
+
+  if (ids.size > 0) {
+    const lines = [...ids].map((id) => {
+      const s = STATIONS.find((st) => st.id === id)!;
+      const r = s.report;
+      const data = r
+        ? `the ONLY data loaded is its MES acquisition snapshot (Full_stations_report sheet ${r.sheet}): ` +
+          `${r.phases} phases, ${r.checks} checks — ${r.ok} within limits, ${r.nok} outside limits ` +
+          `(sample checks: ${r.sample})`
+        : "NO MES data in this snapshot — the export covers a Quad Track build and this station " +
+          "mounts LW/SW axle models (per Mohammed, Comer mechanical engineer)";
+      return `- ${s.label} (${s.stage} — ${s.desc}): ${data}.`;
+    });
+    blocks.push(
+      "[STATION DATA SCOPE — DO NOT MIX STATIONS UP. The deep knowledge base " +
+        "(procedure steps, components, supervisor/tribal knowledge, common-mistake history, POV " +
+        "recordings) covers ONLY ST100 · Pinion Guide. The question touches other stations:\n" +
+        lines.join("\n") +
+        "\nFor these stations answer ONLY from the MES snapshot numbers above. Say plainly that " +
+        "deeper knowledge for them is not loaded yet — it arrives when the UNICOMM MCP server with " +
+        "VPN access to their station databases is connected. NEVER attribute ST100 pinion-guide " +
+        "mistakes, components, bearing-cup or shim-pack facts to these stations.]",
+    );
+  }
+
+  return blocks.join("\n\n");
 }
 
 interface KbImage {
