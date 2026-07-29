@@ -1210,11 +1210,12 @@
       }
       el.innerHTML = `<div class="ni-h">In the warnings report · ${esc(rep.period || '')}</div>` +
         frames.slice(0, 4).map((f) => `<div class="ni-frame">
-          <img src="${esc(f.src)}" alt="${esc(f.label)}" loading="lazy"/>
+          <img src="${esc(f.src)}" alt="${esc(f.label)}" loading="lazy"
+               onerror="this.onerror=null;this.style.display='none';this.nextElementSibling&&this.nextElementSibling.insertAdjacentHTML('afterbegin','<em style=\\'color:var(--ink-3)\\'>frame unavailable · </em>')"/>
           <span class="m"><b>${esc(f.label)}</b><br/>${esc(f.code)} · ${esc(f.worker)}${f.device ? ' · ' + esc(f.device) : ''}</span>
         </div>`).join('') +
         workerRows.join('') +
-        `<div class="ni-foot">frames captured by the glasses when this warning fired — <a href="/home/">full report on home ↗</a></div>`;
+        `<div class="ni-foot">frames captured by the glasses when this warning fired — <a href="/reports/">full report ↗</a></div>`;
     }
 
     function renderInspector(node) {

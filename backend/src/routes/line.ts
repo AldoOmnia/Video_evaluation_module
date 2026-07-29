@@ -147,7 +147,9 @@ lineRouter.get("/report", async (_req, res) => {
       missed: 1,
       topError: "SUBSTITUTION · component mismatch",
       frames: [
-        { src: "/lab/assets/pinion_guide_station.jpg", label: "S04 · cup flipped at load", code: "ORIENTATION" },
+        // Deployable web-sized crop — the full station panorama
+        // (pinion_guide_station.jpg) is gitignored (~7 MB) so it 404s on Render.
+        { src: "/lab/assets/report-orientation.jpg", label: "S04 · cup flipped at load", code: "ORIENTATION" },
       ],
     },
     {
