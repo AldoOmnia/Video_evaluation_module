@@ -782,19 +782,43 @@
       return addMsg('bot', '<span class="thinking">' + esc(label) + '</span>');
     }
 
-    /* ── Intent routing ────────────────────────────────────── */
-    // Knowledge questions ALWAYS go to the Brain LLM — even when they mention
-    // "line" or "errors" — so answers come from the plant knowledge corpus
-    // (operator field notes, error rates, procedure spec), not the MES card.
-    const KNOWLEDGE_RE = /\b(mistake|mistakes|error|errors|defect|torque|spec|shim|bearing|pinion|nut|sleeve|press|step|procedure|orientation|sku|part|component|operator|operators|tip|tips|tribal|anecdot|how do i|how to|trained|training|material|know)\b/i;
-    const LINE_RE = /\b(mes|on the line|live line|line (?:now|status|right now)|what'?s happening|workstation|unicomm|fargo)\b/i;
-    const REPORT_RE = /\b(warnings? report|glasses report|savings|avoided|rework)\b/i;
+    /* ── Intent routing (EN + IT) ──────────────────────────────
+       Three destinations:
+         report → the warnings & savings dashboard card
+         line   → POST /api/line/ask (MES snapshot, answered naturally)
+         brain  → the plant knowledge corpus (field notes, error rates, spec)
+
+       Knowledge questions must stay on the Brain even when they say "line" or
+       "errors" ("most common mistakes on the line" is tribal knowledge, not a
+       MES reading), so the live-line route requires either an MES-specific
+       noun / present-state phrasing, or a "right now" marker plus a line
+       subject. Italian carries the same weight as English throughout — the
+       ITA chips and anything a director types must reach the same place. */
+    const KNOWLEDGE_RE = /\b(mistake|mistakes|error|errors|defect|torque|spec|shim|bearing|pinion|nut|sleeve|press|step|procedure|orientation|sku|part|component|operator|operators|tip|tips|tribal|anecdot|how do i|how to|trained|training|material|know|errore|errori|sbagli\w*|difett\w*|coppia|serraggio|procedur\w*|orientament\w*|component\w*|consigl\w*|material\w*|addestrament\w*|come si)\b/i;
+
+    // Explicit request for the warnings & savings report card.
+    const REPORT_RE = /(warnings?\s+report|glasses\s+report|report\s+(?:degli?\s+)?avvisi|report\s+occhiali|avvisi\s+occhiali|\bsavings\b|risparmi\w*|\brework\b|rilavorazion\w*|\bavoided\b|evitat\w*)/i;
+
+    // MES-specific nouns / present-state phrasings — unambiguously the line.
+    const LINE_STRONG_RE = /(\bmes\b|unicomm|fargo|workstation|live\s*line|linea\s*live|line\s+status|stato\s+(?:della\s+)?linea|what(?:'s|s| is)?\s+happening|cosa\s+(?:sta\s+)?succede|che\s+(?:cosa\s+)?succede|chi\s+sta\s+lavorando|who(?:'s|s| is)?\s+working|quale\s+operatore|which\s+operator|serial\s*number|\bseriale\b|matricola|\bsessione\b|a\s+che\s+fase|what\s+step\s+(?:are|is)|current\s+step|fase\s+(?:corrente|in\s+corso))/i;
+
+    // Weaker signals: a "right now" marker plus a line subject.
+    const LINE_NOW_RE = /(right\s+now|\bnow\b|currently|adesso|in\s+questo\s+momento|al\s+momento|in\s+corso|\bora\b|\btoday\b|\boggi\b)/i;
+    const LINE_SUBJ_RE = /(\bline\b|\blinea\b|\bstation\b|\bstazione\b|\bworker\b|technician|\btecnico\b|\boperatore\b|\bunit\b|\bunità\b|\bpezzo\b)/i;
+
+    function routeOf(q) {
+      if (REPORT_RE.test(q)) return 'report';
+      if (LINE_STRONG_RE.test(q)) return 'line';
+      if (KNOWLEDGE_RE.test(q)) return 'brain';
+      if (LINE_NOW_RE.test(q) && LINE_SUBJ_RE.test(q)) return 'line';
+      return 'brain';
+    }
 
     async function handleQuery(q) {
       addMsg('user', esc(q));
-      if (KNOWLEDGE_RE.test(q)) return renderBrainAnswer(q);
-      if (REPORT_RE.test(q)) return renderReportAnswer();
-      if (LINE_RE.test(q)) return renderLineAnswer();
+      const route = routeOf(q);
+      if (route === 'report') return renderReportAnswer();
+      if (route === 'line') return renderLineAnswer(q);
       return renderBrainAnswer(q);
     }
 
@@ -849,11 +873,12 @@
     });
 
     function askLine() {
-      handleQuery('What is happening on the line right now?');
+      // Ask in the UI language so the MES answer comes back in it.
+      handleQuery(T('home.chip4q', 'What is happening on the line right now?'));
       document.querySelector('.chat-panel').scrollIntoView({ behavior: 'smooth' });
     }
     function askReport() {
-      handleQuery('Show me the glasses warnings report');
+      handleQuery(T('home.chip5q', 'Show me the glasses warnings report'));
       document.querySelector('.chat-panel').scrollIntoView({ behavior: 'smooth' });
     }
     document.getElementById('svc-line').addEventListener('click', askLine);
@@ -1018,7 +1043,9 @@
             (m.min != null && m.max != null ? ' <span style="color:var(--ink-3)">(' + m.min + '–' + m.max + ')</span>' : '') + '</span>' +
             '<span class="verdict ' + (m.in_range === false ? 'bad">' + esc(T('home.outOfRange', 'OUT OF RANGE')) : 'ok">OK') + '</span></div>'
           ) : '') +
-          (!live ? '<div style="font-family:var(--mono);font-size:9.5px;color:var(--ink-3);">' + esc(d.detail || '') + esc(T('home.layoutNote', ' — the layout is final; the MCP line bridge fills it in.')) + '</div>' : '') +
+          // d.detail is deployment plumbing ("LINE_BRIDGE_URL not configured")
+          // and only exists in English — keep the localized note instead.
+          (!live ? '<div style="font-family:var(--mono);font-size:9.5px;color:var(--ink-3);">' + esc(T('home.layoutNote', 'The layout is final; the MCP line bridge fills it in.')) + '</div>' : '') +
         '</div>'
       );
     }
@@ -1029,13 +1056,36 @@
       return r.json();
     }
 
-    async function renderLineAnswer() {
+    /* Natural-language MES question → grounded answer + the status card.
+       Falls back to the plain card if /ask is unavailable, so the line
+       service never goes dark just because the LLM leg failed. */
+    async function renderLineAnswer(q) {
       sendBtn.disabled = true;
       const ph = addThinking(T('home.thinkLine', 'Polling the line'));
       try {
-        const d = await fetchLineStatus();
+        let d = null;
+        if (q) {
+          const r = await fetch('/api/line/ask', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: q, lang: getLang() }),
+          });
+          if (r.ok) d = await r.json();
+        }
+        if (!d) d = { ...(await fetchLineStatus()), answer: '' };
         ph.remove();
-        addMsg('bot', lineStatusCardHtml(d));
+        const answer = String(d.answer || '').trim();
+        const body =
+          (answer
+            ? '<div style="margin-bottom:10px;">' +
+              answer.split(/\n{2,}/).map((p) => esc(p)).join('<br/><br/>') +
+              '</div>'
+            : '') +
+          lineStatusCardHtml(d);
+        const meta =
+          '<span class="chip ' + (d.mode === 'live' ? 'live">MES' : 'stub">' + esc(T('home.demoData', 'demo data'))) + '</span>' +
+          (d.latencyMs ? '<span>' + Math.round(d.latencyMs) + 'ms</span>' : '');
+        addMsg('bot', body, meta);
       } catch (err) {
         ph.remove();
         addMsg('bot', esc(T('home.errLine', 'Could not reach the line service — ')) + esc(err.message), '<span class="chip stub">error</span>');
@@ -1166,7 +1216,7 @@
       view: document.body.classList.contains('in-chat') ? 'chat conversation' : 'services overview',
     });
   </script>
-  <script src="/lab/assets/i18n.js?v=2" defer></script>
-  <script src="/lab/assets/brain-dock.js?v=9" defer></script>
+  <script src="/lab/assets/i18n.js?v=3" defer></script>
+  <script src="/lab/assets/brain-dock.js?v=11" defer></script>
 </body>
 </html>

@@ -175,6 +175,18 @@
      string — static and JS-generated — renders in the new language. */
   const LANG_KEY = 'omnia.lang';
   const getLang = () => (localStorage.getItem(LANG_KEY) === 'it' ? 'it' : 'en');
+  /* Live-line intent (EN + IT) — questions about what the MES is reporting
+     right now go to POST /api/line/ask instead of the knowledge corpus.
+     Mirrors routeOf() in home.html; kept inline so the dock keeps working
+     even if that page's script never runs. Knowledge phrasings ("most common
+     mistakes on the line") deliberately stay on the KB path. */
+  const LINE_STRONG_RE = /(\bmes\b|unicomm|fargo|workstation|live\s*line|linea\s*live|line\s+status|stato\s+(?:della\s+)?linea|what(?:'s|s| is)?\s+happening|cosa\s+(?:sta\s+)?succede|che\s+(?:cosa\s+)?succede|chi\s+sta\s+lavorando|who(?:'s|s| is)?\s+working|quale\s+operatore|which\s+operator|serial\s*number|\bseriale\b|matricola|\bsessione\b|a\s+che\s+fase|what\s+step\s+(?:are|is)|current\s+step|fase\s+(?:corrente|in\s+corso))/i;
+  const LINE_KB_RE = /\b(mistake|mistakes|defect|torque|shim|bearing|pinion|orientation|procedure|tribal|errore|errori|difett\w*|coppia|orientament\w*|procedur\w*|consigl\w*)\b/i;
+  const LINE_NOW_RE = /(right\s+now|\bnow\b|currently|adesso|in\s+questo\s+momento|al\s+momento|in\s+corso|\bora\b|\btoday\b|\boggi\b)/i;
+  const LINE_SUBJ_RE = /(\bline\b|\blinea\b|\bstation\b|\bstazione\b|\bworker\b|technician|\btecnico\b|\boperatore\b|\bunit\b|\bunità\b|\bpezzo\b)/i;
+  const isLineQuestion = (q) =>
+    LINE_STRONG_RE.test(q) || (!LINE_KB_RE.test(q) && LINE_NOW_RE.test(q) && LINE_SUBJ_RE.test(q));
+
   /* Response register — set on the /settings page (omnia.settings.tone). */
   const getTone = () => {
     try {
@@ -240,6 +252,13 @@
     sendTitle: 'Invia',
     thinkVision: 'gemini vision + recupero claude',
     thinkKb: 'ricerca nella knowledge base',
+    thinkLine: 'interrogo la linea',
+    mesDemo: 'dati demo · bridge in arrivo',
+    mesReadOnly: 'snapshot MES in sola lettura',
+    lfStation: 'Stazione',
+    lfWorker: 'Operatore',
+    lfStep: 'Fase',
+    lfSerial: 'Seriale',
     whatIsThis: 'Che componente è questo?',
     imageError: 'Errore immagine:',
     broke: 'Qualcosa non ha funzionato:',
@@ -467,6 +486,37 @@
     return html;
   }
 
+  /** Compact MES answer for the drawer: the grounded prose plus the few
+   *  snapshot values a director scans for. */
+  function renderLineAnswer(d) {
+    const s = d.snapshot || {};
+    const mes = d.mes || {};
+    const live = d.mode === 'live';
+    const rows = [
+      ['MES', (mes.host || 'WARKFSQL002') + ' / ' + (mes.database || 'SSL04_FARGO')],
+      [TD('lfStation', 'Station'), (s.station_id || '—') + (s.station_number ? ' · #' + s.station_number : '')],
+      [TD('lfWorker', 'Worker'), s.technician_name || s.technician_id || '—'],
+      [TD('lfStep', 'Step'), s.step_index != null
+        ? s.step_index + (s.total_steps ? '/' + s.total_steps : '') + (s.current_step_code ? ' · ' + s.current_step_code : '')
+        : '—'],
+      [TD('lfSerial', 'Serial'), s.serial_number || '—'],
+    ];
+    const answer = String(d.answer || '').trim();
+    return (
+      // Prose reads at normal weight — these answers run to a few sentences,
+      // unlike the single bold headline the KB path returns.
+      `<div>${answer ? answer.split(/\n{2,}/).map(esc).join('<br/><br/>') : '—'}</div>` +
+      '<div class="bd-vision" style="margin-top:8px;">' +
+      `<div class="vh">${live ? 'unicomm · live' : esc(TD('mesDemo', 'demo data · bridge pending'))}</div>` +
+      rows.map(([k, v]) => `<div class="conf">${esc(k)}: ${esc(v)}</div>`).join('') +
+      '</div>' +
+      // The stub reason is deployment detail, not something a plant director
+      // should read — the header chip already says it is demo data.
+      `<div class="bd-meta">${d.latencyMs != null ? d.latencyMs + 'ms · ' : ''}` +
+      `${esc(TD('mesReadOnly', 'read-only MES snapshot'))}</div>`
+    );
+  }
+
   // Map station mentions (UNICOMM table numbers or plain names) in a
   // question/answer to platform station ids, and tell the page about them —
   // the facility map listens and lights the matching rings up.
@@ -505,8 +555,26 @@
     const img = attached;
     input.value = ''; attached = null; $('bd-preview').classList.remove('is-on');
 
-    const thinking = push(`<span class="bd-thinking">${esc(img ? TD('thinkVision', 'gemini vision + claude retrieval') : TD('thinkKb', 'searching the knowledge base'))}</span>`, 'brain');
+    // A photo is always a component question; text may be a live-line one.
+    const toLine = !img && isLineQuestion(q);
+    const thinking = push(`<span class="bd-thinking">${esc(
+      img ? TD('thinkVision', 'gemini vision + claude retrieval')
+          : toLine ? TD('thinkLine', 'Polling the line')
+          : TD('thinkKb', 'searching the knowledge base'))}</span>`, 'brain');
     try {
+      if (toLine) {
+        const r = await fetch('/api/line/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: q, lang: getLang() }),
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
+        thinking.innerHTML = renderLineAnswer(d);
+        const s = d.snapshot || {};
+        announceStations([q, d.answer || '', s.station_id || '', String(s.station_number || '')].join(' \n '));
+        return;
+      }
       const r = await fetch('/api/assist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

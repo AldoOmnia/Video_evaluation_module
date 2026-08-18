@@ -388,17 +388,26 @@ npm install &amp;&amp; npm run build</pre>
           <div class="b">
             <h4>Configure the environment</h4>
             <p>All open values are flagged — host and database names are per-site and owned by Comer IT.
-              Never commit this file.</p>
+              Never commit this file. The <code>UNCOMM_</code> prefix is spelled exactly as the connector
+              reads it. On the plant WiFi/LAN <code>WARKFSQL002</code> resolves directly, so no VPN is
+              needed; the VPN below is only for off-site development.</p>
             <div class="codeblock">
               <div class="cb-head"><span>.env</span>
                 <button class="cb-copy" type="button"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button></div>
-              <pre>MSSQL_HOST=WARKFSQL002            <span class="c"># ← MES SQL host — per site</span>
-MSSQL_PORT=1433
-MSSQL_DATABASE=SSL04_FARGO        <span class="c"># ← line database — Rockford axle line</span>
-MSSQL_USER=<span class="var">&lt;READONLY_SQL_USER&gt;</span>      <span class="c"># ← read-only login provisioned by Comer IT</span>
-MSSQL_PASSWORD=<span class="var">&lt;READONLY_SQL_PASSWORD&gt;</span>
-MSSQL_ENCRYPT=true
-STATION_NUMBER=100                <span class="c"># ← default station in scope (ST100 · Pinion Guide)</span></pre>
+              <pre>BACKEND_API_KEY=<span class="var">&lt;ROTATED_API_KEY&gt;</span>    <span class="c"># ← REQUIRED — guards /v1/unicomm/*; the process refuses to start without it</span>
+
+MES_ADAPTER=unicomm               <span class="c"># ← poll SSL04_FARGO instead of the mock adapter</span>
+UNCOMM_ENABLED=1
+UNCOMM_MSSQL_HOST=WARKFSQL002     <span class="c"># ← MES SQL host — per site</span>
+UNCOMM_MSSQL_PORT=1433
+UNCOMM_MSSQL_DATABASE=SSL04_FARGO <span class="c"># ← line database — Rockford axle line</span>
+UNCOMM_MSSQL_USER=<span class="var">&lt;READONLY_SQL_USER&gt;</span>      <span class="c"># ← read-only login provisioned by Comer IT</span>
+UNCOMM_MSSQL_PASSWORD=<span class="var">&lt;READONLY_SQL_PASSWORD&gt;</span>
+UNCOMM_MSSQL_ENCRYPT=1
+UNCOMM_MSSQL_TRUST_CERT=1
+UNCOMM_READONLY=1
+UNCOMM_STATION_NUMBER=100         <span class="c"># ← station in scope (ST100 · Pinion Guide)</span>
+UNCOMM_TEST_NUMBER=X900.SWR.901.A01</pre>
             </div>
           </div>
         </div>
@@ -419,8 +428,8 @@ STATION_NUMBER=100                <span class="c"># ← default station in scope
       "args": ["dist/server.js"],
       "cwd": "<span class="var">&lt;ABSOLUTE_PATH&gt;</span>/comer-rokid-demo/connectors/mssql-unicomm-database",
       "env": {
-        "MSSQL_HOST": "WARKFSQL002",
-        "MSSQL_DATABASE": "SSL04_FARGO"
+        "UNCOMM_MSSQL_HOST": "WARKFSQL002",
+        "UNCOMM_MSSQL_DATABASE": "SSL04_FARGO"
       }
     }
   }
@@ -442,10 +451,10 @@ STATION_NUMBER=100                <span class="c"># ← default station in scope
 
 <span class="c">// Read-only intent at the driver level — the connector has no write path.</span>
 const pool = new sql.ConnectionPool({
-  server: process.env.MSSQL_HOST!,        <span class="c">// WARKFSQL002</span>
-  database: process.env.MSSQL_DATABASE!,  <span class="c">// SSL04_FARGO</span>
-  user: process.env.MSSQL_USER,
-  password: process.env.MSSQL_PASSWORD,
+  server: process.env.UNCOMM_MSSQL_HOST!,        <span class="c">// WARKFSQL002</span>
+  database: process.env.UNCOMM_MSSQL_DATABASE!,  <span class="c">// SSL04_FARGO</span>
+  user: process.env.UNCOMM_MSSQL_USER,
+  password: process.env.UNCOMM_MSSQL_PASSWORD,
   options: { encrypt: true, <span class="k">readOnlyIntent: true</span> },
   pool: { max: 4 },
 });
@@ -475,13 +484,20 @@ export async function fetchWorkstationSnapshot(stationNumber = 100) {
               <div class="cb-head"><span>platform environment · Render</span>
                 <button class="cb-copy" type="button"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button></div>
               <pre>LINE_BRIDGE_URL=https://<span class="var">&lt;ON_SITE_BRIDGE_HOST&gt;</span>:8443   <span class="c"># ← the on-site connector façade</span>
-LINE_BRIDGE_API_KEY=<span class="var">&lt;ROTATED_API_KEY&gt;</span>              <span class="c"># ← issued per deployment, rotate quarterly</span></pre>
+LINE_BRIDGE_API_KEY=<span class="var">&lt;ROTATED_API_KEY&gt;</span>              <span class="c"># ← must equal the connector's BACKEND_API_KEY</span></pre>
             </div>
           </div>
         </div>
 
         <div class="doc-note">The connector never leaves the plant network — this platform reaches it only through
           the authenticated HTTPS façade above. SQL credentials stay on the on-site host.</div>
+
+        <div class="doc-note"><b>Reachability.</b> The hosted platform runs outside the plant, so it cannot see
+          <code>WARKFSQL002</code> or a bridge on a private LAN address — putting your own laptop on the Comer
+          network does not change what the server can reach. Live line on the hosted URL needs
+          <code>LINE_BRIDGE_URL</code> to resolve from the public internet (published host or tunnel, API key
+          enforced). To demo without that, run the platform locally on a machine that is on the plant network
+          and point it at the bridge on <code>localhost</code>.</div>
       </section>
 
       <!-- ── Documentation · VPN ───────────────────────────────────── -->
@@ -758,7 +774,7 @@ curl -H "x-api-key: <span class="var">&lt;ROTATED_API_KEY&gt;</span>" https://<s
       view: 'admin profile, AI preferences, error ontology, MCP & VPN documentation',
     });
   </script>
-  <script src="/lab/assets/i18n.js?v=2" defer></script>
-  <script src="/lab/assets/brain-dock.js?v=9" defer></script>
+  <script src="/lab/assets/i18n.js?v=3" defer></script>
+  <script src="/lab/assets/brain-dock.js?v=11" defer></script>
 </body>
 </html>

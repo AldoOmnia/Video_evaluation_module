@@ -91,7 +91,7 @@
     'home.sessActive': 'attiva',
     'home.sessIdle': 'inattiva',
     'home.outOfRange': 'FUORI TOLLERANZA',
-    'home.layoutNote': ' — il layout è definitivo; il bridge MCP della linea lo popolerà.',
+    'home.layoutNote': 'Il layout è definitivo; il bridge MCP della linea lo popolerà.',
     'home.glassesWarnings': 'Avvisi occhiali',
     'home.warningsFired': 'avvisi attivati',
     'home.mistakesAvoided': 'errori evitati',

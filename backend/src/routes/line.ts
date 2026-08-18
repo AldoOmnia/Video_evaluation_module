@@ -13,6 +13,8 @@
  * on the connectors/mssql-unicomm-database branch of comer-rokid-demo.
  */
 import { Router } from "express";
+import { z } from "zod";
+import { llmCall } from "../services/anthropic.js";
 
 export const lineRouter = Router();
 
@@ -70,27 +72,30 @@ function stubWorkstationSnapshot() {
   };
 }
 
-lineRouter.get("/status", async (_req, res) => {
+/**
+ * Resolve the current line status once, so /status and /ask always agree on
+ * what the line looks like (live bridge when configured, demo snapshot else).
+ */
+async function resolveLineStatus() {
   const [health, workstation] = await Promise.all([
     bridgeGet("/v1/unicomm/health"),
     bridgeGet("/v1/unicomm/workstation"),
   ]);
 
   if (workstation) {
-    res.json({
+    return {
       ok: true,
-      mode: "live",
+      mode: "live" as const,
       connected: true,
       bridge: BRIDGE_URL,
       mes: (health as Record<string, unknown>)?.config ?? null,
-      snapshot: workstation,
-    });
-    return;
+      snapshot: workstation as Record<string, unknown>,
+    };
   }
 
-  res.json({
+  return {
     ok: true,
-    mode: "stub",
+    mode: "stub" as const,
     connected: false,
     bridge: BRIDGE_URL,
     detail: BRIDGE_URL
@@ -102,8 +107,12 @@ lineRouter.get("/status", async (_req, res) => {
       station_number: 100,
       readonly: true,
     },
-    snapshot: stubWorkstationSnapshot(),
-  });
+    snapshot: stubWorkstationSnapshot() as Record<string, unknown>,
+  };
+}
+
+lineRouter.get("/status", async (_req, res) => {
+  res.json(await resolveLineStatus());
 });
 
 /**
@@ -117,11 +126,10 @@ lineRouter.get("/status", async (_req, res) => {
  */
 const AVG_REWORK_COST_EUR = 140; // demo estimate: avg rework labor+parts per caught mistake
 
-lineRouter.get("/report", async (_req, res) => {
+async function resolveLineReport() {
   const live = await bridgeGet("/v1/line/report"); // future on-site aggregation
   if (live) {
-    res.json({ mode: "live", ...(live as Record<string, unknown>) });
-    return;
+    return { mode: "live", ...(live as Record<string, unknown>) };
   }
 
   const workers = [
@@ -169,7 +177,7 @@ lineRouter.get("/report", async (_req, res) => {
   const totalFired = workers.reduce((s, w) => s + w.warningsFired, 0);
   const totalAvoided = workers.reduce((s, w) => s + w.avoided, 0);
 
-  res.json({
+  return {
     mode: "stub",
     detail: "demo report — live glasses warning feed not yet published to this platform",
     period: "last 7 days",
@@ -182,5 +190,130 @@ lineRouter.get("/report", async (_req, res) => {
       estimatedSavingsEur: totalAvoided * AVG_REWORK_COST_EUR,
     },
     workers,
-  });
+  };
+}
+
+lineRouter.get("/report", async (_req, res) => {
+  res.json(await resolveLineReport());
+});
+
+/* ── Natural-language line questions ─────────────────────────────────────
+ *
+ * POST /api/line/ask — the plant-director path: a free-text question in
+ * English or Italian, answered ONLY from what the MES connector returned.
+ *
+ * This is the platform side of the curated-tool contract: the connector (or
+ * the demo snapshot standing in for it) is the single source of truth, and
+ * the model is allowed to phrase it — never to invent a field. Anything the
+ * snapshot doesn't carry comes back as an explicit "not in this snapshot"
+ * so a director never mistakes a guess for a reading off the line.
+ */
+const AskSchema = z.object({
+  query: z.string().min(1).max(500),
+  lang: z.enum(["en", "it"]).optional(),
+});
+
+/** Glasses-warning questions need the report, not the workstation snapshot. */
+const WARNING_RE =
+  /\b(warning|warnings|avvis\w*|error|errors|errore|errori|flag\w*|segnalat\w*|difett\w*|defect|rework|rilavorazion\w*|saving|savings|risparm\w*|avoided|evitat\w*)\b/i;
+
+/** The model occasionally markdown-escapes MES identifiers (SSL04\_FARGO) or
+ *  bolds a value even when asked for plain text. Strip that before it reaches
+ *  a director's screen. */
+function plainify(s: string): string {
+  return s
+    .replace(/\\([_*`[\]()#+\-.!])/g, "$1")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/(^|\s)\*([^*\n]+)\*(?=\s|[.,;:!?]|$)/g, "$1$2")
+    .trim();
+}
+
+function askSystemPrompt(lang: "en" | "it"): string {
+  return [
+    "You are the live-line assistant for Comer Industries' Rockford axle line.",
+    "You answer questions from plant directors and managers about what the MES",
+    "(UNICOMM / SSL04_FARGO, read-only) is reporting right now.",
+    "",
+    "HARD RULES:",
+    "- Answer ONLY from the JSON data given in the user message. It is the",
+    "  complete output of the read-only MES connector for this question.",
+    "- NEVER invent a value. If the question asks for something the JSON does",
+    "  not contain (shift totals, scrap rates, OEE, history, other stations),",
+    "  say plainly that the current MES snapshot does not carry it and name",
+    "  what it does carry. Do not estimate or extrapolate.",
+    "- If mode is 'stub', the numbers are demo values standing in for the",
+    "  connector: answer normally but end with one short sentence flagging",
+    "  that this is demo data until the line bridge is connected.",
+    "- Keep MES vocabulary exact: station ids (ST100, PG-04), step codes (S09),",
+    "  serials, part numbers, UNICOMM, SSL04_FARGO, units (Nm, mm).",
+    "- Never quote raw JSON field names or nulls (current_step_result: null) —",
+    "  you are writing for a plant director, so say what it means instead",
+    "  ('the step has not been signed off yet').",
+    "- Be concise and decision-ready: 1-3 sentences, no preamble, no bullet",
+    "  lists unless you are naming more than three values.",
+    "- Reply in plain text, not JSON or markdown.",
+    "",
+    lang === "it"
+      ? "LINGUA: rispondi in ITALIANO, registro tecnico da stabilimento. Lascia invariati: id stazione, codici fase, seriali, part number, MES/UNICOMM/SSL04_FARGO e le unità di misura."
+      : "LANGUAGE: reply in English.",
+  ].join("\n");
+}
+
+lineRouter.post("/ask", async (req, res, next) => {
+  try {
+    const body = AskSchema.parse(req.body);
+    const lang = body.lang ?? "en";
+    const wantsWarnings = WARNING_RE.test(body.query);
+
+    const [status, report] = await Promise.all([
+      resolveLineStatus(),
+      wantsWarnings ? resolveLineReport() : Promise.resolve(null),
+    ]);
+
+    // Label each source so the model never presents glasses warnings as MES
+    // checks (they are different systems with different meanings).
+    const grounding = {
+      mode: status.mode,
+      mes_connection: status.mes,
+      workstation_snapshot_from_mes: status.snapshot,
+      ...(report
+        ? {
+            glasses_warnings_report: {
+              note:
+                "Warnings fired by the smart glasses (CV/VLM), NOT MES quality checks.",
+              period: (report as Record<string, unknown>).period,
+              totals: (report as Record<string, unknown>).totals,
+              per_worker: (report as Record<string, unknown>).workers,
+            },
+          }
+        : {}),
+    };
+
+    const llm = await llmCall({
+      system: askSystemPrompt(lang),
+      user: [
+        `QUESTION: ${body.query}`,
+        "",
+        "MES CONNECTOR DATA (the only facts you may use):",
+        JSON.stringify(grounding, null, 2),
+      ].join("\n"),
+      // Italian prose runs longer for the same content — give it headroom.
+      maxTokens: lang === "it" ? 420 : 280,
+    });
+
+    res.json({
+      ok: true,
+      answer: plainify(llm.text),
+      mode: status.mode,
+      connected: status.connected,
+      mes: status.mes,
+      snapshot: status.snapshot,
+      detail: "detail" in status ? status.detail : undefined,
+      usedReport: Boolean(report),
+      stubbed: llm.stubbed,
+      latencyMs: llm.latencyMs,
+    });
+  } catch (e) {
+    next(e);
+  }
 });
