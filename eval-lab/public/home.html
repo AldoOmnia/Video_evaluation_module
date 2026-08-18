@@ -7,38 +7,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/lab/assets/platform.css?v=1" />
+  <script src="/lab/assets/platform.js?v=1"></script>
   <style>
-    :root {
-      --bg: #050505;
-      --bg-2: #0d0d0d;
-      --bg-3: #141414;
-      --ink-1: #f5f5f5;
-      --ink-2: #a3a3a3;
-      --ink-3: #6b6b6b;
-      --line: #1f1f1f;
-      --line-2: #2a2a2a;
-      --primary: #00E5A0;
-      --primary-dim: #00996B;
-      --primary-glow: rgba(0,229,160,0.45);
-      --ok: #4ade80;
-      --warn: #f59e0b;
-      --err: #ef4444;
-      --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-      --mono: 'Space Grotesk', 'Inter', system-ui, sans-serif;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { min-height: 100%; }
+    
     body {
-      background: var(--bg);
-      color: var(--ink-1);
-      font-family: var(--sans);
-      font-size: 14px;
-      line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
       /* the landing view is sized to the viewport — nothing scrolls */
       overflow: hidden;
       height: 100vh;
       display: flex; flex-direction: column;
+    
     }
     /* small screens stack the services, so let them scroll again */
     @media (max-width: 820px), (max-height: 770px) { body { overflow: auto; height: auto; } }
@@ -757,11 +735,7 @@
     const input = document.getElementById('chat-input');
     const sendBtn = document.getElementById('chat-send');
 
-    function esc(s) {
-      return String(s ?? '').replace(/[&<>"']/g, (c) => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-      }[c]));
-    }
+    // esc() comes from assets/platform.js (loaded synchronously in <head>).
     // JS-generated strings — Italian when the platform toggle is on ITA
     // (i18n.js is a deferred script, so it's loaded by the time events fire).
     const T = (k, en) => (window.OmniaI18n ? window.OmniaI18n.t(k, en) : en);
@@ -788,30 +762,11 @@
          line   → POST /api/line/ask (MES snapshot, answered naturally)
          brain  → the plant knowledge corpus (field notes, error rates, spec)
 
-       Knowledge questions must stay on the Brain even when they say "line" or
-       "errors" ("most common mistakes on the line" is tribal knowledge, not a
-       MES reading), so the live-line route requires either an MES-specific
-       noun / present-state phrasing, or a "right now" marker plus a line
-       subject. Italian carries the same weight as English throughout — the
-       ITA chips and anything a director types must reach the same place. */
-    const KNOWLEDGE_RE = /\b(mistake|mistakes|error|errors|defect|torque|spec|shim|bearing|pinion|nut|sleeve|press|step|procedure|orientation|sku|part|component|operator|operators|tip|tips|tribal|anecdot|how do i|how to|trained|training|material|know|errore|errori|sbagli\w*|difett\w*|coppia|serraggio|procedur\w*|orientament\w*|component\w*|consigl\w*|material\w*|addestrament\w*|come si)\b/i;
-
-    // Explicit request for the warnings & savings report card.
-    const REPORT_RE = /(warnings?\s+report|glasses\s+report|report\s+(?:degli?\s+)?avvisi|report\s+occhiali|avvisi\s+occhiali|\bsavings\b|risparmi\w*|\brework\b|rilavorazion\w*|\bavoided\b|evitat\w*)/i;
-
-    // MES-specific nouns / present-state phrasings — unambiguously the line.
-    const LINE_STRONG_RE = /(\bmes\b|unicomm|fargo|workstation|live\s*line|linea\s*live|line\s+status|stato\s+(?:della\s+)?linea|what(?:'s|s| is)?\s+happening|cosa\s+(?:sta\s+)?succede|che\s+(?:cosa\s+)?succede|chi\s+sta\s+lavorando|who(?:'s|s| is)?\s+working|quale\s+operatore|which\s+operator|serial\s*number|\bseriale\b|matricola|\bsessione\b|a\s+che\s+fase|what\s+step\s+(?:are|is)|current\s+step|fase\s+(?:corrente|in\s+corso))/i;
-
-    // Weaker signals: a "right now" marker plus a line subject.
-    const LINE_NOW_RE = /(right\s+now|\bnow\b|currently|adesso|in\s+questo\s+momento|al\s+momento|in\s+corso|\bora\b|\btoday\b|\boggi\b)/i;
-    const LINE_SUBJ_RE = /(\bline\b|\blinea\b|\bstation\b|\bstazione\b|\bworker\b|technician|\btecnico\b|\boperatore\b|\bunit\b|\bunità\b|\bpezzo\b)/i;
-
+       The vocabulary lives in assets/platform.js so this page and the Comer AI
+       dock cannot disagree about where a question belongs. Coverage for both
+       languages is pinned in tools/test-routing.mjs. */
     function routeOf(q) {
-      if (REPORT_RE.test(q)) return 'report';
-      if (LINE_STRONG_RE.test(q)) return 'line';
-      if (KNOWLEDGE_RE.test(q)) return 'brain';
-      if (LINE_NOW_RE.test(q) && LINE_SUBJ_RE.test(q)) return 'line';
-      return 'brain';
+      return window.Platform.line.routeOf(q);
     }
 
     async function handleQuery(q) {
@@ -890,18 +845,10 @@
     });
 
     /* ── Language toggle (EN default / ITA) ─────────────────
-       Same localStorage key as the Comer AI dock ('omnia.lang') so the
-       choice follows the user across pages. Drives the chat answer
-       language for now; UI chrome translation is a later pass. */
-    const LANG_KEY = 'omnia.lang';
-    const getLang = () => (localStorage.getItem(LANG_KEY) === 'it' ? 'it' : 'en');
-    /* Response register — set on the /settings page (omnia.settings.tone). */
-    const getTone = () => {
-      try {
-        const t = (JSON.parse(localStorage.getItem('omnia.settings') || '{}') || {}).tone;
-        return ['enterprise', 'technical', 'coaching'].includes(t) ? t : undefined;
-      } catch { return undefined; }
-    };
+       getLang/getTone come from assets/platform.js; the 'omnia.lang' key is
+       shared with the Comer AI dock so the choice follows the user across
+       pages. */
+    const { LANG_KEY, getLang, getTone } = window.Platform;
     function paintLangToggle() {
       document.querySelectorAll('#lang-toggle button').forEach((b) => {
         b.classList.toggle('is-on', b.dataset.lang === getLang());
@@ -1028,7 +975,11 @@
       return (
         '<div class="rich">' +
           '<div class="rich-h"><span>' + esc(T('home.liveLine', 'Live line')) + ' · ' + esc(s.station_id || 'PG-04') + '</span>' +
-          '<span class="chip ' + (live ? 'live">' + esc(T('home.mesConnectedChip', 'MES connected ✓')) : 'stub">' + esc(T('home.demoData', 'demo data'))) + '</span></div>' +
+          '<span class="chip ' + (live
+            ? 'live">' + esc(T('home.mesConnectedChip', 'MES connected ✓'))
+            : 'stub">' + esc(d.degraded === 'reconnecting'
+                ? T('home.reconnecting', 'reconnecting')
+                : T('home.demoData', 'demo data'))) + '</span></div>' +
           '<div class="kv-grid">' +
             '<div class="kv"><span class="k">MES</span><span class="v">' + esc((mes.host || 'WARKFSQL002') + ' / ' + (mes.database || 'SSL04_FARGO')) + '</span></div>' +
             '<div class="kv"><span class="k">' + esc(T('home.lfStation', 'Station')) + '</span><span class="v">' + esc(s.station_id || '—') + (s.station_number ? ' (#' + s.station_number + ')' : '') + '</span></div>' +
@@ -1045,7 +996,9 @@
           ) : '') +
           // d.detail is deployment plumbing ("LINE_BRIDGE_URL not configured")
           // and only exists in English — keep the localized note instead.
-          (!live ? '<div style="font-family:var(--mono);font-size:9.5px;color:var(--ink-3);">' + esc(T('home.layoutNote', 'The layout is final; the MCP line bridge fills it in.')) + '</div>' : '') +
+          (!live ? '<div style="font-family:var(--mono);font-size:9.5px;color:var(--ink-3);">' + esc(d.degraded === 'reconnecting'
+            ? T('home.reconnectNote', 'The line bridge is configured but did not answer the last read — retrying every 30s.')
+            : T('home.layoutNote', 'The layout is final; the MCP line bridge fills it in.')) + '</div>' : '') +
         '</div>'
       );
     }
@@ -1101,10 +1054,17 @@
         const s = d.snapshot || {};
         const mes = d.mes || {};
         const live = d.mode === 'live';
+        // A configured bridge that failed its last read is "reconnecting" —
+        // a dropped connection reads very differently from never deployed.
+        const reconnecting = !live && d.degraded === 'reconnecting';
         const st = document.getElementById('mes-state');
         st.className = 'mes-state ' + (live ? 'ok' : 'demo');
         document.getElementById('mes-state-ico').textContent = live ? '✓' : '●';
-        document.getElementById('mes-state-txt').textContent = live ? T('home.mesConnected', 'MES connected') : T('home.mesDemo', 'demo data · bridge pending');
+        document.getElementById('mes-state-txt').textContent = live
+          ? T('home.mesConnected', 'MES connected')
+          : reconnecting
+            ? T('home.mesReconnecting', 'line connection dropped · retrying')
+            : T('home.mesDemo', 'demo data · bridge pending');
         document.getElementById('lf-mes').textContent = (mes.host || '—') + ' / ' + (mes.database || '—');
         document.getElementById('lf-station').textContent = (s.station_id || '—') + (s.station_number ? ' · #' + s.station_number : '');
         document.getElementById('lf-worker').textContent = s.technician_name ? s.technician_name + ' · #' + (s.technician_id || '?') : (s.technician_id || '—');
@@ -1118,7 +1078,6 @@
     }
 
     /* ── Report answer ─────────────────────────────────────── */
-    function eur(n) { return '€' + Number(n || 0).toLocaleString('en-US'); }
 
     function reportCardHtml(d) {
       const t = d.totals || {};
@@ -1216,7 +1175,7 @@
       view: document.body.classList.contains('in-chat') ? 'chat conversation' : 'services overview',
     });
   </script>
-  <script src="/lab/assets/i18n.js?v=3" defer></script>
-  <script src="/lab/assets/brain-dock.js?v=11" defer></script>
+  <script src="/lab/assets/i18n.js?v=4" defer></script>
+  <script src="/lab/assets/brain-dock.js?v=13" defer></script>
 </body>
 </html>

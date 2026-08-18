@@ -2,7 +2,7 @@
   "name": "comer-rokid-platform",
   "version": "0.5.0",
   "private": true,
-  "description": "Brain · Eval Lab — unified procedural-knowledge graph and agent-evaluation platform for the Comer Industries / Rokid pilot.",
+  "description": "Brain \u00b7 Eval Lab \u2014 unified procedural-knowledge graph and agent-evaluation platform for the Comer Industries / Rokid pilot.",
   "workspaces": [
     "backend",
     "eval-lab"
@@ -15,7 +15,8 @@
     "gen:apk": "tsx scripts/generate-kotlin-specs.ts",
     "lab": "echo 'Open http://localhost:3001/lab/ after running npm run dev'",
     "pov": "echo 'Synthetic POV preview: http://localhost:3001/synthetic-pov?zone=1 (requires npm run dev)'",
-    "start": "npm --workspace backend run start"
+    "start": "npm --workspace backend run start",
+    "dev:live": "bash scripts/dev-live.sh"
   },
   "devDependencies": {
     "tsx": "^4.7.2",

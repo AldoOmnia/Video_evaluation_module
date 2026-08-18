@@ -20,22 +20,53 @@ export const lineRouter = Router();
 
 const BRIDGE_URL = process.env.LINE_BRIDGE_URL?.trim() || null;
 const BRIDGE_KEY = process.env.LINE_BRIDGE_API_KEY?.trim() || null;
+
+/** Steady-state budget. The first call after boot gets more: the connector has
+ *  to open its MSSQL pool, which routinely takes longer than a warm query, and
+ *  timing that out would drop us to demo data while the line is in fact fine. */
 const BRIDGE_TIMEOUT_MS = 4000;
+const BRIDGE_COLD_TIMEOUT_MS = 12_000;
+
+/** Why the last bridge read did not produce live data. Surfaced to the UI so a
+ *  transient failure reads as "reconnecting" rather than "no bridge here". */
+type BridgeFault = "unreachable" | "http" | "timeout" | "malformed";
+
+let bridgeWarm = false;
+let lastFault: BridgeFault | null = null;
 
 async function bridgeGet(path: string): Promise<unknown | null> {
   if (!BRIDGE_URL) return null;
+  const ctrl = new AbortController();
+  const budget = bridgeWarm ? BRIDGE_TIMEOUT_MS : BRIDGE_COLD_TIMEOUT_MS;
+  const timer = setTimeout(() => ctrl.abort(), budget);
   try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), BRIDGE_TIMEOUT_MS);
     const res = await fetch(`${BRIDGE_URL.replace(/\/$/, "")}${path}`, {
       signal: ctrl.signal,
       headers: BRIDGE_KEY ? { "x-api-key": BRIDGE_KEY } : {},
     });
-    clearTimeout(timer);
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
+    if (!res.ok) {
+      lastFault = "http";
+      // eslint-disable-next-line no-console
+      console.warn(`[line] bridge ${path} → HTTP ${res.status}`);
+      return null;
+    }
+    const body = await res.json();
+    bridgeWarm = true;
+    lastFault = null;
+    return body;
+  } catch (e) {
+    lastFault =
+      e instanceof Error && e.name === "AbortError"
+        ? "timeout"
+        : e instanceof SyntaxError
+          ? "malformed"
+          : "unreachable";
+    // A bridge that goes quiet mid-demo must be diagnosable from the logs.
+    // eslint-disable-next-line no-console
+    console.warn(`[line] bridge ${path} → ${lastFault} (budget ${budget}ms)`);
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -72,11 +103,28 @@ function stubWorkstationSnapshot() {
   };
 }
 
+interface LineStatus {
+  ok: true;
+  mode: "live" | "stub";
+  connected: boolean;
+  bridge: string | null;
+  mes: Record<string, unknown> | null;
+  snapshot: Record<string, unknown>;
+  /** "none" when no bridge is configured at all, "reconnecting" when one is
+   *  configured but the last read failed — very different situations for
+   *  someone watching the card. */
+  degraded?: "none" | "reconnecting";
+  fault?: BridgeFault | null;
+  detail?: string;
+  /** Age of the underlying bridge read; 0 on a fresh fetch. */
+  cachedForMs?: number;
+}
+
 /**
  * Resolve the current line status once, so /status and /ask always agree on
  * what the line looks like (live bridge when configured, demo snapshot else).
  */
-async function resolveLineStatus() {
+async function fetchLineStatus(): Promise<LineStatus> {
   const [health, workstation] = await Promise.all([
     bridgeGet("/v1/unicomm/health"),
     bridgeGet("/v1/unicomm/workstation"),
@@ -85,21 +133,23 @@ async function resolveLineStatus() {
   if (workstation) {
     return {
       ok: true,
-      mode: "live" as const,
+      mode: "live",
       connected: true,
       bridge: BRIDGE_URL,
-      mes: (health as Record<string, unknown>)?.config ?? null,
+      mes: ((health as Record<string, unknown>)?.config as Record<string, unknown>) ?? null,
       snapshot: workstation as Record<string, unknown>,
     };
   }
 
   return {
     ok: true,
-    mode: "stub" as const,
+    mode: "stub",
     connected: false,
     bridge: BRIDGE_URL,
+    degraded: BRIDGE_URL ? "reconnecting" : "none",
+    fault: BRIDGE_URL ? lastFault : null,
     detail: BRIDGE_URL
-      ? "line bridge unreachable — showing demo snapshot"
+      ? `line bridge ${lastFault ?? "unavailable"} — showing demo snapshot`
       : "LINE_BRIDGE_URL not configured — showing demo snapshot",
     mes: {
       host: "WARKFSQL002",
@@ -109,6 +159,38 @@ async function resolveLineStatus() {
     },
     snapshot: stubWorkstationSnapshot() as Record<string, unknown>,
   };
+}
+
+/**
+ * Short-lived cache in front of the bridge.
+ *
+ * The home card polls every 30 s *per open tab* and each poll is two bridge
+ * calls, while the connector behind it is polling a production MSSQL box. With
+ * a room full of tabs open that load multiplies onto the plant database for no
+ * benefit — nothing on the line changes meaningfully inside three seconds.
+ * One in-flight promise is shared by all concurrent callers.
+ */
+const STATUS_TTL_MS = 3000;
+let statusCache: { at: number; value: LineStatus } | null = null;
+let statusInFlight: Promise<LineStatus> | null = null;
+
+async function resolveLineStatus(): Promise<LineStatus> {
+  const now = Date.now();
+  if (statusCache && now - statusCache.at < STATUS_TTL_MS) {
+    return { ...statusCache.value, cachedForMs: now - statusCache.at };
+  }
+  if (!statusInFlight) {
+    statusInFlight = fetchLineStatus()
+      .then((value) => {
+        statusCache = { at: Date.now(), value };
+        return value;
+      })
+      .finally(() => {
+        statusInFlight = null;
+      });
+  }
+  const value = await statusInFlight;
+  return { ...value, cachedForMs: 0 };
 }
 
 lineRouter.get("/status", async (_req, res) => {
@@ -242,8 +324,10 @@ function askSystemPrompt(lang: "en" | "it"): string {
     "  say plainly that the current MES snapshot does not carry it and name",
     "  what it does carry. Do not estimate or extrapolate.",
     "- If mode is 'stub', the numbers are demo values standing in for the",
-    "  connector: answer normally but end with one short sentence flagging",
-    "  that this is demo data until the line bridge is connected.",
+    "  connector: answer normally, then end with one short sentence taking its",
+    "  wording from data_source — say the line connection has dropped when it",
+    "  reports a failed read, and that the bridge is not connected yet when it",
+    "  reports none configured. Never conflate the two.",
     "- Keep MES vocabulary exact: station ids (ST100, PG-04), step codes (S09),",
     "  serials, part numbers, UNICOMM, SSL04_FARGO, units (Nm, mm).",
     "- Never quote raw JSON field names or nulls (current_step_result: null) —",
@@ -274,6 +358,15 @@ lineRouter.post("/ask", async (req, res, next) => {
     // checks (they are different systems with different meanings).
     const grounding = {
       mode: status.mode,
+      // "reconnecting" means a bridge IS configured but this read failed —
+      // a dropped connection, not an un-deployed one. The two need different
+      // caveats in the answer.
+      data_source:
+        status.mode === "live"
+          ? "live read from the UNICOMM MES connector"
+          : status.degraded === "reconnecting"
+            ? "DEMO FALLBACK — the line bridge is configured but the last read failed, so the line connection has dropped"
+            : "DEMO FALLBACK — no line bridge is configured yet",
       mes_connection: status.mes,
       workstation_snapshot_from_mes: status.snapshot,
       ...(report
@@ -308,7 +401,9 @@ lineRouter.post("/ask", async (req, res, next) => {
       connected: status.connected,
       mes: status.mes,
       snapshot: status.snapshot,
-      detail: "detail" in status ? status.detail : undefined,
+      degraded: status.degraded,
+      fault: status.fault,
+      detail: status.detail,
       usedReport: Boolean(report),
       stubbed: llm.stubbed,
       latencyMs: llm.latencyMs,

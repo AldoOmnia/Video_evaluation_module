@@ -7,32 +7,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/lab/assets/platform.css?v=1" />
+  <script src="/lab/assets/platform.js?v=1"></script>
   <style>
-    :root {
-      --bg: #050505;
-      --bg-2: #0d0d0d;
-      --bg-3: #141414;
-      --ink-1: #f5f5f5;
-      --ink-2: #a3a3a3;
-      --ink-3: #6b6b6b;
-      --line: #1f1f1f;
-      --line-2: #2a2a2a;
-      --primary: #00E5A0;
-      --primary-dim: #00996B;
-      --ok: #4ade80;
-      --warn: #f59e0b;
-      --err: #ef4444;
-      --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-      --mono: 'Space Grotesk', 'Inter', system-ui, sans-serif;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
     html { scroll-behavior: smooth; }
-    html, body { min-height: 100%; }
-    body {
-      background: var(--bg); color: var(--ink-1);
-      font-family: var(--sans); font-size: 14px; line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
-    }
     .bg { position: fixed; inset: 0; z-index: -1;
       background:
         radial-gradient(1100px 500px at 80% -10%, rgba(0,229,160,0.05), transparent 60%),
@@ -606,11 +585,7 @@ curl -H "x-api-key: <span class="var">&lt;ROTATED_API_KEY&gt;</span>" https://<s
       if (!SESSION || SESSION.tenant !== 'comer' || SESSION.expiresAt <= Date.now()) window.location.replace('/login');
     } catch { window.location.replace('/login'); }
 
-    function esc(s) {
-      return String(s ?? '').replace(/[&<>"']/g, (c) => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-      }[c]));
-    }
+    // esc() comes from assets/platform.js.
 
     /* ── Profile ──────────────────────────────── */
     if (SESSION) {
@@ -625,9 +600,8 @@ curl -H "x-api-key: <span class="var">&lt;ROTATED_API_KEY&gt;</span>" https://<s
     }
 
     /* ── AI preferences ───────────────────────── */
-    const LANG_KEY = 'omnia.lang';
+    const { LANG_KEY, getLang } = window.Platform;
     const SET_KEY = 'omnia.settings';
-    const getLang = () => (localStorage.getItem(LANG_KEY) === 'it' ? 'it' : 'en');
     const getSettings = () => { try { return JSON.parse(localStorage.getItem(SET_KEY) || '{}') || {}; } catch { return {}; } };
     const saveSettings = (patch) => localStorage.setItem(SET_KEY, JSON.stringify({ ...getSettings(), ...patch }));
 
@@ -637,9 +611,12 @@ curl -H "x-api-key: <span class="var">&lt;ROTATED_API_KEY&gt;</span>" https://<s
     }
     document.querySelectorAll('#set-lang button').forEach((b) => {
       b.addEventListener('click', () => {
-        if (window.OmniaLang) window.OmniaLang.set(b.dataset.lang);
-        else localStorage.setItem(LANG_KEY, b.dataset.lang === 'it' ? 'it' : 'en');
-        paintLang();
+        // request(), not set(): the dock owns the switch flow (confirm modal →
+        // persist → reload), which is what actually re-renders the static
+        // strings on this page. set() only persisted the choice, so switching
+        // language here appeared to do nothing until the next navigation.
+        if (window.OmniaLang && window.OmniaLang.request) window.OmniaLang.request(b.dataset.lang);
+        else { localStorage.setItem(LANG_KEY, b.dataset.lang === 'it' ? 'it' : 'en'); location.reload(); }
       });
     });
     window.addEventListener('omnia:lang', paintLang);
@@ -650,7 +627,9 @@ curl -H "x-api-key: <span class="var">&lt;ROTATED_API_KEY&gt;</span>" https://<s
       technical: 'Specs first — torque values, SKUs and detection logic up front, minimal framing.',
       coaching: 'Step-by-step and instructional — written the way a trainer walks an operator through it.',
     };
-    const getTone = () => TONE_COPY[getSettings().tone] ? getSettings().tone : 'enterprise';
+    // Shared with the chat surfaces so the register shown here is the one
+    // actually sent with every request.
+    const getTone = window.Platform.getTone;
     function paintTone() {
       const t = getTone();
       document.querySelectorAll('#set-tone button').forEach((b) =>
@@ -774,7 +753,7 @@ curl -H "x-api-key: <span class="var">&lt;ROTATED_API_KEY&gt;</span>" https://<s
       view: 'admin profile, AI preferences, error ontology, MCP & VPN documentation',
     });
   </script>
-  <script src="/lab/assets/i18n.js?v=3" defer></script>
-  <script src="/lab/assets/brain-dock.js?v=11" defer></script>
+  <script src="/lab/assets/i18n.js?v=4" defer></script>
+  <script src="/lab/assets/brain-dock.js?v=13" defer></script>
 </body>
 </html>

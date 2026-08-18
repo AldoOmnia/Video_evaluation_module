@@ -7,31 +7,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/lab/assets/platform.css?v=1" />
+  <script src="/lab/assets/platform.js?v=1"></script>
   <style>
-    :root {
-      --bg: #050505;
-      --bg-2: #0d0d0d;
-      --bg-3: #141414;
-      --ink-1: #f5f5f5;
-      --ink-2: #a3a3a3;
-      --ink-3: #6b6b6b;
-      --line: #1f1f1f;
-      --line-2: #2a2a2a;
-      --primary: #00E5A0;
-      --primary-dim: #00996B;
-      --ok: #4ade80;
-      --warn: #f59e0b;
-      --err: #ef4444;
-      --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-      --mono: 'Space Grotesk', 'Inter', system-ui, sans-serif;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { min-height: 100%; }
-    body {
-      background: var(--bg); color: var(--ink-1);
-      font-family: var(--sans); font-size: 14px; line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
-    }
+    
     .bg { position: fixed; inset: 0; z-index: -1;
       background:
         radial-gradient(1100px 500px at 80% -10%, rgba(0,229,160,0.05), transparent 60%),
@@ -166,12 +145,7 @@
       if (!s || s.tenant !== 'comer' || s.expiresAt <= Date.now()) window.location.replace('/login');
     } catch { window.location.replace('/login'); }
 
-    function esc(s) {
-      return String(s ?? '').replace(/[&<>"']/g, (c) => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-      }[c]));
-    }
-    function eur(n) { return '€' + Number(n || 0).toLocaleString('en-US'); }
+    // esc() comes from assets/platform.js.
     const T = (k, en) => (window.OmniaI18n ? window.OmniaI18n.t(k, en) : en);
 
     function render(d) {
@@ -245,7 +219,7 @@
       view: 'glasses fleet — warnings fired, avoided, rework saved',
     });
   </script>
-  <script src="/lab/assets/i18n.js?v=3" defer></script>
-  <script src="/lab/assets/brain-dock.js?v=11" defer></script>
+  <script src="/lab/assets/i18n.js?v=4" defer></script>
+  <script src="/lab/assets/brain-dock.js?v=13" defer></script>
 </body>
 </html>

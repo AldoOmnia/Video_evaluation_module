@@ -46,13 +46,25 @@ lavorando", "a che fase"), or else a *right now* marker plus a line subject.
 Mentioning "the line" alone is not enough — "most common mistakes on the line"
 is knowledge, not a reading.
 
-The rules live in two places, deliberately duplicated so neither surface
-depends on the other loading:
+The rules live in one place, `eval-lab/public/assets/platform.js`:
 
-- `eval-lab/public/home.html` → `routeOf()`
-- `eval-lab/public/assets/brain-dock.js` → `isLineQuestion()`
+- `Platform.line.routeOf()` — the home chat's three-way split
+- `Platform.line.isLineQuestion()` — the dock's line/knowledge split
 
-Keep them in sync when adding vocabulary.
+They used to be duplicated in `home.html` and `brain-dock.js` and had drifted:
+home gated the weak line signals on a much broader knowledge vocabulary that
+included "operator", "step", "part" and "component", so *"what is the operator
+doing right now"* reached the knowledge base from the home chat but the MES from
+the dock. Both now share `isLineQuestion()`.
+
+When adding vocabulary, add a case to `tools/test-routing.mjs` and run it:
+
+```bash
+node tools/test-routing.mjs
+```
+
+It asserts both that each question routes where it should in English **and**
+Italian, and that the two surfaces never disagree.
 
 ## Language
 
@@ -85,6 +97,29 @@ That second point decides the demo:
 | Laptop on the plant network, bridge on `localhost` | Yes |
 | Hosted (`comer.theomnia.ai` on Render) | Only if the bridge is reachable from the public internet — Render cannot route to a plant LAN address |
 
+### On site, in one command
+
+On a machine that is on the plant network, `npm run dev:live` starts the
+connector and the platform together:
+
+```bash
+npm run dev:live                                  # expects ../comer-rokid-demo
+GLASSES_REPO=/path/to/comer-rokid-demo npm run dev:live
+```
+
+It refuses to start rather than half-start, checking the things that are
+annoying to diagnose live: that the clone is on the `connectors/mssql-unicomm-database`
+branch, that `backend/.env` exists with a non-empty `BACKEND_API_KEY`, and that
+`MES_ADAPTER=unicomm` is set. It then waits for `/v1/unicomm/health` before
+launching the platform, so a slow first SQL connection cannot make the opening
+question fall back to demo data.
+
+It also passes the connector's own `BACKEND_API_KEY` through as the platform's
+`LINE_BRIDGE_API_KEY`, which removes the most common misconfiguration: the two
+keys drifting apart.
+
+### Configuring it by hand
+
 Set two environment variables on the platform service and restart. No UI work:
 
 ```
@@ -94,13 +129,38 @@ LINE_BRIDGE_API_KEY=<key>          # optional; sent as x-api-key
 
 `LINE_BRIDGE_URL` points at the on-site backend that fronts the read-only
 UNICOMM connector (`connectors/mssql-unicomm-database` on comer-rokid-demo).
-The platform reads two routes with a 4 s timeout:
+The platform reads two routes:
 
 - `GET /v1/unicomm/health` → `{ ok, config: { host, database, station_number, readonly } }`
 - `GET /v1/unicomm/workstation` → the workstation snapshot
 
-If either is unreachable the platform silently falls back to the demo snapshot
-and the UI says so — it never blocks or errors out in front of an audience.
+Timeouts are 12 s for the first read of the process and 4 s afterwards. The
+cold budget exists because opening the connector's MSSQL pool routinely takes
+longer than a warm query, and timing that out would drop the demo to demo data
+while the line is in fact fine.
+
+If either route fails the platform falls back to the demo snapshot rather than
+erroring in front of an audience — but it does **not** hide the difference:
+
+| Situation | `mode` | `degraded` | UI |
+| --- | --- | --- | --- |
+| Bridge answering | `live` | — | "MES connected ✓" |
+| `LINE_BRIDGE_URL` not set | `stub` | `none` | "demo data · bridge pending" |
+| Bridge set but this read failed | `stub` | `reconnecting` | "line connection dropped · retrying" |
+
+That last row matters mid-demo: a dropped connection used to look identical to
+a bridge that was never deployed. The fault reason (`unreachable`, `timeout`,
+`http`, `malformed`) is on the response and logged server-side as
+`[line] bridge <path> → <fault>`.
+
+### Load on the plant database
+
+`/api/line/status` is cached for 3 s and concurrent callers share one in-flight
+read. The home card polls every 30 s **per open tab** and each poll is two
+bridge calls, so without this a room full of open tabs multiplies onto a
+production MSSQL box for no benefit — nothing on the line changes meaningfully
+inside three seconds. `cachedForMs` on the response tells you the age of the
+underlying read.
 
 ### Contract check against the connector branch
 

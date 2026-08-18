@@ -165,35 +165,21 @@
   style.textContent = css;
   document.head.appendChild(style);
 
-  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-  }[c]));
+  /* Shared with every page via assets/platform.js: HTML escaping, the language
+     and tone preferences, and the live-line intent vocabulary. The routing
+     rules used to be duplicated here and in home.html, which let the two
+     surfaces drift — tools/test-routing.mjs now asserts they agree.
 
-  /* ── Language (EN default / ITA) — shared across every page ──
-     The toggle drives the chat answer language AND the UI chrome (i18n.js).
-     Switching goes through a confirm modal and reloads the page so every
-     string — static and JS-generated — renders in the new language. */
-  const LANG_KEY = 'omnia.lang';
-  const getLang = () => (localStorage.getItem(LANG_KEY) === 'it' ? 'it' : 'en');
-  /* Live-line intent (EN + IT) — questions about what the MES is reporting
-     right now go to POST /api/line/ask instead of the knowledge corpus.
-     Mirrors routeOf() in home.html; kept inline so the dock keeps working
-     even if that page's script never runs. Knowledge phrasings ("most common
-     mistakes on the line") deliberately stay on the KB path. */
-  const LINE_STRONG_RE = /(\bmes\b|unicomm|fargo|workstation|live\s*line|linea\s*live|line\s+status|stato\s+(?:della\s+)?linea|what(?:'s|s| is)?\s+happening|cosa\s+(?:sta\s+)?succede|che\s+(?:cosa\s+)?succede|chi\s+sta\s+lavorando|who(?:'s|s| is)?\s+working|quale\s+operatore|which\s+operator|serial\s*number|\bseriale\b|matricola|\bsessione\b|a\s+che\s+fase|what\s+step\s+(?:are|is)|current\s+step|fase\s+(?:corrente|in\s+corso))/i;
-  const LINE_KB_RE = /\b(mistake|mistakes|defect|torque|shim|bearing|pinion|orientation|procedure|tribal|errore|errori|difett\w*|coppia|orientament\w*|procedur\w*|consigl\w*)\b/i;
-  const LINE_NOW_RE = /(right\s+now|\bnow\b|currently|adesso|in\s+questo\s+momento|al\s+momento|in\s+corso|\bora\b|\btoday\b|\boggi\b)/i;
-  const LINE_SUBJ_RE = /(\bline\b|\blinea\b|\bstation\b|\bstazione\b|\bworker\b|technician|\btecnico\b|\boperatore\b|\bunit\b|\bunità\b|\bpezzo\b)/i;
-  const isLineQuestion = (q) =>
-    LINE_STRONG_RE.test(q) || (!LINE_KB_RE.test(q) && LINE_NOW_RE.test(q) && LINE_SUBJ_RE.test(q));
-
-  /* Response register — set on the /settings page (omnia.settings.tone). */
-  const getTone = () => {
-    try {
-      const t = (JSON.parse(localStorage.getItem('omnia.settings') || '{}') || {}).tone;
-      return ['enterprise', 'technical', 'coaching'].includes(t) ? t : undefined;
-    } catch { return undefined; }
-  };
+     Language (EN default / ITA): the toggle drives the chat answer language AND
+     the UI chrome (i18n.js). Switching goes through a confirm modal and reloads
+     the page so every string, static and JS-generated, renders in the new
+     language. */
+  const P = window.Platform;
+  const esc = P.esc;
+  const LANG_KEY = P.LANG_KEY;
+  const getLang = P.getLang;
+  const getTone = P.getTone;
+  const isLineQuestion = P.line.isLineQuestion;
   function setLang(l) {
     localStorage.setItem(LANG_KEY, l === 'it' ? 'it' : 'en');
     window.dispatchEvent(new CustomEvent('omnia:lang', { detail: { lang: getLang() } }));
@@ -254,6 +240,7 @@
     thinkKb: 'ricerca nella knowledge base',
     thinkLine: 'interrogo la linea',
     mesDemo: 'dati demo · bridge in arrivo',
+    mesReconnecting: 'collegamento alla linea caduto · nuovo tentativo',
     mesReadOnly: 'snapshot MES in sola lettura',
     lfStation: 'Stazione',
     lfWorker: 'Operatore',
@@ -507,7 +494,11 @@
       // unlike the single bold headline the KB path returns.
       `<div>${answer ? answer.split(/\n{2,}/).map(esc).join('<br/><br/>') : '—'}</div>` +
       '<div class="bd-vision" style="margin-top:8px;">' +
-      `<div class="vh">${live ? 'unicomm · live' : esc(TD('mesDemo', 'demo data · bridge pending'))}</div>` +
+      `<div class="vh">${live
+        ? 'unicomm · live'
+        : esc(d.degraded === 'reconnecting'
+            ? TD('mesReconnecting', 'line connection dropped · retrying')
+            : TD('mesDemo', 'demo data · bridge pending'))}</div>` +
       rows.map(([k, v]) => `<div class="conf">${esc(k)}: ${esc(v)}</div>`).join('') +
       '</div>' +
       // The stub reason is deployment detail, not something a plant director

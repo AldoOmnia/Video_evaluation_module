@@ -1,0 +1,62 @@
+/**
+ * Comer platform — design tokens and base rules.
+ *
+ * Single source of truth for the palette, type stack, and reset shared by the
+ * platform pages (home, knowledge, reports, settings, login, welcome). Every
+ * one of those pages previously declared its own identical :root block, so a
+ * palette change meant six edits and the copies had already started to drift.
+ *
+ * Load it in <head> BEFORE the page's own <style>, so page rules win on
+ * specificity ties and a page can still override a token deliberately.
+ *
+ * Deliberate non-members:
+ *   - synthetic-pov.html keeps its own green-tinted neutrals (--ink-1 #f1f4f3,
+ *     --line #1d2120, …). That is a designed difference for the 3D viewer
+ *     chrome, not drift, so it is not flattened into these values.
+ *   - welcome.html adds graph-only colours (--c-keystep, --c-advice,
+ *     --c-document) which stay local to that page.
+ */
+
+:root {
+  /* Surfaces — near-black, stepping up as elements come forward. */
+  --bg: #050505;
+  --bg-2: #0d0d0d;
+  --bg-3: #141414;
+
+  /* Text — 1 primary, 2 secondary, 3 the faint metadata register. */
+  --ink-1: #f5f5f5;
+  --ink-2: #a3a3a3;
+  --ink-3: #6b6b6b;
+
+  /* Hairlines. --line for dividers, --line-2 for interactive borders. */
+  --line: #1f1f1f;
+  --line-2: #2a2a2a;
+
+  /* Comer green. */
+  --primary: #00E5A0;
+  --primary-dim: #00996B;
+  --primary-glow: rgba(0, 229, 160, 0.45);
+
+  /* Status. --ok reads as pass, distinct from --primary which is brand. */
+  --ok: #4ade80;
+  --warn: #f59e0b;
+  --err: #ef4444;
+
+  /* Type. --mono is a misnomer kept for compatibility with existing rules:
+     it is the Space Grotesk accent face used for codes, ids and labels, not
+     a fixed-pitch font. Renaming it means touching every page, so it stays. */
+  --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --mono: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--ink-1);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
