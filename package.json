@@ -16,7 +16,9 @@
     "lab": "echo 'Open http://localhost:3001/lab/ after running npm run dev'",
     "pov": "echo 'Synthetic POV preview: http://localhost:3001/synthetic-pov?zone=1 (requires npm run dev)'",
     "start": "npm --workspace backend run start",
-    "dev:live": "bash scripts/dev-live.sh"
+    "dev:live": "bash scripts/dev-live.sh",
+    "mes:check": "tsx tools/mes-check.mjs",
+    "test:sql-guard": "tsx tools/test-sql-guard.mjs"
   },
   "devDependencies": {
     "tsx": "^4.7.2",

@@ -14,8 +14,12 @@ import { kbRouter } from "./routes/kb.js";
 import { assistRouter } from "./routes/assist.js";
 import { lineRouter } from "./routes/line.js";
 import { worldLabsRouter } from "./routes/worldlabs.js";
+import { usageRouter } from "./routes/usage.js";
+import { mesRouter } from "./routes/mes.js";
 import { worldLabsConfigured } from "./services/worldlabs.js";
 import { geminiConfigured, VISION_MODEL } from "./services/gemini.js";
+import { loadLedger } from "./services/usage.js";
+import { mesClose, mesConfig, mesConfigured, mesHealth } from "./services/mesSql.js";
 import {
   EVAL_LAB_PUBLIC,
   LAB_HTML,
@@ -74,6 +78,8 @@ app.use("/api/line", lineRouter);
 app.use("/api/kb", kbRouter);
 app.use("/api/assist", assistRouter);
 app.use("/api/worldlabs", worldLabsRouter);
+app.use("/api/usage", usageRouter);
+app.use("/api/mes", mesRouter);
 app.use("/query", queryRouter); // Rokid APK compatibility
 
 // Dev-only: browser posts calibrated splat capture from localStorage (localhost).
@@ -413,6 +419,37 @@ app.use(
     res.status(400).json({ error: err.message, issues: err.issues });
   },
 );
+
+// Replay the usage ledger so a restart does not appear to zero the bill.
+await loadLedger();
+
+/* Report the MES wiring at boot. A silent fallback to demo data is the single
+   most confusing failure this platform has, and it is entirely avoidable: say
+   on startup whether SQL is reachable, and if not, why. */
+if (mesConfigured()) {
+  const c = mesConfig();
+  void mesHealth().then((h) => {
+    // eslint-disable-next-line no-console
+    console.log(
+      h.connected
+        ? `[mes] connected ${c.database}@${c.host} station=${c.stationNumber} ` +
+            `(newest phase ${h.newestPhaseAt} plant local, ${h.newestPhaseAge} ago)`
+        : `[mes] NOT connected to ${c.database}@${c.host} — ${h.error}`,
+    );
+  });
+} else {
+  // eslint-disable-next-line no-console
+  console.log(
+    "[mes] no direct database configured — set MES_MSSQL_HOST/USER/PASSWORD for " +
+      "live line answers (falling back to LINE_BRIDGE_URL, then demo data)",
+  );
+}
+
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.once(signal, () => {
+    void mesClose().then(() => process.exit(0));
+  });
+}
 
 app.listen(config.port, "0.0.0.0", () => {
   // eslint-disable-next-line no-console

@@ -15,6 +15,8 @@
 import { Router } from "express";
 import { z } from "zod";
 import { llmCall } from "../services/anthropic.js";
+import { askMes } from "../services/mesAsk.js";
+import { fetchStationSnapshot, mesConfig, mesConfigured } from "../services/mesSql.js";
 
 export const lineRouter = Router();
 
@@ -33,6 +35,9 @@ type BridgeFault = "unreachable" | "http" | "timeout" | "malformed";
 
 let bridgeWarm = false;
 let lastFault: BridgeFault | null = null;
+/** Last direct-SQL failure, so the status card can distinguish "no database
+ *  configured" from "the database is configured and refused us". */
+let sqlFault: string | null = null;
 
 async function bridgeGet(path: string): Promise<unknown | null> {
   if (!BRIDGE_URL) return null;
@@ -108,6 +113,8 @@ interface LineStatus {
   mode: "live" | "stub";
   connected: boolean;
   bridge: string | null;
+  /** Which path produced this: direct SQL, the HTTP bridge, or demo data. */
+  source?: "sql" | "bridge" | "stub";
   mes: Record<string, unknown> | null;
   snapshot: Record<string, unknown>;
   /** "none" when no bridge is configured at all, "reconnecting" when one is
@@ -125,6 +132,42 @@ interface LineStatus {
  * what the line looks like (live bridge when configured, demo snapshot else).
  */
 async function fetchLineStatus(): Promise<LineStatus> {
+  // Direct SQL first: it is the shortest path to the truth and needs no second
+  // repo, branch or process. The bridge stays as a fallback for deployments that
+  // only have HTTP reach to the plant.
+  if (mesConfigured()) {
+    try {
+      const snapshot = await fetchStationSnapshot();
+      if (snapshot) {
+        const c = mesConfig();
+        return {
+          ok: true,
+          mode: "live",
+          connected: true,
+          bridge: null,
+          source: "sql",
+          mes: {
+            host: c.host,
+            port: c.port,
+            database: c.database,
+            station_number: c.stationNumber,
+            test_number: c.testNumber,
+            readonly: true,
+          },
+          snapshot: snapshot as unknown as Record<string, unknown>,
+        };
+      }
+    } catch (e) {
+      // Fall through to the bridge/stub path, but say why in the logs — a silent
+      // downgrade to demo data is the hardest failure to diagnose mid-demo.
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[line] direct SQL failed, falling back: ${e instanceof Error ? e.message : String(e)}`,
+      );
+      sqlFault = e instanceof Error ? e.message : String(e);
+    }
+  }
+
   const [health, workstation] = await Promise.all([
     bridgeGet("/v1/unicomm/health"),
     bridgeGet("/v1/unicomm/workstation"),
@@ -136,6 +179,7 @@ async function fetchLineStatus(): Promise<LineStatus> {
       mode: "live",
       connected: true,
       bridge: BRIDGE_URL,
+      source: "bridge",
       mes: ((health as Record<string, unknown>)?.config as Record<string, unknown>) ?? null,
       snapshot: workstation as Record<string, unknown>,
     };
@@ -146,11 +190,14 @@ async function fetchLineStatus(): Promise<LineStatus> {
     mode: "stub",
     connected: false,
     bridge: BRIDGE_URL,
-    degraded: BRIDGE_URL ? "reconnecting" : "none",
+    source: "stub",
+    degraded: BRIDGE_URL || mesConfigured() ? "reconnecting" : "none",
     fault: BRIDGE_URL ? lastFault : null,
-    detail: BRIDGE_URL
-      ? `line bridge ${lastFault ?? "unavailable"} — showing demo snapshot`
-      : "LINE_BRIDGE_URL not configured — showing demo snapshot",
+    detail: mesConfigured()
+      ? `MES database unreachable (${sqlFault ?? "unknown error"}) — showing demo snapshot`
+      : BRIDGE_URL
+        ? `line bridge ${lastFault ?? "unavailable"} — showing demo snapshot`
+        : "no MES database configured (MES_MSSQL_*) — showing demo snapshot",
     mes: {
       host: "WARKFSQL002",
       database: "SSL04_FARGO",
@@ -295,9 +342,14 @@ const AskSchema = z.object({
   lang: z.enum(["en", "it"]).optional(),
 });
 
-/** Glasses-warning questions need the report, not the workstation snapshot. */
+/** Glasses-warning questions need the report, not the MES.
+ *
+ *  Phrase-based on purpose. This used to match a bare "error" or "defect",
+ *  which sent genuine quality questions ("how many errors at ST100 today")
+ *  to the glasses demo stub instead of the database that actually records
+ *  them. The report only owns questions about what the glasses caught. */
 const WARNING_RE =
-  /\b(warning|warnings|avvis\w*|error|errors|errore|errori|flag\w*|segnalat\w*|difett\w*|defect|rework|rilavorazion\w*|saving|savings|risparm\w*|avoided|evitat\w*)\b/i;
+  /(warnings?\s+report|glasses\s+report|glasses\s+warnings?|smart\s+glasses|\bocchiali\b|report\s+(?:degli?\s+)?avvisi|avvisi\s+occhiali|\bsavings?\b|risparmi\w*|\brework\b|rilavorazion\w*|(?:mistakes?|errors?|rework)\s+avoided|errori\s+evitati|avoided\s+(?:mistakes?|errors?|rework))/i;
 
 /** The model occasionally markdown-escapes MES identifiers (SSL04\_FARGO) or
  *  bolds a value even when asked for plain text. Strip that before it reaches
@@ -308,6 +360,72 @@ function plainify(s: string): string {
     .replace(/\*\*([^*]+)\*\*/g, "$1")
     .replace(/(^|\s)\*([^*\n]+)\*(?=\s|[.,;:!?]|$)/g, "$1$2")
     .trim();
+}
+
+/* ── Plant-local timestamps ───────────────────────────────────────────────
+ *
+ * SSL_ResPhase.Phase_Date is a SQL `datetime`, which carries no offset, and the
+ * plant writes it in Rockford wall-clock time. The mssql driver hands those bare
+ * digits back as a Date (i.e. tagged UTC), so the connector's `last_phase_at`
+ * reads five hours older than the event actually was. Verified on site against
+ * the live DB: the newest row across the line matched America/Chicago to within
+ * six seconds, while UTC was 300 minutes off and the server's own clock — the DB
+ * host sits in Italy at UTC+2 — was 420 minutes off.
+ *
+ * Left uncorrected this is the worst kind of wrong: a director asks what the
+ * line is doing, and a station that stamped a phase 30 seconds ago is reported
+ * as quiet for five hours. So resolve the real instant here and hand the model
+ * an explicit age, rather than a timestamp it has to label a zone for.
+ */
+const PLANT_TZ = "America/Chicago";
+
+/** Read bare `YYYY-MM-DDTHH:MM:SS` digits as wall time in `tz`. */
+function wallTimeToInstant(naive: string, tz: string): Date | null {
+  const digits = naive.replace(/(\.\d+)?Z?$/, "");
+  const asIfUtc = new Date(`${digits}Z`);
+  if (Number.isNaN(asIfUtc.getTime())) return null;
+  // How that instant reads in the plant zone; the gap is the zone's offset for
+  // this date, so DST is handled without a tz library. Ambiguous only inside a
+  // transition hour, where being an hour out is harmless for "how long ago".
+  const inZone = new Date(
+    `${asIfUtc.toLocaleString("sv-SE", { timeZone: tz }).replace(" ", "T")}Z`,
+  );
+  return new Date(asIfUtc.getTime() + (asIfUtc.getTime() - inZone.getTime()));
+}
+
+function humanAge(ms: number, lang: "en" | "it"): string {
+  const mins = Math.round(ms / 60000);
+  if (mins < 1) return lang === "it" ? "meno di un minuto" : "less than a minute";
+  if (mins < 60) return lang === "it" ? `${mins} minuti` : `${mins} minutes`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  const hs = lang === "it" ? (h === 1 ? "1 ora" : `${h} ore`) : h === 1 ? "1 hour" : `${h} hours`;
+  if (!m) return hs;
+  return lang === "it" ? `${hs} e ${m} minuti` : `${hs} ${m} minutes`;
+}
+
+/** Replace the mislabelled timestamp with a plant-local reading plus an age. */
+function withPlantTime(
+  snapshot: Record<string, unknown> | null,
+  lang: "en" | "it",
+): Record<string, unknown> | null {
+  if (!snapshot) return null;
+  const raw = snapshot.last_phase_at;
+  if (typeof raw !== "string" || !raw) return snapshot;
+  const instant = wallTimeToInstant(raw, PLANT_TZ);
+  if (!instant) return snapshot;
+
+  const { last_phase_at: _drop, ...rest } = snapshot;
+  const ageMs = Date.now() - instant.getTime();
+  return {
+    ...rest,
+    last_phase_local_time: raw.replace(/(\.\d+)?Z?$/, "").replace("T", " "),
+    last_phase_timezone: `${PLANT_TZ} (plant floor local time, NOT UTC)`,
+    last_phase_age: humanAge(ageMs, lang),
+    // A clock skew or a mid-transition read can put this slightly in the
+    // future; say so rather than emitting a negative age.
+    ...(ageMs < -60000 ? { last_phase_age_note: "timestamp is ahead of this server's clock" } : {}),
+  };
 }
 
 function askSystemPrompt(lang: "en" | "it"): string {
@@ -337,6 +455,25 @@ function askSystemPrompt(lang: "en" | "it"): string {
     "  lists unless you are naming more than three values.",
     "- Reply in plain text, not JSON or markdown.",
     "",
+    /* Field meanings a model would otherwise guess at, plausibly and wrongly.
+       A director cannot tell a real reading from a confident gloss, so the ones
+       that carry a caveat are spelled out here. */
+    "MES VOCABULARY — use these meanings exactly, do not invent your own:",
+    "- current_phase_id / current_step_title: the operation the line is actually",
+    "  performing, read straight from the MES. Always safe to report.",
+    "- program_mapped: false means the station is running the same operation",
+    "  under a DIFFERENT test program (another axle variant) than the tracked",
+    "  one, so the step NUMBER is unavailable — but the phase, serial, operator",
+    "  and time are live and correct. Report what the station is doing and, only",
+    "  if asked about step numbering, note the variant. Never describe this as",
+    "  idle, as a fault, or as a data problem.",
+    "- session_active: whether a phase was written recently. If it is true the",
+    "  station is working, regardless of program_mapped.",
+    "- Times: last_phase_local_time is plant-floor local time on the Rockford",
+    "  line. NEVER call it UTC and never convert it. Lead with",
+    "  last_phase_age ('last activity 3 minutes ago'), which is what a director",
+    "  actually needs, and give the clock time only as supporting detail.",
+    "",
     lang === "it"
       ? "LINGUA: rispondi in ITALIANO, registro tecnico da stabilimento. Lascia invariati: id stazione, codici fase, seriali, part number, MES/UNICOMM/SSL04_FARGO e le unità di misura."
       : "LANGUAGE: reply in English.",
@@ -354,6 +491,31 @@ lineRouter.post("/ask", async (req, res, next) => {
       wantsWarnings ? resolveLineReport() : Promise.resolve(null),
     ]);
 
+    /* With a database configured, hand the question to the SQL-backed path. It
+       can answer things no snapshot can — shift counts, per-station history,
+       torque distributions — and still receives the snapshot as context, so
+       "what is on the line now" costs no extra query. Glasses-warning questions
+       stay here: those come from the platform's own report, not the MES.
+
+       Falls through to the snapshot-only answer below when no database is
+       configured, which keeps the demo path working off-site. */
+    if (mesConfigured() && status.source === "sql" && !wantsWarnings) {
+      const result = await askMes(body.query, lang, status.snapshot);
+      res.json({
+        ok: true,
+        answer: plainify(result.answer),
+        mode: status.mode,
+        connected: status.connected,
+        source: "sql",
+        sql: result.sql,
+        rowCount: result.rowCount,
+        queryMs: result.elapsedMs,
+        snapshot: status.snapshot,
+        mes: status.mes,
+      });
+      return;
+    }
+
     // Label each source so the model never presents glasses warnings as MES
     // checks (they are different systems with different meanings).
     const grounding = {
@@ -368,7 +530,10 @@ lineRouter.post("/ask", async (req, res, next) => {
             ? "DEMO FALLBACK — the line bridge is configured but the last read failed, so the line connection has dropped"
             : "DEMO FALLBACK — no line bridge is configured yet",
       mes_connection: status.mes,
-      workstation_snapshot_from_mes: status.snapshot,
+      workstation_snapshot_from_mes: withPlantTime(
+        status.snapshot as Record<string, unknown> | null,
+        lang,
+      ),
       ...(report
         ? {
             glasses_warnings_report: {
@@ -383,6 +548,7 @@ lineRouter.post("/ask", async (req, res, next) => {
     };
 
     const llm = await llmCall({
+      route: "line-ask",
       system: askSystemPrompt(lang),
       user: [
         `QUESTION: ${body.query}`,

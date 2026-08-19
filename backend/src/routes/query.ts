@@ -25,6 +25,7 @@ queryRouter.post("/", async (req, res, next) => {
       : body.transcript;
 
     const result = await runGlassesQuery({
+      route: "glasses-query",
       transcript,
       k: 5,
       maxTokens: 280,

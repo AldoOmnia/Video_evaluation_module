@@ -116,6 +116,61 @@
     .model-rows .k { color: var(--ink-3); }
     .model-rows .v { color: var(--ink-1); text-align: right; }
 
+    /* Only rendered in the Italian UI: i18n.js sets html[lang] and fills the
+       text, so this needs no JS here and no load-order assumption. */
+    .docs-en-note { display: none; }
+    html[lang="it"] .docs-en-note {
+      display: block;
+      margin-top: -6px; padding: 7px 10px; border-radius: 7px;
+      background: rgba(255,255,255,0.02); border: 1px solid var(--line);
+      font-size: 11.5px; color: var(--ink-3);
+    }
+
+    /* usage & cost */
+    .use-kpis {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px;
+    }
+    @media (max-width: 780px) { .use-kpis { grid-template-columns: repeat(2, 1fr); } }
+    .use-kpi {
+      background: var(--bg-3); border: 1px solid var(--line); border-radius: 10px;
+      padding: 12px 13px;
+    }
+    .use-kpi .n { font-family: var(--mono); font-size: 21px; font-weight: 600; color: var(--ink-1); letter-spacing: -0.01em; }
+    .use-kpi .n.accent { color: var(--primary); }
+    .use-kpi .l {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--ink-3); margin-top: 4px;
+    }
+    .use-h {
+      font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--ink-3); margin: 18px 0 8px;
+    }
+    .use-row {
+      display: grid; grid-template-columns: minmax(0,1.4fr) 62px 96px 78px 70px; gap: 10px;
+      align-items: center; padding: 7px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      font-family: var(--mono); font-size: 11px;
+    }
+    .use-row.head { color: var(--ink-3); font-size: 9px; letter-spacing: 0.09em; text-transform: uppercase; border-bottom-color: var(--line-2); }
+    .use-row .nm { color: var(--ink-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .use-row .nm .sub { color: var(--ink-3); font-size: 9.5px; }
+    .use-row .num { text-align: right; color: var(--ink-2); }
+    .use-row .num.cost { color: var(--ink-1); }
+    /* Share bar makes the dominant surface obvious at a glance. */
+    .use-bar { height: 4px; border-radius: 2px; background: var(--bg-3); overflow: hidden; }
+    .use-bar i { display: block; height: 100%; background: var(--primary-dim); }
+    @media (max-width: 780px) {
+      .use-row { grid-template-columns: minmax(0,1fr) 70px 70px; }
+      .use-row .hide-sm { display: none; }
+    }
+    .use-note {
+      margin-top: 16px; padding: 10px 12px; border-radius: 9px;
+      background: rgba(255,255,255,0.02); border: 1px solid var(--line);
+      color: var(--ink-3); font-size: 11.5px; line-height: 1.55;
+    }
+    .use-note b { color: var(--ink-2); font-weight: 600; }
+    .use-note code { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); }
+
     /* ontology table */
     .ont-group { margin-bottom: 16px; }
     .ont-group:last-child { margin-bottom: 0; }
@@ -220,43 +275,45 @@
   <div class="bg" aria-hidden="true"></div>
 
   <header class="topbar">
-    <a class="back-home" href="/home/">← Home</a>
-    <span class="topbar-title"><strong>Settings</strong> · admin console</span>
+    <a class="back-home" href="/home/" data-i18n="nav.backHome">← Home</a>
+    <span class="topbar-title" data-i18n="set.tbTitle"><strong>Settings</strong> · admin console</span>
     <span class="user-chip" id="user-chip">—</span>
   </header>
 
   <div class="wrap">
     <!-- Left rail -->
     <nav class="rail" aria-label="Settings sections">
-      <span class="k">Workspace</span>
-      <a href="#profile" class="is-on">Admin profile</a>
-      <a href="#ai">AI preferences</a>
-      <a href="#ontology">Error ontology</a>
-      <span class="k">Documentation</span>
-      <a href="#docs-mcp">MCP server setup</a>
-      <a href="#docs-vpn">VPN access · Cisco</a>
+      <span class="k" data-i18n="set.kWorkspace">Workspace</span>
+      <a href="#profile" class="is-on" data-i18n="set.navProfile">Admin profile</a>
+      <a href="#ai" data-i18n="set.navAi">AI preferences</a>
+      <a href="#ontology" data-i18n="set.navOntology">Error ontology</a>
+      <a href="#usage" data-i18n="set.navUsage">Usage &amp; cost</a>
+      <span class="k" data-i18n="set.kDocs">Documentation</span>
+      <a href="#docs-db" data-i18n="set.navDb">MES database connection</a>
+      <a href="#docs-mcp" data-i18n="set.navMcp">MCP server setup</a>
+      <a href="#docs-vpn" data-i18n="set.navVpn">VPN access · Cisco</a>
     </nav>
 
     <div class="content">
       <!-- ── Admin profile ─────────────────────────────────────────── -->
       <section id="profile">
-        <div class="sec-kicker">Workspace</div>
-        <h2>Admin profile</h2>
-        <p class="sec-sub">The account signed into this console, and the scope it administers.
+        <div class="sec-kicker" data-i18n="set.kWorkspace">Workspace</div>
+        <h2 data-i18n="set.profH2">Admin profile</h2>
+        <p class="sec-sub" data-i18n="set.profSub">The account signed into this console, and the scope it administers.
           Identity and access are managed by Omnia; contact your Omnia representative for role changes.</p>
         <div class="card">
           <div class="prof">
             <div>
-              <div class="row"><span class="k">Account</span><span class="v" id="pf-user">—</span></div>
-              <div class="row"><span class="k">Role</span><span class="v">Platform administrator</span></div>
-              <div class="row"><span class="k">Tenant</span><span class="v">Comer Industries</span></div>
-              <div class="row"><span class="k">Site</span><span class="v">Rockford, IL · axle line</span></div>
+              <div class="row"><span class="k" data-i18n="set.pAccount">Account</span><span class="v" id="pf-user">—</span></div>
+              <div class="row"><span class="k" data-i18n="set.pRole">Role</span><span class="v" data-i18n="set.pRoleV">Platform administrator</span></div>
+              <div class="row"><span class="k" data-i18n="set.pTenant">Tenant</span><span class="v">Comer Industries</span></div>
+              <div class="row"><span class="k" data-i18n="set.pSite">Site</span><span class="v" data-i18n="set.pSiteV">Rockford, IL · axle line</span></div>
             </div>
             <div>
-              <div class="row"><span class="k">Session expires</span><span class="v" id="pf-exp">—</span></div>
-              <div class="row"><span class="k">MES scope</span><span class="v">UNICOMM · SSL04_FARGO</span></div>
-              <div class="row"><span class="k">Glasses fleet</span><span class="v">Rokid · 3 units</span></div>
-              <div class="row"><span class="k">Data policy</span><span class="v ok">read-only MES access</span></div>
+              <div class="row"><span class="k" data-i18n="set.pExp">Session expires</span><span class="v" id="pf-exp">—</span></div>
+              <div class="row"><span class="k" data-i18n="set.pScope">MES scope</span><span class="v">UNICOMM · SSL04_FARGO</span></div>
+              <div class="row"><span class="k" data-i18n="set.pFleet">Glasses fleet</span><span class="v" data-i18n="set.pFleetV">Rokid · 3 units</span></div>
+              <div class="row"><span class="k" data-i18n="set.pPolicy">Data policy</span><span class="v ok" data-i18n="set.pPolicyV">read-only MES access</span></div>
             </div>
           </div>
         </div>
@@ -264,60 +321,165 @@
 
       <!-- ── AI preferences ────────────────────────────────────────── -->
       <section id="ai">
-        <div class="sec-kicker">Workspace</div>
-        <h2>AI preferences</h2>
-        <p class="sec-sub">How Comer AI answers across the platform — the home chat, the Ask Comer AI dock,
+        <div class="sec-kicker" data-i18n="set.kWorkspace">Workspace</div>
+        <h2 data-i18n="set.aiH2">AI preferences</h2>
+        <p class="sec-sub" data-i18n="set.aiSub">How Comer AI answers across the platform — the home chat, the Ask Comer AI dock,
           and the Eval Lab brain all read these preferences.</p>
         <div class="card">
           <div class="pref">
-            <div class="p-head"><span class="p-name">Answer language</span>
-              <span class="p-desc">Part numbers, station ids (ST100), step refs (S07) and tool codes stay unchanged in either language.</span></div>
+            <div class="p-head"><span class="p-name" data-i18n="set.aLang">Answer language</span>
+              <span class="p-desc" data-i18n="set.aLangDesc">Part numbers, station ids (ST100), step refs (S07) and tool codes stay unchanged in either language.</span></div>
             <span class="seg" id="set-lang" role="group" aria-label="Answer language">
               <button type="button" data-lang="en">English</button>
               <button type="button" data-lang="it">Italiano</button>
             </span>
           </div>
           <div class="pref">
-            <div class="p-head"><span class="p-name">Response register</span>
-              <span class="p-desc">The voice Comer AI uses when answering. All registers stay grounded in the same knowledge base.</span></div>
+            <div class="p-head"><span class="p-name" data-i18n="set.aTone">Response register</span>
+              <span class="p-desc" data-i18n="set.aToneDesc">The voice Comer AI uses when answering. All registers stay grounded in the same knowledge base.</span></div>
             <span class="seg" id="set-tone" role="group" aria-label="Response register">
-              <button type="button" data-tone="enterprise">Enterprise</button>
-              <button type="button" data-tone="technical">Technical</button>
-              <button type="button" data-tone="coaching">Coaching</button>
+              <button type="button" data-tone="enterprise" data-i18n="set.tEnterprise">Enterprise</button>
+              <button type="button" data-tone="technical" data-i18n="set.tTechnical">Technical</button>
+              <button type="button" data-tone="coaching" data-i18n="set.tCoaching">Coaching</button>
             </span>
             <span class="p-desc" id="tone-desc">Concise, formal, decision-ready — written for plant directors and managers.</span>
           </div>
         </div>
         <div class="card">
-          <h3>Models in service</h3>
+          <h3 data-i18n="set.modelsH3">Models in service</h3>
           <div class="model-rows">
-            <div class="row"><span class="k">Knowledge &amp; reasoning</span><span class="v">Claude — same pipeline as the glasses /query endpoint</span></div>
-            <div class="row"><span class="k">Component vision</span><span class="v">Gemini Flash — same VLM-observe loop &amp; reference set as the glasses</span></div>
-            <div class="row"><span class="k">Live line</span><span class="v">UNICOMM MES connector · read-only</span></div>
+            <div class="row"><span class="k" data-i18n="set.mKnow">Knowledge &amp; reasoning</span><span class="v" data-i18n="set.mKnowV">Claude — same pipeline as the glasses /query endpoint</span></div>
+            <div class="row"><span class="k" data-i18n="set.mVision">Component vision</span><span class="v" data-i18n="set.mVisionV">Gemini Flash — same VLM-observe loop &amp; reference set as the glasses</span></div>
+            <div class="row"><span class="k" data-i18n="set.mLine">Live line</span><span class="v" data-i18n="set.mLineV">UNICOMM MES connector · read-only</span></div>
           </div>
         </div>
       </section>
 
       <!-- ── Error ontology ────────────────────────────────────────── -->
       <section id="ontology">
-        <div class="sec-kicker">Workspace</div>
-        <h2>Error ontology mapping</h2>
-        <p class="sec-sub">The Omnia error taxonomy every warning, report and knowledge-graph edge is coded against.
+        <div class="sec-kicker" data-i18n="set.kWorkspace">Workspace</div>
+        <h2 data-i18n="set.ontH2">Error ontology mapping</h2>
+        <p class="sec-sub" data-i18n="set.ontSub">The Omnia error taxonomy every warning, report and knowledge-graph edge is coded against.
           Add a plant alias where your teams use a different name on the floor — aliases appear alongside the
           canonical code in reports and station views. Canonical codes never change: they are shared vocabulary
           with the glasses build.</p>
         <div class="card" id="ont-body"><!-- rendered by JS --></div>
       </section>
 
+      <!-- ── Usage & cost ──────────────────────────────────────────────
+           Grouped by surface rather than by model, because the question is
+           always "which feature costs money?" — vision calls carry ~1MB of
+           reference images and dominate, which is invisible in a provider
+           dashboard that only reports per-model totals. -->
+      <section id="usage">
+        <div class="sec-kicker" data-i18n="set.kWorkspace">Workspace</div>
+        <h2 data-i18n="set.usageH2">Model usage &amp; cost</h2>
+        <p class="sec-sub" data-i18n="set.usageSub">Every call the platform makes to Claude or Gemini, grouped by the
+          feature that made it. Costs are computed from the published rates below and are an estimate
+          for sizing the bill — the provider invoice remains the source of truth.</p>
+        <div class="card" id="usage-body"><!-- rendered by JS --></div>
+      </section>
+
+      <!-- ── Documentation · direct database connection ─────────────── -->
+      <section id="docs-db">
+        <div class="sec-kicker" data-i18n="set.kDocsFull">Documentation · for Comer IT &amp; enterprise developers</div>
+        <h2 data-i18n="set.dbH2">Connect the MES database</h2>
+        <p class="sec-sub" data-i18n="set.dbSub">This is all that is required for natural-language questions
+          about the line. The platform connects straight to the UNICOMM database with a read-only pool —
+          no connector process, no second repository, no bridge. Set six values, restart, verify.</p>
+        <p class="sec-sub docs-en-note" data-i18n="set.docsEnNote"></p>
+
+        <div class="callout info">
+          <span class="ci">◈</span>
+          <div><b>Read-only by construction.</b> Questions are answered by generating a <code>SELECT</code>,
+            and every statement passes a deny-by-default guard before it reaches the database: single
+            statement only, <code>SELECT</code>/<code>WITH</code> only, no DDL or DML, no stored procedures,
+            no <code>SELECT … INTO</code>, row cap and query timeout enforced. Sessions run
+            <code>READ UNCOMMITTED</code> so a reporting query can never take locks that block the line's
+            own writes.</div>
+        </div>
+
+        <div class="doc-step">
+          <span class="n">1</span>
+          <div class="b">
+            <h4>Set the connection</h4>
+            <p>On the plant LAN or WiFi, <code>WARKFSQL002</code> resolves directly and no VPN is needed —
+              the VPN section below is only for off-site development. Ask Comer IT for a
+              <b>read-only</b> login; the guard enforces read-only regardless, but a least-privilege
+              credential is the correct posture for a production MES.</p>
+            <div class="codeblock">
+              <div class="cb-head"><span>backend/.env</span>
+                <button class="cb-copy" type="button"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button></div>
+              <pre>MES_MSSQL_HOST=WARKFSQL002        <span class="c"># ← MES SQL host — per site</span>
+MES_MSSQL_PORT=1433
+MES_MSSQL_DATABASE=SSL04_FARGO    <span class="c"># ← line database — Rockford axle line</span>
+MES_MSSQL_USER=<span class="var">&lt;READONLY_SQL_USER&gt;</span>       <span class="c"># ← read-only login from Comer IT</span>
+MES_MSSQL_PASSWORD=<span class="var">&lt;READONLY_SQL_PASSWORD&gt;</span>
+MES_STATION_NUMBER=100            <span class="c"># ← default station (ST100 · Pinion Guide)</span></pre>
+            </div>
+            <p style="margin-top:10px">Optional, with sensible defaults:
+              <code>MES_PLANT_TZ</code> (<code>America/Chicago</code> — the timezone the MES writes its
+              timestamps in), <code>MES_MAX_ROWS</code> (200), <code>MES_QUERY_TIMEOUT_MS</code> (15000),
+              <code>MES_SESSION_IDLE_MS</code> (900000 — how long after the last phase a station still
+              counts as working).</p>
+          </div>
+        </div>
+
+        <div class="doc-step">
+          <span class="n">2</span>
+          <div class="b">
+            <h4>Verify</h4>
+            <p>The health endpoint answers the only two questions that matter: can we reach the database,
+              and is the plant moving? A configured-but-unreachable database returns <code>503</code>, so
+              this fails loudly instead of quietly serving demo data. The startup log prints the same
+              verdict on every boot.</p>
+            <div class="codeblock">
+              <div class="cb-head"><span>shell · verify</span>
+                <button class="cb-copy" type="button"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button></div>
+              <pre>curl -s localhost:3001/api/mes/health | jq
+<span class="c"># → connected: true, newestPhaseAt: "2026-08-19 07:38:43", newestPhaseAge: "1 minute"</span>
+
+<span class="c"># what the assistant is allowed to see</span>
+curl -s localhost:3001/api/mes/schema | jq '.tables[].name'
+
+<span class="c"># ask a question — the answer carries the SQL that produced it</span>
+curl -s -X POST localhost:3001/api/mes/ask -H 'Content-Type: application/json' \
+  -d '{"query":"How many units did station 110 build today?","lang":"en"}' | jq</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout info">
+          <span class="ci">◈</span>
+          <div><b>Two things this database does not carry</b>, both of which the assistant states plainly
+            rather than guessing around. <code>SSL_Users</code> is empty, so operator identity is the badge
+            number in <code>Operator_ID</code> — there are no names to look up. And there is no planned
+            time, downtime or cost data, so OEE and scrap cost cannot be derived here; those live in the
+            downtime system and ERP.</div>
+        </div>
+
+        <div class="doc-note"><b>Reachability.</b> The hosted platform runs outside the plant, so it cannot
+          reach <code>WARKFSQL002</code> on a private LAN address — putting your own laptop on the Comer
+          network does not change what the hosted server can reach. For live line data on
+          <code>comer.theomnia.ai</code> the database needs a route from outside (published host, tunnel, or
+          Render dedicated outbound IPs allowlisted by Comer IT). To demo without that, run the platform
+          locally on a machine that is on the plant network.</div>
+      </section>
+
       <!-- ── Documentation · MCP server ────────────────────────────── -->
       <section id="docs-mcp">
-        <div class="sec-kicker">Documentation · for Comer IT &amp; enterprise developers</div>
-        <h2>MCP server setup — UNICOMM line connector</h2>
-        <p class="sec-sub">The live-line service on this platform is fed by a read-only
+        <div class="sec-kicker" data-i18n="set.kDocsFull">Documentation · for Comer IT &amp; enterprise developers</div>
+        <h2 data-i18n="set.mcpH2">MCP server setup — UNICOMM line connector</h2>
+        <p class="sec-sub" data-i18n="set.mcpOptional"><b>Optional — not required for this platform.</b>
+          The live-line service uses the direct connection above. This connector is the separate path for
+          exposing the same data to <i>MCP-capable clients</i> (Cursor, Claude Desktop, an internal agent
+          runtime) as curated tools rather than SQL.</p>
+        <p class="sec-sub">The connector is fed by a read-only
           <b>Model Context Protocol</b> server that sits next to the MES database and exposes a small set of
           curated tools — never raw SQL. This is the same connector developed for the Comer Rokid build
           (<code>connectors/mssql-unicomm-database</code>). Installing it on an on-site host is a
           15-minute job for IT personnel with database and network access.</p>
+        <p class="sec-sub docs-en-note" data-i18n="set.docsEnNote"></p>
 
         <div class="callout info">
           <span class="ci">◈</span>
@@ -481,11 +643,12 @@ LINE_BRIDGE_API_KEY=<span class="var">&lt;ROTATED_API_KEY&gt;</span>            
 
       <!-- ── Documentation · VPN ───────────────────────────────────── -->
       <section id="docs-vpn">
-        <div class="sec-kicker">Documentation · for Comer IT &amp; enterprise developers</div>
-        <h2>VPN access — Cisco</h2>
+        <div class="sec-kicker" data-i18n="set.kDocsFull">Documentation · for Comer IT &amp; enterprise developers</div>
+        <h2 data-i18n="set.vpnH2">VPN access — Cisco</h2>
         <p class="sec-sub">The MES SQL host is only reachable from the plant network. Comer's remote access
           runs on the <b>Cisco</b> stack (Secure Client / AnyConnect). Off-site connector hosts and developer
           workstations connect through it before anything in the MCP section will resolve.</p>
+        <p class="sec-sub docs-en-note" data-i18n="set.docsEnNote"></p>
 
         <div class="callout">
           <span class="ci">▲</span>
@@ -711,6 +874,110 @@ curl -H "x-api-key: <span class="var">&lt;ROTATED_API_KEY&gt;</span>" https://<s
     }
     renderOntology();
 
+    /* ── Usage & cost ─────────────────────────────
+       Reads /api/usage/summary, which aggregates the per-call ledger the
+       backend writes for every Claude and Gemini request. Grouped by surface
+       first: "which feature costs money" is the actionable question, and it is
+       the one a provider dashboard cannot answer. */
+    const T = (k, en) => (window.OmniaI18n ? window.OmniaI18n.t(k, en) : en);
+    const usd = (n) => '$' + Number(n || 0).toLocaleString('en-US', {
+      minimumFractionDigits: Number(n) > 0 && Number(n) < 1 ? 4 : 2,
+      maximumFractionDigits: Number(n) > 0 && Number(n) < 1 ? 4 : 2,
+    });
+    const tok = (n) => {
+      const v = Number(n || 0);
+      if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M';
+      if (v >= 1e3) return (v / 1e3).toFixed(1) + 'k';
+      return String(v);
+    };
+    /* Surface labels — the enum values are implementation names, not something
+       a plant director should have to decode. */
+    /* Built lazily: i18n.js is deferred, so it is not loaded yet when this
+       inline script runs — resolving the strings at call time (inside the
+       fetch callback) is what makes the Italian labels appear. */
+    const routeLabels = () => ({
+      'brain-chat': [T('set.rBrain', 'Knowledge Q&A'), T('set.rBrainSub', 'home chat · dock · eval lab')],
+      'assist-vision': [T('set.rVision', 'Component recognition · vision'), T('set.rVisionSub', 'attached photo → Gemini')],
+      'assist-text': [T('set.rText', 'Component question · text'), T('set.rTextSub', 'no photo attached')],
+      'line-ask': [T('set.rLine', 'Live line questions'), T('set.rLineSub', 'natural-language MES')],
+      'mes-ask': [T('set.rMes', 'MES database questions'), T('set.rMesSub', 'natural prompt → read-only SQL')],
+      'kb-pov': [T('set.rPov', 'POV recording analysis'), T('set.rPovSub', 'knowledge ingest')],
+      'eval': [T('set.rEval', 'Eval Lab runs'), T('set.rEvalSub', 'procedure evaluation')],
+      'glasses-query': [T('set.rGlasses', 'Glasses on the floor'), T('set.rGlassesSub', 'Rokid device /query')],
+      'other': [T('set.rOther', 'Other'), T('set.rOtherSub', 'unlabelled')],
+    });
+
+    function usageRows(items, total, labels) {
+      if (!items.length) return '';
+      const L = labels ? routeLabels() : null;
+      return items.map((r) => {
+        const [nm, sub] = L ? (L[r.key] || [r.key, '']) : [r.key, ''];
+        const pct = total > 0 ? Math.round((r.costUsd / total) * 100) : 0;
+        return `<div class="use-row">
+          <div class="nm">${esc(nm)}${sub ? ' <span class="sub">· ' + esc(sub) + '</span>' : ''}
+            <div class="use-bar"><i style="width:${pct}%"></i></div></div>
+          <div class="num">${r.calls}</div>
+          <div class="num hide-sm">${tok(r.inputTokens)} / ${tok(r.outputTokens)}</div>
+          <div class="num hide-sm">${r.avgLatencyMs}ms</div>
+          <div class="num cost">${usd(r.costUsd)}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function renderUsage(d) {
+      const t = d.totals;
+      const p = d.projection;
+      const head = `<div class="use-row head">
+        <div>${esc(T('set.uSurface', 'Surface'))}</div>
+        <div class="num">${esc(T('set.uCalls', 'Calls'))}</div>
+        <div class="num hide-sm">${esc(T('set.uTokens', 'Tokens in / out'))}</div>
+        <div class="num hide-sm">${esc(T('set.uLatency', 'Avg'))}</div>
+        <div class="num">${esc(T('set.uCost', 'Cost'))}</div>
+      </div>`;
+      const rates = (d.rates.applied || [])
+        .filter((r) => r.rate)
+        .map((r) => `${r.model} ${usd(r.rate.in)}/${usd(r.rate.out)}`)
+        .join(' · ');
+
+      document.getElementById('usage-body').innerHTML =
+        `<div class="use-kpis">
+          <div class="use-kpi"><div class="n accent">${usd(t.costUsd)}</div>
+            <div class="l">${esc(T('set.uTotalCost', 'total cost'))}</div></div>
+          <div class="use-kpi"><div class="n">${t.billableCalls.toLocaleString('en-US')}</div>
+            <div class="l">${esc(T('set.uBillable', 'billable calls'))}</div></div>
+          <div class="use-kpi"><div class="n">${usd(t.avgCostPerBillableCallUsd)}</div>
+            <div class="l">${esc(T('set.uPerCall', 'per call'))}</div></div>
+          <div class="use-kpi"><div class="n">${usd(p.projectedMonthlyUsd)}</div>
+            <div class="l">${esc(T('set.uMonthly', 'projected / month'))}</div></div>
+        </div>` +
+        `<div class="use-h">${esc(T('set.uBySurface', 'By surface'))}</div>` +
+        head + usageRows(d.byRoute, t.costUsd, true) +
+        `<div class="use-h">${esc(T('set.uByModel', 'By model'))}</div>` +
+        head.replace(esc(T('set.uSurface', 'Surface')), esc(T('set.uModel', 'Model'))) +
+        usageRows(d.byModel, t.costUsd, false) +
+        `<div class="use-note">
+          <b>${esc(T('set.uHowLabel', 'How these numbers are produced.'))}</b>
+          ${esc(T('set.uHow', 'Token counts come from the provider response on every call, not an estimate. Cost applies published rates'))}${rates ? ' (' + esc(rates) + ' ' + esc(T('set.uPerMtok', 'per 1M tokens')) + ')' : ''}${esc(T('set.uHow2', ', overridable with the LLM_RATES_USD_PER_MTOK environment variable. Verify against your provider agreement before using these figures for budgeting — the invoice is the source of truth.'))}
+          <br/><br/>
+          <b>${esc(T('set.uWindowLabel', 'Window.'))}</b>
+          ${d.ledger.since
+            ? esc(T('set.uSince', 'Covers')) + ' ' + esc(new Date(d.ledger.since).toLocaleString(getLang() === 'it' ? 'it-IT' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })) + ' → ' + esc(T('set.uNow', 'now')) + '. '
+            : esc(T('set.uNoCalls', 'No billable calls recorded yet. ')) + ' '}
+          ${esc(T('set.uWindow', 'The projection averages billable days only, so idle days do not understate the run-rate.'))}
+          ${d.ledger.writable
+            ? ''
+            : '<br/><br/><b>' + esc(T('set.uLedgerLabel', 'Ledger unavailable.')) + '</b> ' + esc(T('set.uLedgerRo', 'The filesystem is read-only, so totals cover the current process only.'))}
+        </div>`;
+    }
+
+    fetch('/api/usage/summary')
+      .then((r) => r.json())
+      .then(renderUsage)
+      .catch(() => {
+        document.getElementById('usage-body').innerHTML =
+          `<div class="use-note">${esc(T('set.uErr', 'Could not load usage data — the platform API is unreachable.'))}</div>`;
+      });
+
     /* ── Copy buttons ─────────────────────────── */
     document.querySelectorAll('.cb-copy').forEach((btn) => {
       btn.addEventListener('click', async () => {
@@ -753,7 +1020,7 @@ curl -H "x-api-key: <span class="var">&lt;ROTATED_API_KEY&gt;</span>" https://<s
       view: 'admin profile, AI preferences, error ontology, MCP & VPN documentation',
     });
   </script>
-  <script src="/lab/assets/i18n.js?v=4" defer></script>
+  <script src="/lab/assets/i18n.js?v=7" defer></script>
   <script src="/lab/assets/brain-dock.js?v=13" defer></script>
 </body>
 </html>

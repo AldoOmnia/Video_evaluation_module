@@ -16,6 +16,7 @@ import {
   coerceFourRole,
 } from "../../../shared/display-constraints/rokid.js";
 import type { FourRoleLens } from "../../../shared/types/events.js";
+import type { UsageRoute } from "./usage.js";
 
 export interface GlassesQueryInput {
   transcript: string;
@@ -28,6 +29,8 @@ export interface GlassesQueryInput {
   lang?: "en" | "it";
   /** Response register — set from the platform admin settings. */
   tone?: "enterprise" | "technical" | "coaching";
+  /** Which surface asked, for the usage/cost report. */
+  route?: UsageRoute;
 }
 
 /** Admin-selected response register. Grounding, citations and the four-role
@@ -135,6 +138,7 @@ export async function runGlassesQuery(
   // without headroom the JSON gets truncated mid-string and parsing fails.
   const baseTokens = input.maxTokens ?? 320;
   const llm = await llmCall({
+    route: input.route ?? "brain-chat",
     system: sys,
     user: userMsg,
     maxTokens: input.lang === "it" ? Math.round(baseTokens * 1.5) : baseTokens,

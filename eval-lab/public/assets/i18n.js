@@ -191,6 +191,122 @@
     'tw.observing': 'osservazione',
     'tw.sees': 'vede: ',
 
+    /* ── Settings · admin console ─────────────────────────────
+       The step-by-step technical documentation (MCP connector, Cisco VPN) and
+       every code block stay in English on purpose: they are read by Comer IT
+       against English tooling, env var names and shell output, and a
+       half-translated runbook is worse than an English one. Only the section
+       chrome is localised, and a note in each documentation section says so. */
+    'set.tbTitle': '<strong>Impostazioni</strong> · console amministratore',
+    'set.kWorkspace': 'Area di lavoro',
+    'set.kDocs': 'Documentazione',
+    'set.kDocsFull': 'Documentazione · per l’IT Comer e gli sviluppatori',
+    'set.navProfile': 'Profilo amministratore',
+    'set.navAi': 'Preferenze AI',
+    'set.navOntology': 'Ontologia errori',
+    'set.navUsage': 'Consumi e costi',
+    'set.navDb': 'Connessione database MES',
+    'set.navMcp': 'Setup server MCP',
+    'set.navVpn': 'Accesso VPN · Cisco',
+
+    'set.profH2': 'Profilo amministratore',
+    'set.profSub': 'L’account collegato a questa console e l’ambito che amministra. Identità e accessi sono gestiti da Omnia; per modifiche di ruolo contatta il tuo referente Omnia.',
+    'set.pAccount': 'Account',
+    'set.pRole': 'Ruolo',
+    'set.pRoleV': 'Amministratore della piattaforma',
+    'set.pTenant': 'Cliente',
+    'set.pSite': 'Sito',
+    'set.pSiteV': 'Rockford, IL · linea assali',
+    'set.pExp': 'Sessione scade',
+    'set.pScope': 'Ambito MES',
+    'set.pFleet': 'Parco occhiali',
+    'set.pFleetV': 'Rokid · 3 unità',
+    'set.pPolicy': 'Politica dati',
+    'set.pPolicyV': 'accesso MES in sola lettura',
+
+    'set.aiH2': 'Preferenze AI',
+    'set.aiSub': 'Come risponde Comer AI su tutta la piattaforma — la chat della home, il pannello Chiedi a Comer AI e il brain dell’Eval Lab leggono queste preferenze.',
+    'set.aLang': 'Lingua delle risposte',
+    'set.aLangDesc': 'Part number, id stazione (ST100), riferimenti di fase (S07) e codici attrezzo restano invariati in entrambe le lingue.',
+    'set.aTone': 'Registro della risposta',
+    'set.aToneDesc': 'Il tono con cui risponde Comer AI. Tutti i registri restano ancorati alla stessa knowledge base.',
+    'set.tEnterprise': 'Direzione',
+    'set.tTechnical': 'Tecnico',
+    'set.tCoaching': 'Formativo',
+    'set.modelsH3': 'Modelli in servizio',
+    'set.mKnow': 'Conoscenza e ragionamento',
+    'set.mKnowV': 'Claude — la stessa pipeline dell’endpoint /query degli occhiali',
+    'set.mVision': 'Visione componenti',
+    'set.mVisionV': 'Gemini Flash — lo stesso loop VLM-observe e set di riferimento degli occhiali',
+    'set.mLine': 'Linea live',
+    'set.mLineV': 'Connettore MES UNICOMM · sola lettura',
+
+    'set.ontH2': 'Mappatura ontologia errori',
+    'set.ontSub': 'La tassonomia errori Omnia su cui sono codificati ogni avviso, report e arco del knowledge graph. Aggiungi un alias di stabilimento dove i tuoi team usano un nome diverso in officina: gli alias compaiono accanto al codice canonico nei report e nelle viste stazione. I codici canonici non cambiano mai: sono vocabolario condiviso con la build degli occhiali.',
+
+    /* Usage & cost */
+    'set.usageH2': 'Consumi e costi dei modelli',
+    'set.usageSub': 'Ogni chiamata che la piattaforma fa a Claude o Gemini, raggruppata per la funzione che l’ha generata. I costi sono calcolati con le tariffe indicate sotto e sono una stima per dimensionare la spesa — la fattura del fornitore resta la fonte di verità.',
+    /* Surface names: what the call was for, in plant language rather than the
+       internal route enum. Product names (Claude, Gemini, Rokid, MES) stay. */
+    'set.rBrain': 'Domande sulla conoscenza',
+    'set.rBrainSub': 'chat home · pannello · eval lab',
+    'set.rVision': 'Riconoscimento componenti · visione',
+    'set.rVisionSub': 'foto allegata → Gemini',
+    'set.rText': 'Domanda su componente · testo',
+    'set.rTextSub': 'nessuna foto allegata',
+    'set.rLine': 'Domande sulla linea live',
+    'set.rLineSub': 'MES in linguaggio naturale',
+    'set.rMes': 'Interrogazioni database MES',
+    'set.rMesSub': 'prompt naturale → SQL in sola lettura',
+    'set.rPov': 'Analisi registrazioni POV',
+    'set.rPovSub': 'ingestione conoscenza',
+    'set.rEval': 'Esecuzioni Eval Lab',
+    'set.rEvalSub': 'valutazione procedura',
+    'set.rGlasses': 'Occhiali in officina',
+    'set.rGlassesSub': 'dispositivo Rokid /query',
+    'set.rOther': 'Altro',
+    'set.rOtherSub': 'non etichettato',
+
+    'set.uSurface': 'Funzione',
+    'set.uModel': 'Modello',
+    'set.uCalls': 'Chiamate',
+    'set.uTokens': 'Token in / out',
+    'set.uLatency': 'Media',
+    'set.uCost': 'Costo',
+    'set.uTotalCost': 'costo totale',
+    'set.uBillable': 'chiamate a pagamento',
+    'set.uPerCall': 'per chiamata',
+    'set.uMonthly': 'proiezione / mese',
+    'set.uBySurface': 'Per funzione',
+    'set.uByModel': 'Per modello',
+    'set.uHowLabel': 'Come sono calcolati questi numeri.',
+    'set.uHow': 'I conteggi dei token arrivano dalla risposta del fornitore a ogni chiamata, non da una stima. Il costo applica le tariffe pubblicate',
+    'set.uPerMtok': 'per 1M di token',
+    'set.uHow2': ', sovrascrivibili con la variabile d’ambiente LLM_RATES_USD_PER_MTOK. Verificale sul tuo contratto prima di usarle a budget — la fattura è la fonte di verità.',
+    'set.uWindowLabel': 'Periodo.',
+    'set.uSince': 'Copre dal',
+    'set.uNow': 'adesso',
+    'set.uNoCalls': 'Nessuna chiamata a pagamento registrata finora.',
+    'set.uWindow': 'La proiezione media solo i giorni con consumo, così i giorni di fermo non sottostimano il ritmo di spesa.',
+    'set.uLedgerLabel': 'Registro non disponibile.',
+    'set.uLedgerRo': 'Il filesystem è in sola lettura, quindi i totali coprono solo il processo corrente.',
+    'set.uErr': 'Impossibile caricare i consumi — l’API della piattaforma non risponde.',
+
+    'set.mcpH2': 'Setup server MCP — connettore linea UNICOMM',
+    'set.vpnH2': 'Accesso VPN — Cisco',
+    /* Shown under each documentation heading when the UI is Italian. */
+    'set.dbH2': 'Collega il database MES',
+    'set.dbSub': 'È tutto ciò che serve per le domande in linguaggio naturale sulla linea. '
+      + 'La piattaforma si collega direttamente al database UNICOMM con un pool in sola lettura — '
+      + 'nessun processo connettore, nessun secondo repository, nessun bridge. '
+      + 'Imposta sei valori, riavvia, verifica.',
+    'set.mcpOptional': '<b>Opzionale — non necessario per questa piattaforma.</b> '
+      + 'Il servizio linea live usa la connessione diretta descritta sopra. Questo connettore è '
+      + 'il percorso separato per esporre gli stessi dati a <i>client compatibili con MCP</i> '
+      + '(Cursor, Claude Desktop, un runtime agent interno) come strumenti curati anziché SQL.',
+    'set.docsEnNote': 'La documentazione tecnica è mantenuta in inglese: comandi, nomi delle variabili d’ambiente e output degli strumenti sono in inglese.',
+
     /* ── Back-home links (shared) ─────────────────────────── */
     'nav.backHome': '← Home',
   };

@@ -19,6 +19,7 @@ import { z } from "zod";
 import { specs } from "../services/specs.js";
 import { llmCall } from "../services/anthropic.js";
 import { EVAL_LAB_PUBLIC, SHARED_DIR } from "../paths.js";
+import { STATIONS, type StationId } from "../services/stations.js";
 
 export const kbRouter = Router();
 
@@ -27,92 +28,21 @@ const UPLOADS_DIR = join(EVAL_LAB_PUBLIC, "kb-uploads");
 const UPLOADS_URL = "/lab/kb-uploads";
 const MAX_FILE_BYTES = 8 * 1024 * 1024; // fits inside the 12mb JSON body cap
 
-/**
- * The real Rockford line, one entry per sheet of Full_stations_report.xlsx
- * (MES acquisition export). The digital-twin capture and its hotspots all
- * live INSIDE the pinion guide station (ST100 = pg-04) — the other entries
- * here are genuinely different stations on the line.
- *
- * `report` = extracted from the station's sheet: MES phase count, number of
- * acquisition checks in the snapshot, and how many passed their min/max
- * limits. The per-station CSV is vendored at shared/data/stations-report/.
- */
-const STATIONS = [
-  {
-    id: "pg-04",
-    label: "ST100 · Pinion Guide",
-    stage: "Stage 1 · data collection complete",
-    desc: "Pinion cover pre-assembly — pilot: glasses + digital twin live",
-    tier: "core",
-    active: true,
-    procedureId: "proc:pinion-guide",
-    // The pinion guide runs FOUR distinct procedures (Matteo, Jun 1 visit —
-    // supervisor-knowledge facts): 425 front / 425 rear / 600 front / 600
-    // rear. Everything trained here + on the glasses (the 17-step recipe,
-    // components, POVs, digital twin) is the 425 REAR axle procedure. The
-    // 600 series is a separate recipe: more steps, different bearings and
-    // seals, and the highest error rate of the four. 425 builds use standard
-    // drawings — no part-code matching (fixture 3187.A00.020.0 part matrix).
-    procedures: {
-      variants: [
-        { id: "425-front", label: "425 front axle", trained: false },
-        { id: "425-rear", label: "425 rear axle", trained: true },
-        { id: "600-front", label: "600 front axle", trained: false },
-        { id: "600-rear", label: "600 rear axle", trained: false },
-      ],
-      note:
-        "All knowledge below (17-step recipe, components, POVs, digital twin) is the 425 rear axle " +
-        "procedure. 600 series = separate recipe — more steps, different bearings/seals, highest " +
-        "error rate of the four (Matteo). 425 uses standard drawings, no part-code matching.",
-      matrixImage: "/lab/assets/rear-axle-425-procedure-matrix.jpg",
-      matrixLabel: "Fixture 3187.A00.020.0 — part matrix per axle model",
-    },
-    report: { sheet: "ST100", phases: 17, checks: 96, ok: 86, nok: 10, sample: "bearing cups · inf/sup bearing press · shim pack · ring retainer · rolling torque" },
-  },
-  { id: "st110", label: "ST110 · Brake & Cover", stage: "Stage 2", desc: "Expanding plug · bearing cone · LH diff carrier assy", tier: "core", active: false, procedureId: null,
-    report: { sheet: "ST110", phases: 3, checks: 6, ok: 4, nok: 2, sample: "expanding plug · bearing cone · carrier bearing assy" } },
-  { id: "st130-135", label: "ST130-135 · Shimming", stage: "Stage 8", desc: "Diff carrier bolts · preload · shims · brake shim check", tier: "core", active: false, procedureId: null,
-    report: { sheet: "ST130-135", phases: 20, checks: 143, ok: 140, nok: 3, sample: "bolt on diff carrier · carrier height · preload · shim tot · brake shim check" } },
-  { id: "st140", label: "ST140 · Brake Complete", stage: "Stage 9", desc: "Brake piston bore · self-adjust stack", tier: "core", active: false, procedureId: null,
-    report: { sheet: "ST140", phases: 10, checks: 138, ok: 116, nok: 22, sample: "brake piston bore · self adjust 1-3 · self adjust washers" } },
-  { id: "st150", label: "ST150 · Pinion Complete & Brake Test", stage: "Stage 10", desc: "Cover to housing · manifold bolts · elbows · plugs", tier: "core", active: false, procedureId: null,
-    report: { sheet: "ST150", phases: 28, checks: 104, ok: 102, nok: 2, sample: "bolt on clip · tube nut onto elbow · pinion cover on housing · M27x2" } },
-  { id: "st160", label: "ST160 · Axle Mount", stage: "Stage 12-13 · with ST170", desc: "500QT bolt tightening — axle mount", tier: "core", active: false, procedureId: null,
-    report: { sheet: "ST160", phases: 1, checks: 45, ok: 45, nok: 0, sample: "P160 bolts — torque acquisitions" } },
-  { id: "st170", label: "ST170 · Axle Mount", stage: "Stage 12-13 · with ST160", desc: "500QT bolt tightening — axle mount", tier: "core", active: false, procedureId: null,
-    report: { sheet: "ST170", phases: 1, checks: 27, ok: 26, nok: 1, sample: "P170 bolts — torque acquisitions" } },
-  // One MES sheet (ST180_190) covers both physical test areas: the leak-test
-  // station (stazione prova di tenuta) on the open floor and the stage-14
-  // test bench in Bay 1 — the map draws both spots, both open this station.
-  { id: "st180-190", label: "ST180-190 · Prova di Tenuta + Test Bench", stage: "Leak test + Stage 14", desc: "Leakage · filling · brake tests · run-in · pollution", tier: "outer", active: false, procedureId: null,
-    report: { sheet: "ST180_190", phases: 15, checks: 86, ok: 86, nok: 0, sample: "leakage QTR · filling · parking/service brake test · run-in" } },
-  { id: "st200-220", label: "ST200-220 · Subdifferential", stage: "Stage 5 · sub", desc: "Riveting · thrust washer · diff bolts · bearing cup", tier: "outer", active: false, procedureId: null,
-    report: { sheet: "ST200_220", phases: 10, checks: 67, ok: 64, nok: 3, sample: "riveter · thrust washer · diff bolts · bearing cup" } },
-  { id: "st300", label: "ST300 · Tear Dropbox", stage: "Stage 11 · with ST310", desc: "Gear bearing cups/cones · backlash", tier: "outer", active: false, procedureId: null,
-    report: { sheet: "ST300", phases: 9, checks: 30, ok: 4, nok: 26, sample: "small/big gear bearing cup · bearing cone press · backlash" } },
-  { id: "st310", label: "ST310 · Tear Dropbox", stage: "Stage 11 · with ST300", desc: "Dropbox on center housing · plugs · Loctite", tier: "outer", active: false, procedureId: null,
-    report: { sheet: "ST310", phases: 6, checks: 123, ok: 122, nok: 1, sample: "dropbox on center housing DX/SX · plug M18x1.5 · Loctite" } },
-  // On the floor plan (Bay 6, "STAGE 3 SUB") but absent from the MES export.
-  // Per Mohammed (Comer mechanical engineer): the report covers a Quad Track
-  // axle build; ST400 is the axle mount for the LW and SW models, so it saw
-  // no acquisitions in this snapshot. ST400 vs ST500 usage follows the model.
-  { id: "st400-410", label: "ST400-410 · Subassembly", stage: "Stage 3 · sub", desc: "Axle mount for LW / SW models — idle in this Quad Track report", tier: "outer", active: false, procedureId: null,
-    report: null },
-  { id: "st500-520", label: "ST500-520 · Sub Starship", stage: "Stage 6 · sub", desc: "Cone/cup bearing onto shaft · nut tighten · plugs", tier: "outer", active: false, procedureId: null,
-    report: { sheet: "ST500_510_520", phases: 8, checks: 125, ok: 75, nok: 50, sample: "cone bearing onto shaft · cup bearing · nut tighten · bolts on nut" } },
-  { id: "st710", label: "ST700-710 · Subassembly", stage: "Stage 4 · sub", desc: "Pin positioning · Victory release/tightening cycles", tier: "outer", active: false, procedureId: null,
-    report: { sheet: "ST710", phases: 12, checks: 35, ok: 34, nok: 1, sample: "pin positioning 1-2 · Victory release/tightening 1-2" } },
-] as const;
+/* The station catalog is shared with the MES layer — see services/stations.ts. */
 
-type StationId = (typeof STATIONS)[number]["id"];
 
 /* ── Station scoping for chat ─────────────────────────────────────────────
  * The deep knowledge base (procedure, components, tribal knowledge, POVs)
- * covers ONLY ST100 · Pinion Guide. When a question touches another station
- * we inject a guard so the LLM answers from that station's MES snapshot
- * only — and never dresses pinion-guide facts up as another station's
- * knowledge. Deeper coverage lands with the UNICOMM MCP server + VPN access
- * to the other stations' databases. */
+ * covers ONLY ST100 · Pinion Guide. When a question touches another station we
+ * inject a guard so the LLM answers from that station's report data only — and
+ * never dresses pinion-guide facts up as another station's knowledge.
+ *
+ * What the guard must NOT say any more: that other stations' data is unavailable
+ * pending a connector. Direct read-only SQL to SSL04_FARGO is live, so every
+ * station's current activity, phase history and measurements are queryable
+ * through the line service (/api/line/ask). The gap is procedure-level
+ * knowledge, not data access — and telling a director we cannot see their
+ * station when we can is the worse error of the two. */
 const STATION_QUERY_MATCHERS: ReadonlyArray<readonly [RegExp, StationId]> = [
   [/\bst\.?\s*-?\s*100\b|pinion\s+guide/i, "pg-04"],
   [/\bst\.?\s*-?\s*110\b|brake\s*(?:&|and)\s*cover/i, "st110"],
@@ -146,6 +76,29 @@ function mesLeaderboard(): string {
   return rows.join(" · ");
 }
 
+/**
+ * The single most damaging station mix-up on this line, called out by name.
+ *
+ * "Shimming" means two different things at Comer: Step 7 of the ST100 pinion
+ * guide (shim pack, the one the KB is trained on) and the separate ST130-135
+ * shimming cell at Stage 8. A question naming ST130 retrieves ST100's shim-pack
+ * facts on topical similarity alone, and observed behaviour is that a general
+ * "do not mix stations up" instruction does NOT stop the transplant — the model
+ * answered "operators guess the starting shim with no reliable baseline" for
+ * ST130, which is an ST100 fact. Naming the confusion explicitly does stop it,
+ * so this string is injected wherever shims are mentioned.
+ */
+const SHIM_DISAMBIGUATION =
+  "CRITICAL — 'SHIMMING' IS TWO DIFFERENT THINGS AND THIS IS THE MOST COMMON " +
+  "MIX-UP: every shim fact in the knowledge base (starting shim value, shim " +
+  "stack, rolling-torque target, iteration/guessing problems) belongs to ST100's " +
+  "SHIM PACK step — Step 7 of the pinion guide. It does NOT describe the " +
+  "ST130-135 Shimming cell (Stage 8), which is a physically different station " +
+  "doing diff-carrier bolts, carrier height, preload and brake shim checks, and " +
+  "whose procedure is NOT trained here. If asked about ST130-135, you must NOT " +
+  "reuse any ST100 shim fact — say the Stage 8 shimming procedure is not trained " +
+  "and give its MES numbers instead.";
+
 export function buildStationScopeGuard(text: string): string {
   const ids = new Set<StationId>();
   for (const [re, id] of STATION_QUERY_MATCHERS) if (re.test(text)) ids.add(id);
@@ -161,13 +114,15 @@ export function buildStationScopeGuard(text: string): string {
     blocks.push(
       "[LINE-WIDE ANCHORING — the deep knowledge base (procedure, operator/tribal knowledge, " +
         "common-mistake history, POV recordings) covers ONLY ST100 · Pinion Guide; label every " +
-        "insight from it as ST100. CRITICAL: all 'shimming' facts in that KB are about ST100's " +
-        "shim-pack step (Step 7 of the pinion guide), NOT the separate ST130-135 Shimming " +
-        "station. For the rest of the line the only loaded data is each station's MES " +
+        "insight from it as ST100. " + SHIM_DISAMBIGUATION +
+        " For the rest of the line the only loaded data is each station's MES " +
         "acquisition snapshot (Full_stations_report), checks outside limits per station:\n" +
         mesLeaderboard() +
-        "\nAnchor every claim to its correct station. Deeper per-station knowledge arrives when " +
-        "the UNICOMM MCP server with VPN access to the station databases is connected.]",
+        "\nAnchor every claim to its correct station. Those are HISTORICAL snapshot counts. " +
+        "LIVE data for every station on the line is available too — ask about current " +
+        "activity, today's throughput or recent failures and it is answered from the MES " +
+        "directly. What is missing for stations other than ST100 is trained PROCEDURE " +
+        "knowledge (steps, components, what commonly goes wrong), not data access.]",
     );
   }
 
@@ -183,15 +138,23 @@ export function buildStationScopeGuard(text: string): string {
           "mounts LW/SW axle models (per Mohammed, Comer mechanical engineer)";
       return `- ${s.label} (${s.stage} — ${s.desc}): ${data}.`;
     });
+    const shimTrap = /\bshim|\bshimming|\bspessor/i.test(text) || ids.has("st130-135");
     blocks.push(
       "[STATION DATA SCOPE — DO NOT MIX STATIONS UP. The deep knowledge base " +
         "(procedure steps, components, supervisor/tribal knowledge, common-mistake history, POV " +
         "recordings) covers ONLY ST100 · Pinion Guide. The question touches other stations:\n" +
         lines.join("\n") +
-        "\nFor these stations answer ONLY from the MES snapshot numbers above. Say plainly that " +
-        "deeper knowledge for them is not loaded yet — it arrives when the UNICOMM MCP server with " +
-        "VPN access to their station databases is connected. NEVER attribute ST100 pinion-guide " +
-        "mistakes, components, bearing-cup or shim-pack facts to these stations.]",
+        "\nFor these stations answer ONLY from the snapshot numbers above, and NEVER attribute " +
+        "ST100 pinion-guide mistakes, components, bearing-cup or shim-pack facts to them. " +
+        "Be precise about what is and is not available: their PROCEDURE is not trained here " +
+        "(no step-by-step, no component recognition, no tribal knowledge), but their LIVE MES " +
+        "data IS accessible — current activity, phase history, measurements, pass/fail — via a " +
+        "question about the line. Do NOT say their data is unavailable or pending a connector. " +
+        "ATTRIBUTION IS MANDATORY: name the station every claim belongs to, even in a " +
+        "one-sentence answer. An unattributed statement about a station whose procedure is " +
+        "not trained reads as trained knowledge and is the failure to avoid." +
+        (shimTrap ? "\n" + SHIM_DISAMBIGUATION : "") +
+        "]",
     );
   }
 
@@ -846,7 +809,7 @@ kbRouter.post("/stations/:id/povs/:pid/analyze", async (req, res, next) => {
       .filter(Boolean)
       .join("\n");
 
-    const result = await llmCall({ system, user, maxTokens: 1600 });
+    const result = await llmCall({ route: "kb-pov", system, user, maxTokens: 1600 });
 
     let parsed: { summary?: string; suggestions?: KbPovSuggestion[] } = {};
     try {

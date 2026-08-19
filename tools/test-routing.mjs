@@ -58,6 +58,33 @@ const cases = [
   ['operator tips on the shim pack', 'brain'],
   ['how do I orient the small cup?', 'brain'],
   ['come si monta il cuscinetto?', 'brain'],
+
+  /* The database answers over history, not just the live snapshot. These all
+     used to reach the knowledge corpus, which correctly said it had no
+     production volumes and told the director to go ask the MES — the MES this
+     platform is already connected to. Every prompt in tools/mes-demo-queries
+     is pinned here so the demo set and the router cannot drift apart. */
+  ['How many units did we build today compared to yesterday?', 'line'],
+  ['Quante unità abbiamo prodotto oggi rispetto a ieri?', 'line'],
+  ['Show me every NOT OK result today and which station it was on', 'line'],
+  ['Which measurements went outside their min/max limits today?', 'line'],
+  ['Show me the full phase history for serial PCMRS0700653', 'line'],
+  ['Which operator badges have been active today and how many phases each?', 'line'],
+  ['What phases does station 710 run?', 'line'],
+  ['Which station had the most failures in the last 7 days?', 'line'],
+  ['Quali stazioni hanno avuto scarti oggi?', 'line'],
+  ['Is ST150 running right now?', 'line'],
+  ['Which stations have been idle for more than an hour?', 'line'],
+  ['Quanti pezzi ha fatto la ST150 questo turno?', 'line'],
+  ['What is the average cycle time at ST300 today?', 'line'],
+  /* A time window plus a MES object outranks procedural phrasing. */
+  ['Why did ST150 fail so much this week?', 'line'],
+  /* ...but the same topics without one stay tribal. */
+  ['What are the most common errors at PG-04?', 'brain'],
+  ['Quali sono gli errori più comuni alla PG-04?', 'brain'],
+  ['what torque spec do we use on the pinion nut?', 'brain'],
+  ['why does the shim pack take so many tries?', 'brain'],
+  ['how should I seat the bearing cup?', 'brain'],
 ];
 
 let bad = 0;

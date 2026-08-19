@@ -268,6 +268,7 @@ assistRouter.post("/", async (req, res, next) => {
     ].filter(Boolean);
 
     const result = await runGlassesQuery({
+      route: "assist-text",
       transcript: transcriptParts.join("\n"),
       k: body.k ?? 8,
       maxTokens: 480,
