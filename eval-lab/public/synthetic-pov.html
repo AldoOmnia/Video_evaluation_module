@@ -3,6 +3,10 @@
 <head>
   <script>
   (function () {
+    /* Bump on any change to the render/sizing path. The viewer runs inside an
+       iframe in the knowledge base, where a stale copy is hard to spot — this
+       makes "which build is the browser actually running" a one-line check. */
+    window.__TWIN_BUILD = "2026-08-21-spark-size";
     var h = location.hostname;
     if (h !== "localhost" && h !== "127.0.0.1") {
       document.documentElement.classList.add("splat-live");
@@ -25,10 +29,26 @@
         var el = document.getElementById(id);
         if (el) el.setAttribute("hidden", "");
       });
-    } else {
-      var labLink = document.getElementById("labHomeLink");
-      if (labLink) labLink.hidden = false;
     }
+
+    /* Send the back control wherever the viewer was opened from. The knowledge
+       base opens it in a fresh tab, so there is no history to pop — resolve a
+       real destination from the referrer and fall back to /home/. Retag rather
+       than just setting text: i18n.js loads dynamically here and may apply
+       before or after this runs. */
+    var back = document.getElementById("topBack");
+    try {
+      var ref = back && document.referrer ? new URL(document.referrer) : null;
+      if (ref && ref.origin === location.origin && ref.pathname.indexOf("/synthetic-pov") !== 0) {
+        back.href = ref.pathname + ref.search;
+        if (ref.pathname.indexOf("/knowledge") === 0) {
+          back.setAttribute("data-i18n", "nav.backKb");
+          back.textContent = window.OmniaI18n
+            ? window.OmniaI18n.t("nav.backKb", "← Knowledge base")
+            : "← Knowledge base";
+        }
+      }
+    } catch (e) { /* keep the /home/ default */ }
   });
   </script>
   <meta charset="utf-8" />
@@ -175,6 +195,19 @@
        one allowed to give up room, and it truncates rather than wraps. */
     #recPill { min-width: 0; flex-shrink: 1; }
     #recPill #recName { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    /* Way back to the platform. The viewer is a full page reached from the
+       home sidebar and from a new tab off the knowledge base, so it needs its
+       own exit — it has no nav sidebar of its own. Same slot and treatment as
+       the .back-home control on every other page. */
+    .top-back {
+      display: inline-flex; align-items: center;
+      padding: 4px 10px; border-radius: 5px;
+      border: 1px solid var(--line-2); background: transparent;
+      font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+      text-decoration: none; white-space: nowrap; flex-shrink: 0;
+      transition: color 140ms ease, border-color 140ms ease;
+    }
+    .top-back:hover { color: var(--primary); border-color: var(--primary-dim); }
     .top-spacer { flex: 1; min-width: 0; }
     .top-meta {
       display: flex; align-items: center; gap: 16px;
@@ -844,6 +877,7 @@
 
     <!-- Top bar -->
     <header class="topbar">
+      <a class="top-back" id="topBack" href="/home/" data-i18n="nav.backHome">← Home</a>
       <div class="brand">
         <img class="logo" src="/lab/assets/comer-logo-trim.png" alt="Comer Industries" />
         <span class="sub">· digital twin</span>
@@ -853,9 +887,6 @@
         <span id="recName">PG-04_pinion-guide_walk_0</span>
       </div>
       <div class="top-spacer"></div>
-      <a class="rec-pill" id="labHomeLink" href="/lab/" hidden
-         style="text-decoration:none;color:var(--ink-2);border-color:var(--line-2);"
-         title="Back to Comer AI · Eval Lab">← Eval Lab</a>
       <div class="top-meta">
         <span class="tm-algo">algorithm output · <b>semi-dense + closed-loop</b></span>
         <span class="tm-fps">fps <b id="fpsRead">—</b></span>
@@ -6334,6 +6365,14 @@
       });
       host.insertBefore(renderer.domElement, host.firstChild);
 
+      // Size the renderer BEFORE Spark sees it: SparkRenderer allocates its
+      // internal view from the renderer's drawing buffer at construction, and
+      // an unsized WebGLRenderer still reports three.js' 300x150 default. Get
+      // this order wrong and the splat renders into one corner of the canvas
+      // with the rest left black — intermittently, since it depends on when
+      // the first frame lands relative to layout.
+      size();
+
       scene.add(new SparkRenderer({ renderer }));
 
       const amb = new THREE.AmbientLight(0xffffff, 0.55);
@@ -7172,7 +7211,7 @@
          async by default and `defer` is ignored on them, so the previous
          ordering here was not actually guaranteed — it only happened to work
          because nothing was read at parse time. */
-      for (const src of ['platform.js?v=1', 'i18n.js?v=7', 'brain-dock.js?v=13']) {
+      for (const src of ['platform.js?v=1', 'i18n.js?v=8', 'brain-dock.js?v=13']) {
         const el = document.createElement('script');
         el.src = '/lab/assets/' + src;
         el.async = false;

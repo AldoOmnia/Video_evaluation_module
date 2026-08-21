@@ -309,6 +309,7 @@
 
     /* ── Back-home links (shared) ─────────────────────────── */
     'nav.backHome': '← Home',
+    'nav.backKb': '← Base di conoscenza',
   };
 
   const t = (key, en) => {
