@@ -55,7 +55,9 @@ export const STATIONS = [
     },
     report: { sheet: "ST100", phases: 17, checks: 96, ok: 86, nok: 10, sample: "bearing cups · inf/sup bearing press · shim pack · ring retainer · rolling torque" },
   },
-  { id: "st110", label: "ST110 · Brake & Cover", stage: "Stage 2", desc: "Expanding plug · bearing cone · LH diff carrier assy", tier: "core", flow: "main", stageNo: 2, active: false, procedureId: null,
+  // Known on the floor as the "diff cover" station, after the expansion plug
+  // it inserts. Next station targeted for cameras after the ST100 pilot.
+  { id: "st110", label: "ST110 · Brake & Cover", stage: "Stage 2", desc: "Diff cover station — expansion plug · bearing cone · LH diff carrier assy", tier: "core", flow: "main", stageNo: 2, active: false, procedureId: null,
     report: { sheet: "ST110", phases: 3, checks: 6, ok: 4, nok: 2, sample: "expanding plug · bearing cone · carrier bearing assy" } },
   { id: "st130-135", label: "ST130-135 · Shimming", stage: "Stage 8", desc: "Diff carrier bolts · preload · shims · brake shim check", tier: "core", flow: "main", stageNo: 8, active: false, procedureId: null,
     report: { sheet: "ST130-135", phases: 20, checks: 143, ok: 140, nok: 3, sample: "bolt on diff carrier · carrier height · preload · shim tot · brake shim check" } },

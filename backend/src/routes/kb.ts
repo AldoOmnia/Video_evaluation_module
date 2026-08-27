@@ -45,7 +45,9 @@ const MAX_FILE_BYTES = 8 * 1024 * 1024; // fits inside the 12mb JSON body cap
  * station when we can is the worse error of the two. */
 const STATION_QUERY_MATCHERS: ReadonlyArray<readonly [RegExp, StationId]> = [
   [/\bst\.?\s*-?\s*100\b|pinion\s+guide/i, "pg-04"],
-  [/\bst\.?\s*-?\s*110\b|brake\s*(?:&|and)\s*cover/i, "st110"],
+  // "diff cover" is the shop-floor name for ST110, and the expansion plug is
+  // the operation people name it by — neither says "ST110" or "brake & cover".
+  [/\bst\.?\s*-?\s*110\b|brake\s*(?:&|and)\s*cover|diff(?:erential)?\s+cover|expan(?:sion|ding)\s+plug/i, "st110"],
   [/\bst\.?\s*-?\s*13[05]\b|shimming\s+(?:station|line|area|cell|bay)/i, "st130-135"],
   [/\bst\.?\s*-?\s*140\b|brake\s+complete/i, "st140"],
   [/\bst\.?\s*-?\s*150\b|pinion\s+complete/i, "st150"],
@@ -144,10 +146,17 @@ export function buildStationScopeGuard(text: string): string {
         "(procedure steps, components, supervisor/tribal knowledge, common-mistake history, POV " +
         "recordings) covers ONLY ST100 · Pinion Guide. The question touches other stations:\n" +
         lines.join("\n") +
-        "\nFor these stations answer ONLY from the snapshot numbers above, and NEVER attribute " +
-        "ST100 pinion-guide mistakes, components, bearing-cup or shim-pack facts to them. " +
+        "\nFor these stations answer from the snapshot numbers above, plus ONLY those context " +
+        "entries whose own text names the station itself (e.g. 'ST110 is the diff cover " +
+        "station'). Every other entry in the corpus — all operator/tribal knowledge, " +
+        "common-mistake history, POV findings — describes ST100 even where it reads " +
+        "generically as 'the station', 'this station' or 'operators', and must NEVER be " +
+        "restated against a different station. That generic phrasing is the trap: an ST100 " +
+        "fact about 'the two most error-prone tasks on the station' is about the PINION GUIDE. " +
+        "NEVER attribute ST100 pinion-guide mistakes, components, bearing-cup or shim-pack " +
+        "facts to them. " +
         "Be precise about what is and is not available: their PROCEDURE is not trained here " +
-        "(no step-by-step, no component recognition, no tribal knowledge), but their LIVE MES " +
+        "(no step-by-step, no component recognition, no common-mistake history), but their LIVE MES " +
         "data IS accessible — current activity, phase history, measurements, pass/fail — via a " +
         "question about the line. Do NOT say their data is unavailable or pending a connector. " +
         "ATTRIBUTION IS MANDATORY: name the station every claim belongs to, even in a " +
