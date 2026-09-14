@@ -198,7 +198,7 @@ const SCOPE_MIN_REFS = 2;
  * contrast. On device this narrowing is the difference between deterministic
  * and coin-flip identification for the look-alike pairs.
  */
-export function referenceParts(opts: { scopeSku?: string } = {}): GeminiPart[] {
+export function referenceParts(opts: { scopeSku?: string; onePerSku?: boolean } = {}): GeminiPart[] {
   const all = referenceLibrary();
   const scope = opts.scopeSku?.trim().toUpperCase();
   let refs = all;
@@ -206,6 +206,19 @@ export function referenceParts(opts: { scopeSku?: string } = {}): GeminiPart[] {
     const drop = new Set(SCOPE_WITHHOLD[scope]);
     const narrowed = all.filter((r) => !drop.has(r.sku.toUpperCase()));
     if (narrowed.length >= SCOPE_MIN_REFS && narrowed.length < all.length) refs = narrowed;
+  }
+  // One canonical pose per SKU, as the glasses' dedupeRefsBySku does: uploading
+  // every angle is the single biggest driver of call latency. Worth it when the
+  // question is only "which part is this" — the images list puts the
+  // correct-orientation view first, which is the one to ask identity against.
+  if (opts.onePerSku) {
+    const seen = new Set<string>();
+    refs = refs.filter((r) => {
+      const k = r.sku.toUpperCase();
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
   }
 
   const parts: GeminiPart[] = [];

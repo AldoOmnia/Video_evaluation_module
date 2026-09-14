@@ -242,6 +242,102 @@ function ground(raw: RawFrame, t: number): ReasonedFrame {
   };
 }
 
+/** Frames used to settle identity. Enough to find one with the hand or the
+ *  fixture in shot, few enough that the extra call stays cheap. */
+const ID_FRAMES = 5;
+
+interface ClipIdentity {
+  sku: string | null;
+  alternative: string | null;
+  confidence: number;
+  reasoning: string;
+}
+
+/**
+ * Decide WHICH part a clip is of, once, before judging any orientation.
+ *
+ * Without this the reasoner answers identity and orientation together on every
+ * frame, and for the look-alike pairs that goes wrong in the one way that
+ * matters: the pairs run OPPOSITE conventions, so a mis-identification does not
+ * mislabel the part, it inverts the verdict. Unpinned clips of the step-6 cone
+ * came back named as the step-4 cone — the more heavily referenced class — with
+ * the verdict flipped to match.
+ *
+ * Two things make this pass better at identity than the per-frame pass:
+ *
+ *  - It pools the whole clip. Scale is the only cue that separates a pair, and
+ *    it is present in some frames and absent in others; a per-frame decision
+ *    re-litigates identity on frames that cannot support one, while an operator
+ *    turning a part over will bring it past the fixture at least once.
+ *  - Orientation is explicitly not its job, so it cannot reach for "which face
+ *    is up" as an identity cue — the circular reasoning the catalogue
+ *    fingerprints invite, since they describe each part's correct pose.
+ *
+ * Its answer then scopes the orientation pass exactly as a manual pin does,
+ * withholding the look-alike from the vocabulary. That narrowing is the lever
+ * the glasses measured as effective where prompt wording alone was not.
+ */
+async function identifyClip(
+  frames: Array<{ t: number; dataBase64: string; mimeType?: string }>,
+  lang?: "en" | "it",
+): Promise<ClipIdentity> {
+  const step = Math.max(1, Math.floor(frames.length / ID_FRAMES));
+  const picked = frames.filter((_, i) => i % step === 0).slice(0, ID_FRAMES);
+
+  const prompt =
+    "You are identifying ONE part for the Comer Industries digital twin, from a " +
+    "short point-of-view clip shot at station ST.100. Every frame below is the " +
+    "SAME part, held or placed by an operator.\n\n" +
+    "Your ONLY job is to say WHICH part it is. Do NOT judge orientation, and do " +
+    "NOT let orientation influence identity — the reference notes describe each " +
+    "part's correct pose, so 'which face is up' says nothing about which part " +
+    "you are looking at.\n\n" +
+    "Pool evidence across ALL the frames rather than deciding from one. Two " +
+    "pairs in this vocabulary are separated mainly by SIZE, and size can only " +
+    "be judged against something known:\n" +
+    "  - the CONES 248118A1 (step 4, larger) and 67190R91 (step 6, ~82mm, about " +
+    "a palm's width)\n" +
+    "  - the CUPS 248114A1 (step 1, larger, broad stamped rim) and 191440A1 " +
+    "(step 2, ~140mm OD, narrow stamped band)\n" +
+    "Use any frame that shows the part against a gloved hand, the fixture " +
+    "pocket, the bench or a bin label as your ruler, and carry that conclusion " +
+    "to the frames that have no scale cue. A part that fills the frame is not " +
+    "necessarily large.\n\n" +
+    "Also use shape family: a CUP is a plain outer race ring with no rollers; a " +
+    "CONE carries a visible roller cage; a RETAINER RING shows two through-holes " +
+    "~180 degrees apart. A legible stamped part number overrides everything.\n\n" +
+    'Answer ONLY with raw JSON: {"sku": string|null, "alternative": string|null, ' +
+    '"confidence": number, "reasoning": string}. `alternative` is the part you ' +
+    "would name if you are wrong (the look-alike you weighed against), or null. " +
+    "`confidence` is 0-1 for the identification. Keep `reasoning` under 20 words " +
+    "and say which scale cue decided it. sku must be null only if no reference " +
+    "part is the subject of any frame." +
+    (lang === "it" ? " Write reasoning in Italian (keep part numbers unchanged)." : "");
+
+  const parts: GeminiPart[] = [{ text: prompt }, ...referenceParts({ onePerSku: true })];
+  picked.forEach((f, i) => {
+    parts.push({ text: `FRAME ${i + 1} of ${picked.length} (t=${f.t.toFixed(1)}s):` });
+    parts.push({
+      inline_data: { mime_type: f.mimeType || "image/jpeg", data: rawBase64(f.dataBase64) },
+    });
+  });
+
+  const out = await geminiVisionCall(parts, {
+    route: "pov-reason",
+    maxOutputTokens: 220,
+    timeoutMs: 30_000,
+  });
+  const parsed = parseJsonish<ClipIdentity>(out.text);
+  const { sku } = resolveFlipSku(parsed.sku);
+  return {
+    // Only accept a SKU the reference library actually knows.
+    sku: sku && GLASSES_COMPONENTS[sku] ? sku : null,
+    alternative: typeof parsed.alternative === "string" ? parsed.alternative : null,
+    confidence: Math.max(0, Math.min(1, Number(parsed.confidence ?? 0))),
+    reasoning: String(parsed.reasoning ?? "").slice(0, 200),
+  };
+}
+
 /**
  * The device's raise condition, ported from WrongPartGuard.kt
  * (comer-rokid-demo, constants retuned on site 2026-09-12 against a measured
@@ -334,10 +430,17 @@ povRouter.post("/reason", async (req, res, next) => {
       });
     }
 
-    const expectSku = body.expectSku ? resolveFlipSku(body.expectSku).sku : null;
-    // Narrowed to the pinned part's family, dropping the look-alike it would
-    // otherwise be free to answer with — the lever that actually moved the
-    // numbers on device, where prompt wording alone did not.
+    const pinned = body.expectSku ? resolveFlipSku(body.expectSku).sku : null;
+    // No pin — settle identity first rather than leaving it to be re-decided on
+    // every frame alongside orientation. Below this confidence the pair was not
+    // separable from the footage, and scoping on a coin-flip would be worse than
+    // not scoping: it would hide the true part from the vocabulary entirely.
+    const identity = pinned ? null : await identifyClip(body.frames, body.lang);
+    const inferred = identity && identity.confidence >= 0.6 ? identity.sku : null;
+    const expectSku = pinned ?? inferred;
+    // Narrowed to the part's family, dropping the look-alike it would otherwise
+    // be free to answer with — the lever that actually moved the numbers on
+    // device, where prompt wording alone did not.
     const refParts = referenceParts({ scopeSku: expectSku ?? undefined });
     const parts: GeminiPart[] = [
       { text: buildPrompt(body.lang, expectSku ?? undefined) },
@@ -400,6 +503,35 @@ povRouter.post("/reason", async (req, res, next) => {
       model: out.model,
       latencyMs: out.latencyMs,
       references: attachedRefs,
+      // What settled the part, so the viewer can show the reasoner's own
+      // identification and a reviewer can tell it from a pin they set.
+      identity: identity
+        ? {
+            sku: identity.sku,
+            applied: Boolean(inferred),
+            alternative: identity.alternative,
+            confidence: identity.confidence,
+            reasoning: identity.reasoning,
+            // True when the runner-up is the SAME-shape partner that runs the
+            // OPPOSITE convention. Then identity is not a labelling detail: if
+            // it is wrong the verdict is inverted, not merely mis-named. High
+            // model confidence is no comfort here — the cone pair reports 0.98
+            // either way — so the viewer must caveat rather than assert, and
+            // the one-click pin is the way to settle it.
+            pairRisk: Boolean(
+              inferred &&
+                identity.alternative &&
+                PAIRS[inferred] === resolveFlipSku(identity.alternative).sku,
+            ),
+          }
+        : {
+            sku: pinned,
+            applied: Boolean(pinned),
+            alternative: null,
+            confidence: 1,
+            reasoning: "pinned",
+            pairRisk: false,
+          },
       frames,
       summary: {
         skus,
