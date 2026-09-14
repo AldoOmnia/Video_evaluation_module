@@ -185,11 +185,32 @@
     'tw.aiCardHead': 'Interprete AI · ',
     'tw.povBuiltin': 'PG-04 percorso · integrato',
     'tw.syncReports': '⟳ sincronizza report',
-    'tw.upload': '+ carica',
     'tw.eyeLevel': 'altezza occhi',
     'tw.step': 'fase',
     'tw.observing': 'osservazione',
     'tw.sees': 'vede: ',
+
+    /* Clip rail + per-frame orientation verdicts. The verdict headline stays
+       uppercase like the glasses overlay copy it mirrors. */
+    'tw.clipBuiltin': 'percorso',
+    'tw.clipBuiltinTitle': 'Percorso della stazione — pre-annotato dall\'interprete AI',
+    'tw.clipGroup': 'Clip aggiunte · questa sessione',
+    'tw.clipAddTitle': 'Aggiungi clip POV (mp4 / webm / mov) — es. componenti tenuti nell\'orientamento corretto o errato',
+    'tw.clipAnalyze': '✦ analizza',
+    'tw.clipReading': '✦ lettura…',
+    'tw.clipThinking': '✦ ragionamento…',
+    'tw.clipFailed': '✦ errore — riprova',
+    'tw.clipNewTitle': 'Aggiunta in questa sessione — non ancora analizzata',
+    'tw.clipBusyTitle': 'Analisi in corso sulle immagini di riferimento della stazione…',
+    'tw.clipWrongTitle': 'orientamento errato rilevato',
+    'tw.clipOkTitle': 'orientamento corretto in tutta la clip',
+    'tw.clipUnclearTitle': 'orientamento non giudicabile',
+    'tw.vdOk': 'orientamento corretto',
+    'tw.vdWrong': 'ORIENTAMENTO ERRATO',
+    'tw.vdUnclear': 'orientamento non chiaro',
+    'tw.vdOkBox': 'Corrisponde al riferimento',
+    'tw.vdWrongNoGuard': 'Capovolto — ma per questo componente non è previsto alcun avviso di orientamento sugli occhiali',
+    'tw.conf': 'conf',
 
     /* ── Settings · admin console ─────────────────────────────
        The step-by-step technical documentation (MCP connector, Cisco VPN) and

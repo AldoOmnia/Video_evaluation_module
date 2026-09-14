@@ -6,7 +6,7 @@
     /* Bump on any change to the render/sizing path. The viewer runs inside an
        iframe in the knowledge base, where a stale copy is hard to spot — this
        makes "which build is the browser actually running" a one-line check. */
-    window.__TWIN_BUILD = "2026-08-21-spark-size";
+    window.__TWIN_BUILD = "2026-09-14-clip-rail";
     var h = location.hostname;
     if (h !== "localhost" && h !== "127.0.0.1") {
       document.documentElement.classList.add("splat-live");
@@ -697,13 +697,21 @@
       color: var(--primary); border-color: var(--primary-dim);
       background: rgba(0,229,160,0.10);
     }
+    /* The card is pointer-transparent so it never eats a drag on the video;
+       the rail below it has to take clicks, so it opts back in. */
+    .ai-stack {
+      position: absolute; top: 26px; left: 8px; right: 8px; z-index: 4;
+      display: flex; flex-direction: column; align-items: flex-start; gap: 5px;
+      pointer-events: none;
+    }
     .ai-card {
-      position: absolute; top: 26px; left: 8px; z-index: 4;
-      max-width: min(340px, 74%);
+      /* Prose wants a short measure; the rail below it does not, so the cap
+         lives here rather than on the stack. */
+      max-width: min(340px, 100%);
       font-family: var(--mono); font-size: 10px; color: var(--ink-2);
       background: rgba(4,6,6,0.82); border: 1px solid var(--line-2);
       border-radius: 6px; padding: 7px 10px; line-height: 1.5;
-      backdrop-filter: blur(5px); pointer-events: none;
+      backdrop-filter: blur(5px);
     }
     .ai-card-head {
       display: flex; align-items: center; gap: 6px;
@@ -715,15 +723,78 @@
       animation: pulse 1.6s infinite;
     }
     .ai-card-head b { color: var(--primary); font-weight: 500; }
+    /* A verdict headline must not read green while it says WRONG ORIENTATION. */
+    .ai-card.vd-wrong .ai-card-head b { color: var(--amber); }
+    .ai-card.vd-unclear .ai-card-head b { color: var(--ink-2); }
     .ai-card-cap { color: var(--ink-1); font-size: 10.5px; }
-    .ai-card-obs { margin-top: 3px; color: var(--ink-3); font-size: 9px; }
+    /* pre-line: the clip reasoner puts the part identification and the
+       feature it judged on separate lines. */
+    .ai-card-obs { margin-top: 3px; color: var(--ink-3); font-size: 9px; white-space: pre-line; }
     .ai-card-obs span { color: var(--ink-2); }
     .ai-card-dev {
       margin-top: 4px; padding: 3px 7px; border-radius: 4px;
       border: 1px solid rgba(245,158,11,0.45); background: rgba(245,158,11,0.10);
       color: var(--amber); font-size: 9.5px;
     }
+    /* Green counterpart of .ai-card-dev: the reasoner confirming a part is
+       oriented the way the procedure wants it. Worth stating positively —
+       these clips are run to prove the check works, not only to trip it. */
+    .ai-card-ok {
+      margin-top: 4px; padding: 3px 7px; border-radius: 4px;
+      border: 1px solid var(--primary-dim); background: rgba(0,229,160,0.09);
+      color: var(--primary); font-size: 9.5px;
+    }
     html.embed-splat .ai-card { display: none !important; }
+
+    /* Clip rail — switch between the built-in walkthrough and clips added for
+       this session, and add more. Chips carry the reasoner's verdict once a
+       clip has been analyzed, so the rail doubles as the result summary. */
+    .clip-rail {
+      display: flex; align-items: center; gap: 4px; max-width: 100%;
+      pointer-events: auto;
+    }
+    .clip-chips {
+      display: flex; align-items: center; gap: 4px;
+      min-width: 0; overflow-x: auto; scrollbar-width: none;
+    }
+    .clip-chips::-webkit-scrollbar { display: none; }
+    .clip-chip {
+      display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;
+      max-width: 150px;
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.03em;
+      color: var(--ink-2); background: rgba(4,6,6,0.82);
+      border: 1px solid var(--line-2); border-radius: 4px;
+      padding: 3px 7px; cursor: pointer; white-space: nowrap;
+      backdrop-filter: blur(5px);
+      transition: color 140ms ease, border-color 140ms ease;
+    }
+    .clip-chip:hover { color: var(--primary); border-color: var(--primary-dim); }
+    .clip-chip.is-active {
+      color: var(--primary); border-color: var(--primary-dim);
+      background: rgba(0,229,160,0.12);
+    }
+    .clip-chip .nm { overflow: hidden; text-overflow: ellipsis; }
+    /* Verdict glyph: ✓ correct · ! caught a flip · ? couldn't tell */
+    .clip-chip .vd { font-size: 9px; flex-shrink: 0; }
+    .clip-chip .vd.ok { color: var(--primary); }
+    .clip-chip .vd.wrong { color: var(--amber); }
+    .clip-chip .vd.unclear { color: var(--ink-3); }
+    .clip-chip .vd.busy { color: var(--ink-3); animation: pulse 1.4s infinite; }
+    .clip-rail .clip-act,
+    .clip-rail .clip-add {
+      flex-shrink: 0; font-family: var(--mono); font-size: 9px;
+      color: var(--ink-2); background: rgba(4,6,6,0.82);
+      border: 1px solid var(--line-2); border-radius: 4px;
+      padding: 3px 7px; cursor: pointer; white-space: nowrap;
+      backdrop-filter: blur(5px);
+      transition: color 140ms ease, border-color 140ms ease;
+    }
+    .clip-rail .clip-add { padding: 3px 8px; font-size: 12px; line-height: 1; }
+    .clip-rail .clip-act:hover,
+    .clip-rail .clip-add:hover { color: var(--primary); border-color: var(--primary-dim); }
+    .clip-rail .clip-act[disabled] { opacity: 0.6; cursor: default; }
+    .clip-rail .clip-act.is-busy { color: var(--primary); border-color: var(--primary-dim); }
+    html.embed-splat .clip-rail { display: none !important; }
 
     /* Worker-POV source: report-frame still overlay + source picker */
     .pov-still { position: absolute; inset: 0; z-index: 3; background: #000; }
@@ -954,19 +1025,34 @@
               <div class="cam-rec"><span class="rd"></span>REC</div>
               <div class="cam-cross"></div>
             </div>
-            <div class="ai-card" id="aiCard" hidden>
-              <div class="ai-card-head"><span class="ai-dot"></span><span data-i18n="tw.aiCardHead">AI reasoner · </span><b id="aiCardStep">observing</b></div>
-              <div class="ai-card-cap" id="aiCardCap"></div>
-              <div class="ai-card-obs" id="aiCardObs" hidden></div>
-              <div class="ai-card-dev" id="aiCardDev" hidden></div>
+            <!-- Reasoner output and the clip rail share one column so the rail
+                 always sits directly under the card, whatever height the
+                 caption takes — and rides up to the top when the reasoner is
+                 off, since clips still need switching. -->
+            <div class="ai-stack">
+              <div class="ai-card" id="aiCard" hidden>
+                <div class="ai-card-head"><span class="ai-dot"></span><span data-i18n="tw.aiCardHead">AI reasoner · </span><b id="aiCardStep">observing</b></div>
+                <div class="ai-card-cap" id="aiCardCap"></div>
+                <div class="ai-card-obs" id="aiCardObs" hidden></div>
+                <div class="ai-card-ok" id="aiCardOk" hidden></div>
+                <div class="ai-card-dev" id="aiCardDev" hidden></div>
+              </div>
+              <div class="clip-rail" id="clipRail">
+                <div class="clip-chips" id="clipChips"></div>
+                <button type="button" class="clip-act" id="clipAnalyzeBtn" hidden
+                        data-i18n="tw.clipAnalyze"
+                        title="Run the AI reasoner over this clip — Gemini vision against the station's reference images">✦ analyze</button>
+                <button type="button" class="clip-add" id="clipAddBtn"
+                        data-i18n-title="tw.clipAddTitle" aria-label="Add POV clips"
+                        title="Add POV clips (mp4 / webm / mov) — e.g. parts held in correct and wrong orientation">+</button>
+                <input type="file" id="clipAddInput" accept="video/*" multiple hidden />
+              </div>
             </div>
             <div class="pov-src-bar">
               <select id="povSource" title="Worker POV source" aria-label="Worker POV source">
                 <option value="builtin" data-i18n="tw.povBuiltin">PG-04 walkthrough · built-in</option>
               </select>
               <button type="button" id="povSyncBtn" data-i18n="tw.syncReports" title="Pull captured warning POVs from the Reports tab">⟳ sync reports</button>
-              <button type="button" id="povUploadBtn" data-i18n="tw.upload" title="Upload an additional POV recording (mp4 / webm / mov)">+ upload</button>
-              <input type="file" id="povUploadInput" accept="video/*" hidden />
             </div>
           </div>
         </div>
@@ -2154,22 +2240,107 @@
       povVideo.play().catch(() => {});
     }
 
-    // ── Worker-POV sources — sync captured warning POVs from the Reports
-    //    tab, or upload additional recordings (kept local to the browser) ──
-    (function setupPovSources() {
+    // ── Worker-POV sources ─────────────────────────────────────────────
+    // Three kinds of thing can play in this quadrant: the built-in station
+    // walkthrough, warning frames captured by the glasses (stills, pulled
+    // from the Reports tab), and clips added here for the session — parts
+    // held correct or wrong-side-up, to see whether the reasoner catches it.
+    //
+    // The <select> stays the full list and the single source of truth for
+    // "what is playing"; the chip rail over the video is a fast switcher for
+    // the video clips only, and carries each clip's verdict once analyzed.
+    // Both funnel through applySource() so the two can never disagree.
+    const povSources = (function setupPovSources() {
+      const T = (k, en) => (window.OmniaI18n ? window.OmniaI18n.t(k, en) : en);
       const sel = document.getElementById("povSource");
       const syncBtn = document.getElementById("povSyncBtn");
-      const uploadBtn = document.getElementById("povUploadBtn");
-      const uploadInput = document.getElementById("povUploadInput");
       const still = document.getElementById("povStill");
       const stillImg = document.getElementById("povStillImg");
       const stillTag = document.getElementById("povStillTag");
-      if (!sel || !still) return;
+      const chipBox = document.getElementById("clipChips");
+      const addBtn = document.getElementById("clipAddBtn");
+      const addInput = document.getElementById("clipAddInput");
+      const analyzeBtn = document.getElementById("clipAnalyzeBtn");
+      if (!sel || !still) return { activeKey: () => "builtin", timelineFor: () => null };
 
       const reportFrames = [];   // { src, label, code, worker }
-      const uploads = [];        // { url, name }
       let reportGroup = null;
-      let uploadGroup = null;
+      let clipGroup = null;
+
+      /** Playable video sources, in rail order. `timeline` is the reasoner's
+       *  cached verdicts: the built-in clip's comes pre-annotated from the
+       *  build, added clips get theirs from /api/pov/reason on demand. */
+      const clips = [{
+        key: "builtin",
+        label: T("tw.clipBuiltin", "walkthrough"),
+        src: CONFIG.povVideo,
+        kind: "walkthrough",
+        timeline: null,
+        state: "ready",
+        summary: null,
+      }];
+      let active = "builtin";
+
+      const clipByKey = (k) => clips.find((c) => c.key === k) || null;
+
+      /* ── rail ──────────────────────────────────────────────────────── */
+
+      const VERDICT_GLYPH = { ok: "✓", wrong: "!", unclear: "?" };
+
+      function renderChips() {
+        chipBox.innerHTML = "";
+        clips.forEach((c) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "clip-chip" + (c.key === active ? " is-active" : "");
+          b.dataset.key = c.key;
+          const nm = document.createElement("span");
+          nm.className = "nm";
+          nm.textContent = c.label;
+          b.appendChild(nm);
+          if (c.state === "busy" || c.state === "ready" && c.summary) {
+            const vd = document.createElement("span");
+            vd.className = "vd " + (c.state === "busy" ? "busy" : (c.summary?.verdict || "unclear"));
+            vd.textContent = c.state === "busy" ? "✦" : (VERDICT_GLYPH[c.summary?.verdict] || "?");
+            b.appendChild(vd);
+          }
+          b.title = clipTitle(c);
+          b.addEventListener("click", () => applySource(c.key));
+          chipBox.appendChild(b);
+        });
+        renderAnalyzeBtn();
+      }
+
+      function clipTitle(c) {
+        if (c.kind === "walkthrough") {
+          return T("tw.clipBuiltinTitle", "Station walkthrough — pre-annotated by the AI reasoner");
+        }
+        if (c.state === "busy") return T("tw.clipBusyTitle", "Analyzing against the station's reference images…");
+        if (!c.summary) return T("tw.clipNewTitle", "Added this session — not analyzed yet");
+        const s = c.summary;
+        const part = s.component ? s.component + " · " : "";
+        if (s.verdict === "wrong") {
+          return part + T("tw.clipWrongTitle", "wrong orientation caught") +
+            ` (${s.wrongFrames}/${s.wrongFrames + s.okFrames})`;
+        }
+        if (s.verdict === "ok") return part + T("tw.clipOkTitle", "orientation correct throughout");
+        return part + T("tw.clipUnclearTitle", "orientation could not be judged");
+      }
+
+      function renderAnalyzeBtn() {
+        const c = clipByKey(active);
+        // The built-in clip ships with its timeline, and an analyzed clip has
+        // nothing left to ask for — the button only appears where it acts.
+        const show = Boolean(c && c.kind === "clip" && c.state !== "busy" && !c.timeline);
+        analyzeBtn.hidden = !show;
+        if (show) {
+          analyzeBtn.disabled = false;
+          analyzeBtn.classList.remove("is-busy");
+          analyzeBtn.textContent = T("tw.clipAnalyze", "✦ analyze");
+        }
+      }
+
+      /* ── playback ──────────────────────────────────────────────────── */
 
       function showVideo(src, { loop = true } = {}) {
         still.hidden = true;
@@ -2192,14 +2363,168 @@
         still.hidden = false;
       }
 
-      sel.addEventListener("change", () => {
-        const v = sel.value;
-        if (v === "builtin") { showVideo(CONFIG.povVideo); return; }
-        const [kind, idxStr] = v.split(":");
-        const idx = Number(idxStr);
-        if (kind === "rpt" && reportFrames[idx]) showStill(reportFrames[idx]);
-        else if (kind === "up" && uploads[idx]) showVideo(uploads[idx].url);
+      /** The one path that changes what plays, whichever control asked. */
+      function applySource(value) {
+        if (sel.value !== value) sel.value = value;
+        const c = clipByKey(value);
+        if (c) {
+          active = value;
+          showVideo(c.src);
+        } else {
+          // A captured report still — no clip is playing, so no chip is active.
+          active = null;
+          const [kind, idxStr] = String(value).split(":");
+          if (kind === "rpt" && reportFrames[Number(idxStr)]) showStill(reportFrames[Number(idxStr)]);
+        }
+        renderChips();
+        aiInterp.useSource(active);
+      }
+
+      sel.addEventListener("change", () => applySource(sel.value));
+
+      /* ── add clips ─────────────────────────────────────────────────── */
+
+      addBtn?.addEventListener("click", () => addInput?.click());
+      addInput?.addEventListener("change", () => {
+        const files = [...(addInput.files || [])];
+        addInput.value = "";
+        if (!files.length) return;
+        if (!clipGroup) {
+          clipGroup = document.createElement("optgroup");
+          clipGroup.label = T("tw.clipGroup", "Clips added · this session");
+        }
+        let firstKey = null;
+        files.forEach((file, n) => {
+          const key = `clip:${clips.length}`;
+          clips.push({
+            key,
+            label: shortName(file.name),
+            src: URL.createObjectURL(file),
+            kind: "clip",
+            timeline: null,
+            state: "new",
+            summary: null,
+          });
+          const opt = document.createElement("option");
+          opt.value = key;
+          opt.textContent = file.name;
+          clipGroup.appendChild(opt);
+          if (n === 0) firstKey = key;
+        });
+        sel.appendChild(clipGroup);
+        if (firstKey) applySource(firstKey);
       });
+
+      /** File names run long ("IMG_4127_cup_flipped_take2.mov"); the chip has
+       *  ~150px, so drop the extension and keep the tail, which is where the
+       *  distinguishing part of a take name lives. */
+      function shortName(name) {
+        const base = name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
+        return base.length > 22 ? "…" + base.slice(-21) : base || "clip";
+      }
+
+      /* ── analyze ───────────────────────────────────────────────────── */
+
+      /** Frames per clip sent for reasoning — matches MAX_FRAMES on the
+       *  server. Held-part clips are a few seconds long, so this is dense. */
+      const MAX_FRAMES = 12;
+      const FRAME_EVERY_S = 1.5;
+
+      /** Grab evenly spaced JPEG frames from a clip in the browser. Seeks can
+       *  stall on odd containers, so each one races a timeout rather than
+       *  hanging the analyze run. */
+      async function sampleFrames(src, onProgress) {
+        const v = document.createElement("video");
+        v.muted = true;
+        v.playsInline = true;
+        v.preload = "auto";
+        v.src = src;
+        await new Promise((resolve, reject) => {
+          v.addEventListener("loadedmetadata", resolve, { once: true });
+          v.addEventListener("error", () => reject(new Error("clip could not be decoded")), { once: true });
+          setTimeout(() => reject(new Error("clip took too long to open")), 15000);
+        });
+        const dur = isFinite(v.duration) && v.duration > 0 ? v.duration : 0;
+        if (!dur) throw new Error("clip has no duration");
+
+        const n = Math.max(1, Math.min(MAX_FRAMES, Math.round(dur / FRAME_EVERY_S)));
+        const canvas = document.createElement("canvas");
+        const vw = v.videoWidth || 640;
+        const vh = v.videoHeight || 360;
+        const scale = Math.min(1, 640 / vw);
+        canvas.width = Math.round(vw * scale);
+        canvas.height = Math.round(vh * scale);
+        const ctx = canvas.getContext("2d");
+
+        const out = [];
+        for (let i = 0; i < n; i++) {
+          // Mid-interval samples: the first and last moments of a clip are
+          // usually the operator's hand moving into or out of frame.
+          const t = Math.min(dur - 0.05, (dur * (i + 0.5)) / n);
+          await new Promise((resolve) => {
+            let done = false;
+            const finish = () => { if (!done) { done = true; resolve(); } };
+            v.addEventListener("seeked", finish, { once: true });
+            setTimeout(finish, 4000);
+            v.currentTime = t;
+          });
+          ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+          out.push({
+            t: Number(t.toFixed(2)),
+            dataBase64: canvas.toDataURL("image/jpeg", 0.72).split(",")[1],
+          });
+          onProgress?.(out.length, n);
+        }
+        v.removeAttribute("src");
+        return out;
+      }
+
+      async function analyzeActive() {
+        const c = clipByKey(active);
+        if (!c || c.kind !== "clip" || c.state === "busy") return;
+        c.state = "busy";
+        renderChips();
+        analyzeBtn.hidden = false;
+        analyzeBtn.disabled = true;
+        analyzeBtn.classList.add("is-busy");
+        const setLabel = (s) => { analyzeBtn.textContent = s; };
+        setLabel(T("tw.clipReading", "✦ reading…"));
+        try {
+          const frames = await sampleFrames(c.src, (i, n) => setLabel(`✦ ${i}/${n}`));
+          setLabel(T("tw.clipThinking", "✦ reasoning…"));
+          const r = await fetch("/api/pov/reason", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              clip: c.label,
+              frames,
+              lang: window.OmniaLang ? window.OmniaLang.get() : undefined,
+            }),
+          });
+          if (!r.ok) throw new Error(`server said ${r.status}`);
+          const d = await r.json();
+          if (d.stubbed) throw new Error(d.note || "vision not configured on the server");
+          c.timeline = { kind: "clip", frames: d.frames || [] };
+          c.summary = d.summary || null;
+          c.state = "ready";
+          renderChips();
+          if (active === c.key) {
+            aiInterp.useSource(active);
+            aiInterp.enable();   // results are the point — show them
+          }
+        } catch (e) {
+          console.warn("[synthetic-pov] clip analysis failed:", e);
+          c.state = "new";
+          renderChips();
+          analyzeBtn.hidden = false;
+          analyzeBtn.disabled = false;
+          analyzeBtn.classList.remove("is-busy");
+          setLabel(T("tw.clipFailed", "✦ failed — retry"));
+        }
+      }
+      analyzeBtn?.addEventListener("click", analyzeActive);
+
+      /* ── report stills ─────────────────────────────────────────────── */
 
       async function syncReports() {
         syncBtn.disabled = true;
@@ -2224,7 +2549,7 @@
             });
           });
           sel.appendChild(reportGroup);
-          if (uploadGroup) sel.appendChild(uploadGroup); // keep uploads last
+          if (clipGroup) sel.appendChild(clipGroup); // keep added clips last
           syncBtn.textContent = reportFrames.length ? `✓ ${reportFrames.length} synced` : "no POVs yet";
         } catch {
           syncBtn.textContent = "sync failed";
@@ -2235,84 +2560,163 @@
       }
       syncBtn?.addEventListener("click", syncReports);
 
-      uploadBtn?.addEventListener("click", () => uploadInput?.click());
-      uploadInput?.addEventListener("change", () => {
-        const file = uploadInput.files && uploadInput.files[0];
-        if (!file) return;
-        const i = uploads.push({ url: URL.createObjectURL(file), name: file.name }) - 1;
-        if (!uploadGroup) {
-          uploadGroup = document.createElement("optgroup");
-          uploadGroup.label = "Uploaded POVs · this session";
-        }
-        const opt = document.createElement("option");
-        opt.value = `up:${i}`;
-        opt.textContent = file.name;
-        uploadGroup.appendChild(opt);
-        sel.appendChild(uploadGroup);
-        sel.value = `up:${i}`;
-        sel.dispatchEvent(new Event("change"));
-        uploadInput.value = "";
-      });
+      renderChips();
+
+      return {
+        activeKey: () => active,
+        timelineFor: (key) => clipByKey(key)?.timeline || null,
+        setTimeline: (key, tl) => { const c = clipByKey(key); if (c) c.timeline = tl; },
+      };
     })();
 
-    // ── AI interpretation — pre-annotated reasoner timeline ───────────
-    // Gemini vision was run offline over the walkthrough (1 frame / 5 s),
-    // grounded in the PG-04 procedure KB (scripts/annotate-pov.mjs). The
-    // viewer just replays the cached timeline in sync with the video.
+    // ── AI interpretation ─────────────────────────────────────────────
+    // Two flavours of reasoner timeline feed the same card:
+    //   walkthrough — pre-annotated offline (scripts/annotate-pov.mjs), one
+    //     frame / 5s, answering "which of the 12 steps is this".
+    //   clip        — produced on demand by /api/pov/reason for a clip added
+    //     in the viewer, answering "is this part the right way up", judged
+    //     against the same reference images the glasses carry.
     const aiInterp = (function setupAiInterp() {
       const btn = document.getElementById("aiInterpBtn");
       const card = document.getElementById("aiCard");
       const stepEl = document.getElementById("aiCardStep");
       const capEl = document.getElementById("aiCardCap");
       const obsEl = document.getElementById("aiCardObs");
+      const okEl = document.getElementById("aiCardOk");
       const devEl = document.getElementById("aiCardDev");
-      if (!btn || !card) return { update() {} };
+      if (!btn || !card) return { update() {}, useSource() {}, enable() {} };
+      const T = (k, en) => (window.OmniaI18n ? window.OmniaI18n.t(k, en) : en);
+
       let on = false;
-      let data = null;
+      let builtin = null;
+      let activeKey = "builtin";
       let lastIdx = -1;
 
-      async function load() {
-        if (data) return;
+      async function loadBuiltin() {
+        if (builtin) return;
         try {
-          data = await (await fetch("/lab/assets/phase8-pov-annotations.json")).json();
+          const d = await (await fetch("/lab/assets/phase8-pov-annotations.json")).json();
+          builtin = { kind: "walkthrough", intervalS: d.intervalS || 5, frames: d.frames || [] };
         } catch {
-          data = { frames: [], intervalS: 5 };
+          builtin = { kind: "walkthrough", intervalS: 5, frames: [] };
         }
       }
 
-      btn.addEventListener("click", async () => {
-        on = !on;
-        btn.classList.toggle("is-on", on);
-        card.hidden = !on;
-        if (on) { await load(); lastIdx = -1; }
-      });
-
-      function builtinPovActive() {
-        const sel = document.getElementById("povSource");
-        return !sel || sel.value === "builtin";
+      function timeline() {
+        if (activeKey === "builtin") return builtin;
+        return activeKey ? povSources.timelineFor(activeKey) : null;
       }
 
-      function update(t) {
-        if (!on || !data) return;
-        if (!builtinPovActive()) { card.hidden = true; return; }
-        const iv = data.intervalS || 5;
-        const idx = Math.min((data.frames?.length || 0) - 1, Math.max(0, Math.floor(t / iv)));
-        if (idx === lastIdx) return;
-        lastIdx = idx;
-        const f = data.frames?.[idx];
-        if (!f) { card.hidden = true; return; }
-        card.hidden = false;
-        const tt = (k, en) => (window.OmniaI18n ? window.OmniaI18n.t(k, en) : en);
+      async function setOn(next) {
+        on = next;
+        btn.classList.toggle("is-on", on);
+        card.hidden = !on;
+        if (on) { await loadBuiltin(); lastIdx = -1; }
+      }
+      btn.addEventListener("click", () => setOn(!on));
+
+      /** Pick the frame covering time t. The walkthrough is a fixed grid; clip
+       *  timelines carry their own sample times, so search those. */
+      function frameAt(tl, t) {
+        if (!tl || !tl.frames.length) return -1;
+        if (tl.kind === "walkthrough") {
+          const iv = tl.intervalS || 5;
+          return Math.min(tl.frames.length - 1, Math.max(0, Math.floor(t / iv)));
+        }
+        let idx = 0;
+        for (let i = 0; i < tl.frames.length; i++) if (tl.frames[i].t <= t) idx = i;
+        return idx;
+      }
+
+      function renderWalkthrough(f) {
+        card.classList.remove("vd-wrong", "vd-unclear");
         stepEl.textContent = f.step != null
-          ? `${tt("tw.step", "step")} ${String(f.step).padStart(2, "0")} · ${f.stepLabel || ""}`
-          : tt("tw.observing", "observing");
+          ? `${T("tw.step", "step")} ${String(f.step).padStart(2, "0")} · ${f.stepLabel || ""}`
+          : T("tw.observing", "observing");
         capEl.textContent = f.caption || "";
         obsEl.hidden = !(f.observed && f.observed.length);
-        if (!obsEl.hidden) obsEl.textContent = tt("tw.sees", "sees: ") + f.observed.join(" · ");
+        if (!obsEl.hidden) obsEl.textContent = T("tw.sees", "sees: ") + f.observed.join(" · ");
+        okEl.hidden = true;
         devEl.hidden = !f.deviation;
         if (!devEl.hidden) devEl.textContent = f.deviation;
       }
-      return { update };
+
+      /** The orientation rule reads as an instruction to fix a flip ("Flip it
+       *  — the stamped face must be UP"), which only makes sense next to a
+       *  wrong verdict. Strip the imperative to state the spec itself. */
+      function rule(expected) {
+        return String(expected || "").replace(/^\s*flip it\s*[—–-]\s*/i, "");
+      }
+
+      function renderClip(f) {
+        const label = {
+          ok: T("tw.vdOk", "correct orientation"),
+          wrong: T("tw.vdWrong", "WRONG ORIENTATION"),
+          unclear: T("tw.vdUnclear", "orientation unclear"),
+          none: T("tw.observing", "observing"),
+        }[f.verdict] || T("tw.observing", "observing");
+        card.classList.toggle("vd-wrong", f.verdict === "wrong");
+        card.classList.toggle("vd-unclear", f.verdict === "unclear" || f.verdict === "none");
+        stepEl.textContent = label;
+        capEl.textContent = f.caption || "";
+
+        const idLine = [
+          f.sku ? T("tw.sees", "sees: ") + f.component : "",
+          f.steps && f.steps.length ? "ST.100 " + f.steps.join(" · ") : "",
+        ].filter(Boolean).join(" · ");
+        const lines = [idLine, f.reasoning].filter(Boolean);
+        obsEl.hidden = !lines.length;
+        obsEl.textContent = lines.join("\n");
+
+        const conf = f.confidence ? ` · ${T("tw.conf", "conf")} ${f.confidence.toFixed(2)}` : "";
+        if (f.verdict === "wrong") {
+          okEl.hidden = true;
+          devEl.hidden = false;
+          devEl.textContent = f.wouldFire
+            ? `${f.warning || T("tw.vdWrong", "WRONG ORIENTATION")} — ${f.expected || ""}${conf}`
+            // Caught, but the glasses wire no orientation guard for this part:
+            // say so rather than imply coverage the device doesn't have.
+            : `${T("tw.vdWrongNoGuard", "Upside-down — but no orientation warning is wired on the glasses for this part")}${conf}`;
+        } else if (f.verdict === "ok") {
+          devEl.hidden = true;
+          okEl.hidden = false;
+          const r = rule(f.expected);
+          okEl.textContent = T("tw.vdOkBox", "Matches the reference") + (r ? ` — ${r}` : "") + conf;
+        } else {
+          okEl.hidden = true;
+          devEl.hidden = true;
+        }
+      }
+
+      function render(t) {
+        const tl = timeline();
+        if (!tl) { card.hidden = true; return; }
+        const idx = frameAt(tl, t);
+        if (idx < 0) { card.hidden = true; return; }
+        if (idx === lastIdx) return;
+        lastIdx = idx;
+        card.hidden = false;
+        const f = tl.frames[idx];
+        if (tl.kind === "walkthrough") renderWalkthrough(f);
+        else renderClip(f);
+      }
+
+      function update(t) {
+        if (!on) return;
+        // Clip timelines are stamped in the clip's own seconds. Reading the
+        // element beats scaling playT when ?dur= pins the global duration.
+        const tl = timeline();
+        const clipT = tl && tl.kind === "clip" && videoReady && isFinite(povVideo.currentTime)
+          ? povVideo.currentTime
+          : t;
+        render(clipT);
+      }
+
+      return {
+        update,
+        useSource(key) { activeKey = key; lastIdx = -1; if (on) render(0); },
+        enable() { if (!on) setOn(true); },
+      };
     })();
 
     // ── Three.js synthetic SLAM scene ─────────────────────────────────
@@ -7211,7 +7615,7 @@
          async by default and `defer` is ignored on them, so the previous
          ordering here was not actually guaranteed — it only happened to work
          because nothing was read at parse time. */
-      for (const src of ['platform.js?v=1', 'i18n.js?v=8', 'brain-dock.js?v=13']) {
+      for (const src of ['platform.js?v=1', 'i18n.js?v=9', 'brain-dock.js?v=13']) {
         const el = document.createElement('script');
         el.src = '/lab/assets/' + src;
         el.async = false;

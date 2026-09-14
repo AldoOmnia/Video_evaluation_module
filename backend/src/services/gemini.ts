@@ -53,6 +53,7 @@ async function generateContent(
   model: string,
   parts: GeminiPart[],
   timeoutMs: number,
+  maxOutputTokens: number,
 ): Promise<GenerateOutcome> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -65,7 +66,7 @@ async function generateContent(
         contents: [{ role: "user", parts }],
         generationConfig: {
           temperature: 0.1,
-          maxOutputTokens: 900,
+          maxOutputTokens,
           // Skip the reasoning pass — same latency lever the glasses use to
           // keep the observe round-trip under ~2s with ~1MB of references.
           thinkingConfig: { thinkingBudget: 0 },
@@ -97,14 +98,28 @@ async function generateContent(
   }
 }
 
+export interface GeminiVisionOptions {
+  /** Cost report bucket. */
+  route?: UsageRoute;
+  /** Raise for calls that answer about many frames at once (default 900). */
+  maxOutputTokens?: number;
+  /** Primary-model budget; the fallback hop gets 80% of it (default 25s). */
+  timeoutMs?: number;
+}
+
 /**
  * Vision call with the glasses' primary→fallback hop. Throws only when both
  * models fail (or the single model fails and fallback is identical/disabled).
  */
 export async function geminiVisionCall(
   parts: GeminiPart[],
-  route: UsageRoute = "assist-vision",
+  opts: UsageRoute | GeminiVisionOptions = "assist-vision",
 ): Promise<GeminiResult> {
+  // Older callers pass the route as a bare string.
+  const o: GeminiVisionOptions = typeof opts === "string" ? { route: opts } : opts;
+  const route = o.route ?? "assist-vision";
+  const maxOutputTokens = o.maxOutputTokens ?? 900;
+  const timeoutMs = o.timeoutMs ?? 25_000;
   const start = Date.now();
   if (!geminiConfigured()) {
     return {
@@ -137,7 +152,7 @@ export async function geminiVisionCall(
     return result;
   };
   try {
-    return done(VISION_MODEL, await generateContent(VISION_MODEL, parts, 25_000));
+    return done(VISION_MODEL, await generateContent(VISION_MODEL, parts, timeoutMs, maxOutputTokens));
   } catch (primaryErr) {
     if (VISION_FALLBACK_MODEL === VISION_MODEL || VISION_FALLBACK_MODEL.toLowerCase() === "none") {
       throw primaryErr;
@@ -146,7 +161,7 @@ export async function geminiVisionCall(
     // model that answered produced tokens we can count.
     return done(
       VISION_FALLBACK_MODEL,
-      await generateContent(VISION_FALLBACK_MODEL, parts, 20_000),
+      await generateContent(VISION_FALLBACK_MODEL, parts, Math.round(timeoutMs * 0.8), maxOutputTokens),
     );
   }
 }

@@ -35,6 +35,7 @@ export type UsageRoute =
   | "line-ask"        // natural-language MES question, station snapshot only
   | "mes-ask"         // natural-language SQL against the MES (2 calls: plan + answer)
   | "kb-pov"          // POV recording analysis on ingest
+  | "pov-reason"      // digital-twin AI reasoner over POV clip frames (vision)
   | "glasses-query"   // the Rokid APK /query endpoint (device, not platform)
   | "eval"            // eval lab runs
   | "spec"            // spec/taxonomy helpers
