@@ -195,6 +195,8 @@
     'tw.clipBuiltin': 'percorso',
     'tw.clipBuiltinTitle': 'Percorso della stazione — pre-annotato dall\'interprete AI',
     'tw.clipGroup': 'Clip aggiunte · questa sessione',
+    'tw.clipPartAuto': 'parte · auto',
+    'tw.clipPartTitle': 'Parte mostrata in questa clip — fissarla consente al reasoner di giudicare solo l\'orientamento, come fanno gli occhiali dal passo corrente',
     'tw.clipAddTitle': 'Aggiungi clip POV (mp4 / webm / mov) — es. componenti tenuti nell\'orientamento corretto o errato',
     'tw.clipAnalyze': '✦ analizza',
     'tw.clipReading': '✦ lettura…',

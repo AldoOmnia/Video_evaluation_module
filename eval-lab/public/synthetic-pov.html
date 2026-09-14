@@ -6,7 +6,7 @@
     /* Bump on any change to the render/sizing path. The viewer runs inside an
        iframe in the knowledge base, where a stale copy is hard to spot — this
        makes "which build is the browser actually running" a one-line check. */
-    window.__TWIN_BUILD = "2026-09-14-clip-rail";
+    window.__TWIN_BUILD = "2026-09-14-clip-part-pin";
     var h = location.hostname;
     if (h !== "localhost" && h !== "127.0.0.1") {
       document.documentElement.classList.add("splat-live");
@@ -789,7 +789,19 @@
       backdrop-filter: blur(5px);
       transition: color 140ms ease, border-color 140ms ease;
     }
-    .clip-rail .clip-add { padding: 3px 8px; font-size: 12px; line-height: 1; }
+      .clip-rail .clip-add { padding: 3px 8px; font-size: 12px; line-height: 1; }
+      .clip-rail .clip-part {
+        flex-shrink: 0; max-width: 116px;
+        font-family: var(--mono); font-size: 9px;
+        color: var(--ink-2); background: rgba(4,6,6,0.82);
+        border: 1px solid var(--line-2); border-radius: 4px;
+        padding: 3px 5px; cursor: pointer;
+        backdrop-filter: blur(5px);
+      }
+      .clip-rail .clip-part:hover { color: var(--primary); border-color: var(--primary-dim); }
+      /* Pinned from the file name: the reasoner is scoped, so show it in the
+         accent colour rather than leaving it looking like an unset control. */
+      .clip-rail .clip-part.is-set { color: var(--primary); border-color: var(--primary-dim); }
     .clip-rail .clip-act:hover,
     .clip-rail .clip-add:hover { color: var(--primary); border-color: var(--primary-dim); }
     .clip-rail .clip-act[disabled] { opacity: 0.6; cursor: default; }
@@ -1039,6 +1051,12 @@
               </div>
               <div class="clip-rail" id="clipRail">
                 <div class="clip-chips" id="clipChips"></div>
+                <!-- Which part the clip shows. Read from the file name where it
+                     says so; set it here when it does not. -->
+                <select class="clip-part" id="clipPart" hidden
+                        data-i18n-title="tw.clipPartTitle"
+                        aria-label="Part shown in this clip"
+                        title="Part shown in this clip — pinning it lets the reasoner judge orientation only, as the glasses do from the current step"></select>
                 <button type="button" class="clip-act" id="clipAnalyzeBtn" hidden
                         data-i18n="tw.clipAnalyze"
                         title="Run the AI reasoner over this clip — Gemini vision against the station's reference images">✦ analyze</button>
@@ -2261,7 +2279,18 @@
       const addBtn = document.getElementById("clipAddBtn");
       const addInput = document.getElementById("clipAddInput");
       const analyzeBtn = document.getElementById("clipAnalyzeBtn");
+      const partSel = document.getElementById("clipPart");
       if (!sel || !still) return { activeKey: () => "builtin", timelineFor: () => null };
+
+      /** The parts carrying an orientation rule, in step order — the only ones
+       *  worth pinning a clip to. Labels stay short for the rail. */
+      const ORIENT_PARTS = [
+        { sku: "248114A1", label: "S1 · big cup" },
+        { sku: "191440A1", label: "S2 · small cup" },
+        { sku: "248118A1", label: "S4 · big cone" },
+        { sku: "67190R91", label: "S6 · small cone" },
+      ];
+      const ORIENT_SKUS = ORIENT_PARTS.map((p) => p.sku);
 
       const reportFrames = [];   // { src, label, code, worker }
       let reportGroup = null;
@@ -2307,9 +2336,43 @@
           b.title = clipTitle(c);
           b.addEventListener("click", () => applySource(c.key));
           chipBox.appendChild(b);
+          // The rail scrolls once a few clips are in, and the quadrant is
+          // narrow — keep whatever is playing where it can be seen.
+          if (c.key === active) requestAnimationFrame(() => b.scrollIntoView({ block: "nearest", inline: "nearest" }));
         });
+        renderPartSel();
         renderAnalyzeBtn();
       }
+
+      /** The part pin only applies to added clips — the walkthrough is a whole
+       *  procedure, not one part held up to the camera. */
+      function renderPartSel() {
+        if (!partSel) return;
+        const c = clipByKey(active);
+        partSel.hidden = !(c && c.kind === "clip");
+        if (partSel.hidden) return;
+        if (!partSel.options.length) {
+          partSel.appendChild(
+            new Option(T("tw.clipPartAuto", "part · auto"), ""),
+          );
+          ORIENT_PARTS.forEach((p) => partSel.appendChild(new Option(p.label, p.sku)));
+        }
+        partSel.value = c.expectSku || "";
+        partSel.classList.toggle("is-set", Boolean(c.expectSku));
+      }
+
+      partSel?.addEventListener("change", () => {
+        const c = clipByKey(active);
+        if (!c) return;
+        c.expectSku = partSel.value;
+        // The pin changes the question the reasoner is asked, so any cached
+        // verdicts are stale — drop them and offer the run again.
+        c.timeline = null;
+        c.summary = null;
+        c.state = "new";
+        renderChips();
+        aiInterp.useSource(active);
+      });
 
       function clipTitle(c) {
         if (c.kind === "walkthrough") {
@@ -2404,6 +2467,7 @@
             timeline: null,
             state: "new",
             summary: null,
+            expectSku: skuFromName(file.name),
           });
           const opt = document.createElement("option");
           opt.value = key;
@@ -2421,6 +2485,23 @@
       function shortName(name) {
         const base = name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
         return base.length > 22 ? "…" + base.slice(-21) : base || "clip";
+      }
+
+      /** Which part a clip is of, read off its file name.
+       *
+       *  Worth doing because it removes the reasoner's hardest and least
+       *  useful job. On the glasses the current step says which part to expect,
+       *  so vision only ever rules on orientation; here there is no step, and
+       *  the two cones (or the two cups) are near-indistinguishable without
+       *  scale in frame. Since the pair runs opposite conventions, guessing the
+       *  wrong member inverts the verdict outright — a flipped 67190R91 reads
+       *  as a correctly-seated 248118A1. Capture clips are already named after
+       *  their subject ("bearing_cone_67190r91_station_wrong.MOV"), so the
+       *  answer is usually sitting in the file name. The part selector on the
+       *  rail is there for when it is not. */
+      function skuFromName(name) {
+        const hay = name.toUpperCase().replace(/[^A-Z0-9]/g, "");
+        return ORIENT_SKUS.find((s) => hay.includes(s)) || "";
       }
 
       /* ── analyze ───────────────────────────────────────────────────── */
@@ -2498,6 +2579,7 @@
             body: JSON.stringify({
               clip: c.label,
               frames,
+              expectSku: c.expectSku || undefined,
               lang: window.OmniaLang ? window.OmniaLang.get() : undefined,
             }),
           });
@@ -7615,7 +7697,7 @@
          async by default and `defer` is ignored on them, so the previous
          ordering here was not actually guaranteed — it only happened to work
          because nothing was read at parse time. */
-      for (const src of ['platform.js?v=1', 'i18n.js?v=9', 'brain-dock.js?v=13']) {
+      for (const src of ['platform.js?v=1', 'i18n.js?v=10', 'brain-dock.js?v=13']) {
         const el = document.createElement('script');
         el.src = '/lab/assets/' + src;
         el.async = false;

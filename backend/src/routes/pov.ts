@@ -41,6 +41,8 @@ const BodySchema = z.object({
   clip: z.string().max(200).default("clip"),
   frames: z.array(FrameSchema).min(1).max(MAX_FRAMES),
   lang: z.enum(["en", "it"]).optional(),
+  /** Which part the clip is of, when the reviewer knows. See buildPrompt. */
+  expectSku: z.string().max(40).optional(),
 });
 
 /** What the model is asked to return per frame, before KB grounding. */
@@ -75,7 +77,47 @@ interface ReasonedFrame {
   steps: string[];
 }
 
-function buildPrompt(lang?: "en" | "it"): string {
+/** The look-alike pairs, and why naming the wrong member is so costly: each
+ *  pair runs the OPPOSITE orientation convention, so a mis-identification does
+ *  not merely mislabel the part, it inverts the verdict. */
+const PAIRS: Record<string, string> = {
+  "248118A1": "67190R91",
+  "67190R91": "248118A1",
+  "248114A1": "191440A1",
+  "191440A1": "248114A1",
+};
+
+/** Narrow a clip to one part when the reviewer already knows which it is.
+ *
+ *  This is how the glasses actually work: the observe loop runs inside a step,
+ *  so "which of the two cones is this" is answered by the procedure, never by
+ *  vision — step 4 expects 248118A1, step 6 expects 67190R91. Asking vision to
+ *  choose between a pair unaided is a harder problem than the device ever
+ *  poses, and one it demonstrably loses: cage-up views of the two cones are
+ *  near-identical, and with no scale in frame the model settles on the more
+ *  heavily referenced 248118A1 at high confidence. Because the conventions are
+ *  opposite, that single error flips a wrong verdict to correct — the failure
+ *  mode worth engineering out.
+ */
+function expectClause(expectSku: string): string {
+  const other = PAIRS[expectSku];
+  const name = GLASSES_COMPONENTS[expectSku]?.name ?? expectSku;
+  return (
+    `\n\nPART IS KNOWN — this clip is of ${expectSku} (${name}), the way the ` +
+    "glasses know it from the current step. Do NOT re-derive identity: set sku " +
+    `to ${expectSku} on every frame where the part is visible, and spend your ` +
+    "judgment on ORIENTATION alone, applying that part's own rule." +
+    (other
+      ? ` In particular do NOT report ${other}: it is the look-alike this part ` +
+        "is most often confused with, and it runs the OPPOSITE convention, so " +
+        "naming it would invert the verdict."
+      : "") +
+    " If a frame plainly shows some other part, say so in reasoning and set " +
+    "orientation 'unclear' rather than forcing the expected part onto it.\n"
+  );
+}
+
+function buildPrompt(lang?: "en" | "it", expectSku?: string): string {
   return (
     "You are the AI reasoner for the Comer Industries digital twin, reviewing a " +
     "short point-of-view clip from station ST.100 (pinion cover pre-assembly). " +
@@ -102,14 +144,29 @@ function buildPrompt(lang?: "en" | "it"): string {
     "Be conservative and consistent: it is the same part across most of a clip, " +
     "so do not flip identification between frames unless the part visibly " +
     "changes. Prefer 'unclear' over guessing on a bad angle.\n\n" +
-    "CRITICAL — identify WHICH part it is before judging orientation. The two " +
-    "cones (248118A1 inboard bevel pinion, step 4, and 67190R91 upper pinion, " +
-    "step 6) follow OPPOSITE conventions, and so do the two cups (248114A1 big, " +
-    "step 1, and 191440A1 small, step 2). Naming the wrong one of a pair inverts " +
-    "the verdict, which is worse than admitting doubt: settle identity on size, " +
-    "proportions, rim width and the stamped text, and if you still cannot tell a " +
-    "pair apart, return that sku with orientation 'unclear' and say why in " +
-    "reasoning.\n\n" +
+    "CRITICAL — identify WHICH part it is before judging orientation, and do not " +
+    "let the reference wording decide identity for you. The fingerprints say " +
+    "things like 'roller cage up = this correct identity'. Those phrases exist " +
+    "only to separate a part from its OWN flipped decoy. They must NEVER be used " +
+    "to choose between the two cones or between the two cups, because each pair " +
+    "runs the OPPOSITE convention, which makes the two traps exact:\n" +
+    "  - a FLIPPED 67190R91 (step 6) shows its roller cage UP — which is precisely " +
+    "what a CORRECT 248118A1 (step 4) looks like.\n" +
+    "  - a FLIPPED 248114A1 (step 1) shows its bright raceway UP with no stamping — " +
+    "which is precisely what a CORRECT 191440A1 (step 2) looks like.\n" +
+    "So settle the pair member FIRST, then apply THAT part's own rule. Never infer " +
+    "identity from which face is up.\n" +
+    "Separating a pair needs SCALE, and there is no shape giveaway to fall back " +
+    "on: cage-up views of the two cones genuinely resemble each other, as do " +
+    "raceway-up views of the two cups. So use whatever is in frame as a ruler — " +
+    "the gloved hand, the fixture pocket the part sits in, a bin label. 67190R91 " +
+    "is about 82mm across, roughly a palm's width, against a markedly larger " +
+    "248118A1; 191440A1 is about 140mm OD with a narrow stamped band, against a " +
+    "larger 248114A1 with a broad one. When nothing in frame establishes scale, " +
+    "SAY SO: return your best sku with orientation 'unclear' and name BOTH " +
+    "candidates in reasoning. A confidently inverted verdict is the worst output " +
+    "you can produce.\n\n" +
+    (expectSku && GLASSES_COMPONENTS[expectSku] ? expectClause(expectSku) + "\n" : "") +
     'Answer ONLY with raw JSON: {"frames": [{"i": number, "caption": string, ' +
     '"sku": string|null, "className": string, "orientation": ' +
     '"correct"|"wrong"|"unclear", "confidence": number, "reasoning": string}]} ' +
@@ -173,7 +230,11 @@ povRouter.post("/reason", async (req, res, next) => {
       });
     }
 
-    const parts: GeminiPart[] = [{ text: buildPrompt(body.lang) }, ...referenceParts()];
+    const expectSku = body.expectSku ? resolveFlipSku(body.expectSku).sku : null;
+    const parts: GeminiPart[] = [
+      { text: buildPrompt(body.lang, expectSku ?? undefined) },
+      ...referenceParts(),
+    ];
     body.frames.forEach((f, i) => {
       parts.push({ text: `FRAME i=${i} at t=${f.t.toFixed(1)}s of the clip:` });
       parts.push({

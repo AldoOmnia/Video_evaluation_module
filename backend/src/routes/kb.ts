@@ -288,7 +288,7 @@ export function findGlassesComponent(sku: string): KbComponent | null {
  */
 const GLASSES_IMG_BASE = "/lab/assets/pinion-components";
 /** Bump when GLASSES_COMPONENTS / GLASSES_ARTIFACTS / station reports grow so live stores re-merge. */
-const GLASSES_SYNC_VERSION = 12;
+const GLASSES_SYNC_VERSION = 13;
 const GLASSES_REPO = "https://github.com/AldoOmnia/comer-rokid-demo";
 
 interface CataloguePart {
@@ -347,7 +347,16 @@ export const GLASSES_COMPONENTS: Record<
   "248118A1": { name: "Bearing cone 248118A1 — inboard bevel pinion", codes: ["ORIENTATION"], images: ["bearing_cone_248118a1_pos_correct_1.jpg", "bearing_cone_248118a1_flip.jpg"] },
   // Step 6 — placed on cover (driver 3187.111.180.00 over it); FLIP decoy fires
   // WRONG ORIENTATION. Convention: TIMKEN stamped face UP (opposite of step 4).
-  "67190R91": { name: "Bearing cone 67190R91 — upper pinion", codes: ["ORIENTATION"], images: ["bearing_cone_67190r91_pos_correct_1.jpg", "bearing_cone_67190r91_flip.jpg"] },
+  // The station_wrong frames are the cone's counterpart to 191440A1's
+  // station_correct set, and exist for the same reason: this pair cannot be
+  // separated without scale. Cage-up is CORRECT for the bigger step-4 cone
+  // 248118A1 and WRONG for this one, so naming the wrong member of the pair
+  // does not just mislabel the part, it inverts the verdict — a flipped
+  // 67190R91 reads as a correctly-seated 248118A1. The bench references are
+  // both shot against plain backgrounds that carry no size cue, leaving the
+  // model to fall back on 248118A1, the more heavily referenced class. These
+  // frames put this cone's ~82mm body inside a gloved hand at the fixture.
+  "67190R91": { name: "Bearing cone 67190R91 — upper pinion", codes: ["ORIENTATION"], images: ["bearing_cone_67190r91_pos_correct_1.jpg", "bearing_cone_67190r91_flip.jpg", "bearing_cone_67190r91_station_wrong_1.jpg", "bearing_cone_67190r91_station_wrong_2.jpg", "bearing_cone_67190r91_station_wrong_3.jpg"] },
   // Step 7 shim pack — SequenceGuard slot 2 ("shims": .101/.130 counted as ONE
   // slot; the VLM can't tell them apart, so no substitution warning is wired).
   "191711A1": { name: "Shim .101 — bevel pinion bearing (191711A1)", codes: ["ORDER"], images: ["IMG_3081.jpg"],
