@@ -35,6 +35,21 @@ let refCache: RefEntry[] | null = null;
 
 /** Labels mirror how the glasses annotate their reference vocabulary. */
 export function poseLabel(file: string): string {
+  // In-station capture: gloved, handheld, real fixture and lighting. This is
+  // the deployment presentation, and the reason these frames matter is scale —
+  // a part alone on a bench has nothing to measure against, and the cup and
+  // cone pairs can only be told apart by size once orientation alone is
+  // ambiguous. Say so, so the model uses the hand and fixture as the ruler.
+  if (/_station_(correct|wrong)/i.test(file)) {
+    const wrong = /_station_wrong/i.test(file);
+    return (
+      `IN-STATION, GLOVED — ${wrong ? "FLIPPED, wrong orientation (decoy)" : "correct orientation"}. ` +
+      "Handheld at the fixture under station lighting, which is how the glasses " +
+      "actually see the part. The gloved hand and the fixture are the scale " +
+      "reference: use them to judge this part's diameter before deciding which " +
+      "member of a look-alike pair it is"
+    );
+  }
   if (/^bearing_cups_/i.test(file)) {
     // Side-by-side rim-width contrast shots from glasses commit a92ac902.
     const up = /timken_up/i.test(file);

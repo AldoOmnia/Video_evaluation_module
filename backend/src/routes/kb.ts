@@ -288,7 +288,7 @@ export function findGlassesComponent(sku: string): KbComponent | null {
  */
 const GLASSES_IMG_BASE = "/lab/assets/pinion-components";
 /** Bump when GLASSES_COMPONENTS / GLASSES_ARTIFACTS / station reports grow so live stores re-merge. */
-const GLASSES_SYNC_VERSION = 11;
+const GLASSES_SYNC_VERSION = 12;
 const GLASSES_REPO = "https://github.com/AldoOmnia/comer-rokid-demo";
 
 interface CataloguePart {
@@ -331,7 +331,16 @@ export const GLASSES_COMPONENTS: Record<
   // Step 2 — TIMKEN side DOWN (stamp 'TIMKEN 572 CD1 RM VN' — deliberately the
   // OPPOSITE convention of the big cup). Correct/flip set re-shot in 757cb211
   // (the misfiled big-cup photos were really this cup); side view is identity-only.
-  "191440A1": { name: "Bearing cup 191440A1 — small cover cup", codes: ["ORIENTATION"], images: ["bearing_cup_191440a1_pos_correct_1.jpg", "bearing_cup_191440a1_flip_1.jpg", "bearing_cup_191440a1_side_1.jpg", "bearing_cups_248114a1_191440a1_timken_down.jpg"] },
+  // The three station_correct frames come from the glasses' in-station gloved
+  // capture session (comer-rokid-demo 60ce41c5, ml/datasets/pinion-station).
+  // They exist because the bench references alone made this cup unidentifiable
+  // in its deployment presentation: "raceway up, no stamped text" describes BOTH
+  // this cup held correctly AND the big cup 248114A1 held wrong, and only
+  // diameter separates them. A bench photo on plain paper carries no scale, so
+  // the model read a correctly-held small cup as a flipped big cup and inverted
+  // the verdict. These frames put the ~140mm OD next to a gloved hand and the
+  // fixture, which is the scale cue the bench shots never had.
+  "191440A1": { name: "Bearing cup 191440A1 — small cover cup", codes: ["ORIENTATION"], images: ["bearing_cup_191440a1_pos_correct_1.jpg", "bearing_cup_191440a1_flip_1.jpg", "bearing_cup_191440a1_side_1.jpg", "bearing_cups_248114a1_191440a1_timken_down.jpg", "bearing_cup_191440a1_station_correct_1.jpg", "bearing_cup_191440a1_station_correct_2.jpg", "bearing_cup_191440a1_station_correct_3.jpg"] },
   // Step 4 — pressed onto pinion shaft (punch 3187.111.100.07); FLIP decoy fires
   // WRONG ORIENTATION. Line-engineer verified 2026-07-14: TIMKEN side DOWN /
   // roller cage UP — the OPPOSITE convention of the step-6 cone.
