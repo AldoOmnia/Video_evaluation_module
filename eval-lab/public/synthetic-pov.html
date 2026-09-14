@@ -6,7 +6,7 @@
     /* Bump on any change to the render/sizing path. The viewer runs inside an
        iframe in the knowledge base, where a stale copy is hard to spot — this
        makes "which build is the browser actually running" a one-line check. */
-    window.__TWIN_BUILD = "2026-09-14-clip-part-pin";
+    window.__TWIN_BUILD = "2026-09-14-device-guard-parity";
     var h = location.hostname;
     if (h !== "localhost" && h !== "127.0.0.1") {
       document.documentElement.classList.add("splat-live");
@@ -2382,12 +2382,29 @@
         if (!c.summary) return T("tw.clipNewTitle", "Added this session — not analyzed yet");
         const s = c.summary;
         const part = s.component ? s.component + " · " : "";
+        // Whether the glasses' guard would actually have raised, and how: a
+        // confirmed catch and a single high-confidence frame are different
+        // results, and confident wrong reads suppressed as pose oscillation
+        // are the case a reviewer would otherwise think was simply missed.
+        const g = s.guard || {};
+        const via = g.via === "instant"
+          ? T("tw.guardInstant", "would fire on one high-confidence frame")
+          : g.via === "consecutive"
+            ? T("tw.guardConfirmed", "would fire — confirmed over consecutive frames")
+            : "";
+        const held = g.suppressed === "oscillation"
+          ? T("tw.guardOscillation", "wrong reads seen but held back as pose oscillation, as on the glasses")
+          : g.suppressed === "unconfirmed"
+            ? T("tw.guardUnconfirmed", "wrong reads seen but never confirmed — below the device's threshold")
+            : "";
         if (s.verdict === "wrong") {
           return part + T("tw.clipWrongTitle", "wrong orientation caught") +
-            ` (${s.wrongFrames}/${s.wrongFrames + s.okFrames})`;
+            ` (${s.wrongFrames}/${s.wrongFrames + s.okFrames})` + (via ? ` — ${via}` : "");
         }
-        if (s.verdict === "ok") return part + T("tw.clipOkTitle", "orientation correct throughout");
-        return part + T("tw.clipUnclearTitle", "orientation could not be judged");
+        if (s.verdict === "ok") {
+          return part + T("tw.clipOkTitle", "orientation correct throughout") + (held ? ` — ${held}` : "");
+        }
+        return part + T("tw.clipUnclearTitle", "orientation could not be judged") + (held ? ` — ${held}` : "");
       }
 
       function renderAnalyzeBtn() {
@@ -7697,7 +7714,7 @@
          async by default and `defer` is ignored on them, so the previous
          ordering here was not actually guaranteed — it only happened to work
          because nothing was read at parse time. */
-      for (const src of ['platform.js?v=1', 'i18n.js?v=10', 'brain-dock.js?v=13']) {
+      for (const src of ['platform.js?v=1', 'i18n.js?v=11', 'brain-dock.js?v=13']) {
         const el = document.createElement('script');
         el.src = '/lab/assets/' + src;
         el.async = false;

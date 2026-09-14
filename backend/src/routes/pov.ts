@@ -23,7 +23,14 @@ import { Router } from "express";
 import { z } from "zod";
 
 import { geminiVisionCall, geminiConfigured, VISION_MODEL, type GeminiPart } from "../services/gemini.js";
-import { referenceLibrary, referenceParts, rawBase64, parseJsonish, resolveFlipSku } from "../services/componentVision.js";
+import {
+  referenceLibrary,
+  referenceParts,
+  rawBase64,
+  parseJsonish,
+  resolveFlipSku,
+  ORIENTATION_RULES,
+} from "../services/componentVision.js";
 import { GLASSES_COMPONENTS, findGlassesComponent } from "./kb.js";
 
 export const povRouter = Router();
@@ -104,16 +111,28 @@ function expectClause(expectSku: string): string {
   const name = GLASSES_COMPONENTS[expectSku]?.name ?? expectSku;
   return (
     `\n\nPART IS KNOWN — this clip is of ${expectSku} (${name}), the way the ` +
-    "glasses know it from the current step. Do NOT re-derive identity: set sku " +
-    `to ${expectSku} on every frame where the part is visible, and spend your ` +
-    "judgment on ORIENTATION alone, applying that part's own rule." +
+    "glasses know it from the current step. Do NOT re-derive identity: return " +
+    `${expectSku} (or ${expectSku}-FLIP) on every frame where the part is ` +
+    "visible, and spend your judgment on ORIENTATION alone, applying that " +
+    "part's own rule above." +
     (other
-      ? ` In particular do NOT report ${other}: it is the look-alike this part ` +
-        "is most often confused with, and it runs the OPPOSITE convention, so " +
-        "naming it would invert the verdict."
+      ? ` ${other} has been withheld from your references for this clip: it is ` +
+        "the look-alike this part is most often confused with, it runs the " +
+        "OPPOSITE convention, and naming it would invert the verdict."
       : "") +
     " If a frame plainly shows some other part, say so in reasoning and set " +
-    "orientation 'unclear' rather than forcing the expected part onto it.\n"
+    "orientation 'unclear' rather than forcing the expected part onto it.\n" +
+    // Pinning removes one question; it must not license answering another one
+    // the rules forbid. Measured here: with the part pinned, a correctly-held
+    // small cup filmed at the fixture came back FLIP at 0.95 on every frame
+    // where the operator tilted it towards edge-on — poses the cup rule says
+    // carry no orientation information at all.
+    "Knowing the part settles IDENTITY ONLY. Every orientation rule above still " +
+    "applies in full — including the side / edge-on prohibitions and the " +
+    "default-to-correct bias. Do NOT manufacture a verdict for a pose those " +
+    "rules say cannot be judged: a cup seen edge-on or tilted steeply enough " +
+    "that its up-face is not clearly a wide bright band or a narrow flat ring " +
+    "is 'unclear', NEVER -FLIP, exactly as on the glasses.\n"
   );
 }
 
@@ -130,42 +149,51 @@ function buildPrompt(lang?: "en" | "it", expectSku?: string): string {
     "clip frames against them.\n\n" +
     "For EVERY frame I give you, decide:\n" +
     "  - sku: the part number from the references, or null if no part is clearly " +
-    "visible. NEVER append -FLIP; carry wrong-side-up in `orientation` instead. " +
-    "Judge orientation whether the part is held up, resting on the bench or " +
-    "already seated in a fixture — which face points up is the question.\n" +
-    "  - orientation: 'correct' if the part matches its correct-orientation " +
-    "reference, 'wrong' if it is upside-down / wrong-side-up compared to that " +
-    "reference, 'unclear' if the angle cannot settle it (e.g. a cup seen edge-on " +
-    "— its taper is internal, so orientation genuinely cannot be judged).\n" +
+    "visible. Report wrong-side-up the way the glasses do, by returning that " +
+    "part's -FLIP class (e.g. 67190R91-FLIP) — the rules below are written in " +
+    "those terms. Judge orientation whether the part is held up, resting on the " +
+    "bench or already seated in a fixture: which face points up is the question.\n" +
+    "  - orientation: 'correct', 'wrong', or 'unclear' when the angle genuinely " +
+    "cannot settle it. Must agree with the sku you returned.\n" +
     "  - caption: ONE short present-tense sentence describing what the frame shows.\n" +
-    "  - reasoning: the distinguishing feature you used (stamped face, rim width, " +
-    "roller cage, tapered mouth). One sentence.\n" +
+    "  - reasoning: the distinguishing feature you used, ≤12 words " +
+    '(e.g. "flat ring face up, TIMKEN visible"). Long sentences truncate the ' +
+    "JSON and the frame is lost.\n" +
     "  - confidence: 0-1 for the orientation judgment.\n\n" +
     "Be conservative and consistent: it is the same part across most of a clip, " +
-    "so do not flip identification between frames unless the part visibly " +
-    "changes. Prefer 'unclear' over guessing on a bad angle.\n\n" +
-    "CRITICAL — identify WHICH part it is before judging orientation, and do not " +
-    "let the reference wording decide identity for you. The fingerprints say " +
-    "things like 'roller cage up = this correct identity'. Those phrases exist " +
-    "only to separate a part from its OWN flipped decoy. They must NEVER be used " +
-    "to choose between the two cones or between the two cups, because each pair " +
-    "runs the OPPOSITE convention, which makes the two traps exact:\n" +
-    "  - a FLIPPED 67190R91 (step 6) shows its roller cage UP — which is precisely " +
-    "what a CORRECT 248118A1 (step 4) looks like.\n" +
-    "  - a FLIPPED 248114A1 (step 1) shows its bright raceway UP with no stamping — " +
-    "which is precisely what a CORRECT 191440A1 (step 2) looks like.\n" +
-    "So settle the pair member FIRST, then apply THAT part's own rule. Never infer " +
-    "identity from which face is up.\n" +
-    "Separating a pair needs SCALE, and there is no shape giveaway to fall back " +
-    "on: cage-up views of the two cones genuinely resemble each other, as do " +
-    "raceway-up views of the two cups. So use whatever is in frame as a ruler — " +
-    "the gloved hand, the fixture pocket the part sits in, a bin label. 67190R91 " +
-    "is about 82mm across, roughly a palm's width, against a markedly larger " +
-    "248118A1; 191440A1 is about 140mm OD with a narrow stamped band, against a " +
-    "larger 248114A1 with a broad one. When nothing in frame establishes scale, " +
-    "SAY SO: return your best sku with orientation 'unclear' and name BOTH " +
-    "candidates in reasoning. A confidently inverted verdict is the worst output " +
-    "you can produce.\n\n" +
+    "so do not change identification between frames unless the part visibly " +
+    "changes.\n\n" +
+    // The rules the device applies, verbatim from its observe prompt. Any
+    // divergence here shows up as the platform contradicting the glasses about
+    // the same part in the same orientation.
+    "ORIENTATION RULES — these are the rules the glasses themselves apply, and " +
+    "your verdict must match what the device would say:\n" +
+    ORIENTATION_RULES.join("\n") +
+    "\n" +
+    // The rules name several poses that carry no orientation information. An
+    // operator turning a part over spends real frames in exactly those poses,
+    // and a model asked to rule on every frame will invent verdicts for them —
+    // measured here as confident -FLIP calls on a correctly-held cup tilting
+    // towards edge-on. Abstention has to be stated as a valid answer.
+    "Do NOT manufacture a verdict for a pose the rules above say cannot be " +
+    "judged. An operator rotating a part passes through such poses on the way, " +
+    "and 'unclear' is the correct answer for those frames — not a guess in " +
+    "either direction.\n\n" +
+    "IDENTITY BEFORE ORIENTATION — never infer WHICH part it is from which face " +
+    "is up. The catalogue fingerprints say things like 'roller cage up = this " +
+    "correct identity'; those phrases separate a part from its OWN flipped decoy " +
+    "and must NEVER be used to choose between the two cones or the two cups. " +
+    "Because each pair runs the opposite convention, the traps are exact: a " +
+    "FLIPPED 67190R91 shows its roller cage up, precisely like a CORRECT " +
+    "248118A1, and a FLIPPED 248114A1 shows a bare bright raceway up, precisely " +
+    "like a CORRECT 191440A1. Mis-naming the pair member therefore inverts the " +
+    "verdict rather than merely mislabelling the part.\n" +
+    "Settling a pair needs SCALE — there is no shape giveaway, since cage-up " +
+    "views of the two cones genuinely resemble each other. Use whatever is in " +
+    "frame as a ruler: the gloved hand, the fixture pocket, a bin label. " +
+    "67190R91 is about 82mm across, roughly a palm's width, against a markedly " +
+    "larger 248118A1; 191440A1 is about 140mm OD with a narrow stamped band, " +
+    "against a larger 248114A1 with a broad one.\n\n" +
     (expectSku && GLASSES_COMPONENTS[expectSku] ? expectClause(expectSku) + "\n" : "") +
     'Answer ONLY with raw JSON: {"frames": [{"i": number, "caption": string, ' +
     '"sku": string|null, "className": string, "orientation": ' +
@@ -214,6 +242,82 @@ function ground(raw: RawFrame, t: number): ReasonedFrame {
   };
 }
 
+/**
+ * The device's raise condition, ported from WrongPartGuard.kt
+ * (comer-rokid-demo, constants retuned on site 2026-09-12 against a measured
+ * 1678ms observe cadence).
+ *
+ * A clip verdict used to be "any frame read wrong at ≥0.5", which is far more
+ * trigger-happy than the glasses and made the summary hostage to single-frame
+ * model variance: the same ten frames of a correctly-held cup came back `ok`
+ * on one run and `wrong` on the next, off one 0.9 frame mid-rotation. The
+ * device never behaved that way, because a warning has to survive a debounce
+ * before it reaches the HUD.
+ *
+ * Reproducing that here is the whole point of the eval module — the clip
+ * summary should answer "would the glasses have fired on this", not "did any
+ * frame look wrong to Gemini once".
+ *
+ * Raise when EITHER:
+ *   - one wrong read at ≥0.92 with no confident correct read of the same part
+ *     within the previous 2s (an adjacent correct read means the pose is
+ *     oscillating, which on a correctly-held part is exactly what it does), OR
+ *   - two consecutive confident wrong reads.
+ */
+const GUARD = {
+  /** Floor for a read to count at all (WRONG_PART_MIN_CONF). */
+  MIN_CONF: 0.7,
+  /** Single-frame raise (ORIENTATION_INSTANT_CONF). */
+  INSTANT_CONF: 0.92,
+  /** Confident wrong frames to confirm (WRONG_PART_CONSECUTIVE). */
+  CONSECUTIVE: 2,
+  /** Oscillation window in clip seconds (ORIENTATION_OSCILLATION_MS). */
+  OSCILLATION_S: 2.0,
+};
+
+interface GuardOutcome {
+  raised: boolean;
+  via: "instant" | "consecutive" | null;
+  /** Why confident wrong reads did NOT reach a warning, when they existed. */
+  suppressed: "oscillation" | "unconfirmed" | null;
+  atT: number | null;
+}
+
+function deviceRaise(frames: ReasonedFrame[]): GuardOutcome {
+  let consecutive = 0;
+  let lastCorrectT: number | null = null;
+  let sawWrong = false;
+  let suppressed: GuardOutcome["suppressed"] = null;
+
+  for (const f of frames) {
+    const confident = f.confidence >= GUARD.MIN_CONF;
+    if (f.verdict === "ok" && confident) {
+      lastCorrectT = f.t;
+      consecutive = 0;
+      continue;
+    }
+    if (f.verdict !== "wrong" || !confident) {
+      // Unclear, absent or low-confidence breaks the run. Stricter than the
+      // device, which only resets on a correct read or confirmed empty hands,
+      // and stricter in the safe direction: a false WRONG ORIENTATION on a
+      // good part is the expensive error.
+      consecutive = 0;
+      continue;
+    }
+    sawWrong = true;
+    consecutive += 1;
+    const oscillating = lastCorrectT !== null && f.t - lastCorrectT <= GUARD.OSCILLATION_S;
+    if (f.confidence >= GUARD.INSTANT_CONF && !oscillating) {
+      return { raised: true, via: "instant", suppressed: null, atT: f.t };
+    }
+    if (consecutive >= GUARD.CONSECUTIVE) {
+      return { raised: true, via: "consecutive", suppressed: null, atT: f.t };
+    }
+    suppressed = oscillating ? "oscillation" : "unconfirmed";
+  }
+  return { raised: false, via: null, suppressed: sawWrong ? suppressed ?? "unconfirmed" : null, atT: null };
+}
+
 povRouter.post("/reason", async (req, res, next) => {
   try {
     const body = BodySchema.parse(req.body);
@@ -231,10 +335,18 @@ povRouter.post("/reason", async (req, res, next) => {
     }
 
     const expectSku = body.expectSku ? resolveFlipSku(body.expectSku).sku : null;
+    // Narrowed to the pinned part's family, dropping the look-alike it would
+    // otherwise be free to answer with — the lever that actually moved the
+    // numbers on device, where prompt wording alone did not.
+    const refParts = referenceParts({ scopeSku: expectSku ?? undefined });
     const parts: GeminiPart[] = [
       { text: buildPrompt(body.lang, expectSku ?? undefined) },
-      ...referenceParts(),
+      ...refParts,
     ];
+    // One text part + one image part per reference, so the attached count is
+    // half the parts — worth reporting accurately, since the whole point of
+    // scoping is that this number goes down.
+    const attachedRefs = refParts.length / 2;
     body.frames.forEach((f, i) => {
       parts.push({ text: `FRAME i=${i} at t=${f.t.toFixed(1)}s of the clip:` });
       parts.push({
@@ -279,6 +391,7 @@ povRouter.post("/reason", async (req, res, next) => {
     // Clip-level roll-up: what a reviewer wants to read before scrubbing.
     const wrong = frames.filter((f) => f.verdict === "wrong");
     const ok = frames.filter((f) => f.verdict === "ok");
+    const guard = deviceRaise(frames);
     const skus = [...new Set(frames.map((f) => f.sku).filter(Boolean))] as string[];
 
     res.json({
@@ -286,21 +399,28 @@ povRouter.post("/reason", async (req, res, next) => {
       stubbed: false,
       model: out.model,
       latencyMs: out.latencyMs,
-      references: refs.length,
+      references: attachedRefs,
       frames,
       summary: {
         skus,
         component: frames.find((f) => f.sku)?.component ?? null,
         wrongFrames: wrong.length,
         okFrames: ok.length,
-        // A clip is "wrong" if any confident frame caught a flip: these are
-        // deliberate tests, and a single solid catch is the pass condition.
-        verdict: wrong.some((f) => f.confidence >= 0.5)
-          ? "wrong"
-          : ok.length
-            ? "ok"
-            : "unclear",
-        wouldFire: wrong.some((f) => f.wouldFire && f.confidence >= 0.5),
+        // The clip reads "wrong" when the glasses' own guard would have raised
+        // over these frames — not merely when one frame looked wrong.
+        verdict: guard.raised ? "wrong" : ok.length ? "ok" : "unclear",
+        wouldFire:
+          guard.raised &&
+          wrong.some((f) => f.wouldFire && f.confidence >= GUARD.MIN_CONF),
+        // How the device got there, so a reviewer can tell a confirmed catch
+        // from a single high-confidence frame — and can see when confident
+        // wrong reads were deliberately suppressed as pose oscillation.
+        guard: {
+          raised: guard.raised,
+          via: guard.via,
+          suppressed: guard.suppressed,
+          atT: guard.atT,
+        },
       },
     });
   } catch (e) {
