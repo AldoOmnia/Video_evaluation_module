@@ -865,7 +865,7 @@
       background: color-mix(in srgb, var(--primary) 12%, transparent);
     }
     .clip-chip .nm { overflow: hidden; text-overflow: ellipsis; }
-    /* Verdict glyph: ✓ correct · ! caught a flip · ? couldn't tell */
+    /* Verdict mark: OK correct · ! caught a flip · ? couldn't tell */
     .clip-chip .vd { font-size: 9px; flex-shrink: 0; }
     .clip-chip .vd.ok { color: var(--primary); }
     .clip-chip .vd.wrong { color: var(--amber); }
@@ -995,6 +995,18 @@
       display: flex; align-items: center; justify-content: center;
     }
     .tbtn:hover { border-color: var(--primary-dim); color: var(--primary); }
+    /* Play and pause are drawn rather than typed: the glyphs render as emoji on
+       some platforms, and as tofu in others. See DESIGN_LANGUAGE.md. */
+    #btnPlay::before { content: ''; display: block; }
+    #btnPlay[data-state="paused"]::before {
+      width: 0; height: 0; margin-left: 2px;
+      border-left: 9px solid currentColor;
+      border-top: 6px solid transparent; border-bottom: 6px solid transparent;
+    }
+    #btnPlay[data-state="playing"]::before {
+      width: 3px; height: 11px; background: currentColor;
+      box-shadow: 5px 0 0 currentColor; margin-right: 5px;
+    }
     .tbtn.primary { background: color-mix(in srgb, var(--primary) 12%, transparent); border-color: var(--primary-dim); color: var(--primary); }
     .time-read { font-family: var(--mono); font-size: 13px; color: var(--ink-1); }
     .time-read .dur { color: var(--ink-3); }
@@ -1118,7 +1130,7 @@
         <div class="quad" data-quad="video">
           <div class="panel-head"><span class="grip">⠿</span><span class="pi" style="color:var(--violet)">●</span> <span data-i18n="tw.rgbPov">RGB · worker POV</span>
             <button type="button" class="ai-toggle" id="aiInterpBtn" data-i18n="tw.aiReasoner"
-                    title="AI interpretation — Gemini vision over this walkthrough, grounded in the PG-04 procedure knowledge base">✦ AI reasoner</button>
+                    title="AI interpretation — Gemini vision over this walkthrough, grounded in the PG-04 procedure knowledge base">AI reasoner</button>
             <span class="tag">2400×1800</span>
           </div>
           <div class="q-body cam-body" id="camBody">
@@ -1154,7 +1166,7 @@
                         title="Part shown in this clip — pinning it lets the reasoner judge orientation only, as the glasses do from the current step"></select>
                 <button type="button" class="clip-act" id="clipAnalyzeBtn" hidden
                         data-i18n="tw.clipAnalyze"
-                        title="Run the AI reasoner over this clip — Gemini vision against the station's reference images">✦ analyze</button>
+                        title="Run the AI reasoner over this clip — Gemini vision against the station's reference images">analyze</button>
                 <button type="button" class="clip-add" id="clipAddBtn"
                         data-i18n-title="tw.clipAddTitle" aria-label="Add POV clips"
                         title="Add POV clips (mp4 / webm / mov) — e.g. parts held in correct and wrong orientation">+</button>
@@ -1395,8 +1407,8 @@
       <div class="rsz rsz-h" data-rsz="timeline" style="top:0;" title="Drag to resize"></div>
       <div class="tl-controls">
         <div class="transport">
-          <button class="tbtn" id="btnBack" title="Restart">⏮</button>
-          <button class="tbtn primary" id="btnPlay" title="Play / pause">▶</button>
+          <button class="tbtn" id="btnBack" title="Restart" aria-label="Restart"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h2.6v14H6z"/><path d="M20 5v14L9.6 12z"/></svg></button>
+          <button class="tbtn primary" id="btnPlay" title="Play / pause" aria-label="Play / pause" data-state="playing"></button>
           <div class="time-read"><span id="curTime">00:00.0</span><span class="dur" id="durTime"> / 00:30.0</span></div>
         </div>
         <div class="speed-row">
@@ -2409,7 +2421,7 @@
 
       /* ── rail ──────────────────────────────────────────────────────── */
 
-      const VERDICT_GLYPH = { ok: "✓", wrong: "!", unclear: "?" };
+      const VERDICT_GLYPH = { ok: "OK", wrong: "!", unclear: "?" };
 
       function renderChips() {
         chipBox.innerHTML = "";
@@ -2425,7 +2437,7 @@
           if (c.state === "busy" || c.state === "ready" && c.summary) {
             const vd = document.createElement("span");
             vd.className = "vd " + (c.state === "busy" ? "busy" : (c.summary?.verdict || "unclear"));
-            vd.textContent = c.state === "busy" ? "✦" : (VERDICT_GLYPH[c.summary?.verdict] || "?");
+            vd.textContent = c.state === "busy" ? "…" : (VERDICT_GLYPH[c.summary?.verdict] || "?");
             b.appendChild(vd);
           }
           b.title = clipTitle(c);
@@ -2516,7 +2528,7 @@
         if (show) {
           analyzeBtn.disabled = false;
           analyzeBtn.classList.remove("is-busy");
-          analyzeBtn.textContent = T("tw.clipAnalyze", "✦ analyze");
+          analyzeBtn.textContent = T("tw.clipAnalyze", "analyze");
         }
       }
 
@@ -2686,10 +2698,10 @@
         analyzeBtn.disabled = true;
         analyzeBtn.classList.add("is-busy");
         const setLabel = (s) => { analyzeBtn.textContent = s; };
-        setLabel(T("tw.clipReading", "✦ reading…"));
+        setLabel(T("tw.clipReading", "reading…"));
         try {
-          const frames = await sampleFrames(c.src, (i, n) => setLabel(`✦ ${i}/${n}`));
-          setLabel(T("tw.clipThinking", "✦ reasoning…"));
+          const frames = await sampleFrames(c.src, (i, n) => setLabel(`reading ${i}/${n}`));
+          setLabel(T("tw.clipThinking", "reasoning…"));
           const r = await fetch("/api/pov/reason", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -2724,7 +2736,7 @@
           analyzeBtn.hidden = false;
           analyzeBtn.disabled = false;
           analyzeBtn.classList.remove("is-busy");
-          setLabel(T("tw.clipFailed", "✦ failed — retry"));
+          setLabel(T("tw.clipFailed", "failed — retry"));
         }
       }
       analyzeBtn?.addEventListener("click", analyzeActive);
@@ -2755,7 +2767,7 @@
           });
           sel.appendChild(reportGroup);
           if (clipGroup) sel.appendChild(clipGroup); // keep added clips last
-          syncBtn.textContent = reportFrames.length ? `✓ ${reportFrames.length} synced` : "no POVs yet";
+          syncBtn.textContent = reportFrames.length ? `${reportFrames.length} synced` : "no POVs yet";
         } catch {
           syncBtn.textContent = "sync failed";
         } finally {
@@ -3575,11 +3587,11 @@
     const btnPlay = document.getElementById("btnPlay");
     btnPlay.addEventListener("click", () => {
       playing = !playing;
-      btnPlay.textContent = playing ? "❚❚" : "▶";
+      btnPlay.dataset.state = playing ? "playing" : "paused";
       if (playing && CONFIG.povVideo) povVideo.play().catch(() => {});
       else povVideo.pause();
     });
-    btnPlay.textContent = "❚❚";
+    btnPlay.dataset.state = "playing";
     document.getElementById("btnBack").addEventListener("click", () => { playT = 0; syncVideo(true); });
     document.querySelectorAll(".sbtn").forEach((b) => {
       b.addEventListener("click", () => {

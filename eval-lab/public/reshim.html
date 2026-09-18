@@ -76,6 +76,28 @@
     .kpi {
       background: var(--bg-2); border: 1px solid var(--line-2);
       border-radius: 8px; padding: 12px 14px;
+      position: relative; overflow: hidden;
+    }
+    .kpi .n {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--ink-3); margin-top: 7px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    /* Work in progress is announced on the cards whose numbers it will change:
+       the note names the operation and a rule sweeps the foot of each card. No
+       spinner glyph — see DESIGN_LANGUAGE.md. */
+    .kpis[data-busy] .kpi .n { color: var(--primary); }
+    .kpis[data-busy] .kpi::after {
+      content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--primary), transparent);
+      animation: kpi-sweep 1.15s linear infinite;
+    }
+    @keyframes kpi-sweep {
+      from { transform: translateX(-100%); }
+      to   { transform: translateX(100%); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .kpis[data-busy] .kpi::after { animation: none; opacity: 0.55; }
     }
     .kpi .k { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
     .kpi .v { font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--ink-1); margin-top: 4px; }
@@ -120,25 +142,26 @@
     .notice {
       display: flex; gap: 9px; align-items: flex-start;
       border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+      /* A weighted left edge carries the severity, in place of a warning glyph. */
+      border-left: 3px solid var(--warn);
       background: color-mix(in srgb, var(--warn) 8%, transparent);
       border-radius: 8px; padding: 10px 13px; margin-bottom: 20px;
       font-size: 12.5px; color: var(--ink-2);
       /* Full content width, matching the KPI row below it — the sentence reads
          as one line of prose rather than a narrow wrapped column. */
     }
-    .notice::before { content: '◐'; color: var(--warn); flex: none; }
     /* Pushed to the far right so the sentence keeps a clean left column; it is
        diagnostic detail, not part of the prose. */
     .notice .reason { color: var(--ink-3); white-space: nowrap; margin-left: auto; padding-left: 14px; }
     @media (max-width: 900px) {
       .notice { flex-wrap: wrap; }
-      .notice .reason { margin-left: 0; padding-left: 19px; }
+      .notice .reason { margin-left: 0; padding-left: 0; }
     }
 
     .muted { color: var(--ink-3); }
     .empty { color: var(--ink-3); font-style: italic; padding: 14px 0; text-align: center; }
 
-    #run-btn.running { opacity: 0.5; cursor: wait; }
+    .actions button.running { opacity: 0.5; cursor: wait; }
     .toast {
       position: fixed; bottom: 20px; right: 20px; z-index: 100;
       background: var(--bg-2); border: 1px solid var(--line-2);
@@ -165,7 +188,7 @@
       <button id="clear-btn" hidden title="Remove every seeded run; real analyses are left alone">Clear sample</button>
       <span class="divider"></span>
       <button id="refresh-btn">Refresh</button>
-      <button id="run-btn" class="primary">▶ Run now</button>
+      <button id="run-btn" class="primary">Run now</button>
       <button class="theme-toggle"></button>
     </div>
   </div>
@@ -185,12 +208,30 @@
 
     <div class="notice" id="trigger-note" hidden></div>
 
+    <!-- The note under each value carries both the figure's denominator and,
+         while work is in flight, the name of that work. Progress belongs next to
+         the numbers it is about to change, not inside the button that started it. -->
     <div class="kpis" id="kpis">
-      <div class="kpi"><div class="k">Units</div><div class="v" id="k-units">—</div></div>
-      <div class="kpi"><div class="k">OK</div><div class="v ok" id="k-ok">—<span class="u">%</span></div></div>
-      <div class="kpi"><div class="k">BAD</div><div class="v warn" id="k-bad">—<span class="u">%</span></div></div>
-      <div class="kpi"><div class="k">BAD_HEAVY</div><div class="v err" id="k-bad-heavy">—<span class="u">%</span></div></div>
-      <div class="kpi"><div class="k">Photo coverage</div><div class="v" id="k-cov">—<span class="u">%</span></div></div>
+      <div class="kpi">
+        <div class="k">Units</div><div class="v" id="k-units">—</div>
+        <div class="n" id="n-units">awaiting data</div>
+      </div>
+      <div class="kpi">
+        <div class="k">OK</div><div class="v ok" id="k-ok">—<span class="u">%</span></div>
+        <div class="n" id="n-ok">awaiting data</div>
+      </div>
+      <div class="kpi">
+        <div class="k">BAD</div><div class="v warn" id="k-bad">—<span class="u">%</span></div>
+        <div class="n" id="n-bad">awaiting data</div>
+      </div>
+      <div class="kpi">
+        <div class="k">BAD_HEAVY</div><div class="v err" id="k-bad-heavy">—<span class="u">%</span></div>
+        <div class="n" id="n-bad-heavy">awaiting data</div>
+      </div>
+      <div class="kpi">
+        <div class="k">Photo coverage</div><div class="v" id="k-cov">—<span class="u">%</span></div>
+        <div class="n" id="n-cov">awaiting data</div>
+      </div>
     </div>
 
     <div class="panel">
@@ -250,6 +291,41 @@
     const pct = (n) => (n == null || Number.isNaN(n)) ? '—' : Math.round(n) + '%';
     let CAPS = { canTrigger: false, canEmail: false, recipientCount: 0, sampleRuns: 0 };
 
+    /* ── KPI notes and the busy indicator ─────── */
+    const NOTES = ['n-units', 'n-ok', 'n-bad', 'n-bad-heavy', 'n-cov'];
+    let notesBeforeBusy = null;   // non-null only while a busy label is showing
+
+    /* While the busy label is showing, note writes are held rather than applied:
+       a reload finishing mid-operation would otherwise flicker the real figures
+       in behind the label, and then be overwritten when the label clears. */
+    function setNote(id, text) {
+      const held = notesBeforeBusy ? NOTES.indexOf(id) : -1;
+      if (held >= 0) notesBeforeBusy[held] = text;
+      else $(id).textContent = text;
+    }
+
+    /** Announce work on the cards it affects; pass null when it finishes. On
+     *  clear the held notes are flushed, which is either what the reload wrote
+     *  or — if the operation failed before reloading — what was there before,
+     *  so the cards never stay stuck on a verb. */
+    function setBusy(label) {
+      const kpis = $('kpis');
+      if (!label) {
+        delete kpis.dataset.busy;
+        // Drop the hold *before* flushing, or setNote routes the flush straight
+        // back into the snapshot it came from and the DOM never updates.
+        const held = notesBeforeBusy;
+        notesBeforeBusy = null;
+        if (held) NOTES.forEach((id, i) => setNote(id, held[i]));
+        return;
+      }
+      if (!notesBeforeBusy) notesBeforeBusy = NOTES.map((id) => $(id).textContent);
+      kpis.dataset.busy = '';
+      // Written straight to the DOM: the label *is* the display while busy, so it
+      // must not go through setNote's hold, which exists to defer data notes.
+      NOTES.forEach((id) => ($(id).textContent = label));
+    }
+
     function toast(msg, kind='') {
       const t = document.createElement('div');
       t.className = 'toast ' + kind;
@@ -274,6 +350,7 @@
         $('date-chip').textContent = '';
         $('date-chip').hidden = true;
         $('mock-chip').hidden = true;
+        NOTES.forEach((id) => setNote(id, 'no runs'));
         $('alert-variants').innerHTML = '<li class="muted">No runs yet.</li>';
       } else {
         const s = latest.summary;
@@ -289,9 +366,17 @@
         $('k-bad-heavy').firstChild.data = bhPct == null ? '—' : bhPct.toFixed(1);
         $('k-cov').firstChild.data = '—'; // filled server-side later if we surface it
 
-        $('status-chip').textContent = latest.emailStatus === 'sent' ? '✓ emailed' :
-                                       latest.emailStatus === 'failed' ? '✗ email failed' :
-                                       latest.emailStatus === 'skipped' ? '⊘ email skipped' : 'no email';
+        // Each percentage gets its count and denominator, so a reader is not
+        // left converting "7.9%" back into units in their head.
+        setNote('n-units', s.excluded > 0 ? `${s.excluded} excluded` : 'none excluded');
+        setNote('n-ok', `${s.ok} of ${incl}`);
+        setNote('n-bad', `${s.bad} of ${incl}`);
+        setNote('n-bad-heavy', `${s.bad_heavy} of ${incl}`);
+        setNote('n-cov', 'see per-run xlsx');
+
+        $('status-chip').textContent = latest.emailStatus === 'sent' ? 'emailed' :
+                                       latest.emailStatus === 'failed' ? 'email failed' :
+                                       latest.emailStatus === 'skipped' ? 'email skipped' : 'no email';
         $('status-chip').className = 'chip ' + (
           latest.emailStatus === 'sent' ? 'ok' :
           latest.emailStatus === 'failed' ? 'err' : 'warn'
@@ -324,8 +409,8 @@
         const s = r.summary;
         const incl = s ? (s.ok + s.bad + s.bad_heavy) : 0;
         const okPct = incl ? (100 * s.ok / incl) : null;
-        const emailChip = r.emailStatus === 'sent' ? `✓ ${r.emailRecipients.length}` :
-                         r.emailStatus === 'failed' ? '✗ failed' :
+        const emailChip = r.emailStatus === 'sent' ? `sent to ${r.emailRecipients.length}` :
+                         r.emailStatus === 'failed' ? 'failed' :
                          r.emailStatus === 'skipped' ? '—' : '';
         tr.innerHTML = `
           <td>${r.date}</td>
@@ -334,7 +419,7 @@
           <td class="num">${s ? s.bad : 0}</td>
           <td class="num">${s ? s.bad_heavy : 0}</td>
           <td>${emailChip}</td>
-          <td>${r.hasReport ? `<a href="/api/reshim/runs/${r.date}/report">⬇ xlsx</a>` : '<span class="muted">—</span>'}</td>
+          <td>${r.hasReport ? `<a href="/api/reshim/runs/${r.date}/report">xlsx</a>` : '<span class="muted">—</span>'}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -392,38 +477,33 @@
       $('spark-end').textContent = coords[coords.length - 1].d;
     }
 
-    $('refresh-btn').addEventListener('click', () => loadDashboard());
+    $('refresh-btn').addEventListener('click', () =>
+      withBusy($('refresh-btn'), 'refreshing', () => loadDashboard()));
 
-    $('run-btn').addEventListener('click', async () => {
-      const btn = $('run-btn');
-      if (btn.classList.contains('running')) return;
+    $('run-btn').addEventListener('click', () => {
       const alsoEmail = $('also-email-cb').checked;
-      if (alsoEmail) {
-        if (!confirm('This will email the Comer recipients now. Continue?')) return;
-      }
-      btn.classList.add('running');
-      btn.textContent = '⏳ Running…';
-      try {
-        // Runs email by default; the checkbox is the opt-out.
-        const body = JSON.stringify({ skipEmail: !alsoEmail });
-        const r = await fetch('/api/reshim/trigger', { method: 'POST', headers: {'Content-Type':'application/json'}, body });
-        const j = await r.json();
-        if (j.ok) {
-          toast('Run complete — refreshing…', 'ok');
-          await loadDashboard();
-        } else {
-          // Prefer the server's own sentence; fall back to the line of the
-          // traceback that names the cause rather than its last 200 characters.
-          const trace = j.result?.stderr?.trim().split('\n').map(l => l.trim()).filter(Boolean) || [];
-          const cause = trace.reverse().find(l => /^[A-Za-z_.]*(Error|Exception)\b/.test(l));
-          toast('Run failed: ' + (j.error || cause || 'unknown error'), 'err');
+      if (alsoEmail && !confirm('This will email the Comer recipients now. Continue?')) return;
+
+      withBusy($('run-btn'), 'running', async () => {
+        try {
+          // Runs email by default; the checkbox is the opt-out.
+          const body = JSON.stringify({ skipEmail: !alsoEmail });
+          const r = await fetch('/api/reshim/trigger', { method: 'POST', headers: {'Content-Type':'application/json'}, body });
+          const j = await r.json();
+          if (j.ok) {
+            toast('Run complete.', 'ok');
+            await loadDashboard();
+          } else {
+            // Prefer the server's own sentence; fall back to the line of the
+            // traceback that names the cause rather than its last 200 characters.
+            const trace = j.result?.stderr?.trim().split('\n').map(l => l.trim()).filter(Boolean) || [];
+            const cause = trace.reverse().find(l => /^[A-Za-z_.]*(Error|Exception)\b/.test(l));
+            toast('Run failed: ' + (j.error || cause || 'unknown error'), 'err');
+          }
+        } catch (e) {
+          toast('Trigger error: ' + e.message, 'err');
         }
-      } catch (e) {
-        toast('Trigger error: ' + e.message, 'err');
-      } finally {
-        btn.classList.remove('running');
-        btn.textContent = '▶ Run now';
-      }
+      });
     });
 
     /* Computing a report and sending one are separate abilities. The cloud host
@@ -465,16 +545,17 @@
     /* Off by default: the dashboard ships empty and stays empty until someone
        asks for demo figures, because these numbers are visible to the customer. */
 
+    /** Dim the button that started the work and name the work on the KPI cards.
+     *  The button keeps its label: it says what it does, not what it is doing. */
     async function withBusy(btn, label, fn) {
       if (btn.classList.contains('running')) return;
-      const original = btn.textContent;
       btn.classList.add('running');
-      btn.textContent = label;
+      setBusy(label);
       try {
         await fn();
       } finally {
         btn.classList.remove('running');
-        btn.textContent = original;
+        setBusy(null);
       }
     }
 
@@ -486,7 +567,7 @@
         : 'Seed 30 days of sample data? The figures are invented and the dashboard will badge them.';
       if (!confirm(msg)) return;
 
-      withBusy($('seed-btn'), '⏳ Seeding…', async () => {
+      withBusy($('seed-btn'), 'seeding', async () => {
         try {
           const r = await fetch('/api/reshim/sample', {
             method: 'POST',
@@ -510,7 +591,7 @@
 
     $('clear-btn').addEventListener('click', () => {
       if (!confirm('Remove every seeded run? Real analyses are left untouched.')) return;
-      withBusy($('clear-btn'), '⏳ Clearing…', async () => {
+      withBusy($('clear-btn'), 'clearing', async () => {
         try {
           const r = await fetch('/api/reshim/sample', { method: 'DELETE', headers: authHeaders() });
           const j = await r.json();
@@ -523,7 +604,8 @@
       });
     });
 
-    loadDashboard();
+    setBusy('loading');
+    loadDashboard().finally(() => setBusy(null));
     applyCapabilities();
   </script>
 </body>

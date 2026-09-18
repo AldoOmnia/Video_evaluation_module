@@ -11,14 +11,15 @@
     "dev": "npm --workspace backend run dev",
     "build": "npm --workspace backend run build && npm --workspace eval-lab run build",
     "typecheck": "tsc -p . --noEmit && npm --workspace backend run typecheck && npm --workspace eval-lab run typecheck",
-    "validate": "tsx scripts/validate-specs.ts",
+    "validate": "tsx scripts/validate-specs.ts && node tools/check-design-language.mjs",
     "gen:apk": "tsx scripts/generate-kotlin-specs.ts",
     "lab": "echo 'Open http://localhost:3001/lab/ after running npm run dev'",
     "pov": "echo 'Synthetic POV preview: http://localhost:3001/synthetic-pov?zone=1 (requires npm run dev)'",
     "start": "npm --workspace backend run start",
     "dev:live": "bash scripts/dev-live.sh",
     "mes:check": "tsx tools/mes-check.mjs",
-    "test:sql-guard": "tsx tools/test-sql-guard.mjs"
+    "test:sql-guard": "tsx tools/test-sql-guard.mjs",
+    "check:design": "node tools/check-design-language.mjs"
   },
   "devDependencies": {
     "tsx": "^4.7.2",

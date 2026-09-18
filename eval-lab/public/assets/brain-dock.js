@@ -296,7 +296,7 @@
         <button type="button" data-lang="en" title="Answer in English">EN</button>
         <button type="button" data-lang="it" title="Rispondi in italiano">ITA</button>
       </span>
-      <button class="bd-close" type="button" title="${esc(TD('closeTitle', 'Close (Esc)'))}">✕</button>
+      <button class="bd-close" type="button" title="${esc(TD('closeTitle', 'Close (Esc)'))}">×</button>
     </div>
     <div class="bd-msgs" id="bd-msgs">
       <div class="bd-empty" id="bd-empty">${TD('empty', `
@@ -309,7 +309,7 @@
       <div class="bd-attach-preview" id="bd-preview">
         <img id="bd-preview-img" alt=""/>
         <span id="bd-preview-name"></span>
-        <button type="button" id="bd-preview-x" title="${esc(TD('removeTitle', 'Remove image'))}">✕</button>
+        <button type="button" id="bd-preview-x" title="${esc(TD('removeTitle', 'Remove image'))}">×</button>
       </div>
       <div class="bd-inflex">
         <button class="bd-btn" type="button" id="bd-attach" title="${esc(TD('attachTitle', 'Attach a component photo'))}" aria-label="${esc(TD('attachTitle', 'Attach a component photo'))}">
