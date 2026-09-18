@@ -16,7 +16,14 @@ import { Router } from "express";
 import { z } from "zod";
 import { llmCall } from "../services/anthropic.js";
 import { askMes } from "../services/mesAsk.js";
-import { fetchStationSnapshot, mesConfig, mesConfigured } from "../services/mesSql.js";
+import {
+  fetchStationSnapshot,
+  humanAge,
+  mesConfig,
+  mesConfigured,
+  PLANT_TZ,
+  wallTimeToInstant,
+} from "../services/mesSql.js";
 
 export const lineRouter = Router();
 
@@ -377,32 +384,6 @@ function plainify(s: string): string {
  * as quiet for five hours. So resolve the real instant here and hand the model
  * an explicit age, rather than a timestamp it has to label a zone for.
  */
-const PLANT_TZ = "America/Chicago";
-
-/** Read bare `YYYY-MM-DDTHH:MM:SS` digits as wall time in `tz`. */
-function wallTimeToInstant(naive: string, tz: string): Date | null {
-  const digits = naive.replace(/(\.\d+)?Z?$/, "");
-  const asIfUtc = new Date(`${digits}Z`);
-  if (Number.isNaN(asIfUtc.getTime())) return null;
-  // How that instant reads in the plant zone; the gap is the zone's offset for
-  // this date, so DST is handled without a tz library. Ambiguous only inside a
-  // transition hour, where being an hour out is harmless for "how long ago".
-  const inZone = new Date(
-    `${asIfUtc.toLocaleString("sv-SE", { timeZone: tz }).replace(" ", "T")}Z`,
-  );
-  return new Date(asIfUtc.getTime() + (asIfUtc.getTime() - inZone.getTime()));
-}
-
-function humanAge(ms: number, lang: "en" | "it"): string {
-  const mins = Math.round(ms / 60000);
-  if (mins < 1) return lang === "it" ? "meno di un minuto" : "less than a minute";
-  if (mins < 60) return lang === "it" ? `${mins} minuti` : `${mins} minutes`;
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  const hs = lang === "it" ? (h === 1 ? "1 ora" : `${h} ore`) : h === 1 ? "1 hour" : `${h} hours`;
-  if (!m) return hs;
-  return lang === "it" ? `${hs} e ${m} minuti` : `${hs} ${m} minutes`;
-}
 
 /** Replace the mislabelled timestamp with a plant-local reading plus an age. */
 function withPlantTime(
