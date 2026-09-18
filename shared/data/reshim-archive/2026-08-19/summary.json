@@ -1,0 +1,145 @@
+{
+  "total": 633,
+  "excluded": 0,
+  "ok": 499,
+  "bad": 126,
+  "bad_heavy": 8,
+  "unknown_family": 0,
+  "by_family": {
+    "425": {
+      "BAD_HEAVY": 5,
+      "BAD": 68,
+      "OK": 112
+    },
+    "600": {
+      "BAD_HEAVY": 3,
+      "BAD": 58,
+      "OK": 380
+    },
+    "600-905": {
+      "OK": 7
+    }
+  },
+  "by_variant": {
+    "X900.SWR.901.A01": {
+      "BAD_HEAVY": 1,
+      "BAD": 21,
+      "OK": 72
+    },
+    "UNICOM": {
+      "BAD_HEAVY": 1
+    },
+    "X900.SWR.001.A01": {
+      "BAD": 17,
+      "BAD_HEAVY": 2
+    },
+    "X900.QTR.002.A01": {
+      "BAD_HEAVY": 1,
+      "BAD": 3
+    },
+    "X900.LWR.002.A01": {
+      "BAD": 2
+    },
+    "X900.SWF.901.A01": {
+      "BAD": 30,
+      "BAD_HEAVY": 2,
+      "OK": 40
+    },
+    "X900.QTR.902.A01": {
+      "BAD": 10,
+      "OK": 59
+    },
+    "X900.QTF.902.A01": {
+      "BAD": 6,
+      "OK": 59
+    },
+    "X900.LWR.902.A01": {
+      "BAD": 3,
+      "OK": 50,
+      "BAD_HEAVY": 1
+    },
+    "X900.LWF.902.A01": {
+      "BAD": 7,
+      "OK": 43
+    },
+    "X900.QTF.903.A01": {
+      "BAD": 8,
+      "OK": 36
+    },
+    "X900.QTR.903.A01": {
+      "BAD": 8,
+      "OK": 42
+    },
+    "X900.QTF.901.A01": {
+      "BAD": 5,
+      "OK": 11
+    },
+    "X900.QTR.901.A01": {
+      "BAD": 5,
+      "OK": 12
+    },
+    "X900.QTR.905.A01": {
+      "OK": 4
+    },
+    "X900.QTF.905.A01": {
+      "OK": 3
+    },
+    "X900.RTF.901.A01": {
+      "OK": 6
+    },
+    "X900.QTF.904.A01": {
+      "OK": 13
+    },
+    "X900.QTR.904.A01": {
+      "OK": 13
+    },
+    "X900.LWF.901.A01": {
+      "OK": 16
+    },
+    "X900.LWR.901.A01": {
+      "OK": 15
+    },
+    "X900.RTR.901.A01": {
+      "OK": 3,
+      "BAD": 1
+    },
+    "X900.RTF.902.A01": {
+      "OK": 1
+    },
+    "X900.RTR.902.A01": {
+      "OK": 1
+    }
+  },
+  "high_bad_variants": [
+    {
+      "variant": "X900.SWR.001.A01",
+      "n": 19,
+      "bad_pct": 100.0
+    },
+    {
+      "variant": "X900.QTR.002.A01",
+      "n": 4,
+      "bad_pct": 100.0
+    },
+    {
+      "variant": "X900.LWR.002.A01",
+      "n": 2,
+      "bad_pct": 100.0
+    },
+    {
+      "variant": "UNICOM",
+      "n": 1,
+      "bad_pct": 100.0
+    },
+    {
+      "variant": "X900.SWF.901.A01",
+      "n": 72,
+      "bad_pct": 44.4
+    },
+    {
+      "variant": "X900.QTF.901.A01",
+      "n": 16,
+      "bad_pct": 31.2
+    }
+  ]
+}

@@ -18,6 +18,19 @@ import { REPO_ROOT, SHARED_DIR } from "../paths.js";
  * inside the checkout, which is wiped on every deploy. Defaults to the in-repo
  * path so local and on-prem installs need no configuration. */
 const RUN_ROOT = process.env.RESHIM_RUN_ROOT?.trim() || join(SHARED_DIR, "data", "reshim-runs");
+
+/* Runs committed to the repository, read-only. Anything the agent produced that
+ * is worth keeping goes here, and then appears on every host that checks the
+ * code out — a cloud deploy with an empty disk, a fresh clone, a new client
+ * environment. `reshim-runs/` is ignored by git precisely because it is scratch
+ * output from whichever machine last ran the agent; this is the kept record.
+ *
+ * Read from alongside RUN_ROOT rather than copied into it: the checkout is
+ * replaced on every deploy, so copying would run on every boot and a write
+ * failure would be silent. The live root wins on a date present in both, so a
+ * real run published later supersedes its archived copy. */
+const ARCHIVE_ROOT = join(SHARED_DIR, "data", "reshim-archive");
+
 const PLANT_TZ = process.env.MES_PLANT_TZ?.trim() || "America/Chicago";
 
 /** Calendar day in the plant zone (not UTC). Matches tools.reshim plant_today(). */
@@ -66,8 +79,17 @@ function safeReadJson<T>(path: string): T | null {
   }
 }
 
+/** Where a given day's artifacts are, live root first. Null when neither has it. */
+function runDir(dateStr: string): string | null {
+  for (const root of [RUN_ROOT, ARCHIVE_ROOT]) {
+    const dir = join(root, dateStr);
+    if (existsSync(dir)) return dir;
+  }
+  return null;
+}
+
 function loadRun(dateStr: string): ReshimRunListItem {
-  const dir = join(RUN_ROOT, dateStr);
+  const dir = runDir(dateStr) ?? join(RUN_ROOT, dateStr);
   const summary = safeReadJson<ReshimSummary>(join(dir, "summary.json"));
   const email = safeReadJson<{ status: number; recipients: string[]; subject: string }>(
     join(dir, "email.json"),
@@ -103,12 +125,18 @@ function loadRun(dateStr: string): ReshimRunListItem {
 
 export function listRuns(limit = 60): ReshimRunListItem[] {
   ensureRoot();
-  const dates = readdirSync(RUN_ROOT)
-    .filter((n) => /^\d{4}-\d{2}-\d{2}$/.test(n))
+  const dates = new Set<string>();
+  for (const root of [RUN_ROOT, ARCHIVE_ROOT]) {
+    if (!existsSync(root)) continue;
+    for (const name of readdirSync(root)) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(name)) dates.add(name);
+    }
+  }
+  return [...dates]
     .sort()
     .reverse()
-    .slice(0, limit);
-  return dates.map(loadRun);
+    .slice(0, limit)
+    .map(loadRun);
 }
 
 export function latestRun(): ReshimRunListItem | null {
@@ -117,9 +145,10 @@ export function latestRun(): ReshimRunListItem | null {
 }
 
 export function runReportPath(dateStr: string): string | null {
+  const dir = runDir(dateStr);
   const item = loadRun(dateStr);
-  if (!item.reportName) return null;
-  return join(RUN_ROOT, dateStr, item.reportName);
+  if (!dir || !item.reportName) return null;
+  return join(dir, item.reportName);
 }
 
 /* ── Can this host run the agent at all? ──────────────────────────────── */
@@ -312,6 +341,17 @@ export function countSampleRuns(): number {
 }
 
 /**
+ * Whether a genuine analysis already occupies this date, from either root.
+ * Seeding covers a window of recent days and would otherwise write over a real
+ * report — invented figures must never mask one.
+ */
+export function hasRealRun(dateStr: string): boolean {
+  if (!runDir(dateStr)) return false;
+  const run = loadRun(dateStr);
+  return !run.mock && (run.summary !== null || run.hasReport);
+}
+
+/**
  * Remove every seeded run, leaving real ones alone — the marker file is the
  * only thing consulted, so a day that was later overwritten by a genuine
  * analysis survives. Sample data must never be the default state of a
@@ -322,7 +362,12 @@ export function clearSampleRuns(): { removed: string[] } {
   const removed: string[] = [];
   for (const run of listRuns(365)) {
     if (!run.mock) continue;
-    rmSync(join(RUN_ROOT, run.date), { recursive: true, force: true });
+    // Only ever delete from the writable root. The archive is the kept record of
+    // real runs and nothing seeded can land there, but this is a delete taking a
+    // caller-influenced path, so it does not rely on that being true.
+    const dir = join(RUN_ROOT, run.date);
+    if (!existsSync(dir)) continue;
+    rmSync(dir, { recursive: true, force: true });
     removed.push(run.date);
   }
   return { removed };

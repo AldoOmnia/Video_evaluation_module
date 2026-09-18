@@ -192,6 +192,25 @@ Ingested runs live on the mounted disk at `RESHIM_RUN_ROOT`
 (`/var/reshim/runs`), not in the checkout, so a deploy does not wipe the
 history. Locally you can leave both unset; the page simply says no runs yet.
 
+### Where runs are read from
+
+The dashboard reads two roots and merges them by date:
+
+| Root | Written by | Survives |
+|---|---|---|
+| `RESHIM_RUN_ROOT` (`/var/reshim/runs`) | the ingest endpoint | deploys, via the mounted disk |
+| `shared/data/reshim-archive/` | committed to git by hand | anything — it is in the checkout |
+
+`shared/data/reshim-runs/` is gitignored: it is scratch output from whichever
+machine last ran the agent. A run worth keeping gets copied into
+`shared/data/reshim-archive/<YYYY-MM-DD>/` and committed, after which every host
+that checks the code out shows it — a fresh disk, a new client environment, a
+local clone. The live root wins on a date present in both, so a real run
+published by the workflow supersedes an archived copy of the same day.
+
+Seeding skips any date that already holds a real run, from either root, so
+sample figures cannot mask a genuine report.
+
 ### Sample data
 
 The dashboard ships **empty**. "Seed sample" writes 30 days of invented runs,

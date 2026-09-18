@@ -11,7 +11,7 @@
  */
 import ExcelJS from "exceljs";
 
-import { saveIngestedRun, type IngestRun, type ReshimSummary } from "./reshim.js";
+import { hasRealRun, saveIngestedRun, type IngestRun, type ReshimSummary } from "./reshim.js";
 import { sendMail, type SendResult } from "./mail.js";
 
 const FAMILIES = ["425", "430", "440", "450"] as const;
@@ -185,16 +185,23 @@ async function workbook(dateStr: string, rows: SampleRow[]): Promise<Buffer> {
 export interface SeedResult {
   days: number;
   dates: string[];
+  /** Dates left alone because a genuine analysis already occupies them. */
+  skipped: string[];
   email: SendResult | null;
 }
 
 /**
  * Write `days` of sample runs ending today. Returns the dates written, newest
  * last, plus the send result when `email` was asked for.
+ *
+ * Days that already hold a real run are skipped rather than overwritten — the
+ * seeding window covers recent dates, and the archive keeps real reports on
+ * exactly those dates.
  */
 export async function seedSampleRuns(days: number, opts: { email?: boolean } = {}): Promise<SeedResult> {
   const rnd = mulberry32(425);
   const dates: string[] = [];
+  const skipped: string[] = [];
   let newest: { dateStr: string; summary: ReshimSummary; report: IngestRun["report"] } | null = null;
 
   for (let i = days - 1; i >= 0; i--) {
@@ -202,7 +209,13 @@ export async function seedSampleRuns(days: number, opts: { email?: boolean } = {
     // A bulge of trouble around three weeks back that settles down again, so the
     // 30-day sparkline has a story in it instead of a flat band.
     const drift = 0.16 * Math.max(0, 1 - Math.abs(i - 20) / 7);
+    // Drawn regardless of whether it gets written, so the PRNG stays in step and
+    // the seeded history does not reshuffle when a real run appears in it.
     const { summary, rows } = buildDay(dateStr, drift, rnd);
+    if (hasRealRun(dateStr)) {
+      skipped.push(dateStr);
+      continue;
+    }
     const report = {
       name: `SAMPLE-reshim-${dateStr}.xlsx`,
       base64: (await workbook(dateStr, rows)).toString("base64"),
@@ -227,7 +240,7 @@ export async function seedSampleRuns(days: number, opts: { email?: boolean } = {
     });
   }
 
-  return { days, dates, email };
+  return { days, dates, skipped, email };
 }
 
 /* ── Sample report email ──────────────────────────────────────────────── */
