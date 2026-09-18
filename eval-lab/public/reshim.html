@@ -38,6 +38,13 @@
     }
     .actions button:hover, .actions a:hover { color: var(--primary); border-color: var(--primary-dim); }
     .actions .primary { color: var(--primary); border-color: var(--primary-dim); }
+    .actions label {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--ink-3); cursor: pointer;
+      padding: 6px 10px; border: 1px dashed var(--line-2); border-radius: 6px;
+    }
+    .actions label input { accent-color: var(--primary); }
 
     .wrap { max-width: 1080px; margin: 0 auto; padding: 26px 22px 70px; }
     .head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
@@ -118,6 +125,10 @@
     <a class="back-home" href="/home/">← Home</a>
     <span class="topbar-title"><strong>Reshim analysis</strong> · shim stack audit</span>
     <div class="actions">
+      <label id="email-toggle" title="Manual runs skip email by default so ad-hoc clicks don't spam Comer recipients. Check this to email on this run.">
+        <input type="checkbox" id="also-email-cb" />
+        <span>Also email</span>
+      </label>
       <button id="refresh-btn">Refresh</button>
       <button id="run-btn" class="primary">▶ Run now</button>
       <button class="theme-toggle"></button>
@@ -324,10 +335,16 @@
     $('run-btn').addEventListener('click', async () => {
       const btn = $('run-btn');
       if (btn.classList.contains('running')) return;
+      const alsoEmail = $('also-email-cb').checked;
+      if (alsoEmail) {
+        if (!confirm('This will email the Comer recipients now. Continue?')) return;
+      }
       btn.classList.add('running');
       btn.textContent = '⏳ Running…';
       try {
-        const r = await fetch('/api/reshim/trigger', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
+        // Manual runs skip email by default; opt in via checkbox
+        const body = JSON.stringify({ skipEmail: !alsoEmail });
+        const r = await fetch('/api/reshim/trigger', { method: 'POST', headers: {'Content-Type':'application/json'}, body });
         const j = await r.json();
         if (j.ok) {
           toast('Run complete — refreshing…', 'ok');
