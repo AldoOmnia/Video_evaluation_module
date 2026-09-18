@@ -21,6 +21,7 @@ const PAGES = [
   ["reports", "/reports"],
   ["settings", "/settings"],
   ["twin", "/synthetic-pov"],
+  ["reshim", "/reshim/"],
 ].filter(([n]) => !only || n === only);
 
 const browser = await puppeteer.launch({

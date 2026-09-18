@@ -52,7 +52,7 @@ def _build_body(summary: ClassifiedSummary, day: date, sn_missing_photos: list[s
         lines.append("")
     lines.append("Full details in the attached workbook.")
     lines.append("")
-    lines.append("— This report was generated automatically by the Omnia reshim agent.")
+    lines.append("— This report was generated automatically by the Daedalus reshim agent.")
     lines.append("   Reply to this email to reach Aldo.")
     return "\n".join(lines)
 
