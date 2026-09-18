@@ -9,7 +9,7 @@
  * the on-demand button take exactly the same path.
  */
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { REPO_ROOT, SHARED_DIR } from "../paths.js";
@@ -301,6 +301,31 @@ export function saveIngestedRun(run: IngestRun): { wrote: string[] } {
   }
 
   return { wrote };
+}
+
+/* ── Sample runs ──────────────────────────────────────────────────────── */
+
+/** How many of the runs on disk are seeded rather than real. Lets the dashboard
+ *  offer "clear" only when there is something to clear. */
+export function countSampleRuns(): number {
+  return listRuns(365).filter((r) => r.mock).length;
+}
+
+/**
+ * Remove every seeded run, leaving real ones alone — the marker file is the
+ * only thing consulted, so a day that was later overwritten by a genuine
+ * analysis survives. Sample data must never be the default state of a
+ * client-visible dashboard, and this is how it gets taken back out.
+ */
+export function clearSampleRuns(): { removed: string[] } {
+  ensureRoot();
+  const removed: string[] = [];
+  for (const run of listRuns(365)) {
+    if (!run.mock) continue;
+    rmSync(join(RUN_ROOT, run.date), { recursive: true, force: true });
+    removed.push(run.date);
+  }
+  return { removed };
 }
 
 /* ── Timeseries for dashboard sparkline ───────────────────────────────── */

@@ -29,7 +29,8 @@
     .back-home:hover { color: var(--primary); border-color: var(--primary-dim); }
     .topbar-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
     .topbar-title strong { color: var(--ink-1); font-weight: 500; }
-    .actions { margin-left: auto; display: flex; gap: 8px; }
+    .actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+    .actions .divider { width: 1px; align-self: stretch; background: var(--line); margin: 2px 2px; }
     .actions button, .actions a {
       background: transparent; border: 1px solid var(--line-2); border-radius: 6px;
       color: var(--ink-2); font-family: var(--mono); font-size: 10px;
@@ -155,10 +156,14 @@
     <a class="back-home" href="/home/">← Home</a>
     <span class="topbar-title"><strong>Reshim analysis</strong> · shim stack audit</span>
     <div class="actions">
-      <label id="email-toggle" title="Runs email the configured recipients. Untick to run without sending, e.g. when checking a backfill.">
+      <label id="email-toggle" title="Runs and sample sends email the configured recipients. Untick to produce the report without sending.">
         <input type="checkbox" id="also-email-cb" checked />
         <span>Also email</span>
       </label>
+      <span class="divider"></span>
+      <button id="seed-btn" title="Write 30 days of invented runs, for demos and for testing the email path">Seed sample</button>
+      <button id="clear-btn" hidden title="Remove every seeded run; real analyses are left alone">Clear sample</button>
+      <span class="divider"></span>
       <button id="refresh-btn">Refresh</button>
       <button id="run-btn" class="primary">▶ Run now</button>
       <button class="theme-toggle"></button>
@@ -230,8 +235,20 @@
   </div>
 
   <script>
+    /* ── Session gate ─────────────────────────── */
+    let SESSION = null;
+    try {
+      SESSION = JSON.parse(localStorage.getItem('omnia.session') || 'null');
+      if (!SESSION || SESSION.tenant !== 'comer' || SESSION.expiresAt <= Date.now()) window.location.replace('/login');
+    } catch { window.location.replace('/login'); }
+
+    /* Seeding can send mail to the customer's distribution list and clearing
+       deletes runs, so the server checks the login token on both. */
+    const authHeaders = () => (SESSION && SESSION.token ? { 'Authorization': 'Bearer ' + SESSION.token } : {});
+
     const $ = (id) => document.getElementById(id);
     const pct = (n) => (n == null || Number.isNaN(n)) ? '—' : Math.round(n) + '%';
+    let CAPS = { canTrigger: false, canEmail: false, recipientCount: 0, sampleRuns: 0 };
 
     function toast(msg, kind='') {
       const t = document.createElement('div');
@@ -253,7 +270,10 @@
       if (!latest || !latest.summary) {
         $('status-chip').textContent = 'no runs yet';
         $('status-chip').className = 'chip warn';
+        // Hidden rather than blanked: an empty chip still draws its border.
         $('date-chip').textContent = '';
+        $('date-chip').hidden = true;
+        $('mock-chip').hidden = true;
         $('alert-variants').innerHTML = '<li class="muted">No runs yet.</li>';
       } else {
         const s = latest.summary;
@@ -277,6 +297,7 @@
           latest.emailStatus === 'failed' ? 'err' : 'warn'
         );
         $('date-chip').textContent = latest.date;
+        $('date-chip').hidden = false;
         $('mock-chip').hidden = !latest.mock;
 
         // High-BAD variants
@@ -317,7 +338,11 @@
         `;
         tbody.appendChild(tr);
       });
-      if (tbody.children.length === 0) tbody.innerHTML = '<tr><td colspan="7" class="empty">No runs yet.</td></tr>';
+      if (tbody.children.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty">' +
+          'No runs yet — the daily workflow publishes here once it has run. ' +
+          'Use “Seed sample” for demo figures.</td></tr>';
+      }
 
       // "Missing photos" alert — for now, count from summary (better if surfaced explicitly by pipeline)
       $('alert-missing').innerHTML = '<li class="muted">See per-run xlsx for exact SNs missing photos.</li>';
@@ -401,28 +426,102 @@
       }
     });
 
-    /* The agent is Python and needs the plant network, so it only runs on a plant
-       machine or the CI runner. Ask the server before offering the button. */
+    /* Computing a report and sending one are separate abilities. The cloud host
+       has no Python agent and no route to the plant, so it cannot run anything —
+       but it holds mail credentials, so it can still send. Reflect each one on
+       its own control instead of greying out both because the agent is absent. */
     async function applyCapabilities() {
-      let caps;
       try {
-        caps = await fetch('/api/reshim/capabilities').then(r => r.json());
+        CAPS = await fetch('/api/reshim/capabilities').then(r => r.json());
       } catch { return; }
-      if (caps.canTrigger) return;
 
+      $('clear-btn').hidden = !CAPS.sampleRuns;
+      $('clear-btn').textContent = 'Clear sample' + (CAPS.sampleRuns ? ` (${CAPS.sampleRuns})` : '');
+
+      /* The Python agent carries its own mail config, so a host that can run is
+         assumed able to send even when the Node process has no credentials of
+         its own; only disable when neither path could possibly deliver. */
+      const canDeliver = CAPS.canEmail || CAPS.canTrigger;
+      $('email-toggle').classList.toggle('is-off', !canDeliver);
+      $('also-email-cb').disabled = !canDeliver;
+      $('email-toggle').title = canDeliver
+        ? `Sends to the ${CAPS.recipientCount || 'configured'} recipient(s). Untick to produce the report without sending.`
+        : 'No mail credentials on this host: ' + (CAPS.emailReason || 'unavailable');
+
+      if (CAPS.canTrigger) return;
       $('run-btn').disabled = true;
-      $('run-btn').title = caps.reason || 'This host cannot run the agent';
-      $('email-toggle').classList.add('is-off');
-      $('also-email-cb').disabled = true;
+      $('run-btn').title = CAPS.reason || 'This host cannot run the agent';
 
       const note = $('trigger-note');
       note.innerHTML =
         '<span>Runs cannot be started from here — this host has no Python agent ' +
         'and no route to the plant network. The daily workflow runs the analysis ' +
         'and publishes results to this dashboard.</span>' +
-        '<span class="reason">' + (caps.reason || 'toolchain unavailable') + '</span>';
+        '<span class="reason">' + (CAPS.reason || 'toolchain unavailable') + '</span>';
       note.hidden = false;
     }
+
+    /* ── Sample data ──────────────────────────── */
+    /* Off by default: the dashboard ships empty and stays empty until someone
+       asks for demo figures, because these numbers are visible to the customer. */
+
+    async function withBusy(btn, label, fn) {
+      if (btn.classList.contains('running')) return;
+      const original = btn.textContent;
+      btn.classList.add('running');
+      btn.textContent = label;
+      try {
+        await fn();
+      } finally {
+        btn.classList.remove('running');
+        btn.textContent = original;
+      }
+    }
+
+    $('seed-btn').addEventListener('click', () => {
+      const email = CAPS.canEmail && $('also-email-cb').checked;
+      const msg = email
+        ? `Seed 30 days of sample data and email a [SAMPLE] report to the ${CAPS.recipientCount} configured recipient(s)?\n\n` +
+          'The figures are invented. The subject and the first line of the email say so.'
+        : 'Seed 30 days of sample data? The figures are invented and the dashboard will badge them.';
+      if (!confirm(msg)) return;
+
+      withBusy($('seed-btn'), '⏳ Seeding…', async () => {
+        try {
+          const r = await fetch('/api/reshim/sample', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...authHeaders() },
+            body: JSON.stringify({ days: 30, email }),
+          });
+          const j = await r.json();
+          if (j.ok) {
+            toast(j.email
+              ? `Seeded ${j.days} sample runs — emailed ${j.email.recipients.length} recipient(s).`
+              : `Seeded ${j.days} sample runs.`, 'ok');
+          } else {
+            toast((j.seeded ? 'Seeded, but the email failed: ' : 'Seed failed: ') + (j.error || 'unknown error'), 'err');
+          }
+        } catch (e) {
+          toast('Seed error: ' + e.message, 'err');
+        }
+        await Promise.all([loadDashboard(), applyCapabilities()]);
+      });
+    });
+
+    $('clear-btn').addEventListener('click', () => {
+      if (!confirm('Remove every seeded run? Real analyses are left untouched.')) return;
+      withBusy($('clear-btn'), '⏳ Clearing…', async () => {
+        try {
+          const r = await fetch('/api/reshim/sample', { method: 'DELETE', headers: authHeaders() });
+          const j = await r.json();
+          toast(j.ok ? `Removed ${j.removed} sample run(s).` : 'Clear failed: ' + (j.error || 'unknown error'),
+                j.ok ? 'ok' : 'err');
+        } catch (e) {
+          toast('Clear error: ' + e.message, 'err');
+        }
+        await Promise.all([loadDashboard(), applyCapabilities()]);
+      });
+    });
 
     loadDashboard();
     applyCapabilities();

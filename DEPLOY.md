@@ -192,6 +192,32 @@ Ingested runs live on the mounted disk at `RESHIM_RUN_ROOT`
 (`/var/reshim/runs`), not in the checkout, so a deploy does not wipe the
 history. Locally you can leave both unset; the page simply says no runs yet.
 
+### Sample data
+
+The dashboard ships **empty**. "Seed sample" writes 30 days of invented runs,
+each badged `SAMPLE DATA` on screen and banner-marked on the first line of its
+workbook; "Clear sample" removes exactly those and leaves real analyses alone.
+Both are behind the platform login, because seeding can send mail.
+
+Seeded figures are deterministic, so a demo shown twice tells the same story.
+Nothing here touches the plant.
+
+### Emailing from the dashboard
+
+Sending is independent of running: the Render service cannot compute a report
+but can perfectly well send one, so `capabilities` reports `canTrigger` and
+`canEmail` separately and the two controls are disabled independently.
+
+Set the Graph app-only credentials on the service — `MSAL_TENANT_ID`,
+`MSAL_CLIENT_ID`, `MSAL_CLIENT_SECRET`, `MAIL_FROM`, `MAIL_REPLY_TO`,
+`MAIL_RECIPIENTS` — the same values `tools/reshim/config.py` reads. The app
+registration needs the **Mail.Send application** permission with admin consent.
+Leave them unset and "Also email" greys out with the reason in its tooltip.
+
+A sample send goes to the standing `MAIL_RECIPIENTS` list, subject-prefixed
+`[SAMPLE]`, with a red banner as the first line of the body. Untick "Also email"
+to seed silently.
+
 ---
 
 ## 7. Adding the next client (`acme.daedalusiq.com`, etc.)

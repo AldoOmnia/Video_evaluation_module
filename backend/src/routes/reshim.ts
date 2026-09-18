@@ -5,12 +5,15 @@
  *   GET  /api/reshim/runs?limit=30      list historical runs (default 30)
  *   GET  /api/reshim/timeseries?days=30 OK% per day for the sparkline
  *   GET  /api/reshim/runs/:date/report  download the xlsx for a specific day
- *   GET  /api/reshim/capabilities       whether this host can run the agent
+ *   GET  /api/reshim/capabilities       whether this host can run / can email
  *   POST /api/reshim/trigger            run the Python pipeline now
  *   POST /api/reshim/runs               ingest a run produced on another host
+ *   POST /api/reshim/sample             seed invented runs (demo), optionally email
+ *   DELETE /api/reshim/sample           remove every seeded run
  *
  * Trigger is guarded: only one run at a time, and only where the Python
- * toolchain exists. Ingest is guarded by a bearer token.
+ * toolchain exists. Ingest is guarded by a bearer token; the sample routes by
+ * the platform login.
  */
 import { Router } from "express";
 import { existsSync, statSync, createReadStream } from "node:fs";
@@ -19,6 +22,8 @@ import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 
 import {
+  clearSampleRuns,
+  countSampleRuns,
   latestRun,
   listRuns,
   okPctTimeseries,
@@ -27,6 +32,9 @@ import {
   saveIngestedRun,
   triggerRun,
 } from "../services/reshim.js";
+import { seedSampleRuns } from "../services/reshim-sample.js";
+import { mailCapability } from "../services/mail.js";
+import { requireSession } from "./auth.js";
 
 export const reshimRouter = Router();
 
@@ -66,7 +74,60 @@ reshimRouter.get("/runs/:date/report", (req, res) => {
 reshimRouter.get("/capabilities", async (_req, res, next) => {
   try {
     const t = await probeToolchain();
-    res.json({ ok: true, canTrigger: t.canTrigger, reason: t.reason });
+    const m = mailCapability();
+    res.json({
+      ok: true,
+      canTrigger: t.canTrigger,
+      reason: t.reason,
+      // Emailing is independent of running: the cloud host cannot compute a
+      // report but can perfectly well send one, so the two are reported apart.
+      canEmail: m.canSend,
+      emailReason: m.reason,
+      recipientCount: m.recipients.length,
+      sampleRuns: countSampleRuns(),
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/* ── Sample data ──────────────────────────────────────────────────────── */
+
+const SampleBody = z.object({
+  days: z.number().int().min(1).max(90).optional(),
+  email: z.boolean().optional(),
+});
+
+/**
+ * Seeding and clearing are behind the platform login, unlike the reads on this
+ * router: seeding can send mail to the customer's distribution list, and
+ * clearing deletes from disk.
+ */
+reshimRouter.post("/sample", requireSession, async (req, res, next) => {
+  try {
+    const body = SampleBody.parse(req.body ?? {});
+    if (body.email) {
+      const m = mailCapability();
+      if (!m.canSend) {
+        return res.status(503).json({ ok: false, error: `Cannot send mail: ${m.reason}` });
+      }
+    }
+    const result = await seedSampleRuns(body.days ?? 30, { email: body.email });
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    // A send failure still leaves seeded runs on disk, which is the useful
+    // half; say so rather than implying nothing happened.
+    if (e instanceof Error && /Graph|token request/.test(e.message)) {
+      return res.status(502).json({ ok: false, error: e.message, seeded: true });
+    }
+    next(e);
+  }
+});
+
+reshimRouter.delete("/sample", requireSession, (_req, res, next) => {
+  try {
+    const { removed } = clearSampleRuns();
+    res.json({ ok: true, removed: removed.length, dates: removed });
   } catch (e) {
     next(e);
   }

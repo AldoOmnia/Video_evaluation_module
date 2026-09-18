@@ -70,3 +70,20 @@ services:
         sync: false
       - key: WORLDLABS_API_KEY
         sync: false
+      # Graph app-only credentials, shared with the Python agent's own config.
+      # Without them the dashboard's "Also email" is disabled and says why; the
+      # daily workflow still emails from the runner, which has its own copy.
+      - key: MSAL_TENANT_ID
+        sync: false
+      - key: MSAL_CLIENT_ID
+        sync: false
+      - key: MSAL_CLIENT_SECRET
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: MAIL_REPLY_TO
+        sync: false
+      # Comma-separated. This is who a sample send reaches, so it is the same
+      # standing list a real report goes to.
+      - key: MAIL_RECIPIENTS
+        sync: false

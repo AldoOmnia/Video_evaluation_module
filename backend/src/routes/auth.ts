@@ -16,7 +16,7 @@
  * server can optionally verify the token via /api/auth/session if a route
  * ever moves to real session-based protection.
  */
-import { Router } from "express";
+import { Router, type NextFunction, type Request, type Response } from "express";
 import { z } from "zod";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
@@ -101,6 +101,28 @@ authRouter.get("/session", (req, res) => {
     exp: parsed.exp,
   });
 });
+
+/**
+ * Require a valid login token on a route, read from `Authorization: Bearer …`.
+ *
+ * Most routes here are reads and stay open, gated only by the client-side
+ * session check. Use this on anything that mutates state or spends something —
+ * sending mail to the customer's distribution list, deleting runs — where
+ * "the UI wouldn't let you" is not an access control.
+ */
+export function requireSession(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  const token = req.headers.authorization?.replace(/^Bearer\s+/i, "").trim() ?? "";
+  const parsed = verify(token);
+  if (!parsed) {
+    res.status(401).json({ ok: false, error: "sign in again to do that" });
+    return;
+  }
+  next();
+}
 
 function sign(payload: string): string {
   return createHmac("sha256", TOKEN_SECRET).update(payload).digest("hex");
