@@ -7,31 +7,19 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/lab/assets/platform.css?v=2" />
+  <script src="/lab/assets/platform.js?v=2"></script>
   <style>
     :root {
-      --bg: #050505;
-      --bg-2: #0d0d0d;
-      --bg-3: #141414;
-      --ink-1: #f5f5f5;
-      --ink-2: #a3a3a3;
-      --ink-3: #6b6b6b;
-      --line: #1f1f1f;
-      --line-2: #2a2a2a;
-      --primary: #00E5A0;
-      --primary-dim: #00996B;
-      --primary-glow: rgba(0,229,160,0.45);
-      --ok: #4ade80;
-      --warn: #f59e0b;
-      --err: #ef4444;
-      --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-      --mono: 'Space Grotesk', 'Inter', system-ui, sans-serif;
-      --acc: #00E5A0;
+      --acc: var(--primary);
       --c-keystep: #60a5fa;
       --c-advice: #f472b6;
       --c-document: #a78bfa;
+    
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; }
+    html, body {
+ height: 100%; 
+    }
     body {
       background: var(--bg);
       color: var(--ink-1);
@@ -45,7 +33,7 @@
     .bg {
       position: fixed; inset: 0; z-index: -2;
       background:
-        radial-gradient(circle at top left, rgba(0,229,160,0.06), transparent 55%),
+        radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 6%, transparent), transparent 55%),
         radial-gradient(circle at bottom right, rgba(0,150,255,0.05), transparent 55%),
         var(--bg);
     }
@@ -57,7 +45,7 @@
       opacity: 0.9;
     }
     .bg::after {
-      background-image: radial-gradient(rgba(0,229,160,0.10) 1.4px, transparent 1.4px);
+      background-image: radial-gradient(color-mix(in srgb, var(--primary) 10%, transparent) 1.4px, transparent 1.4px);
       background-size: 56px 56px;
       animation: drift-fast 40s linear infinite reverse;
       opacity: 0.55;
@@ -75,8 +63,8 @@
       background: radial-gradient(
         420px circle at var(--mx, 50%) var(--my, 50%),
         rgba(255,255,255,0.10) 0%,
-        rgba(0,229,160,0.08) 25%,
-        rgba(0,229,160,0.03) 45%,
+        color-mix(in srgb, var(--primary) 8%, transparent) 25%,
+        color-mix(in srgb, var(--primary) 3%, transparent) 45%,
         rgba(0,0,0,0) 70%
       );
       opacity: 0;
@@ -158,7 +146,7 @@
       box-shadow: 0 0 6px var(--primary-glow);
       transform: scale(1.12);
     }
-    .tour-dots span.is-done { background: rgba(0,229,160,0.35); }
+    .tour-dots span.is-done { background: color-mix(in srgb, var(--primary) 35%, transparent); }
     .llm-pill {
       font-family: var(--mono);
       font-size: 8px;
@@ -467,22 +455,23 @@
     /* Knowledge graph — richer preview (inside frame only) */
     .preview-step .ui-frame .mini-graph {
       background:
-        radial-gradient(ellipse 90% 70% at 50% 35%, rgba(0,229,160,0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 90% 70% at 50% 35%, color-mix(in srgb, var(--primary) 12%, transparent) 0%, transparent 55%),
         linear-gradient(180deg, #0c1210 0%, #060606 100%);
-      border: 1px solid rgba(0,229,160,0.14);
+      border: 1px solid color-mix(in srgb, var(--primary) 14%, transparent);
       border-radius: 4px;
     }
     .preview-step .ui-frame .mini-graph svg .g-edge {
-      stroke: rgba(0,229,160,0.45);
+      stroke: color-mix(in srgb, var(--primary) 45%, transparent);
       stroke-width: 1.4;
     }
     .preview-step .ui-frame .mini-graph svg .g-edge-dim {
-      stroke: rgba(255,255,255,0.12);
+      /* Follows the ink, not a fixed white — invisible on a light canvas. */
+      stroke: color-mix(in srgb, var(--ink-1) 14%, transparent);
       stroke-width: 1;
     }
     .preview-step .ui-frame .mini-graph .node {
       border: 1px solid rgba(255,255,255,0.25);
-      box-shadow: 0 0 10px rgba(0,229,160,0.35);
+      box-shadow: 0 0 10px color-mix(in srgb, var(--primary) 35%, transparent);
     }
     .preview-step .ui-frame .mini-graph .node.is-hub {
       width: 14px;
@@ -549,7 +538,7 @@
       border-top: 1px dashed var(--line-2);
     }
     .mini-tl-row.is-active {
-      background: rgba(0,229,160,0.06);
+      background: color-mix(in srgb, var(--primary) 6%, transparent);
       border-left: 2px solid var(--primary);
       padding-left: 4px;
       margin-left: -6px;
@@ -565,7 +554,7 @@
       border: 1px solid var(--primary-dim);
       border-radius: 4px;
       padding: 6px 7px;
-      background: rgba(0,229,160,0.06);
+      background: color-mix(in srgb, var(--primary) 6%, transparent);
       margin-bottom: 6px;
     }
     .mini-hw-name {
@@ -853,7 +842,7 @@
       font-size: clamp(6px, 0.62vw, 7.5px);
     }
     .mini-eval .col-results {
-      background: linear-gradient(180deg, rgba(0,229,160,0.04), transparent 32%);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 4%, transparent), transparent 32%);
     }
     .mini-outcome-legend {
       border: 1px solid var(--line-2);
@@ -971,12 +960,12 @@
     }
     .fov-mini .ac-label  { color: #00996B; font-size: 0.85em; }
     .fov-mini .ac-value  { color: #fff; font-size: 1.35em; font-weight: 500; line-height: 1.1; }
-    .fov-mini .ac-action { color: #00E5A0; font-size: 0.95em; }
+    .fov-mini .ac-action { color: var(--primary); font-size: 0.95em; }
     .fov-mini .ac-source { color: #888; font-size: 0.85em; }
     .fov-corner {
       position: absolute;
       width: 8px; height: 8px;
-      border-color: rgba(0,229,160,0.35);
+      border-color: color-mix(in srgb, var(--primary) 35%, transparent);
       border-style: solid;
     }
     .fov-tl { top: 4px; left: 4px; border-width: 1px 0 0 1px; }
@@ -1008,7 +997,7 @@
     .mini-btn.live {
       border-color: var(--primary-dim);
       color: var(--primary);
-      background: rgba(0,229,160,0.08);
+      background: color-mix(in srgb, var(--primary) 8%, transparent);
     }
     .mini-chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
     .mini-chip {
@@ -1038,7 +1027,7 @@
       text-transform: uppercase;
       color: var(--ink-3);
     }
-    .footer-powered img { height: 14px; opacity: 0.75; }
+    .footer-powered .vendor-mark { height: 14px; opacity: 0.75; }
     .footer-actions { display: flex; align-items: center; gap: 8px; }
     .btn-skip, .btn-next {
       font-family: var(--mono);
@@ -1057,11 +1046,11 @@
     }
     .btn-skip:hover { color: var(--ink-2); border-color: var(--line-2); }
     .btn-next {
-      background: rgba(0,229,160,0.08);
+      background: color-mix(in srgb, var(--primary) 8%, transparent);
       border: 1px solid var(--primary-dim);
       color: var(--primary);
     }
-    .btn-next:hover { background: rgba(0,229,160,0.14); }
+    .btn-next:hover { background: color-mix(in srgb, var(--primary) 14%, transparent); }
     .btn-next.is-enter {
       padding: 8px 16px;
       font-family: var(--sans);
@@ -1072,11 +1061,11 @@
       color: #06120c;
       background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dim) 100%);
       border: none;
-      box-shadow: 0 4px 14px rgba(0,229,160,0.18);
+      box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 18%, transparent);
     }
     .btn-next.is-enter:hover {
       filter: brightness(1.05);
-      box-shadow: 0 0 24px 4px var(--primary-glow), 0 6px 18px rgba(0,229,160,0.22);
+      box-shadow: 0 0 24px 4px var(--primary-glow), 0 6px 18px color-mix(in srgb, var(--primary) 22%, transparent);
     }
 
     @media (max-width: 720px) {
@@ -1127,6 +1116,7 @@
           <span data-i="2"></span>
         </div>
         <span class="llm-pill" id="llm-pill">LLM · …</span>
+        <button class="theme-toggle"></button>
       </div>
     </header>
     <div class="tour-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Intro tour progress">
@@ -1137,7 +1127,7 @@
       <!-- Step 0: brief intro -->
       <article class="tour-step intro-step is-active" data-step="intro">
         <div class="glow-card card-intro" data-glow>
-          <div class="step-tag">Omnia × Comer</div>
+          <div class="step-tag">Daedalus × Comer</div>
           <h2 class="step-title">Pinion Guide pilot platform</h2>
           <p class="step-copy">
             This platform has two areas. <strong>Comer AI</strong> is for looking up the procedure and seeing the
@@ -1346,7 +1336,7 @@
     <footer class="tour-footer">
       <div class="footer-powered">
         <span>Powered by</span>
-        <img src="/lab/assets/omnia-white.png" alt="Omnia" />
+        <span class="vendor-mark" role="img" aria-label="Daedalus"></span>
       </div>
       <div class="footer-actions">
         <button type="button" class="btn-skip" id="btn-skip">Skip intro</button>

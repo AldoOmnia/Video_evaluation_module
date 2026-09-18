@@ -1,0 +1,189 @@
+/**
+ * Comer platform — design tokens and base rules.
+ *
+ * Single source of truth for the palette, type stack, and reset shared by the
+ * platform pages (home, knowledge, reports, settings, login, welcome). Every
+ * one of those pages previously declared its own identical :root block, so a
+ * palette change meant six edits and the copies had already started to drift.
+ *
+ * Load it in <head> BEFORE the page's own <style>, so page rules win on
+ * specificity ties and a page can still override a token deliberately.
+ *
+ * Deliberate non-members:
+ *   - synthetic-pov.html keeps its own green-tinted neutrals (--ink-1 #f1f4f3,
+ *     --line #1d2120, …). That is a designed difference for the 3D viewer
+ *     chrome, not drift, so it is not flattened into these values.
+ *   - welcome.html adds graph-only colours (--c-keystep, --c-advice,
+ *     --c-document) which stay local to that page.
+ */
+
+:root {
+  /* Surfaces — near-black, stepping up as elements come forward. */
+  --bg: #050505;
+  --bg-2: #0d0d0d;
+  --bg-3: #141414;
+
+  /* Text — 1 primary, 2 secondary, 3 the faint metadata register. */
+  --ink-1: #f5f5f5;
+  --ink-2: #a3a3a3;
+  --ink-3: #6b6b6b;
+
+  /* Hairlines. --line for dividers, --line-2 for interactive borders. */
+  --line: #1f1f1f;
+  --line-2: #2a2a2a;
+
+  /* Translucent surface for the blurred topbars, which let the page show
+     through. A plain --bg would be opaque and lose the effect. */
+  --bg-veil: rgba(5, 5, 5, 0.85);
+
+  /* Comer green. */
+  --primary: #00E5A0;
+  --primary-dim: #00996B;
+  --primary-glow: rgba(0, 229, 160, 0.45);
+
+  /* Status. --ok reads as pass, distinct from --primary which is brand. */
+  --ok: #4ade80;
+  --warn: #f59e0b;
+  --err: #ef4444;
+
+  /* Type. --mono is a misnomer kept for compatibility with existing rules:
+     it is the Space Grotesk accent face used for codes, ids and labels, not
+     a fixed-pitch font. Renaming it means touching every page, so it stays. */
+  --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --mono: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+
+  /* Daedalus vendor gradient (orange → pink → violet), lifted from the brand
+     logo. Used by the theme toggle knob and the vendor mark. */
+  --grad: linear-gradient(90deg, #FB923C 1.43%, #EC4899 48.54%, #7C3AED 101.31%);
+
+  /* Which vendor lockup the current theme wants. Both files are identical
+     except for the wordmark fill, so the theme only has to pick one. */
+  --vendor-mark: url('/lab/assets/daedalus-horizontal.svg');
+
+  color-scheme: dark;
+}
+
+/**
+ * Light theme. Dark is the default and carries no class, so every existing
+ * rule keeps working untouched; `html.light` re-points the same tokens.
+ * `html.light` (type + class) outranks `:root` (pseudo-class), so no
+ * !important is needed.
+ *
+ * Neutrals follow the brand site's light frames: #fff canvas, #000 ink,
+ * #7b7b7b / #a5a5a5 for the secondary and faint registers.
+ *
+ * The greens and status hues are NOT the dark values. Comer green #00E5A0
+ * reads at 1.6:1 on white — illegible — so light mode keeps the hue and
+ * drops the lightness until it carries text.
+ */
+html.light {
+  --bg: #ffffff;
+  --bg-2: #f6f6f7;
+  --bg-3: #eeeff1;
+
+  /* Spaced to hold the same contrast ratios the dark ramp does against its own
+     canvas (~19:1 / ~7:1 / ~3.6:1), so the type hierarchy reads identically in
+     both themes. The brand's own #a5a5a5 sits at 2.6:1 on white and 2.1:1 on a
+     raised card — fine for display type on the marketing site, too faint for
+     the metadata labels this register carries here. */
+  --ink-1: #000000;
+  --ink-2: #5c5f65;
+  --ink-3: #858990;
+
+  --line: #e6e6e8;
+  --line-2: #d0d0d4;
+  --bg-veil: rgba(255, 255, 255, 0.85);
+
+  --primary: #00875F;
+  --primary-dim: #00614A;
+  --primary-glow: rgba(0, 135, 95, 0.28);
+
+  --ok: #16a34a;
+  --warn: #b45309;
+  --err: #c81e1e;
+
+  --vendor-mark: url('/lab/assets/daedalus-horizontal-ink.svg');
+
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--ink-1);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.45s ease, color 0.45s ease;
+}
+
+/* ── Vendor mark ──────────────────────────────────────────────────────────
+   A background image rather than an <img> so the theme swaps the wordmark
+   ink in CSS, with no flash from a src rewritten after first paint. Sized by
+   height; the width follows the lockup's own 3796×1162 ratio. */
+.vendor-mark {
+  display: block;
+  height: 14px;
+  aspect-ratio: 3796 / 1162;
+  background: var(--vendor-mark) center / contain no-repeat;
+  opacity: 0.7;
+}
+
+/* ── Theme toggle ─────────────────────────────────────────────────────────
+   Sun on the left, moon on the right, brand-gradient knob that slides to the
+   active side — the same control the daedalusiq.com header uses. */
+.theme-toggle {
+  position: relative;
+  flex: 0 0 auto;
+  width: 46px;
+  height: 24px;
+  border-radius: 12px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-2);
+  cursor: pointer;
+  transition: border-color 0.3s ease, background-color 0.45s ease;
+}
+.theme-toggle:hover { border-color: color-mix(in srgb, #EC4899 65%, transparent); }
+.theme-toggle svg {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 11px;
+  height: 11px;
+  color: var(--ink-2);
+  opacity: 0.6;
+  pointer-events: none;
+}
+.theme-toggle .sun { left: 6px; }
+.theme-toggle .moon { right: 6px; }
+.theme-toggle .knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--grad);
+  /* Dark is the default, so the knob rests on the moon and slides left. */
+  transform: translateX(20px);
+  transition: transform 0.45s cubic-bezier(0.3, 1.4, 0.4, 1);
+}
+html.light .theme-toggle .knob { transform: translateX(0); }
+
+/* Pages with no topbar to sit in (login) pin it to the corner instead. */
+.theme-toggle-fixed { position: fixed; top: 20px; right: 22px; z-index: 50; }
+
+/* ── Client logo on light surfaces ────────────────────────────────────────
+   Comer supplied their mark as white-on-transparent only (both comer-logo.png
+   and comer-logo-trim.png), so on a white canvas it disappears entirely.
+   The artwork is pure monochrome, so inverting it yields exactly the black
+   mark — no hue to distort. Matched on alt text so it applies wherever the
+   logo is used without every page needing its own rule. */
+html.light img[alt="Comer Industries"] { filter: invert(1); }
+
+@media (prefers-reduced-motion: reduce) {
+  body, .theme-toggle, .theme-toggle .knob { transition: none; }
+}

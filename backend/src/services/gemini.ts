@@ -15,6 +15,8 @@
  * degrade gracefully — same contract as the Anthropic wrapper.
  */
 
+import { recordUsage, type UsageRoute } from "./usage.js";
+
 const API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 const KEY = (process.env.GEMINI_API_KEY ?? "").trim();
@@ -37,13 +39,22 @@ export interface GeminiResult {
   model: string;
   latencyMs: number;
   stubbed: boolean;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+interface GenerateOutcome {
+  text: string;
+  inputTokens: number;
+  outputTokens: number;
 }
 
 async function generateContent(
   model: string,
   parts: GeminiPart[],
   timeoutMs: number,
-): Promise<string> {
+  maxOutputTokens: number,
+): Promise<GenerateOutcome> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
@@ -55,7 +66,7 @@ async function generateContent(
         contents: [{ role: "user", parts }],
         generationConfig: {
           temperature: 0.1,
-          maxOutputTokens: 900,
+          maxOutputTokens,
           // Skip the reasoning pass — same latency lever the glasses use to
           // keep the observe round-trip under ~2s with ~1MB of references.
           thinkingConfig: { thinkingBudget: 0 },
@@ -68,23 +79,47 @@ async function generateContent(
     }
     const data = (await res.json()) as {
       candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
     };
     const text = (data.candidates?.[0]?.content?.parts ?? [])
       .map((p) => p.text ?? "")
       .join("\n")
       .trim();
     if (!text) throw new Error(`gemini ${model}: empty response`);
-    return text;
+    // Vision calls carry ~1MB of reference images, so their input token counts
+    // dwarf the text routes — the cost report is misleading without them.
+    return {
+      text,
+      inputTokens: data.usageMetadata?.promptTokenCount ?? 0,
+      outputTokens: data.usageMetadata?.candidatesTokenCount ?? 0,
+    };
   } finally {
     clearTimeout(timer);
   }
+}
+
+export interface GeminiVisionOptions {
+  /** Cost report bucket. */
+  route?: UsageRoute;
+  /** Raise for calls that answer about many frames at once (default 900). */
+  maxOutputTokens?: number;
+  /** Primary-model budget; the fallback hop gets 80% of it (default 25s). */
+  timeoutMs?: number;
 }
 
 /**
  * Vision call with the glasses' primary→fallback hop. Throws only when both
  * models fail (or the single model fails and fallback is identical/disabled).
  */
-export async function geminiVisionCall(parts: GeminiPart[]): Promise<GeminiResult> {
+export async function geminiVisionCall(
+  parts: GeminiPart[],
+  opts: UsageRoute | GeminiVisionOptions = "assist-vision",
+): Promise<GeminiResult> {
+  // Older callers pass the route as a bare string.
+  const o: GeminiVisionOptions = typeof opts === "string" ? { route: opts } : opts;
+  const route = o.route ?? "assist-vision";
+  const maxOutputTokens = o.maxOutputTokens ?? 900;
+  const timeoutMs = o.timeoutMs ?? 25_000;
   const start = Date.now();
   if (!geminiConfigured()) {
     return {
@@ -92,21 +127,41 @@ export async function geminiVisionCall(parts: GeminiPart[]): Promise<GeminiResul
       model: "stub",
       latencyMs: Date.now() - start,
       stubbed: true,
+      inputTokens: 0,
+      outputTokens: 0,
     };
   }
+  const done = (model: string, o: GenerateOutcome): GeminiResult => {
+    const result: GeminiResult = {
+      text: o.text,
+      model,
+      latencyMs: Date.now() - start,
+      stubbed: false,
+      inputTokens: o.inputTokens,
+      outputTokens: o.outputTokens,
+    };
+    recordUsage({
+      provider: "google",
+      model,
+      route,
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens,
+      latencyMs: result.latencyMs,
+      stubbed: false,
+    });
+    return result;
+  };
   try {
-    const text = await generateContent(VISION_MODEL, parts, 25_000);
-    return { text, model: VISION_MODEL, latencyMs: Date.now() - start, stubbed: false };
+    return done(VISION_MODEL, await generateContent(VISION_MODEL, parts, timeoutMs, maxOutputTokens));
   } catch (primaryErr) {
     if (VISION_FALLBACK_MODEL === VISION_MODEL || VISION_FALLBACK_MODEL.toLowerCase() === "none") {
       throw primaryErr;
     }
-    const text = await generateContent(VISION_FALLBACK_MODEL, parts, 20_000);
-    return {
-      text,
-      model: VISION_FALLBACK_MODEL,
-      latencyMs: Date.now() - start,
-      stubbed: false,
-    };
+    // A fallback hop bills both attempts on the provider side, but only the
+    // model that answered produced tokens we can count.
+    return done(
+      VISION_FALLBACK_MODEL,
+      await generateContent(VISION_FALLBACK_MODEL, parts, Math.round(timeoutMs * 0.8), maxOutputTokens),
+    );
   }
 }

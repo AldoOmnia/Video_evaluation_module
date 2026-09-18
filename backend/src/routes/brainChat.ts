@@ -40,6 +40,7 @@ brainChatRouter.post("/", async (req, res, next) => {
     }));
 
     const result = await runGlassesQuery({
+      route: "brain-chat",
       transcript: body.query,
       artifactNodes,
       k: body.k ?? 8,

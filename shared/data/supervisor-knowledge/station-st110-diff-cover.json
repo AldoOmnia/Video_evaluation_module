@@ -1,0 +1,39 @@
+{
+  "_kind": "supervisor-knowledge/v1",
+  "_phase_tag": "Rockford line — ST110 diff cover station",
+  "_step_codes": [],
+  "_step_title": "ST110 · diff cover — expansion plug insertion, planned camera site",
+  "_recorded_by": "Aldo Petruzzelli, platform note 2026-08-24",
+  "_ingested_at": "2026-08-24T16:32:00.000Z",
+  "_verified_by": "relayed directly for the camera rollout planning",
+  "facts": [
+    {
+      "id": "station-st110-diff-cover-001",
+      "topic": "station identification",
+      "step_codes": [],
+      "fact": "ST110 is the diff cover station — the station where the expansion plug is inserted. 'Diff cover station' is the shop-floor name for it; on the facility map it is labelled 'ST110 · Brake & Cover' (Stage 2), and its MES phases cover the expanding plug, the bearing cone and the LH differential carrier assembly.",
+      "applies_when": "when asked which station is the diff cover station, or where the expansion plug is inserted",
+      "citation": {
+        "source_audio": null,
+        "transcript_quote": "Diff cover station (ST110) where the expansion plug is inserted (and where we will install cameras)."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": true
+    },
+    {
+      "id": "station-st110-diff-cover-002",
+      "topic": "camera deployment",
+      "step_codes": [],
+      "fact": "ST110 (diff cover) is the station where cameras will be installed — the next station targeted for vision coverage after the ST100 pinion guide pilot. This is a plan, not a live deployment: there is no procedure knowledge base, component library or glasses build for ST110 yet, so only its historical MES data can be cited for that station today.",
+      "applies_when": "when asked where cameras are going in, or which station is next for vision coverage after the pinion guide",
+      "citation": {
+        "source_audio": null,
+        "transcript_quote": "Diff cover station (ST110) where the expansion plug is inserted (and where we will install cameras)."
+      },
+      "keyframes": [],
+      "confidence": "high",
+      "verified": true
+    }
+  ]
+}

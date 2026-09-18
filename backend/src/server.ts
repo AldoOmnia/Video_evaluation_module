@@ -12,10 +12,15 @@ import { queryRouter } from "./routes/query.js";
 import { authRouter } from "./routes/auth.js";
 import { kbRouter } from "./routes/kb.js";
 import { assistRouter } from "./routes/assist.js";
+import { povRouter } from "./routes/pov.js";
 import { lineRouter } from "./routes/line.js";
 import { worldLabsRouter } from "./routes/worldlabs.js";
+import { usageRouter } from "./routes/usage.js";
+import { mesRouter } from "./routes/mes.js";
 import { worldLabsConfigured } from "./services/worldlabs.js";
 import { geminiConfigured, VISION_MODEL } from "./services/gemini.js";
+import { loadLedger } from "./services/usage.js";
+import { mesClose, mesConfig, mesConfigured, mesHealth } from "./services/mesSql.js";
 import {
   EVAL_LAB_PUBLIC,
   LAB_HTML,
@@ -33,17 +38,28 @@ const app = express();
 
 // CORS: in dev we default to "*". In prod the host (Render) should
 // inject ALLOWED_ORIGINS as a comma-separated list of fully-qualified
-// origins (e.g. https://comer.theomnia.ai), at which point we lock it
+// origins (e.g. https://comer.daedalusiq.com), at which point we lock it
 // down. Cross-origin browser requests from anything else are rejected;
 // same-origin requests (login + lab + API on one host) always work.
 const allow = config.allowedOrigins;
 const wildcard = allow.length === 0 || allow.includes("*");
+const isProd = process.env.NODE_ENV === "production";
+
+/* Outside production, trust any loopback origin whatever port it is on.
+ * ALLOWED_ORIGINS exists to name the *remote* hosts allowed to call this API;
+ * making it also enumerate local ports meant that running the dev server on
+ * anything but the one port listed in backend/.env failed sign-in with
+ * "Origin not allowed", which reads like a credentials problem rather than a
+ * config one. Not applied in production, where only the named hosts get in. */
+const LOOPBACK = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
+
 app.use(
   cors({
     origin: wildcard
       ? true
       : (origin, cb) => {
           if (!origin || allow.includes(origin)) return cb(null, true);
+          if (!isProd && LOOPBACK.test(origin)) return cb(null, true);
           cb(new Error(`Origin not allowed: ${origin}`));
         },
     credentials: false,
@@ -73,7 +89,10 @@ app.use("/api/auth", authRouter);
 app.use("/api/line", lineRouter);
 app.use("/api/kb", kbRouter);
 app.use("/api/assist", assistRouter);
+app.use("/api/pov", povRouter);
 app.use("/api/worldlabs", worldLabsRouter);
+app.use("/api/usage", usageRouter);
+app.use("/api/mes", mesRouter);
 app.use("/query", queryRouter); // Rokid APK compatibility
 
 // Dev-only: browser posts calibrated splat capture from localStorage (localhost).
@@ -413,6 +432,37 @@ app.use(
     res.status(400).json({ error: err.message, issues: err.issues });
   },
 );
+
+// Replay the usage ledger so a restart does not appear to zero the bill.
+await loadLedger();
+
+/* Report the MES wiring at boot. A silent fallback to demo data is the single
+   most confusing failure this platform has, and it is entirely avoidable: say
+   on startup whether SQL is reachable, and if not, why. */
+if (mesConfigured()) {
+  const c = mesConfig();
+  void mesHealth().then((h) => {
+    // eslint-disable-next-line no-console
+    console.log(
+      h.connected
+        ? `[mes] connected ${c.database}@${c.host} station=${c.stationNumber} ` +
+            `(newest phase ${h.newestPhaseAt} plant local, ${h.newestPhaseAge} ago)`
+        : `[mes] NOT connected to ${c.database}@${c.host} — ${h.error}`,
+    );
+  });
+} else {
+  // eslint-disable-next-line no-console
+  console.log(
+    "[mes] no direct database configured — set MES_MSSQL_HOST/USER/PASSWORD for " +
+      "live line answers (falling back to LINE_BRIDGE_URL, then demo data)",
+  );
+}
+
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.once(signal, () => {
+    void mesClose().then(() => process.exit(0));
+  });
+}
 
 app.listen(config.port, "0.0.0.0", () => {
   // eslint-disable-next-line no-console

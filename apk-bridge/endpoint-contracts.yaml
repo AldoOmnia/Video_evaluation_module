@@ -56,6 +56,79 @@ endpoints:
       schemaRef: shared/types/run.ts#RunResult
     stability: stable
 
+  # ── Glasses interventions → warnings report ────────────────────────────────
+  # Draft. Nothing implements these yet; they exist so the APK and the platform
+  # can be built against one shape. The report at GET /api/line/report is a
+  # hardcoded stub today and stays that way until these land.
+  #
+  # Deliberately storage-agnostic: the platform will move to Azure later, and
+  # that should be a swap of where rows land, not a change to this contract.
+  # Nothing here names a table, a container or a provider.
+
+  - id: glasses-interventions
+    method: POST
+    path: /api/glasses/interventions
+    purpose: >
+      Batch upload of warnings the glasses raised to an operator, with whether
+      the operator then corrected. Metadata only, no imagery. Called at end of
+      shift and whenever connectivity returns; the device buffers offline.
+    auth: "x-device-key header, one key per device (mirrors LINE_BRIDGE_API_KEY style)"
+    request:
+      contentType: application/json
+      schema:
+        deviceId:    { type: string, required: true, example: "rokid-03" }
+        appVersion:  { type: string, required: true }
+        specVersion: { type: string, required: true, note: "procedure spec + taxonomy version these codes came from — metrics are meaningless across recipe changes without it" }
+        sessionId:   { type: string, required: true, note: "groups a shift or a power-on span" }
+        events:      { type: array, itemsRef: "#InterventionEvent", maxItems: 2000 }
+    response:
+      contentType: application/json
+      schema:
+        accepted:   { type: integer, note: "newly stored" }
+        duplicates: { type: integer, note: "eventId already seen — expected on retry, not an error" }
+        rejected:   { type: array, items: "{ eventId, reason }" }
+        highWaterMark: { type: string, note: "latest firedAt the server holds for this device; the APK can drop anything older from its buffer" }
+    stability: draft
+
+  - id: glasses-frames
+    method: POST
+    path: /api/glasses/frames
+    purpose: >
+      Optional POV still captured at warning time. Separate endpoint on purpose
+      — see README section 5. Imagery of identifiable operators has its own
+      retention and approval path, and the metrics above must stay valid after
+      frames expire.
+    auth: "x-device-key header"
+    request:
+      contentType: multipart/form-data
+      schema:
+        eventId:  { type: string, required: true, note: "ties the frame to an already-uploaded intervention" }
+        frameId:  { type: string, required: true, note: "device-generated, so the APK can reference it before upload succeeds" }
+        capturedAt: { type: string, format: "ISO 8601 with offset", required: true }
+        image:    { type: file, required: true, mediaType: "image/jpeg" }
+    response:
+      schema:
+        frameId: { type: string }
+        expiresAt: { type: string, format: "ISO 8601 with offset", note: "server-assigned from retention policy, not negotiable by the device" }
+    stability: draft
+
+  - id: glasses-sync-state
+    method: GET
+    path: /api/glasses/sync-state
+    purpose: >
+      What the server already holds for a device, so an end-of-day sync can
+      resume rather than re-send a whole shift.
+    auth: "x-device-key header"
+    request:
+      query:
+        deviceId: { type: string, required: true }
+    response:
+      schema:
+        highWaterMark: { type: string, nullable: true, format: "ISO 8601 with offset" }
+        eventCount:    { type: integer }
+        lastSessionId: { type: string, nullable: true }
+    stability: draft
+
   - id: brain-chat
     method: POST
     path: /api/brain/chat
@@ -74,3 +147,87 @@ endpoints:
         latencyMs: { type: number }
         stubbed: { type: boolean }
     stability: stable
+
+# ── Shared object definitions ────────────────────────────────────────────────
+types:
+  InterventionEvent:
+    stability: draft
+    purpose: >
+      One warning shown to an operator, and what happened next. Distinct from
+      shared/types/events.ts#SessionEvent, which is eval telemetry keyed on a
+      relative offset within a simulated run. This is a plant record on the wall
+      clock that has to reconcile against the MES.
+    fields:
+      eventId:
+        type: string
+        required: true
+        note: >
+          Device-generated UUID. The idempotency key — a device that loses
+          connectivity mid-upload will re-send, and the savings figure is only
+          trustworthy if that cannot double-count.
+
+      # Wall clock, absolute, with offset. The MES stores naive datetimes and
+      # that cost real debugging time (see docs/live-line-qa.md); do not repeat
+      # it here. The server also records its own receipt time and flags a
+      # device whose clock has drifted, rather than silently trusting firedAt.
+      firedAt:    { type: string, format: "ISO 8601 with offset", required: true }
+      resolvedAt: { type: string, format: "ISO 8601 with offset", required: false, nullable: true }
+
+      # ── MES join keys ──
+      # Without these an intervention cannot be reconciled against what the
+      # line actually recorded, and "mistakes avoided" stays an assertion.
+      # Nullable because the glasses genuinely may not know the serial: capture
+      # what is known and let the server correlate on what it has.
+      stationNumber: { type: integer, required: true,  note: "MES Station_Number" }
+      serial:        { type: string,  required: false, nullable: true, note: "MES SN" }
+      phaseId:       { type: string,  required: false, nullable: true, note: "MES Phase_ID" }
+      operatorBadge:
+        type: string
+        required: false
+        nullable: true
+        note: >
+          MES Operator_ID, e.g. "2417". A badge, never a name — SSL_Users is
+          empty in this deployment and the platform reports badges everywhere
+          else, so a name here would be both unjoinable and a new PII surface.
+
+      # ── What fired ──
+      stepId:     { type: string, required: false, nullable: true, pattern: "^step:\\d+$", note: "matches shared/types/events.ts" }
+      errorCode:  { type: string, required: true, enumRef: "shared/error-taxonomy/taxonomy.yaml#errors" }
+      errorGroup: { type: string, required: false, enum: [A, B, C, D, E], note: "derivable from errorCode; sent for convenience" }
+      priority:   { type: string, required: false, enumRef: "shared/types/taxonomy.ts#PrioritySchema" }
+      confidence: { type: number, required: false, range: "0..1", note: "CV confidence at fire time" }
+      shownToOperator:
+        type: boolean
+        required: true
+        note: >
+          Whether it actually reached the lens. A rule can fire and be
+          suppressed by debounce or by CV_UNCERTAIN holding proactive
+          interventions. Suppressed events must still be uploaded — they are
+          how false-positive rate gets measured — but they are not warnings
+          the operator saw and must not inflate warningsFired.
+
+      # ── What happened next — the credibility of the whole report ──
+      resolution:
+        type: string
+        required: true
+        enum: [corrected, not_corrected, unknown, dismissed_false_positive]
+        note: "'unknown' is expected and honest; do not default it to corrected"
+      resolutionEvidence:
+        type: string
+        required: true
+        enum: [cv_reobserved, fsm_transition, operator_ack, none]
+        note: >
+          HOW resolution was determined. The stub report multiplies an
+          `avoided` count by a flat euro figure with no evidence behind it.
+          Carrying the evidence means a savings number can be reported at the
+          confidence it deserves — cv_reobserved and fsm_transition are
+          defensible, operator_ack is weaker, none means it should not be
+          counted as avoided at all.
+
+      frameIds:
+        type: array
+        items: string
+        required: false
+        note: >
+          May dangle once retention expires. A reader must treat a missing
+          frame as expired imagery, not as a broken record.

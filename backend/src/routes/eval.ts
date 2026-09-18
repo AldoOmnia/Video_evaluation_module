@@ -131,6 +131,7 @@ in the same imperative style as the Ti-Prego contextual prompt — first line AL
 subsequent lines short and concrete. ABSOLUTELY no prose outside the JSON.
 `;
         const r = await llmCall({
+          route: "eval",
           system: buildAgentSystemPrompt(specs.procedure, hw, specs.taxonomy),
           user: userMsg,
           maxTokens: 380,

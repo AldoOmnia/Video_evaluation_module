@@ -5,6 +5,7 @@
  */
 import Anthropic from "@anthropic-ai/sdk";
 import { config, stubMode } from "../config.js";
+import { recordUsage, type UsageRoute } from "./usage.js";
 
 let client: Anthropic | null = null;
 function getClient(): Anthropic {
@@ -17,6 +18,9 @@ export interface LLMCallParams {
   user: string;
   maxTokens?: number;
   model?: string;
+  /** Which surface is asking — the dimension the cost report groups by.
+   *  Defaults to "other" so an unlabelled call still shows up in the totals. */
+  route?: UsageRoute;
 }
 
 export interface LLMResult {
@@ -29,18 +33,32 @@ export interface LLMResult {
 
 export async function llmCall(p: LLMCallParams): Promise<LLMResult> {
   const start = Date.now();
+  const route = p.route ?? "other";
+  const model = p.model ?? config.anthropicModel;
   if (stubMode) {
     const fake = await stubResponse(p);
-    return {
+    const result: LLMResult = {
       text: fake,
+      // Rough 4-chars-per-token estimate: enough to exercise the meter in dev
+      // without pretending to be a real usage figure.
       inputTokens: Math.ceil((p.system.length + p.user.length) / 4),
       outputTokens: Math.ceil(fake.length / 4),
       latencyMs: Date.now() - start,
       stubbed: true,
     };
+    recordUsage({
+      provider: "anthropic",
+      model,
+      route,
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens,
+      latencyMs: result.latencyMs,
+      stubbed: true,
+    });
+    return result;
   }
   const res = await getClient().messages.create({
-    model: p.model ?? config.anthropicModel,
+    model,
     max_tokens: p.maxTokens ?? 400,
     system: p.system,
     messages: [{ role: "user", content: p.user }],
@@ -50,13 +68,23 @@ export async function llmCall(p: LLMCallParams): Promise<LLMResult> {
       .map((c) => (c.type === "text" ? c.text : ""))
       .join("\n")
       .trim() || "(no response)";
-  return {
+  const result: LLMResult = {
     text,
     inputTokens: res.usage?.input_tokens ?? 0,
     outputTokens: res.usage?.output_tokens ?? 0,
     latencyMs: Date.now() - start,
     stubbed: false,
   };
+  recordUsage({
+    provider: "anthropic",
+    model,
+    route,
+    inputTokens: result.inputTokens,
+    outputTokens: result.outputTokens,
+    latencyMs: result.latencyMs,
+    stubbed: false,
+  });
+  return result;
 }
 
 async function stubResponse({ user }: LLMCallParams): Promise<string> {
