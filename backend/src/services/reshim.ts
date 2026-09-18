@@ -45,7 +45,13 @@ export interface ReshimRunListItem {
   emailRecipients: string[];
   summary: ReshimSummary | null;
   createdAt: number;               // ms since epoch (folder mtime)
+  mock: boolean;                   // seeded demo data, not a real analysis
 }
+
+/** Marker dropped next to a seeded run. A demo instance is reachable on the
+ *  same public hostname as the real thing, and nobody should have to guess
+ *  whether the OK% on screen came from the line. */
+const MOCK_MARKER = "MOCK";
 
 function ensureRoot(): void {
   if (!existsSync(RUN_ROOT)) mkdirSync(RUN_ROOT, { recursive: true });
@@ -91,6 +97,7 @@ function loadRun(dateStr: string): ReshimRunListItem {
     emailRecipients: email?.recipients ?? [],
     summary,
     createdAt,
+    mock: existsSync(join(dir, MOCK_MARKER)),
   };
 }
 
@@ -261,6 +268,7 @@ export interface IngestRun {
   summary: ReshimSummary;
   email?: { status: number; recipients: string[]; subject: string } | null;
   report?: { name: string; base64: string } | null;
+  mock?: boolean;
 }
 
 export function saveIngestedRun(run: IngestRun): { wrote: string[] } {
@@ -285,6 +293,11 @@ export function saveIngestedRun(run: IngestRun): { wrote: string[] } {
     }
     writeFileSync(join(dir, name), Buffer.from(run.report.base64, "base64"));
     wrote.push(name);
+  }
+
+  if (run.mock) {
+    writeFileSync(join(dir, MOCK_MARKER), "Seeded demo data. Not a real analysis.\n");
+    wrote.push(MOCK_MARKER);
   }
 
   return { wrote };

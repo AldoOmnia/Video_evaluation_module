@@ -147,6 +147,7 @@ const IngestBody = z.object({
   report: z
     .object({ name: z.string().max(200), base64: z.string() })
     .nullish(),
+  mock: z.boolean().optional(),
 });
 
 /** Constant-time bearer check against RESHIM_INGEST_TOKEN. Unset means the
@@ -175,6 +176,7 @@ reshimRouter.post("/runs", (req, res, next) => {
       summary: body.summary,
       email: body.email ?? null,
       report: body.report ?? null,
+      mock: body.mock ?? false,
     });
     res.json({ ok: true, date: body.date, wrote });
   } catch (e) {

@@ -112,6 +112,9 @@ def build_day(day: date, drift: float) -> dict:
     excluded = random.randint(2, 7)
     return {
         "date": day.isoformat(),
+        # Tells the dashboard to show its "sample data" badge, so nobody reads
+        # these numbers as the line's actual output.
+        "mock": True,
         "summary": {
             "total": total + excluded,
             "excluded": excluded,

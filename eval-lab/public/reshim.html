@@ -61,6 +61,11 @@
     .head .chip.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
     .head .chip.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
     .head .chip.err { color: var(--err); border-color: color-mix(in srgb, var(--err) 35%, transparent); }
+    /* Filled rather than outlined, unlike every other chip, so seeded numbers
+       cannot be mistaken for the line's real output at a glance. */
+    .head .chip.mock {
+      background: var(--err); border-color: var(--err); color: #fff; font-weight: 600;
+    }
     .sub { color: var(--ink-2); font-size: 12.5px; max-width: 720px; margin-bottom: 22px; }
 
     .kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
@@ -163,6 +168,7 @@
       <h1>Reshim analysis</h1>
       <span class="chip" id="status-chip">loading…</span>
       <span class="chip" id="date-chip"></span>
+      <span class="chip mock" id="mock-chip" hidden>sample data</span>
     </div>
     <div class="sub">
       Daily automated analysis of Comer Fargo reshim events —
@@ -269,6 +275,7 @@
           latest.emailStatus === 'failed' ? 'err' : 'warn'
         );
         $('date-chip').textContent = latest.date;
+        $('mock-chip').hidden = !latest.mock;
 
         // High-BAD variants
         const variantsUl = $('alert-variants');
