@@ -17,6 +17,7 @@ import { lineRouter } from "./routes/line.js";
 import { worldLabsRouter } from "./routes/worldlabs.js";
 import { usageRouter } from "./routes/usage.js";
 import { mesRouter } from "./routes/mes.js";
+import { reshimRouter } from "./routes/reshim.js";
 import { worldLabsConfigured } from "./services/worldlabs.js";
 import { geminiConfigured, VISION_MODEL } from "./services/gemini.js";
 import { loadLedger } from "./services/usage.js";
@@ -82,6 +83,7 @@ app.use("/api/pov", povRouter);
 app.use("/api/worldlabs", worldLabsRouter);
 app.use("/api/usage", usageRouter);
 app.use("/api/mes", mesRouter);
+app.use("/api/reshim", reshimRouter);
 app.use("/query", queryRouter); // Rokid APK compatibility
 
 // Dev-only: browser posts calibrated splat capture from localStorage (localhost).
