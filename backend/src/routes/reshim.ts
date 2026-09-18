@@ -33,6 +33,7 @@ import {
   triggerRun,
 } from "../services/reshim.js";
 import { seedSampleRuns } from "../services/reshim-sample.js";
+import { sendRunReport } from "../services/reshim-email.js";
 import { mailCapability } from "../services/mail.js";
 import { requireSession } from "./auth.js";
 
@@ -129,6 +130,40 @@ reshimRouter.delete("/sample", requireSession, (_req, res, next) => {
     const { removed } = clearSampleRuns();
     res.json({ ok: true, removed: removed.length, dates: removed });
   } catch (e) {
+    next(e);
+  }
+});
+
+const EmailBody = z.object({
+  /** Override the distribution list, e.g. to send a real report to yourself first. */
+  to: z.array(z.string().email()).min(1).optional(),
+});
+
+/**
+ * Email the report for a run that already exists. The daily workflow sends its
+ * own report as it finishes; this covers a run that was produced elsewhere —
+ * an archived one, or one whose send failed at the time.
+ */
+reshimRouter.post("/runs/:date/email", requireSession, async (req, res, next) => {
+  try {
+    const date = req.params.date;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ ok: false, error: "date must be YYYY-MM-DD" });
+    }
+    const m = mailCapability();
+    if (!m.canSend) {
+      return res.status(503).json({ ok: false, error: `Cannot send mail: ${m.reason}` });
+    }
+    const body = EmailBody.parse(req.body ?? {});
+    const result = await sendRunReport(date, { to: body.to });
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    if (e instanceof Error && /^no run for|has no summary/.test(e.message)) {
+      return res.status(404).json({ ok: false, error: e.message });
+    }
+    if (e instanceof Error && /Graph|token request/.test(e.message)) {
+      return res.status(502).json({ ok: false, error: e.message });
+    }
     next(e);
   }
 });

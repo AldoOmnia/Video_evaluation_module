@@ -41,7 +41,7 @@ def _build_body(summary: ClassifiedSummary, day: date, sn_missing_photos: list[s
     if summary.high_bad_variants:
         lines.append("— Variants flagged (≥30% BAD) —")
         for v, n, p in summary.high_bad_variants:
-            lines.append(f"  ⚠ {v:<24} n={n}  {p:.1f}% BAD")
+            lines.append(f"  {v:<24} n={n}  {p:.1f}% BAD")
         lines.append("")
     if sn_missing_photos:
         lines.append(f"— Missing photos ({len(sn_missing_photos)} SNs, review manually) —")
@@ -148,7 +148,7 @@ def _build_test_body(day: date, sent_at: str) -> str:
     lines += [
         "",
         "— Sample variant flag (NOT REAL) —",
-        f"  ⚠ {v:<24} n={vn}  {vp:.1f}% BAD",
+        f"  {v:<24} n={vn}  {vp:.1f}% BAD",
         "",
         "— What the real report contains —",
         "  • A daily OK / BAD / BAD_HEAVY breakdown of reshim events at station",

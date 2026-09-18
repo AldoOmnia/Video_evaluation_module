@@ -237,6 +237,26 @@ A sample send goes to the standing `MAIL_RECIPIENTS` list, subject-prefixed
 `[SAMPLE]`, with a red banner as the first line of the body. Untick "Also email"
 to seed silently.
 
+#### Re-sending a report that already exists
+
+The daily workflow emails its report as it finishes, so this is for the
+exceptions: an archived run, or one whose send failed at the time.
+
+```bash
+curl -X POST https://comer.daedalusiq.com/api/reshim/runs/2026-09-18/email \
+  -H "Authorization: Bearer $SESSION_TOKEN" -H 'Content-Type: application/json' \
+  -d '{}'                                  # omit "to" for the standing list
+```
+
+It reads the run from whichever root holds it and attaches that run's own
+workbook, so figures and attachment cannot be mismatched. The `[SAMPLE]` prefix
+and banner follow the run's own mock flag rather than a parameter — a real run
+cannot be dressed as a sample, or the reverse. Pass `{"to": ["you@..."]}` to
+preview a real report on yourself before the customer sees it.
+
+Deliberately not wired to a button: the send is irreversible and goes to the
+customer, which is a poor fit for a control sitting next to "Clear sample".
+
 ---
 
 ## 7. Adding the next client (`acme.daedalusiq.com`, etc.)

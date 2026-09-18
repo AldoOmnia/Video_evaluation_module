@@ -12,7 +12,8 @@
 import ExcelJS from "exceljs";
 
 import { hasRealRun, saveIngestedRun, type IngestRun, type ReshimSummary } from "./reshim.js";
-import { sendMail, type SendResult } from "./mail.js";
+import { sendRunReport } from "./reshim-email.js";
+import { type SendResult } from "./mail.js";
 
 const FAMILIES = ["425", "430", "440", "450"] as const;
 
@@ -228,7 +229,7 @@ export async function seedSampleRuns(days: number, opts: { email?: boolean } = {
 
   let email: SendResult | null = null;
   if (opts.email && newest) {
-    email = await sendSampleReport(newest.dateStr, newest.summary, newest.report!);
+    email = await sendRunReport(newest.dateStr, { sample: true });
     // Record it on the run so the dashboard's Emailed column reflects reality
     // rather than a hardcoded "sent" the way the old Python seeder did.
     saveIngestedRun({
@@ -241,64 +242,4 @@ export async function seedSampleRuns(days: number, opts: { email?: boolean } = {
   }
 
   return { days, dates, skipped, email };
-}
-
-/* ── Sample report email ──────────────────────────────────────────────── */
-
-function summaryTable(s: ReshimSummary): string {
-  const incl = s.ok + s.bad + s.bad_heavy;
-  const pct = (n: number) => (incl > 0 ? ((100 * n) / incl).toFixed(1) : "—");
-  const cell = "padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:13px";
-  const row = (k: string, v: string) =>
-    `<tr><td style="${cell};color:#6b7280">${k}</td><td style="${cell};text-align:right;font-variant-numeric:tabular-nums">${v}</td></tr>`;
-
-  const flagged = s.high_bad_variants.length
-    ? s.high_bad_variants.map((v) => `${v.variant} (${v.bad_pct.toFixed(0)}% of ${v.n})`).join("<br>")
-    : "none ≥30% BAD";
-
-  return (
-    `<table style="border-collapse:collapse;min-width:340px;margin:16px 0">` +
-    row("Units analysed", String(incl)) +
-    row("Excluded", String(s.excluded)) +
-    row("OK", `${s.ok} &nbsp;(${pct(s.ok)}%)`) +
-    row("BAD", `${s.bad} &nbsp;(${pct(s.bad)}%)`) +
-    row("BAD_HEAVY", `${s.bad_heavy} &nbsp;(${pct(s.bad_heavy)}%)`) +
-    row("Variants flagged", flagged) +
-    `</table>`
-  );
-}
-
-/**
- * The daily report's layout, over invented numbers, with the fact that it is a
- * sample stated in the subject and again in the first line of the body — the
- * recipients are the real distribution list, so it has to be unmistakable
- * without opening the attachment.
- */
-export async function sendSampleReport(
-  dateStr: string,
-  summary: ReshimSummary,
-  report: { name: string; base64: string },
-): Promise<SendResult> {
-  const html =
-    `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#111827;line-height:1.5">` +
-    `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:12px 14px;margin-bottom:18px">` +
-    `<strong style="color:#b91c1c">SAMPLE — not real production data.</strong><br>` +
-    `<span style="color:#7f1d1d;font-size:13px">Every figure below is invented. It was generated to verify that ` +
-    `the automated report reaches you correctly, with the layout and attachment a real run would have. ` +
-    `No action is needed and nothing on the line has been assessed.</span>` +
-    `</div>` +
-    `<p style="margin:0 0 4px">Reshim analysis — <strong>${dateStr}</strong></p>` +
-    `<p style="margin:0;color:#6b7280;font-size:13px">Station 130/135 (SHIMMING 1/2) · family-specific backlash spec · ` +
-    `operator photos linked via OCR of the SN label.</p>` +
-    summaryTable(summary) +
-    `<p style="color:#6b7280;font-size:12.5px;margin:0">The attached workbook carries the same sample rows, ` +
-    `banner-marked on the first line of the sheet.</p>` +
-    `<p style="color:#9ca3af;font-size:12px;margin:22px 0 0">— Daedalus reshim agent</p>` +
-    `</div>`;
-
-  return sendMail({
-    subject: `[SAMPLE] Comer Fargo Reshim — ${dateStr}`,
-    html,
-    attachments: [{ name: report.name, contentBytes: report.base64 }],
-  });
 }
