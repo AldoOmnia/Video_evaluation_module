@@ -114,9 +114,18 @@
       border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
       background: color-mix(in srgb, var(--warn) 8%, transparent);
       border-radius: 8px; padding: 10px 13px; margin-bottom: 20px;
-      font-size: 12.5px; color: var(--ink-2); max-width: 760px;
+      font-size: 12.5px; color: var(--ink-2);
+      /* Full content width, matching the KPI row below it — the sentence reads
+         as one line of prose rather than a narrow wrapped column. */
     }
     .notice::before { content: '◐'; color: var(--warn); flex: none; }
+    /* Pushed to the far right so the sentence keeps a clean left column; it is
+       diagnostic detail, not part of the prose. */
+    .notice .reason { color: var(--ink-3); white-space: nowrap; margin-left: auto; padding-left: 14px; }
+    @media (max-width: 900px) {
+      .notice { flex-wrap: wrap; }
+      .notice .reason { margin-left: 0; padding-left: 19px; }
+    }
 
     .muted { color: var(--ink-3); }
     .empty { color: var(--ink-3); font-style: italic; padding: 14px 0; text-align: center; }
@@ -399,10 +408,10 @@
 
       const note = $('trigger-note');
       note.innerHTML =
-        'Runs cannot be started from here — this host has no Python agent ' +
+        '<span>Runs cannot be started from here — this host has no Python agent ' +
         'and no route to the plant network. The daily workflow runs the analysis ' +
-        'and publishes results to this dashboard. ' +
-        '<span class="muted">(' + (caps.reason || 'toolchain unavailable') + ')</span>';
+        'and publishes results to this dashboard.</span>' +
+        '<span class="reason">' + (caps.reason || 'toolchain unavailable') + '</span>';
       note.hidden = false;
     }
 
