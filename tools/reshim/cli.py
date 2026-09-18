@@ -151,6 +151,31 @@ def test_mssql():
 
 
 @app.command()
+def test_email(
+    to: Optional[str] = typer.Option(None, "--to", help="Extra recipients, comma-separated, on top of MAIL_RECIPIENTS"),
+    date_str: Optional[str] = typer.Option(None, "--date", help="Nominal date to print in the test (default: plant today)"),
+    interactive: bool = typer.Option(False, "--interactive", help="Interactive MSAL sign-in instead of app-only"),
+):
+    """Send a clearly-marked TEST report to verify mail delivery.
+
+    Same Graph app-only path and attachment handling as the daily report, but
+    the figures are invented and the subject and body say so. Safe to run
+    against a real distribution list, though check who is on it first with
+    `show-config`.
+    """
+    from .email_report import send_test_report
+
+    cfg = load_config()
+    day = date.fromisoformat(date_str) if date_str else plant_today(cfg)
+    extra = [r.strip() for r in (to or "").split(",") if r.strip()]
+
+    result = send_test_report(cfg, day, interactive=interactive, extra_recipients=extra)
+    typer.echo(f"Sent {result['status']} — {result['subject']}")
+    typer.echo(f"  to:         {', '.join(result['recipients'])}")
+    typer.echo(f"  attachment: {result['attachment']} ({result['size_kb']} KB)")
+
+
+@app.command()
 def show_config():
     """Print resolved config (secrets masked)."""
     cfg = load_config()
