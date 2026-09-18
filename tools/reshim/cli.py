@@ -18,6 +18,7 @@ import typer
 
 from .config import load_config, plant_today, run_dir_for
 from .pull import fetch_measurements, fetch_testno_lookup
+from .pull_pdf import load_folder as load_pdf_folder
 from .analyze import classify_rows, summarize
 from .sharepoint import poll_and_download
 from .ocr import SnExtractor, photo_ts
@@ -41,8 +42,10 @@ def run(
     email: bool = typer.Option(True, help="Send email report after building xlsx"),
     poll: bool = typer.Option(True, help="Poll SharePoint for new photos first"),
     interactive_auth: bool = typer.Option(False, help="Use device-code flow for SP/Graph auth"),
+    source: str = typer.Option("mssql", "--source", help="Where to read reshim measurements from: 'mssql' (live plant DB) or 'pdf' (per-SN UNICOMM Test Report PDFs, for off-network runs)"),
+    input_dir: Optional[str] = typer.Option(None, "--input", help="Directory containing per-SN PDFs when --source=pdf (default: ~/Downloads/Rep)"),
 ):
-    """Full daily pipeline: pull DB → poll photos → OCR → match → xlsx → email."""
+    """Full daily pipeline: pull DB (or PDFs) → poll photos → OCR → match → xlsx → email."""
     cfg = load_config()
     day = _parse_date(date_str, cfg.runtime.plant_tz)
     run_dir = run_dir_for(cfg, day)
@@ -50,11 +53,23 @@ def run(
     typer.echo(f"[reshim] Analysis day: {day.isoformat()}")
     typer.echo(f"[reshim] Run dir:      {run_dir}")
 
-    # 1. DB pull
-    typer.echo("[reshim] Pulling measurements from SSL04_FARGO…")
-    measurements = fetch_measurements(cfg, day)
-    testno = fetch_testno_lookup(cfg, day)
-    typer.echo(f"[reshim]   {len(measurements)} rows measured, {len(testno)} test-number entries")
+    # 1. Measurements: MSSQL (live) or PDFs (off-network)
+    if source == "pdf":
+        pdf_dir = Path(input_dir).expanduser() if input_dir else Path.home() / "Downloads/Rep"
+        if not pdf_dir.is_dir():
+            typer.echo(f"[reshim] ERROR: PDF input dir does not exist: {pdf_dir}", err=True)
+            raise typer.Exit(2)
+        typer.echo(f"[reshim] Parsing per-SN PDFs from {pdf_dir}…")
+        measurements, testno, skipped = load_pdf_folder(pdf_dir)
+        typer.echo(f"[reshim]   {len(measurements)} PDFs parsed, {len(skipped)} skipped, {len(testno)} test-number entries")
+        if skipped:
+            for p in skipped:
+                typer.echo(f"[reshim]     skipped: {p.name}")
+    else:
+        typer.echo("[reshim] Pulling measurements from SSL04_FARGO…")
+        measurements = fetch_measurements(cfg, day)
+        testno = fetch_testno_lookup(cfg, day)
+        typer.echo(f"[reshim]   {len(measurements)} rows measured, {len(testno)} test-number entries")
 
     # 2. Classify
     rows = classify_rows(measurements, testno)

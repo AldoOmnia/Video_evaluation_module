@@ -90,6 +90,16 @@ def _assert_readonly(sql: str) -> None:
 
 
 def _open_conn(cfg: Config) -> pyodbc.Connection:
+    missing = [k for k, v in [
+        ("MES_MSSQL_HOST", cfg.mes.host),
+        ("MES_MSSQL_USER", cfg.mes.user),
+        ("MES_MSSQL_PASSWORD", cfg.mes.password),
+    ] if not v]
+    if missing:
+        raise RuntimeError(
+            f"Cannot open MSSQL connection — missing env vars: {', '.join(missing)}. "
+            f"Either populate backend/.env or use --source=pdf for an off-network run."
+        )
     conn = pyodbc.connect(cfg.mes.odbc_connstr(), timeout=15)
     # READ UNCOMMITTED so we never take locks that could block plant writes
     cur = conn.cursor()

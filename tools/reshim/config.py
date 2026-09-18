@@ -105,13 +105,16 @@ def load_config() -> Config:
     run_dir.mkdir(parents=True, exist_ok=True)
     photo_stage.mkdir(parents=True, exist_ok=True)
 
+    # MES credentials are optional at load time — the PDF ingestion path
+    # doesn't need them. pull.py raises a clear error if any of these are
+    # empty when it actually tries to connect.
     return Config(
         mes=MesConfig(
-            host=_env("MES_MSSQL_HOST"),
+            host=_env_optional("MES_MSSQL_HOST"),
             port=int(_env_optional("MES_MSSQL_PORT", "1433")),
             database=_env_optional("MES_MSSQL_DATABASE", "SSL04_FARGO"),
-            user=_env("MES_MSSQL_USER"),
-            password=_env("MES_MSSQL_PASSWORD"),
+            user=_env_optional("MES_MSSQL_USER"),
+            password=_env_optional("MES_MSSQL_PASSWORD"),
             encrypt=_env_bool("MES_MSSQL_ENCRYPT", True),
             trust_cert=_env_bool("MES_MSSQL_TRUST_CERT", True),
         ),
