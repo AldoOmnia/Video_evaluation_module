@@ -1,0 +1,96 @@
+name: reshim-daily
+
+# Runs the daily Fargo reshim analysis + email report.
+#
+# Cron is UTC. 22:00 UTC = 17:00 CDT (Mar-Nov) / 16:00 CST (Nov-Mar).
+# Comer plant runs on Central time year-round; DST discrepancy is one hour
+# for ~5 months of the year and only shifts the trigger between "end of first
+# shift" and "one hour before end of first shift" — both are acceptable.
+# When Tailscale/DGX is live, switch runs-on to the self-hosted label.
+
+on:
+  schedule:
+    - cron: "0 22 * * *"        # 22:00 UTC daily
+  workflow_dispatch:            # manual trigger from GitHub Actions UI
+    inputs:
+      date:
+        description: "Analysis day (YYYY-MM-DD, default: today plant-local)"
+        required: false
+        default: ""
+      skip_email:
+        description: "Skip email send?"
+        required: false
+        default: "false"
+
+jobs:
+  run:
+    # runs-on: self-hosted           # ← flip to this once the DGX runner is registered
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install msodbcsql (Ubuntu)
+        run: |
+          curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+          curl https://packages.microsoft.com/config/ubuntu/22.04/prod.list \
+            | sudo tee /etc/apt/sources.list.d/mssql-release.list
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev
+
+      - name: Install Python deps
+        run: pip install -r tools/reshim/requirements.txt
+
+      - name: Materialize backend/.env from secrets
+        env:
+          MES_MSSQL_HOST: ${{ secrets.MES_MSSQL_HOST }}
+          MES_MSSQL_USER: ${{ secrets.MES_MSSQL_USER }}
+          MES_MSSQL_PASSWORD: ${{ secrets.MES_MSSQL_PASSWORD }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MSAL_TENANT_ID: ${{ secrets.MSAL_TENANT_ID }}
+          MSAL_CLIENT_ID: ${{ secrets.MSAL_CLIENT_ID }}
+          MSAL_CLIENT_SECRET: ${{ secrets.MSAL_CLIENT_SECRET }}
+          SHAREPOINT_SHARE_URL: ${{ secrets.SHAREPOINT_SHARE_URL }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_REPLY_TO: ${{ secrets.MAIL_REPLY_TO }}
+          MAIL_RECIPIENTS: ${{ secrets.MAIL_RECIPIENTS }}
+        run: |
+          cat > backend/.env <<EOF
+          MES_MSSQL_HOST=$MES_MSSQL_HOST
+          MES_MSSQL_PORT=1433
+          MES_MSSQL_DATABASE=SSL04_FARGO
+          MES_MSSQL_USER=$MES_MSSQL_USER
+          MES_MSSQL_PASSWORD=$MES_MSSQL_PASSWORD
+          MES_MSSQL_ENCRYPT=1
+          MES_MSSQL_TRUST_CERT=1
+          MES_PLANT_TZ=America/Chicago
+          ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
+          ANTHROPIC_MODEL=claude-sonnet-4-6
+          MSAL_TENANT_ID=$MSAL_TENANT_ID
+          MSAL_CLIENT_ID=$MSAL_CLIENT_ID
+          MSAL_CLIENT_SECRET=$MSAL_CLIENT_SECRET
+          SHAREPOINT_SHARE_URL=$SHAREPOINT_SHARE_URL
+          MAIL_FROM=$MAIL_FROM
+          MAIL_REPLY_TO=$MAIL_REPLY_TO
+          MAIL_RECIPIENTS=$MAIL_RECIPIENTS
+          EOF
+
+      - name: Run daily analysis
+        run: |
+          ARGS=""
+          [ -n "${{ inputs.date }}" ] && ARGS="--date ${{ inputs.date }}"
+          [ "${{ inputs.skip_email }}" = "true" ] && ARGS="$ARGS --no-email"
+          python -m tools.reshim run $ARGS
+
+      - name: Upload run artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reshim-run-${{ github.run_id }}
+          path: shared/data/reshim-runs/
+          retention-days: 30

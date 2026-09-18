@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+launchd job for the daily reshim analysis on aldo's Mac.
+
+Install:
+  cp tools/reshim/scheduler/io.omnia.reshim.daily.plist ~/Library/LaunchAgents/
+  # edit WorkingDirectory + StandardOutPath below to match your setup
+  launchctl load  ~/Library/LaunchAgents/io.omnia.reshim.daily.plist
+  launchctl start io.omnia.reshim.daily          # optional: run immediately
+
+Uninstall:
+  launchctl unload ~/Library/LaunchAgents/io.omnia.reshim.daily.plist
+
+Verify next fire time:
+  launchctl list | grep io.omnia.reshim.daily
+
+The StartCalendarInterval below fires at 17:00 America/Chicago = 22:00 UTC
+during CDT (Mar–Nov) and 23:00 UTC during CST (Nov–Mar). launchd doesn't
+support named timezones; the safest scheme is a fixed *local* wall-clock
+time on a Mac whose system TZ is Central (which the plant Macs are).
+If your Mac is on a different TZ, convert manually before install.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>io.omnia.reshim.daily</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/tmp/reshim_venv/bin/python</string>
+        <string>-m</string>
+        <string>tools.reshim</string>
+        <string>run</string>
+    </array>
+
+    <!-- Repo root — edit this to wherever you cloned Video_evaluation_module -->
+    <key>WorkingDirectory</key>
+    <string>/Users/aldopetruzzelli/Code/Video_evaluation_module</string>
+
+    <!-- Fire once/day at 17:00 local time -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>17</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <!-- Run even if the Mac was asleep at the scheduled time -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/reshim_daily.stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/reshim_daily.stderr.log</string>
+
+    <!-- Inherit env from backend/.env implicitly via load_dotenv() -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
+    </dict>
+</dict>
+</plist>
