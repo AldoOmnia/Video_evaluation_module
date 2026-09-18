@@ -12,10 +12,15 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-import { SHARED_DIR } from "../paths.js";
+import { REPO_ROOT, SHARED_DIR } from "../paths.js";
 
-const REPO_ROOT = join(SHARED_DIR, "..", "..");
 const RUN_ROOT = join(SHARED_DIR, "data", "reshim-runs");
+const PLANT_TZ = process.env.MES_PLANT_TZ?.trim() || "America/Chicago";
+
+/** Calendar day in the plant zone (not UTC). Matches tools.reshim plant_today(). */
+function plantToday(): string {
+  return new Date().toLocaleString("sv-SE", { timeZone: PLANT_TZ }).slice(0, 10);
+}
 
 export interface ReshimSummary {
   total: number;
@@ -125,7 +130,7 @@ export interface TriggerResult {
 }
 
 export async function triggerRun(req: TriggerRequest): Promise<TriggerResult> {
-  const dateStr = req.dateStr ?? new Date().toISOString().slice(0, 10);
+  const dateStr = req.dateStr ?? plantToday();
   const args = ["-m", "tools.reshim", "run", "--date", dateStr];
   if (req.skipEmail) args.push("--no-email");
   if (req.skipPoll) args.push("--no-poll");
@@ -140,10 +145,26 @@ export async function triggerRun(req: TriggerRequest): Promise<TriggerResult> {
     });
     let stdout = "";
     let stderr = "";
-    child.stdout.on("data", (c: Buffer) => (stdout += c.toString()));
-    child.stderr.on("data", (c: Buffer) => (stderr += c.toString()));
+    let settled = false;
+    const finish = (result: TriggerResult) => {
+      if (settled) return;
+      settled = true;
+      resolve(result);
+    };
+    child.stdout?.on("data", (c: Buffer) => (stdout += c.toString()));
+    child.stderr?.on("data", (c: Buffer) => (stderr += c.toString()));
+    child.on("error", (err) => {
+      finish({
+        ok: false,
+        exitCode: null,
+        stdout,
+        stderr: stderr ? `${stderr}\n${err}` : String(err),
+        dateStr,
+        durationMs: Date.now() - started,
+      });
+    });
     child.on("close", (code) => {
-      resolve({
+      finish({
         ok: code === 0,
         exitCode: code,
         stdout,

@@ -25,7 +25,7 @@ on:
 jobs:
   run:
     # runs-on: self-hosted           # ← flip to this once the DGX runner is registered
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 30
 
     steps:
@@ -61,31 +61,42 @@ jobs:
           MAIL_RECIPIENTS: ${{ secrets.MAIL_RECIPIENTS }}
         run: |
           cat > backend/.env <<EOF
-          MES_MSSQL_HOST=$MES_MSSQL_HOST
+          MES_MSSQL_HOST='$MES_MSSQL_HOST'
           MES_MSSQL_PORT=1433
           MES_MSSQL_DATABASE=SSL04_FARGO
-          MES_MSSQL_USER=$MES_MSSQL_USER
-          MES_MSSQL_PASSWORD=$MES_MSSQL_PASSWORD
+          MES_MSSQL_USER='$MES_MSSQL_USER'
+          MES_MSSQL_PASSWORD='$MES_MSSQL_PASSWORD'
           MES_MSSQL_ENCRYPT=1
           MES_MSSQL_TRUST_CERT=1
           MES_PLANT_TZ=America/Chicago
-          ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
+          ANTHROPIC_API_KEY='$ANTHROPIC_API_KEY'
           ANTHROPIC_MODEL=claude-sonnet-4-6
-          MSAL_TENANT_ID=$MSAL_TENANT_ID
-          MSAL_CLIENT_ID=$MSAL_CLIENT_ID
-          MSAL_CLIENT_SECRET=$MSAL_CLIENT_SECRET
-          SHAREPOINT_SHARE_URL=$SHAREPOINT_SHARE_URL
-          MAIL_FROM=$MAIL_FROM
-          MAIL_REPLY_TO=$MAIL_REPLY_TO
-          MAIL_RECIPIENTS=$MAIL_RECIPIENTS
+          MSAL_TENANT_ID='$MSAL_TENANT_ID'
+          MSAL_CLIENT_ID='$MSAL_CLIENT_ID'
+          MSAL_CLIENT_SECRET='$MSAL_CLIENT_SECRET'
+          SHAREPOINT_SHARE_URL='$SHAREPOINT_SHARE_URL'
+          MAIL_FROM='$MAIL_FROM'
+          MAIL_REPLY_TO='$MAIL_REPLY_TO'
+          MAIL_RECIPIENTS='$MAIL_RECIPIENTS'
           EOF
 
       - name: Run daily analysis
+        env:
+          RESHIM_DATE: ${{ inputs.date }}
+          RESHIM_SKIP_EMAIL: ${{ inputs.skip_email }}
         run: |
-          ARGS=""
-          [ -n "${{ inputs.date }}" ] && ARGS="--date ${{ inputs.date }}"
-          [ "${{ inputs.skip_email }}" = "true" ] && ARGS="$ARGS --no-email"
-          python -m tools.reshim run $ARGS
+          set -- run
+          if [ -n "$RESHIM_DATE" ]; then
+            case "$RESHIM_DATE" in
+              [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;;
+              *) echo "date must be YYYY-MM-DD" >&2; exit 1 ;;
+            esac
+            set -- "$@" --date "$RESHIM_DATE"
+          fi
+          if [ "$RESHIM_SKIP_EMAIL" = "true" ]; then
+            set -- "$@" --no-email
+          fi
+          python -m tools.reshim "$@"
 
       - name: Upload run artifacts
         if: always()
