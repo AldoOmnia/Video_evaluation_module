@@ -208,6 +208,7 @@ Quick version:
 | `/health` says `stubMode: true` in prod | `ANTHROPIC_API_KEY` not set | Set in Render → Environment, redeploy |
 | `/health` returns 200 but `/lab/` 404 | Path resolution drift | Re-check `backend/src/paths.ts` finds `brain-eval-lab.html` (it walks up the tree) |
 | CORS error in the browser console | Hitting the API from a host not in `ALLOWED_ORIGINS` | Add the host to the env var in Render |
+| `Origin not allowed: http://localhost:PORT` while signing in locally | Only in an old build — loopback is now trusted on any port when `NODE_ENV` is not `production` | Restart the dev server; no env change needed |
 | Custom domain stuck "Pending" | DNS not yet propagated | `dig +short comer.daedalusiq.com` — wait until it returns Render's CNAME target |
 | TLS cert never issues | DNS pointed at the wrong target | Re-check the CNAME value vs. what Render shows in Custom Domains |
 

@@ -38,17 +38,28 @@ const app = express();
 
 // CORS: in dev we default to "*". In prod the host (Render) should
 // inject ALLOWED_ORIGINS as a comma-separated list of fully-qualified
-// origins (e.g. https://comer.theomnia.ai), at which point we lock it
+// origins (e.g. https://comer.daedalusiq.com), at which point we lock it
 // down. Cross-origin browser requests from anything else are rejected;
 // same-origin requests (login + lab + API on one host) always work.
 const allow = config.allowedOrigins;
 const wildcard = allow.length === 0 || allow.includes("*");
+const isProd = process.env.NODE_ENV === "production";
+
+/* Outside production, trust any loopback origin whatever port it is on.
+ * ALLOWED_ORIGINS exists to name the *remote* hosts allowed to call this API;
+ * making it also enumerate local ports meant that running the dev server on
+ * anything but the one port listed in backend/.env failed sign-in with
+ * "Origin not allowed", which reads like a credentials problem rather than a
+ * config one. Not applied in production, where only the named hosts get in. */
+const LOOPBACK = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
+
 app.use(
   cors({
     origin: wildcard
       ? true
       : (origin, cb) => {
           if (!origin || allow.includes(origin)) return cb(null, true);
+          if (!isProd && LOOPBACK.test(origin)) return cb(null, true);
           cb(new Error(`Origin not allowed: ${origin}`));
         },
     credentials: false,
