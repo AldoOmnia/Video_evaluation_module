@@ -1,8 +1,8 @@
-# Deploy — Comer pilot at `comer.theomnia.ai`
+# Deploy — Comer pilot at `comer.daedalusiq.com`
 
 Target: a single always-on web service on Render that serves
 `/login`, `/lab/`, `/api/*`, and `/query` from one origin, reachable
-at `https://comer.theomnia.ai`.
+at `https://comer.daedalusiq.com`.
 
 This document covers the **first-time** deploy. After it's live, every
 push to the `platform-comer` branch auto-deploys (because
@@ -15,7 +15,7 @@ push to the `platform-comer` branch auto-deploys (because
 - A Render account that can see the `AldoOmnia/Video_evaluation_module` repo
 - An Anthropic API key with access to `claude-sonnet-4-6` (or whatever
   is set in `render.yaml` → `ANTHROPIC_MODEL`)
-- DNS access to `theomnia.ai`
+- DNS access to `daedalusiq.com`
 - ~10 minutes
 
 ---
@@ -77,7 +77,7 @@ Expected response:
   "steps": 12,
   "hardwareProfiles": 7,
   "strategies": 4,
-  "cors": ["https://comer.theomnia.ai", "https://comer-platform.onrender.com"],
+  "cors": ["https://comer.daedalusiq.com", "https://comer-platform.onrender.com"],
   "nodeEnv": "production"
 }
 ```
@@ -91,16 +91,16 @@ before cutting DNS over.
 
 ---
 
-## 4. Point `comer.theomnia.ai` at the service
+## 4. Point `comer.daedalusiq.com` at the service
 
 ### 4a. In Render
 
 1. Open the `comer-platform` service → **Settings → Custom Domains**
-2. Add `comer.theomnia.ai`
+2. Add `comer.daedalusiq.com`
 3. Render shows the CNAME target (typically the same
    `comer-platform.onrender.com` or a `*.onrender.com` apex). Copy it.
 
-### 4b. In your DNS host for `theomnia.ai`
+### 4b. In your DNS host for `daedalusiq.com`
 
 Create a single record:
 
@@ -111,7 +111,7 @@ Create a single record:
 DNS propagation usually takes 1–10 minutes. You can watch it with:
 
 ```bash
-dig +short comer.theomnia.ai
+dig +short comer.daedalusiq.com
 ```
 
 ### 4c. Wait for Render's TLS
@@ -120,17 +120,29 @@ Render auto-issues a Let's Encrypt cert as soon as DNS resolves. The
 Custom Domains page flips from "Pending" to "Verified" once that's
 done — usually within ~2 minutes of DNS being live.
 
+### 4d. Retiring the previous domain
+
+The platform was previously served at `comer.theomnia.ai`. Render allows
+several custom domains per service, so both hosts can answer at once and the
+cutover needs no downtime: add the new domain, verify it, then remove the old
+one whenever Comer has stopped using it. `ALLOWED_ORIGINS` lists both until
+that happens, so CORS never depends on the two changes landing together.
+
+Sessions do not carry over. The session lives in `localStorage`, which is
+scoped per origin, so everyone signs in once on the new hostname — worth
+telling Comer in advance so it doesn't read as a broken deploy.
+
 ---
 
 ## 5. Final smoke test
 
 ```bash
-curl https://comer.theomnia.ai/health
+curl https://comer.daedalusiq.com/health
 ```
 
 Then in a browser:
 
-1. `https://comer.theomnia.ai/login`
+1. `https://comer.daedalusiq.com/login`
 2. Sign in with `admin@comer.com` / `rockford123`
 3. Generate a simulated session in the eval lab
 4. Click **Run · LIVE LLM** and confirm a real Claude call comes back
@@ -154,7 +166,7 @@ Before showing this to the actual client, do at least these two things:
 
 ---
 
-## 7. Adding the next client (`acme.theomnia.ai`, etc.)
+## 7. Adding the next client (`acme.daedalusiq.com`, etc.)
 
 The platform is intentionally branched per-client. For a new client:
 
@@ -196,7 +208,7 @@ Quick version:
 | `/health` says `stubMode: true` in prod | `ANTHROPIC_API_KEY` not set | Set in Render → Environment, redeploy |
 | `/health` returns 200 but `/lab/` 404 | Path resolution drift | Re-check `backend/src/paths.ts` finds `brain-eval-lab.html` (it walks up the tree) |
 | CORS error in the browser console | Hitting the API from a host not in `ALLOWED_ORIGINS` | Add the host to the env var in Render |
-| Custom domain stuck "Pending" | DNS not yet propagated | `dig +short comer.theomnia.ai` — wait until it returns Render's CNAME target |
+| Custom domain stuck "Pending" | DNS not yet propagated | `dig +short comer.daedalusiq.com` — wait until it returns Render's CNAME target |
 | TLS cert never issues | DNS pointed at the wrong target | Re-check the CNAME value vs. what Render shows in Custom Domains |
 
 ---
@@ -204,7 +216,7 @@ Quick version:
 ## Cost
 
 - Render Starter: **$7/month** per tenant (always-on, 512MB RAM, shared CPU)
-- DNS: included with `theomnia.ai`
+- DNS: included with `daedalusiq.com`
 - Anthropic: pay-per-token (eval-lab calls are bounded by `maxTokens: 380`
   in `backend/src/routes/eval.ts` — a 50-event run is roughly $0.05)
 

@@ -7738,7 +7738,7 @@
          async by default and `defer` is ignored on them, so the previous
          ordering here was not actually guaranteed — it only happened to work
          because nothing was read at parse time. */
-      for (const src of ['platform.js?v=1', 'i18n.js?v=12', 'brain-dock.js?v=13']) {
+      for (const src of ['platform.js?v=1', 'i18n.js?v=13', 'brain-dock.js?v=13']) {
         const el = document.createElement('script');
         el.src = '/lab/assets/' + src;
         el.async = false;

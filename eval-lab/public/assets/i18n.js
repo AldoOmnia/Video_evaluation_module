@@ -1,5 +1,5 @@
 /**
- * Omnia platform i18n — UI chrome translation (EN default / ITA).
+ * Daedalus platform i18n — UI chrome translation (EN default / ITA).
  *
  * English lives in the markup; this file only carries the Italian strings.
  * Switching language goes through the confirm modal in brain-dock.js and
@@ -24,7 +24,7 @@
 
   const IT = {
     /* ── Home ─────────────────────────────────────────────── */
-    'home.topbarTitle': 'Omnia · Piattaforma Comer',
+    'home.topbarTitle': 'Daedalus · Piattaforma Comer',
     'home.heroTitle': "L'intelligenza dello stabilimento, in un unico posto",
     'home.heroSub': 'Chiedi della linea, delle procedure o del materiale di addestramento — oppure apri uno dei servizi qui sotto.',
     'home.chatPh': 'Chiedi a Comer AI: “errori più comuni sul pinion guide?”, “come si orienta la big cup?”…',
@@ -240,7 +240,7 @@
     'set.navVpn': 'Accesso VPN · Cisco',
 
     'set.profH2': 'Profilo amministratore',
-    'set.profSub': 'L’account collegato a questa console e l’ambito che amministra. Identità e accessi sono gestiti da Omnia; per modifiche di ruolo contatta il tuo referente Omnia.',
+    'set.profSub': 'L’account collegato a questa console e l’ambito che amministra. Identità e accessi sono gestiti da Daedalus; per modifiche di ruolo contatta il tuo referente Daedalus.',
     'set.pAccount': 'Account',
     'set.pRole': 'Ruolo',
     'set.pRoleV': 'Amministratore della piattaforma',
@@ -272,7 +272,7 @@
     'set.mLineV': 'Connettore MES UNICOMM · sola lettura',
 
     'set.ontH2': 'Mappatura ontologia errori',
-    'set.ontSub': 'La tassonomia errori Omnia su cui sono codificati ogni avviso, report e arco del knowledge graph. Aggiungi un alias di stabilimento dove i tuoi team usano un nome diverso in officina: gli alias compaiono accanto al codice canonico nei report e nelle viste stazione. I codici canonici non cambiano mai: sono vocabolario condiviso con la build degli occhiali.',
+    'set.ontSub': 'La tassonomia errori Daedalus su cui sono codificati ogni avviso, report e arco del knowledge graph. Aggiungi un alias di stabilimento dove i tuoi team usano un nome diverso in officina: gli alias compaiono accanto al codice canonico nei report e nelle viste stazione. I codici canonici non cambiano mai: sono vocabolario condiviso con la build degli occhiali.',
 
     /* Usage & cost */
     'set.usageH2': 'Consumi e costi dei modelli',

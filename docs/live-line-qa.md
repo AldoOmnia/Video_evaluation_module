@@ -201,7 +201,7 @@ that process's network position that decides everything:
 | Platform runs on | Live line works? |
 | --- | --- |
 | Laptop on the plant network (or Cisco VPN) | Yes — direct SQL to `WARKFSQL002` |
-| Hosted (`comer.theomnia.ai` on Render) | No, unless the database is routable from outside: published host, tunnel, or Render dedicated outbound IPs allowlisted by Comer IT |
+| Hosted (`comer.daedalusiq.com` on Render) | No, unless the database is routable from outside: published host, tunnel, or Render dedicated outbound IPs allowlisted by Comer IT |
 
 Putting *your* laptop on the Comer network does not change what the hosted server
 can reach. To demo without opening a route, run the platform locally on a machine

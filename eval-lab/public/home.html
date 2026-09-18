@@ -169,7 +169,7 @@
     /* ── Main column ─────────────────────── */
     /* One viewport, no scroll: hero up top, chat + services centered in the
        remaining space (auto margins above the chat and above the footer
-       split the slack evenly), Omnia footer pinned to the bottom. */
+       split the slack evenly), Daedalus footer pinned to the bottom. */
     .stage {
       width: 100%;
       max-width: 880px;
@@ -533,7 +533,7 @@
       color: var(--ink-3);
       display: flex; align-items: center; gap: 8px;
     }
-    .foot img { height: 12px; opacity: 0.7; }
+    .foot img { height: 14px; opacity: 0.7; }
   </style>
 </head>
 <body>
@@ -581,7 +581,7 @@
     <button class="nav-toggle" id="nav-toggle" aria-label="Open navigation">
       <span></span><span></span><span></span>
     </button>
-    <span class="topbar-title" data-i18n="home.topbarTitle">Omnia · Comer platform</span>
+    <span class="topbar-title" data-i18n="home.topbarTitle">Daedalus · Comer platform</span>
     <div class="topbar-right">
       <span class="lang-toggle" id="lang-toggle" role="group" aria-label="Answer language">
         <button type="button" data-lang="en" title="Answer in English">EN</button>
@@ -670,7 +670,7 @@
 
     <div class="foot">
       <span>Powered by</span>
-      <img src="/lab/assets/omnia-white.png" alt="Omnia" />
+      <img src="/lab/assets/daedalus-horizontal.svg" alt="Daedalus" />
     </div>
   </main>
 
@@ -745,7 +745,7 @@
       const el = document.createElement('div');
       el.className = 'msg ' + role;
       el.innerHTML =
-        '<span class="who">' + (role === 'user' ? esc(T('home.you', 'You')) : 'Omnia') + '</span>' +
+        '<span class="who">' + (role === 'user' ? esc(T('home.you', 'You')) : 'Comer AI') + '</span>' +
         '<div class="bubble">' + html + '</div>' +
         (metaHtml ? '<div class="meta">' + metaHtml + '</div>' : '');
       thread.appendChild(el);
@@ -1175,7 +1175,7 @@
       view: document.body.classList.contains('in-chat') ? 'chat conversation' : 'services overview',
     });
   </script>
-  <script src="/lab/assets/i18n.js?v=12" defer></script>
+  <script src="/lab/assets/i18n.js?v=13" defer></script>
   <script src="/lab/assets/brain-dock.js?v=13" defer></script>
 </body>
 </html>
