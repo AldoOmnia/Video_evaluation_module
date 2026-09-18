@@ -69,5 +69,11 @@ eval-lab/public/assets/Worker/
 June18_Panos/_previews/
 CNH Layout 1.dwg
 .usage/
-shared/data/reshim-runs/
+# Daily reshim runs are produced by the pipeline at runtime — do not commit
+# them; they'd bloat the repo forever. EXCEPT: the two pre-launch baseline
+# runs listed below, which we want available on every deployment target
+# (comer.daedalusiq.com and any future host) as historical context.
+shared/data/reshim-runs/*
+!shared/data/reshim-runs/2026-08-19/
+!shared/data/reshim-runs/2026-09-17/
 tools/reshim/.env
