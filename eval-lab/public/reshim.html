@@ -153,8 +153,8 @@
     <a class="back-home" href="/home/">← Home</a>
     <span class="topbar-title"><strong>Reshim analysis</strong> · shim stack audit</span>
     <div class="actions">
-      <label id="email-toggle" title="Manual runs skip email by default so ad-hoc clicks don't spam Comer recipients. Check this to email on this run.">
-        <input type="checkbox" id="also-email-cb" />
+      <label id="email-toggle" title="Runs email the configured recipients. Untick to run without sending, e.g. when checking a backfill.">
+        <input type="checkbox" id="also-email-cb" checked />
         <span>Also email</span>
       </label>
       <button id="refresh-btn">Refresh</button>
@@ -377,7 +377,7 @@
       btn.classList.add('running');
       btn.textContent = '⏳ Running…';
       try {
-        // Manual runs skip email by default; opt in via checkbox
+        // Runs email by default; the checkbox is the opt-out.
         const body = JSON.stringify({ skipEmail: !alsoEmail });
         const r = await fetch('/api/reshim/trigger', { method: 'POST', headers: {'Content-Type':'application/json'}, body });
         const j = await r.json();
