@@ -7,21 +7,21 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/lab/assets/platform.css?v=1" />
-  <script src="/lab/assets/platform.js?v=1"></script>
+  <link rel="stylesheet" href="/lab/assets/platform.css?v=2" />
+  <script src="/lab/assets/platform.js?v=2"></script>
   <style>
     
     html { scroll-behavior: smooth; }
     .bg { position: fixed; inset: 0; z-index: -1;
       background:
-        radial-gradient(1100px 500px at 80% -10%, rgba(0,229,160,0.05), transparent 60%),
-        radial-gradient(900px 500px at 0% 110%, rgba(0,229,160,0.04), transparent 55%);
+        radial-gradient(1100px 500px at 80% -10%, color-mix(in srgb, var(--primary) 5%, transparent), transparent 60%),
+        radial-gradient(900px 500px at 0% 110%, color-mix(in srgb, var(--primary) 4%, transparent), transparent 55%);
     }
 
     .topbar {
       display: flex; align-items: center; gap: 14px;
       padding: 13px 22px; border-bottom: 1px solid var(--line);
-      background: rgba(5,5,5,0.85); backdrop-filter: blur(10px);
+      background: var(--bg-veil); backdrop-filter: blur(10px);
       position: sticky; top: 0; z-index: 20;
     }
     .back-home {
@@ -63,7 +63,7 @@
       transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
     }
     .rail a:hover { background: var(--bg-3); color: var(--ink-1); }
-    .rail a.is-on { background: rgba(0,229,160,0.08); border-color: rgba(0,229,160,0.25); color: var(--primary); }
+    .rail a.is-on { background: color-mix(in srgb, var(--primary) 8%, transparent); border-color: color-mix(in srgb, var(--primary) 25%, transparent); color: var(--primary); }
 
     /* ── Content ─────────────────────────── */
     .content { display: flex; flex-direction: column; gap: 44px; min-width: 0; }
@@ -110,7 +110,7 @@
     }
     .seg button:last-child { border-right: 0; }
     .seg button:hover { color: var(--ink-1); }
-    .seg button.is-on { background: rgba(0,229,160,0.1); color: var(--primary); }
+    .seg button.is-on { background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary); }
     .model-rows { display: flex; flex-direction: column; gap: 6px; font-family: var(--mono); font-size: 11px; }
     .model-rows .row { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.04); padding: 4px 0; }
     .model-rows .k { color: var(--ink-3); }
@@ -221,7 +221,7 @@
     .doc-step p { color: var(--ink-2); font-size: 12.5px; margin-bottom: 8px; }
     .doc-step p code, .callout code, .sec-sub code {
       font-family: var(--mono); font-size: 11px; color: var(--primary);
-      background: rgba(0,229,160,0.06); border: 1px solid rgba(0,229,160,0.15);
+      background: color-mix(in srgb, var(--primary) 6%, transparent); border: 1px solid color-mix(in srgb, var(--primary) 15%, transparent);
       border-radius: 4px; padding: 1px 5px;
     }
 
@@ -257,7 +257,7 @@
       font-size: 12.5px; color: var(--ink-2); margin-bottom: 14px;
       border: 1px solid rgba(245,158,11,0.3); background: rgba(245,158,11,0.05);
     }
-    .callout.info { border-color: rgba(0,229,160,0.25); background: rgba(0,229,160,0.04); }
+    .callout.info { border-color: color-mix(in srgb, var(--primary) 25%, transparent); background: color-mix(in srgb, var(--primary) 4%, transparent); }
     .callout .ci { flex: none; margin-top: 2px; color: var(--warn); }
     .callout.info .ci { color: var(--primary); }
     .callout b { color: var(--ink-1); font-weight: 600; }
@@ -277,6 +277,7 @@
   <header class="topbar">
     <a class="back-home" href="/home/" data-i18n="nav.backHome">← Home</a>
     <span class="topbar-title" data-i18n="set.tbTitle"><strong>Settings</strong> · admin console</span>
+    <button class="theme-toggle"></button>
     <span class="user-chip" id="user-chip">—</span>
   </header>
 
@@ -1022,6 +1023,6 @@ curl -H "x-api-key: <span class="var">&lt;ROTATED_API_KEY&gt;</span>" https://<s
     });
   </script>
   <script src="/lab/assets/i18n.js?v=13" defer></script>
-  <script src="/lab/assets/brain-dock.js?v=13" defer></script>
+  <script src="/lab/assets/brain-dock.js?v=14" defer></script>
 </body>
 </html>

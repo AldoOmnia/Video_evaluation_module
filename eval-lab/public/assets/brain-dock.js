@@ -23,143 +23,163 @@
   window.__BRAIN_DOCK__ = true;
 
   const css = `
+  /* The dock injects its own stylesheet, so it cannot rely on a page having
+     declared every token it wants. These three are dock-specific and are
+     defined here for both themes rather than in platform.css, which the
+     digital twin does not load. --shadow also has to work on a white canvas,
+     where the dark-mode 0.5-alpha drop reads as a smudge. */
+  :root {
+    --shadow: rgba(0, 0, 0, 0.55);
+    --bd-user-ink: #e8fff6;
+    --bd-vision: #60a5fa;
+  }
+  html.light {
+    --shadow: rgba(15, 18, 20, 0.14);
+    --bd-user-ink: #05231a;
+    --bd-vision: #1d4ed8;
+  }
   .bd-toggle {
     position: fixed; right: 18px; bottom: 18px; z-index: 900;
     display: flex; align-items: center; gap: 8px;
-    background: #0d0d0d; color: #00E5A0;
-    border: 1px solid rgba(0,229,160,0.35); border-radius: 24px;
+    background: var(--bg-2); color: var(--primary);
+    border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent); border-radius: 24px;
     padding: 10px 16px; cursor: pointer;
     font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
     font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 24px var(--shadow);
     transition: background 140ms ease, transform 140ms ease;
   }
-  .bd-toggle:hover { background: rgba(0,229,160,0.08); transform: translateY(-1px); }
-  .bd-toggle .dot { width: 7px; height: 7px; border-radius: 50%; background: #00E5A0; box-shadow: 0 0 8px rgba(0,229,160,0.8); }
+  .bd-toggle:hover { background: color-mix(in srgb, var(--primary) 8%, transparent); transform: translateY(-1px); }
+  .bd-toggle .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 8px color-mix(in srgb, var(--primary) 80%, transparent); }
   .bd-drawer {
     position: fixed; top: 0; right: 0; bottom: 0; z-index: 950;
     width: min(400px, 92vw);
-    background: #0a0a0a; border-left: 1px solid #2a2a2a;
-    box-shadow: -12px 0 40px rgba(0,0,0,0.55);
+    background: var(--bg); border-left: 1px solid var(--line-2);
+    box-shadow: -12px 0 40px var(--shadow);
     display: flex; flex-direction: column;
     transform: translateX(102%); transition: transform 220ms ease;
     font-family: 'Inter', -apple-system, system-ui, sans-serif;
-    color: #f5f5f5;
+    color: var(--ink-1);
   }
   .bd-drawer.is-open { transform: translateX(0); }
   .bd-head {
     display: flex; align-items: center; gap: 10px;
-    padding: 14px 16px; border-bottom: 1px solid #1f1f1f; flex: none;
+    padding: 14px 16px; border-bottom: 1px solid var(--line); flex: none;
   }
   .bd-head .t { font-size: 12.5px; font-weight: 600; letter-spacing: -0.01em; }
   .bd-head .ctx {
     font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; font-size: 9px;
-    color: #6b6b6b; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--ink-3); letter-spacing: 0.05em; text-transform: uppercase;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;
   }
   .bd-close {
-    background: none; border: none; color: #6b6b6b; font-size: 16px;
+    background: none; border: none; color: var(--ink-3); font-size: 16px;
     cursor: pointer; padding: 2px 6px; flex: none;
   }
-  .bd-close:hover { color: #f5f5f5; }
+  .bd-close:hover { color: var(--ink-1); }
   .bd-lang {
-    display: flex; flex: none; border: 1px solid #2a2a2a; border-radius: 6px; overflow: hidden;
+    display: flex; flex: none; border: 1px solid var(--line-2); border-radius: 6px; overflow: hidden;
   }
   .bd-lang button {
     background: none; border: none; cursor: pointer; padding: 3px 8px;
     font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
-    font-size: 9px; letter-spacing: 0.08em; color: #6b6b6b;
+    font-size: 9px; letter-spacing: 0.08em; color: var(--ink-3);
   }
-  .bd-lang button.is-on { background: rgba(0,229,160,0.12); color: #00E5A0; }
+  .bd-lang button.is-on { background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary); }
   .bd-msgs { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
   .bd-msg { max-width: 94%; font-size: 12.5px; line-height: 1.55; }
   .bd-msg.user {
-    align-self: flex-end; background: rgba(0,229,160,0.09);
-    border: 1px solid rgba(0,229,160,0.25); border-radius: 12px 12px 3px 12px;
-    padding: 8px 12px; color: #e8fff6;
+    align-self: flex-end; background: color-mix(in srgb, var(--primary) 9%, transparent);
+    border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent); border-radius: 12px 12px 3px 12px;
+    padding: 8px 12px; color: var(--bd-user-ink);
   }
-  .bd-msg.user img { max-width: 140px; border-radius: 8px; display: block; margin-top: 6px; border: 1px solid rgba(0,229,160,0.3); }
+  .bd-msg.user img { max-width: 140px; border-radius: 8px; display: block; margin-top: 6px; border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent); }
   .bd-msg.brain {
-    align-self: flex-start; background: #111; border: 1px solid #242424;
-    border-radius: 12px 12px 12px 3px; padding: 10px 13px; color: #d9d9d9;
+    align-self: flex-start; background: var(--bg-3); border: 1px solid var(--line);
+    border-radius: 12px 12px 12px 3px; padding: 10px 13px; color: var(--ink-1);
   }
-  .bd-msg.brain b { color: #f5f5f5; }
+  .bd-msg.brain b { color: var(--ink-1); }
   .bd-msg.brain ul { margin: 6px 0 0 16px; padding: 0; }
   .bd-msg.brain li { margin-bottom: 3px; }
   .bd-vision {
-    border: 1px solid rgba(96,165,250,0.35); background: rgba(96,165,250,0.06);
+    border: 1px solid color-mix(in srgb, var(--bd-vision) 35%, transparent);
+    background: color-mix(in srgb, var(--bd-vision) 6%, transparent);
     border-radius: 9px; padding: 8px 11px; margin-bottom: 8px; font-size: 12px;
   }
   .bd-vision .vh {
     font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; font-size: 8.5px;
-    letter-spacing: 0.08em; text-transform: uppercase; color: #60a5fa; margin-bottom: 4px;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--bd-vision); margin-bottom: 4px;
   }
-  .bd-vision .conf { color: #6b6b6b; font-size: 11px; }
-  .bd-vision .warn { color: #f59e0b; font-size: 11.5px; margin-top: 4px; }
+  .bd-vision .conf { color: var(--ink-3); font-size: 11px; }
+  .bd-vision .warn { color: var(--warn); font-size: 11.5px; margin-top: 4px; }
   .bd-vision .warn b { color: inherit; font-weight: 600; }
   .bd-meta {
     font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; font-size: 8.5px;
-    color: #6b6b6b; letter-spacing: 0.04em; margin-top: 8px; line-height: 1.7;
+    color: var(--ink-3); letter-spacing: 0.04em; margin-top: 8px; line-height: 1.7;
   }
-  .bd-empty { color: #6b6b6b; font-size: 12px; line-height: 1.7; margin: auto 0; text-align: center; padding: 0 18px; }
-  .bd-empty b { color: #a3a3a3; }
-  .bd-thinking { color: #6b6b6b; font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; font-size: 10px; letter-spacing: 0.06em; }
+  .bd-empty { color: var(--ink-3); font-size: 12px; line-height: 1.7; margin: auto 0; text-align: center; padding: 0 18px; }
+  .bd-empty b { color: var(--ink-2); }
+  .bd-thinking { color: var(--ink-3); font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; font-size: 10px; letter-spacing: 0.06em; }
   .bd-thinking::after { content: '…'; animation: bd-pulse 1.2s infinite; }
   @keyframes bd-pulse { 0%,100%{opacity:0.3} 50%{opacity:1} }
-  .bd-inrow { border-top: 1px solid #1f1f1f; padding: 12px 14px; flex: none; }
+  .bd-inrow { border-top: 1px solid var(--line); padding: 12px 14px; flex: none; }
   .bd-attach-preview {
     display: none; align-items: center; gap: 8px; margin-bottom: 8px;
-    font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; font-size: 10px; color: #a3a3a3;
+    font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; font-size: 10px; color: var(--ink-2);
   }
   .bd-attach-preview.is-on { display: flex; }
-  .bd-attach-preview img { width: 42px; height: 42px; object-fit: cover; border-radius: 6px; border: 1px solid #2a2a2a; }
-  .bd-attach-preview button { background: none; border: none; color: #6b6b6b; cursor: pointer; font-size: 13px; }
+  .bd-attach-preview img { width: 42px; height: 42px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line-2); }
+  .bd-attach-preview button { background: none; border: none; color: var(--ink-3); cursor: pointer; font-size: 13px; }
   .bd-inflex { display: flex; gap: 8px; align-items: flex-end; }
   .bd-input {
-    flex: 1; background: #111; border: 1px solid #2a2a2a; border-radius: 10px;
-    color: #f5f5f5; font-family: inherit; font-size: 12.5px; line-height: 1.5;
+    flex: 1; background: #111; border: 1px solid var(--line-2); border-radius: 10px;
+    color: var(--ink-1); font-family: inherit; font-size: 12.5px; line-height: 1.5;
     /* Two lines tall so the full "Ask… or attach a photo…" hint shows unclipped. */
     padding: 9px 12px; resize: none; min-height: 57px; max-height: 110px; outline: none;
   }
-  .bd-input:focus { border-color: rgba(0,229,160,0.45); }
+  .bd-input:focus { border-color: color-mix(in srgb, var(--primary) 45%, transparent); }
   .bd-btn {
-    flex: none; border-radius: 10px; border: 1px solid #2a2a2a; background: #111;
-    color: #a3a3a3; cursor: pointer; font-size: 14px; width: 38px; height: 38px;
+    flex: none; border-radius: 10px; border: 1px solid var(--line-2); background: #111;
+    color: var(--ink-2); cursor: pointer; font-size: 14px; width: 38px; height: 38px;
     display: flex; align-items: center; justify-content: center;
     transition: border-color 120ms ease, color 120ms ease;
   }
-  .bd-btn:hover { border-color: rgba(0,229,160,0.4); color: #00E5A0; }
-  .bd-btn.send { background: rgba(0,229,160,0.12); border-color: rgba(0,229,160,0.4); color: #00E5A0; }
+  .bd-btn:hover { border-color: color-mix(in srgb, var(--primary) 40%, transparent); color: var(--primary); }
+  .bd-btn.send { background: color-mix(in srgb, var(--primary) 12%, transparent); border-color: color-mix(in srgb, var(--primary) 40%, transparent); color: var(--primary); }
   .bd-btn:disabled { opacity: 0.4; cursor: default; }
   .bd-foot {
-    font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; font-size: 8px; color: #4a4a4a;
+    font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; font-size: 8px;
+    /* Deliberately fainter than --ink-3 — it is an attribution footnote, not
+       content. Mixed toward the canvas so it stays that far back in both
+       themes rather than being pinned to one grey. */
+    color: color-mix(in srgb, var(--ink-3) 72%, var(--bg));
     letter-spacing: 0.05em; text-transform: uppercase; text-align: center; margin-top: 8px;
   }
   .bd-lang-ov {
     position: fixed; inset: 0; z-index: 1000;
-    background: rgba(0,0,0,0.6); backdrop-filter: blur(3px);
+    background: var(--shadow); backdrop-filter: blur(3px);
     display: flex; align-items: center; justify-content: center;
   }
   .bd-lang-modal {
-    width: min(400px, 90vw); background: #0d0d0d;
-    border: 1px solid #2a2a2a; border-radius: 14px; padding: 22px 24px;
-    font-family: 'Inter', -apple-system, system-ui, sans-serif; color: #f5f5f5;
-    box-shadow: 0 18px 60px rgba(0,0,0,0.6);
+    width: min(400px, 90vw); background: var(--bg-2);
+    border: 1px solid var(--line-2); border-radius: 14px; padding: 22px 24px;
+    font-family: 'Inter', -apple-system, system-ui, sans-serif; color: var(--ink-1);
+    box-shadow: 0 18px 60px var(--shadow);
   }
   .bd-lang-modal .mh { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 8px; }
-  .bd-lang-modal .mb { font-size: 12.5px; line-height: 1.6; color: #a3a3a3; margin-bottom: 18px; }
+  .bd-lang-modal .mb { font-size: 12.5px; line-height: 1.6; color: var(--ink-2); margin-bottom: 18px; }
   .bd-lang-modal .mf { display: flex; justify-content: flex-end; gap: 10px; }
   .bd-lang-modal .mf button {
     border-radius: 8px; padding: 8px 14px; cursor: pointer;
     font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
     font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase;
   }
-  .bd-lang-modal .mc-cancel { background: none; border: 1px solid #2a2a2a; color: #a3a3a3; }
-  .bd-lang-modal .mc-cancel:hover { color: #f5f5f5; border-color: #4a4a4a; }
+  .bd-lang-modal .mc-cancel { background: none; border: 1px solid var(--line-2); color: var(--ink-2); }
+  .bd-lang-modal .mc-cancel:hover { color: var(--ink-1); border-color: var(--line-2); }
   .bd-lang-modal .mc-ok {
-    background: rgba(0,229,160,0.12); border: 1px solid rgba(0,229,160,0.45); color: #00E5A0;
+    background: color-mix(in srgb, var(--primary) 12%, transparent); border: 1px solid color-mix(in srgb, var(--primary) 45%, transparent); color: var(--primary);
   }
-  .bd-lang-modal .mc-ok:hover { background: rgba(0,229,160,0.2); }`;
+  .bd-lang-modal .mc-ok:hover { background: color-mix(in srgb, var(--primary) 20%, transparent); }`;
 
   const style = document.createElement('style');
   style.textContent = css;

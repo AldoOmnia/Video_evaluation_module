@@ -7,13 +7,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/lab/assets/platform.css?v=1" />
-  <script src="/lab/assets/platform.js?v=1"></script>
+  <link rel="stylesheet" href="/lab/assets/platform.css?v=2" />
+  <script src="/lab/assets/platform.js?v=2"></script>
   <style>
     .bg {
       position: fixed; inset: 0; z-index: -2;
       background:
-        radial-gradient(circle at top left, rgba(0,229,160,0.05), transparent 55%),
+        radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 5%, transparent), transparent 55%),
         radial-gradient(circle at bottom right, rgba(0,150,255,0.04), transparent 55%),
         var(--bg);
     }
@@ -22,7 +22,7 @@
       position: sticky; top: 0; z-index: 40;
       display: flex; align-items: center; gap: 14px;
       padding: 10px 18px;
-      background: rgba(5,5,5,0.85); backdrop-filter: blur(10px);
+      background: var(--bg-veil); backdrop-filter: blur(10px);
       border-bottom: 1px solid var(--line);
     }
     .back-home {
@@ -54,7 +54,7 @@
       color: var(--ink-3); padding: 7px 13px;
       transition: background 140ms ease, color 140ms ease;
     }
-    .view-toggle button.is-active { background: rgba(0,229,160,0.1); color: var(--primary); }
+    .view-toggle button.is-active { background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary); }
     .station-picker {
       background: var(--bg-3); border: 1px solid var(--line-2); border-radius: 8px;
       color: var(--ink-1); font-family: var(--mono); font-size: 11px;
@@ -109,24 +109,67 @@
     .facility-canvas.is-full .fac-bp { opacity: 0.60; }
     .fac-bp-accent { opacity: 0.62; transition: opacity 220ms ease; }
     .facility-canvas.is-full .fac-bp-accent { opacity: 0.9; }
+
+    /* ── The map in light mode ──────────────────────────────────────────
+       The drawing was rendered as white linework for a black canvas, so on
+       white it disappears. Inverting it gives black-on-white — which is what
+       a paper blueprint looks like anyway — and needs more opacity than the
+       dark theme, since dark ink on white reads stronger at the same alpha.
+
+       The accent pass is NOT inverted: yellow would come back blue and the
+       legend calls it out by name. It is darkened and saturated instead, so
+       it stays yellow but carries against white. */
+    html.light .fac-bp { filter: invert(1); opacity: 0.30; }
+    html.light .facility-canvas.is-full .fac-bp { opacity: 0.75; }
+    html.light .fac-bp-accent { filter: saturate(1.5) brightness(0.62); opacity: 0.85; }
+    html.light .facility-canvas.is-full .fac-bp-accent { opacity: 1; }
+
+    /* Map-only colours that are not a simple ink/surface swap. The green and
+       blue tints are raised in light mode: a 0.18-alpha wash that reads clearly
+       against near-black is almost nothing against white. */
+    :root {
+      --fac-dot: rgba(15, 21, 18, 0.82);
+      --fac-halo: rgba(8, 10, 9, 0.88);
+      --fac-accent-ink: rgba(245, 197, 66, 0.55);
+      --sg-edge: rgba(255, 255, 255, 0.10);
+      --sg-disc: #0f1512;
+    }
+    html.light {
+      --fac-dot: rgba(255, 255, 255, 0.92);
+      --fac-halo: rgba(255, 255, 255, 0.92);
+      --fac-accent-ink: #8a6100;
+      --sg-edge: rgba(0, 0, 0, 0.16);
+      --sg-disc: #ffffff;
+    }
+    html.light .fac-edge { stroke: color-mix(in srgb, var(--primary) 45%, transparent); }
+    html.light .fac-node circle.halo { stroke: color-mix(in srgb, var(--primary) 45%, transparent); }
+    html.light .fac-twin rect { fill: color-mix(in srgb, var(--ok) 12%, transparent); stroke: color-mix(in srgb, var(--ok) 65%, transparent); }
+    html.light .fac-twin:hover rect { fill: color-mix(in srgb, var(--ok) 26%, transparent); }
+    html.light .fac-operator ellipse { fill: rgba(29, 78, 216, 0.12); stroke: rgba(29, 78, 216, 0.6); }
+    html.light .fac-operator circle { fill: rgba(29, 78, 216, 0.62); }
+    html.light .fac-operator line { stroke: rgba(29, 78, 216, 0.55); }
+    html.light .fac-src { fill: var(--ink-3); }
+    html.light .fac-node .nd-report.ok { fill: #0f6b4a; }
     .fac-src { fill: #3a3a3a; font-family: var(--mono); font-size: 8px; letter-spacing: 0.06em; }
     /* CAD-style operator manikins (blue, seen from above) — fullscreen only */
     .fac-operator ellipse { fill: rgba(96,165,250,0.14); stroke: rgba(96,165,250,0.55); stroke-width: 1; }
     .fac-operator circle { fill: rgba(96,165,250,0.5); }
     .fac-operator line { stroke: rgba(96,165,250,0.45); stroke-width: 1; stroke-linecap: round; }
-    .fac-edge { stroke: rgba(0,229,160,0.18); stroke-width: 1.6; stroke-dasharray: 5 5; }
+    .fac-edge { stroke: color-mix(in srgb, var(--primary) 18%, transparent); stroke-width: 1.6; stroke-dasharray: 5 5; }
     .fac-node { cursor: pointer; }
     .fac-node circle.core {
-      fill: rgba(15,21,18,0.82); stroke: var(--line-2); stroke-width: 2;
+      fill: var(--fac-dot); stroke: var(--line-2); stroke-width: 2;
       transition: stroke 140ms ease;
     }
     .fac-node.is-active circle.core { stroke: var(--primary); stroke-width: 2.4; }
     .fac-node:hover circle.core { stroke: var(--primary); }
-    .fac-node circle.halo { fill: none; stroke: rgba(0,229,160,0.25); stroke-width: 1; }
-    /* Dark stroke behind every label so text stays readable on the drawing */
+    .fac-node circle.halo { fill: none; stroke: color-mix(in srgb, var(--primary) 25%, transparent); stroke-width: 1; }
+    /* Halo behind every label so text stays readable on the drawing. It has to
+       match the canvas, not the ink — in light mode a dark halo behind black
+       text collapses into an unreadable blob. */
     .fac-node text {
       fill: var(--ink-1); font-family: var(--sans); font-weight: 600;
-      paint-order: stroke; stroke: rgba(8,10,9,0.88); stroke-width: 3px; stroke-linejoin: round;
+      paint-order: stroke; stroke: var(--fac-halo); stroke-width: 3px; stroke-linejoin: round;
     }
     .fac-node .nd-label { font-size: 11px; }
     .fac-node .nd-stage { fill: var(--ink-3); font-family: var(--mono); font-size: 8px; font-weight: 400; letter-spacing: 0.04em; }
@@ -146,7 +189,7 @@
     }
     @keyframes facLit {
       0%, 100% { stroke-width: 2; filter: none; }
-      50% { stroke-width: 4.5; filter: drop-shadow(0 0 9px rgba(0,229,160,0.9)); }
+      50% { stroke-width: 4.5; filter: drop-shadow(0 0 9px color-mix(in srgb, var(--primary) 90%, transparent)); }
     }
     /* Hover card for twin stations: World Labs splat preview + the UNICOMM
        trio (MES table · station name · spot on the layout). */
@@ -193,29 +236,29 @@
       margin-left: auto;
       font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
       color: var(--primary); text-decoration: none;
-      border: 1px solid rgba(0,229,160,0.3); border-radius: 6px; padding: 6px 10px;
+      border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent); border-radius: 6px; padding: 6px 10px;
       transition: background 140ms ease;
     }
-    .station-head .lab-link:hover { background: rgba(0,229,160,0.08); }
+    .station-head .lab-link:hover { background: color-mix(in srgb, var(--primary) 8%, transparent); }
 
     /* Glasses-build sync provenance */
     .glasses-sync {
       display: none; align-items: center; gap: 9px; flex-wrap: wrap;
       margin-top: 10px; padding: 8px 12px;
-      background: rgba(0,229,160,0.05); border: 1px solid rgba(0,229,160,0.22);
+      background: color-mix(in srgb, var(--primary) 5%, transparent); border: 1px solid color-mix(in srgb, var(--primary) 22%, transparent);
       border-radius: 9px;
       font-family: var(--mono); font-size: 10px; letter-spacing: 0.04em;
       color: var(--ink-2);
     }
     .glasses-sync.is-on { display: flex; }
-    .glasses-sync .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 7px rgba(0,229,160,0.8); }
+    .glasses-sync .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 7px color-mix(in srgb, var(--primary) 80%, transparent); }
     .glasses-sync b { color: var(--primary); font-weight: 600; }
     .glasses-sync a { color: var(--ink-2); }
     .glasses-pill {
       display: inline-flex; align-items: center; gap: 4px;
       font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.05em;
-      color: var(--primary); background: rgba(0,229,160,0.08);
-      border: 1px solid rgba(0,229,160,0.3); border-radius: 4px;
+      color: var(--primary); background: color-mix(in srgb, var(--primary) 8%, transparent);
+      border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent); border-radius: 4px;
       padding: 2px 6px; white-space: nowrap; flex-shrink: 0;
       text-transform: uppercase;
     }
@@ -238,8 +281,8 @@
       padding: 3px 8px; color: var(--ink-3); white-space: nowrap;
     }
     .proc-variants .chip.is-trained {
-      color: var(--primary); border-color: rgba(0,229,160,0.4);
-      background: rgba(0,229,160,0.07); font-weight: 600;
+      color: var(--primary); border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+      background: color-mix(in srgb, var(--primary) 7%, transparent); font-weight: 600;
     }
     .proc-variants .chip.is-trained::after {
       content: "TRAINED"; font-size: 8px; letter-spacing: 0.1em;
@@ -324,9 +367,13 @@
     .ni-foot { font-family: var(--mono); font-size: 9px; color: var(--ink-3); letter-spacing: 0.05em; line-height: 1.6; }
     .ni-foot a { color: var(--primary); text-decoration: none; }
     .ni-foot a:hover { text-decoration: underline; }
-    .sg-edge { stroke: rgba(255,255,255,0.10); stroke-width: 1.2; }
-    .sg-edge.hot { stroke: rgba(0,229,160,0.35); }
-    .sg-center { fill: #0f1512; stroke: var(--primary); stroke-width: 1.6; }
+    /* The graph draws with SVG fill/stroke, so it does not pick up the ink
+       tokens automatically — these three follow the canvas explicitly. The
+       edges were a 10%-alpha white, which is invisible on a white page. */
+    .sg-edge { stroke: var(--sg-edge); stroke-width: 1.2; }
+    .sg-edge.hot { stroke: color-mix(in srgb, var(--primary) 35%, transparent); }
+    .sg-node { fill: var(--sg-disc); }
+    .sg-center { fill: var(--sg-disc); stroke: var(--primary); stroke-width: 1.6; }
     .sg-center-label { fill: var(--ink-1); font-family: var(--sans); font-size: 11px; font-weight: 600; }
     .sg-center-sub { fill: var(--ink-3); font-family: var(--mono); font-size: 7.5px; }
     .sg-node-label { fill: var(--ink-2); font-family: var(--mono); font-size: 8px; }
@@ -340,7 +387,7 @@
       color: var(--ink-3); font-size: 12px;
       transition: border-color 140ms ease, background 140ms ease;
     }
-    .drop:hover, .drop.is-over { border-color: var(--primary-dim); background: rgba(0,229,160,0.04); color: var(--ink-2); }
+    .drop:hover, .drop.is-over { border-color: var(--primary-dim); background: color-mix(in srgb, var(--primary) 4%, transparent); color: var(--ink-2); }
     .drop .big { display: block; font-size: 13px; color: var(--ink-2); font-weight: 500; margin-bottom: 2px; }
     .drop .fmt { font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em; }
     .art-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
@@ -493,13 +540,13 @@
     .pov-meta { font-family: var(--mono); font-size: 9px; color: var(--ink-3); margin-left: auto; flex-shrink: 0; }
     .btn-analyze {
       align-self: flex-start;
-      background: transparent; border: 1px solid rgba(0,229,160,0.35); border-radius: 7px;
+      background: transparent; border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent); border-radius: 7px;
       color: var(--primary); font-family: var(--mono); font-size: 10px;
       letter-spacing: 0.05em; text-transform: uppercase;
       padding: 6px 12px; cursor: pointer;
       transition: background 140ms ease;
     }
-    .btn-analyze:hover { background: rgba(0,229,160,0.08); }
+    .btn-analyze:hover { background: color-mix(in srgb, var(--primary) 8%, transparent); }
     .btn-analyze:disabled { opacity: 0.4; cursor: default; }
     .sugg-summary { font-size: 12px; color: var(--ink-2); border-left: 2px solid var(--primary-dim); padding-left: 9px; }
     .sugg {
@@ -525,7 +572,7 @@
       position: absolute; inset: 0; width: 100%; height: 100%;
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
       background:
-        radial-gradient(circle at 30% 30%, rgba(0,229,160,0.08), transparent 60%),
+        radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--primary) 8%, transparent), transparent 60%),
         radial-gradient(circle at 70% 70%, rgba(0,150,255,0.06), transparent 60%),
         #050807;
       border: none; cursor: pointer; color: var(--ink-2);
@@ -567,6 +614,7 @@
       <button id="vt-station" role="tab" data-i18n="kb.vtStation">Station</button>
     </div>
     <select class="station-picker" id="station-picker" hidden></select>
+    <button class="theme-toggle"></button>
   </header>
 
   <div class="wrap">
@@ -605,7 +653,7 @@
         <span style="color:var(--ok);" data-i18n="kb.legTwin">✓ twin — digital twin available</span>
         <span data-i18n="kb.legCounts">counts: keysteps · material · components</span>
         <span style="color:var(--warn,#f5a524);" data-i18n="kb.legChecks">⚠ checks — MES acquisitions outside limits (Full_stations_report)</span>
-        <span style="color:rgba(245,197,66,0.55);" data-i18n="kb.legUnderlay">underlay — the 2D plant drawing (yellow = aisles &amp; bays) · expand for full detail</span>
+        <span style="color:var(--fac-accent-ink);" data-i18n="kb.legUnderlay">underlay — the 2D plant drawing (yellow = aisles &amp; bays) · expand for full detail</span>
       </div>
     </section>
 
@@ -1084,7 +1132,9 @@
             `<image href="${esc(n.img)}" x="${x - 15}" y="${y - 15}" width="30" height="30" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip${i})"/>` +
             `<circle cx="${x}" cy="${y}" r="15" fill="none" stroke="${n.color}" stroke-width="1.4"/>`;
         } else {
-          node = `<circle cx="${x}" cy="${y}" r="${n.kind === 'step' ? 7 : 9}" fill="#0f1512" stroke="${n.color}" stroke-width="1.4"/>`;
+          // Fill via class, not a fill="" attribute: presentation attributes
+          // cannot take var(), and this disc has to follow the theme.
+          node = `<circle class="sg-node" cx="${x}" cy="${y}" r="${n.kind === 'step' ? 7 : 9}" stroke="${n.color}" stroke-width="1.4"/>`;
         }
         if (i === selectedRing) node += `<circle class="sg-halo" cx="${x}" cy="${y}" r="${n.img ? 20 : 14}"/>`;
         const ly = y + (Math.sin(a) >= 0 ? 24 : -18);
@@ -1716,6 +1766,6 @@
     };
   </script>
   <script src="/lab/assets/i18n.js?v=13" defer></script>
-  <script src="/lab/assets/brain-dock.js?v=13" defer></script>
+  <script src="/lab/assets/brain-dock.js?v=14" defer></script>
 </body>
 </html>

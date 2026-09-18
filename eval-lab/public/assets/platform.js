@@ -7,7 +7,7 @@
  *
  * Load it SYNCHRONOUSLY in <head>, before the page's own inline <script>:
  *
- *   <script src="/lab/assets/platform.js?v=1"></script>
+ *   <script src="/lab/assets/platform.js?v=2"></script>
  *
  * Not deferred on purpose. The inline page scripts call these at parse time
  * (session gates redirect immediately), so they must already exist.
@@ -33,6 +33,61 @@
   /* ── Language ─────────────────────────────────────────────────────────── */
   const LANG_KEY = 'omnia.lang';
   const getLang = () => (localStorage.getItem(LANG_KEY) === 'it' ? 'it' : 'en');
+
+  /* ── Theme ────────────────────────────────────────────────────────────── */
+  /* Dark is the default and carries no class, so it cannot flash: the markup
+   * is already styled for it. Only light needs applying, and because this file
+   * is loaded synchronously in <head> the class lands before the body paints.
+   *
+   * The OS preference is deliberately ignored. This is a plant-floor console
+   * that has always been dark, and someone whose laptop is in light mode has
+   * not asked the platform to change — only the toggle does that.
+   */
+  const THEME_KEY = 'daedalus.theme';
+  const getTheme = () => (localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark');
+
+  const applyTheme = (t) => {
+    document.documentElement.classList.toggle('light', t === 'light');
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = t === 'light' ? '#ffffff' : '#050505';
+  };
+
+  const setTheme = (t) => {
+    const next = t === 'light' ? 'light' : 'dark';
+    localStorage.setItem(THEME_KEY, next);
+    applyTheme(next);
+    window.dispatchEvent(new CustomEvent('daedalus:theme', { detail: { theme: next } }));
+  };
+
+  const toggleTheme = () => setTheme(getTheme() === 'light' ? 'dark' : 'light');
+
+  applyTheme(getTheme());
+
+  /** Fill a <button class="theme-toggle"> with the sun/moon/knob parts and
+   *  wire the click. Pages only have to place the empty button. */
+  const mountThemeToggle = (el) => {
+    if (!el || el.dataset.mounted) return;
+    el.dataset.mounted = '1';
+    el.type = 'button';
+    el.setAttribute('aria-label', 'Light or dark theme');
+    el.innerHTML =
+      '<svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"' +
+      ' stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2' +
+      'M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>' +
+      '<svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"' +
+      ' stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>' +
+      '<span class="knob"></span>';
+    el.addEventListener('click', toggleTheme);
+  };
+
+  /* Pages place the button in their topbar; mount every one once the DOM is up. */
+  const mountAllToggles = () =>
+    document.querySelectorAll('.theme-toggle').forEach(mountThemeToggle);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mountAllToggles);
+  } else {
+    mountAllToggles();
+  }
 
   /* ── Response register ────────────────────────────────────────────────── */
   const TONES = ['enterprise', 'technical', 'coaching'];
@@ -144,6 +199,11 @@
     TONES,
     getSession,
     requireSession,
+    THEME_KEY,
+    getTheme,
+    setTheme,
+    toggleTheme,
+    mountThemeToggle,
     line: {
       KB_INTENT_RE,
       KB_TOPIC_RE,

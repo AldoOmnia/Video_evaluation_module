@@ -20,6 +20,13 @@
     if (new URLSearchParams(location.search).get("embed")) {
       document.documentElement.classList.add("embed-splat");
     }
+    /* Theme, applied pre-paint. platform.js owns this everywhere else, but
+       this page loads it late (after three.js), so the class has to land here
+       or the viewer chrome flashes dark before switching. Same key, same
+       dark-by-default rule — see assets/platform.js. */
+    if (localStorage.getItem("daedalus.theme") === "light") {
+      document.documentElement.classList.add("light");
+    }
   })();
   </script>
   <script>
@@ -88,13 +95,67 @@
       --line-2: #28302d;
       --primary: #00E5A0;
       --primary-dim: #00996B;
-      --primary-glow: rgba(0,229,160,0.45);
+      --primary-glow: color-mix(in srgb, var(--primary) 45%, transparent);
       --blue: #38bdf8;
       --violet: #a78bfa;
       --amber: #f59e0b;
       --err: #ef4444;
       --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
       --mono: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+      --grad: linear-gradient(90deg, #FB923C 1.43%, #EC4899 48.54%, #7C3AED 101.31%);
+      color-scheme: dark;
+    }
+
+    /* Light theme. This page does not load platform.css — it keeps its own
+       green-tinted neutrals for the viewer chrome — so the light ramp is
+       declared here too, with the same tint carried across.
+
+       The viewports themselves stay dark in both themes: a splat, a video POV
+       and a wireframe overlay are all light-on-dark imagery, and every 3D tool
+       (Blender, Figma, the Cosmos UI this panel is modelled on) keeps the
+       canvas dark whatever the app chrome does. Light mode repaints the chrome
+       around them, not the renders. */
+    html.light {
+      --bg: #ffffff;
+      --bg-2: #f5f7f6;
+      --bg-3: #eceff0;
+      --bg-4: #e3e8e7;
+      --ink-1: #000000;
+      --ink-2: #5f6b66;
+      --ink-3: #98a29e;
+      --line: #e3e7e6;
+      --line-2: #cfd6d4;
+      --primary: #00875F;
+      --primary-dim: #00614A;
+      --primary-glow: rgba(0, 135, 95, 0.28);
+      --blue: #0284c7;
+      --violet: #7c3aed;
+      --amber: #b45309;
+      --err: #c81e1e;
+      color-scheme: light;
+    }
+
+    /* Everything inside a .q-body sits on top of a render — video, splat,
+       point cloud, SLAM mono feeds — all of which stay dark. So the quadrant
+       bodies keep the dark ink ramp even in light mode; custom properties
+       inherit, so re-pinning them here is enough for every overlay chip,
+       badge, HUD and the reasoner card without listing them one by one. */
+    html.light .q-body {
+      --ink-1: #f1f4f3;
+      --ink-2: #9aa6a1;
+      --ink-3: #5d6864;
+      --bg-2: #0c0d0d;
+      --bg-3: #121414;
+      --bg-4: #181b1b;
+      --line: #1d2120;
+      --line-2: #28302d;
+      --primary: #00E5A0;
+      --primary-dim: #00996B;
+      --blue: #38bdf8;
+      --violet: #a78bfa;
+      --amber: #f59e0b;
+      --err: #ef4444;
+      color-scheme: dark;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     [hidden] { display: none !important; }
@@ -133,7 +194,7 @@
     .rsz { position: absolute; z-index: 50; background: transparent; transition: background .12s; touch-action: none; }
     .rsz-v { top: 0; bottom: 0; width: 8px; margin-left: -4px; cursor: col-resize; }
     .rsz-h { left: 0; right: 0; height: 8px; margin-top: -4px; cursor: row-resize; }
-    .rsz:hover, .rsz.active { background: rgba(0,229,160,0.35); }
+    .rsz:hover, .rsz.active { background: color-mix(in srgb, var(--primary) 35%, transparent); }
 
     /* Movable quadrants */
     .quad > .panel-head { cursor: grab; user-select: none; }
@@ -142,7 +203,7 @@
     .quad.drop-target { outline: 2px dashed var(--primary); outline-offset: -2px; }
     .quad.drop-target::after {
       content: ''; position: absolute; inset: 0; z-index: 45;
-      background: rgba(0,229,160,0.10); pointer-events: none;
+      background: color-mix(in srgb, var(--primary) 10%, transparent); pointer-events: none;
     }
     .quads.dragging iframe, .quads.dragging video { pointer-events: none; }
     .quads.dragging .rsz { display: none; }
@@ -176,6 +237,36 @@
       background: linear-gradient(180deg, var(--bg-2), var(--bg));
       overflow: hidden;
     }
+    /* Theme toggle — same control as the rest of the platform, restated here
+       because this page does not load platform.css. */
+    .theme-toggle {
+      position: relative; flex: 0 0 auto;
+      width: 46px; height: 24px; border-radius: 12px;
+      border: 1px solid var(--line-2); background: var(--bg-3);
+      cursor: pointer; transition: border-color 0.3s ease, background-color 0.45s ease;
+    }
+    .theme-toggle:hover { border-color: color-mix(in srgb, #EC4899 65%, transparent); }
+    .theme-toggle svg {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 11px; height: 11px; color: var(--ink-2); opacity: 0.6; pointer-events: none;
+    }
+    .theme-toggle .sun { left: 6px; }
+    .theme-toggle .moon { right: 6px; }
+    .theme-toggle .knob {
+      position: absolute; top: 2px; left: 2px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--grad); transform: translateX(20px);
+      transition: transform 0.45s cubic-bezier(0.3, 1.4, 0.4, 1);
+    }
+    html.light .theme-toggle .knob { transform: translateX(0); }
+    html.embed-splat .theme-toggle { display: none; }
+
+    /* Comer's mark is white-on-transparent only, so it vanishes on the light
+       topbar. Pure monochrome artwork, so inverting gives the black mark. */
+    html.light img[alt="Comer Industries"] {
+      filter: invert(1) drop-shadow(0 0 6px rgba(0,0,0,0.08));
+    }
+
     .brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
     .brand .logo {
       height: 22px; width: auto; display: block;
@@ -305,7 +396,7 @@
       cursor: default; white-space: nowrap;
     }
     .t-row:hover { background: var(--bg-3); }
-    .t-row.sel { background: rgba(0,229,160,0.10); color: var(--ink-1); }
+    .t-row.sel { background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--ink-1); }
     .t-row .caret { color: var(--ink-3); width: 9px; display: inline-block; }
     .t-row .ico { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
     .t-row .cnt { margin-left: auto; color: var(--ink-3); font-size: 9.5px; }
@@ -508,13 +599,13 @@
       position: absolute; inset: 0; display: flex; flex-direction: column;
       align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 12px;
       background:
-        radial-gradient(circle at 30% 25%, rgba(0,229,160,0.18), transparent 55%),
+        radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 55%),
         radial-gradient(circle at 75% 70%, rgba(56,189,248,0.16), transparent 55%),
         #07090a;
     }
     .splat-ph .splat-anim {
       position: absolute; inset: 0; opacity: 0.5;
-      background-image: radial-gradient(rgba(0,229,160,0.5) 1px, transparent 1.4px);
+      background-image: radial-gradient(color-mix(in srgb, var(--primary) 50%, transparent) 1px, transparent 1.4px);
       background-size: 14px 14px;
       animation: splatdrift 9s linear infinite;
       mix-blend-mode: screen;
@@ -533,9 +624,9 @@
       position: relative; pointer-events: auto;
       font-family: var(--mono); font-size: 10px; color: var(--primary);
       border: 1px solid var(--primary-dim); border-radius: 4px; padding: 4px 10px;
-      background: rgba(0,229,160,0.08); cursor: pointer;
+      background: color-mix(in srgb, var(--primary) 8%, transparent); cursor: pointer;
     }
-    .splat-ph .wl-cta:hover { background: rgba(0,229,160,0.16); }
+    .splat-ph .wl-cta:hover { background: color-mix(in srgb, var(--primary) 16%, transparent); }
     .splat-ph .wl-cta.ghost { color: var(--ink-2); border-color: var(--line-2); background: rgba(255,255,255,0.03); }
     .splat-ph .wl-cta.ghost:hover { color: var(--ink-1); border-color: var(--ink-3); }
     .splat-ph .wl-cta:disabled { opacity: 0.5; cursor: default; }
@@ -557,7 +648,7 @@
       background: rgba(6,8,9,0.7); border: 1px solid var(--primary-dim);
       border-radius: 4px; padding: 3px 8px; text-decoration: none; backdrop-filter: blur(4px);
     }
-    .wl-open:hover { background: rgba(0,229,160,0.16); }
+    .wl-open:hover { background: color-mix(in srgb, var(--primary) 16%, transparent); }
     .splat-src {
       position: absolute; top: 7px; left: 9px; z-index: 3;
       font-family: var(--mono); font-size: 9px; color: var(--ink-2);
@@ -586,7 +677,7 @@
     .splat-cal .wl-cta { font-size: 9px; padding: 3px 7px; }
     .splat-cal .wl-cta.active {
       color: var(--primary); border-color: var(--primary-dim);
-      background: rgba(0,229,160,0.14);
+      background: color-mix(in srgb, var(--primary) 14%, transparent);
     }
     .splat-cal-hint {
       flex: 1 1 100%; font-family: var(--mono); font-size: 8px;
@@ -617,9 +708,9 @@
     .splat-hotspot:hover { transform: translate(-50%, -50%) scale(1.08); }
     .splat-hotspot .hs-ring {
       width: 28px; height: 28px; border-radius: 50%;
-      border: 2px solid rgba(0,229,160,0.85);
-      background: rgba(0,229,160,0.18);
-      box-shadow: 0 0 14px rgba(0,229,160,0.45), inset 0 0 8px rgba(0,229,160,0.2);
+      border: 2px solid color-mix(in srgb, var(--primary) 85%, transparent);
+      background: color-mix(in srgb, var(--primary) 18%, transparent);
+      box-shadow: 0 0 14px color-mix(in srgb, var(--primary) 45%, transparent), inset 0 0 8px color-mix(in srgb, var(--primary) 20%, transparent);
       animation: hs-pulse 2.2s ease-in-out infinite;
     }
     .splat-hotspot.editing .hs-ring {
@@ -628,8 +719,8 @@
       box-shadow: 0 0 14px rgba(56,189,248,0.55), inset 0 0 8px rgba(56,189,248,0.25);
     }
     .splat-hotspot.core .hs-ring {
-      border-color: rgba(0,229,160,1);
-      background: rgba(0,229,160,0.28);
+      border-color: color-mix(in srgb, var(--primary) 100%, transparent);
+      background: color-mix(in srgb, var(--primary) 28%, transparent);
     }
     .splat-hotspot.pending .hs-ring {
       border-color: rgba(56,189,248,0.6);
@@ -672,7 +763,7 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 10px; text-align: center; padding: 12px 14px 36px;
       background:
-        radial-gradient(circle at 35% 30%, rgba(0,229,160,0.14), transparent 55%),
+        radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--primary) 14%, transparent), transparent 55%),
         radial-gradient(circle at 70% 75%, rgba(56,189,248,0.12), transparent 55%),
         #07090a;
     }
@@ -695,7 +786,7 @@
     .ai-toggle:hover { color: var(--primary); border-color: var(--primary-dim); }
     .ai-toggle.is-on {
       color: var(--primary); border-color: var(--primary-dim);
-      background: rgba(0,229,160,0.10);
+      background: color-mix(in srgb, var(--primary) 10%, transparent);
     }
     /* The card is pointer-transparent so it never eats a drag on the video;
        the rail below it has to take clicks, so it opts back in. */
@@ -741,7 +832,7 @@
        these clips are run to prove the check works, not only to trip it. */
     .ai-card-ok {
       margin-top: 4px; padding: 3px 7px; border-radius: 4px;
-      border: 1px solid var(--primary-dim); background: rgba(0,229,160,0.09);
+      border: 1px solid var(--primary-dim); background: color-mix(in srgb, var(--primary) 9%, transparent);
       color: var(--primary); font-size: 9.5px;
     }
     html.embed-splat .ai-card { display: none !important; }
@@ -771,7 +862,7 @@
     .clip-chip:hover { color: var(--primary); border-color: var(--primary-dim); }
     .clip-chip.is-active {
       color: var(--primary); border-color: var(--primary-dim);
-      background: rgba(0,229,160,0.12);
+      background: color-mix(in srgb, var(--primary) 12%, transparent);
     }
     .clip-chip .nm { overflow: hidden; text-overflow: ellipsis; }
     /* Verdict glyph: ✓ correct · ! caught a flip · ? couldn't tell */
@@ -854,7 +945,7 @@
     .cam-cross::after { top: 50%; left: 0; height: 1px; width: 100%; transform: translateY(-50%); }
     .det-box {
       position: absolute; border: 1.5px solid var(--primary); border-radius: 3px;
-      box-shadow: 0 0 8px rgba(0,229,160,0.4);
+      box-shadow: 0 0 8px color-mix(in srgb, var(--primary) 40%, transparent);
     }
     .det-box .lab {
       position: absolute; top: -15px; left: -1px; font-family: var(--mono); font-size: 9px;
@@ -904,7 +995,7 @@
       display: flex; align-items: center; justify-content: center;
     }
     .tbtn:hover { border-color: var(--primary-dim); color: var(--primary); }
-    .tbtn.primary { background: rgba(0,229,160,0.12); border-color: var(--primary-dim); color: var(--primary); }
+    .tbtn.primary { background: color-mix(in srgb, var(--primary) 12%, transparent); border-color: var(--primary-dim); color: var(--primary); }
     .time-read { font-family: var(--mono); font-size: 13px; color: var(--ink-1); }
     .time-read .dur { color: var(--ink-3); }
     .speed-row { display: flex; align-items: center; gap: 4px; }
@@ -979,6 +1070,7 @@
         <span class="live-dot"></span>
         <span><b id="modeRead">REPLAY</b></span>
       </div>
+      <button class="theme-toggle"></button>
     </header>
 
     <!-- Main: streams tree + 2×2 quadrants -->
@@ -7738,7 +7830,7 @@
          async by default and `defer` is ignored on them, so the previous
          ordering here was not actually guaranteed — it only happened to work
          because nothing was read at parse time. */
-      for (const src of ['platform.js?v=1', 'i18n.js?v=13', 'brain-dock.js?v=13']) {
+      for (const src of ['platform.js?v=2', 'i18n.js?v=13', 'brain-dock.js?v=14']) {
         const el = document.createElement('script');
         el.src = '/lab/assets/' + src;
         el.async = false;
