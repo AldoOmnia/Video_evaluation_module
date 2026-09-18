@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reshim analysis · Comer Industries</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/lab/assets/platform.css?v=1" />
+  <script src="/lab/assets/platform.js?v=1"></script>
+  <style>
+    .bg { position: fixed; inset: 0; z-index: -1;
+      background:
+        radial-gradient(1100px 500px at 80% -10%, rgba(0,229,160,0.05), transparent 60%),
+        radial-gradient(900px 500px at 0% 110%, rgba(0,229,160,0.04), transparent 55%);
+    }
+    .topbar {
+      display: flex; align-items: center; gap: 14px;
+      padding: 13px 22px; border-bottom: 1px solid var(--line);
+      background: rgba(5,5,5,0.85); backdrop-filter: blur(10px);
+      position: sticky; top: 0; z-index: 20;
+    }
+    .back-home {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--ink-2); text-decoration: none;
+      border: 1px solid var(--line-2); border-radius: 6px; padding: 6px 10px;
+    }
+    .back-home:hover { color: var(--primary); border-color: var(--primary-dim); }
+    .topbar-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+    .topbar-title strong { color: var(--ink-1); font-weight: 500; }
+    .actions { margin-left: auto; display: flex; gap: 8px; }
+    .actions button, .actions a {
+      background: transparent; border: 1px solid var(--line-2); border-radius: 6px;
+      color: var(--ink-2); font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 6px 12px; cursor: pointer; text-decoration: none; display: inline-block;
+    }
+    .actions button:hover, .actions a:hover { color: var(--primary); border-color: var(--primary-dim); }
+    .actions .primary { color: var(--primary); border-color: var(--primary-dim); }
+
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 26px 22px 70px; }
+    .head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+    .head h1 { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
+    .head .chip {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 3px 9px; border-radius: 12px; border: 1px solid var(--line-2); color: var(--ink-3);
+    }
+    .head .chip.ok { color: var(--ok); border-color: rgba(74,222,128,0.35); }
+    .head .chip.warn { color: var(--warn); border-color: rgba(245,158,11,0.35); }
+    .head .chip.err { color: var(--err); border-color: rgba(239,68,68,0.35); }
+    .sub { color: var(--ink-2); font-size: 12.5px; max-width: 720px; margin-bottom: 22px; }
+
+    .kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
+    @media (max-width: 720px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+    .kpi {
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      border-radius: 8px; padding: 12px 14px;
+    }
+    .kpi .k { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+    .kpi .v { font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--ink-1); margin-top: 4px; }
+    .kpi .v.ok { color: var(--ok); }
+    .kpi .v.warn { color: var(--warn); }
+    .kpi .v.err { color: var(--err); }
+    .kpi .u { font-family: var(--mono); font-size: 10px; color: var(--ink-3); margin-left: 4px; }
+
+    .panel {
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      border-radius: 8px; padding: 14px 16px; margin-bottom: 16px;
+    }
+    .panel h2 { font-size: 12px; font-family: var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px; }
+
+    .spark {
+      width: 100%; height: 60px; display: block;
+    }
+    .spark .line { stroke: var(--primary); stroke-width: 1.5; fill: none; }
+    .spark .fill { fill: var(--primary); opacity: 0.08; }
+    .spark .axis { stroke: var(--line); stroke-width: 0.5; }
+    .spark-labels { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 9px; color: var(--ink-3); margin-top: 4px; }
+
+    .alerts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 720px) { .alerts { grid-template-columns: 1fr; } }
+    .alert-card { background: transparent; border: 1px dashed var(--line-2); border-radius: 6px; padding: 10px 12px; }
+    .alert-card h3 { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 6px; }
+    .alert-card ul { list-style: none; padding: 0; margin: 0; font-size: 12px; color: var(--ink-1); }
+    .alert-card li { padding: 3px 0; }
+    .alert-card .badge { font-family: var(--mono); font-size: 10px; padding: 1px 6px; border-radius: 4px; margin-right: 6px; }
+    .alert-card .badge.warn { background: rgba(245,158,11,0.15); color: var(--warn); }
+    .alert-card .badge.err  { background: rgba(239,68,68,0.15);  color: var(--err); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+    th { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+    td { color: var(--ink-1); }
+    td.num { font-family: var(--mono); text-align: right; }
+    td a { color: var(--primary); text-decoration: none; }
+    td a:hover { text-decoration: underline; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .muted { color: var(--ink-3); }
+    .empty { color: var(--ink-3); font-style: italic; padding: 14px 0; text-align: center; }
+
+    #run-btn.running { opacity: 0.5; cursor: wait; }
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; z-index: 100;
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      border-radius: 6px; padding: 10px 14px; font-size: 12px; color: var(--ink-1);
+      max-width: 400px;
+    }
+    .toast.err { border-color: rgba(239,68,68,0.5); }
+    .toast.ok  { border-color: rgba(74,222,128,0.5); }
+  </style>
+</head>
+<body>
+  <div class="bg"></div>
+
+  <div class="topbar">
+    <a class="back-home" href="/">← Home</a>
+    <span class="topbar-title">Omnia · Comer · <strong>Reshim analysis</strong></span>
+    <div class="actions">
+      <button id="refresh-btn">Refresh</button>
+      <button id="run-btn" class="primary">▶ Run now</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="head">
+      <h1>Reshim analysis</h1>
+      <span class="chip" id="status-chip">loading…</span>
+      <span class="chip" id="date-chip"></span>
+    </div>
+    <div class="sub">
+      Daily automated analysis of Comer Fargo reshim events —
+      <span class="muted">station 130/135 (SHIMMING 1/2), Family-specific backlash spec,
+      operator photos linked via OCR of the SN label.</span>
+    </div>
+
+    <div class="kpis" id="kpis">
+      <div class="kpi"><div class="k">Units</div><div class="v" id="k-units">—</div></div>
+      <div class="kpi"><div class="k">OK</div><div class="v ok" id="k-ok">—<span class="u">%</span></div></div>
+      <div class="kpi"><div class="k">BAD</div><div class="v warn" id="k-bad">—<span class="u">%</span></div></div>
+      <div class="kpi"><div class="k">BAD_HEAVY</div><div class="v err" id="k-bad-heavy">—<span class="u">%</span></div></div>
+      <div class="kpi"><div class="k">Photo coverage</div><div class="v" id="k-cov">—<span class="u">%</span></div></div>
+    </div>
+
+    <div class="panel">
+      <h2>OK% — last 30 days</h2>
+      <svg class="spark" id="sparkline" viewBox="0 0 800 60" preserveAspectRatio="none"></svg>
+      <div class="spark-labels">
+        <span id="spark-start">—</span>
+        <span id="spark-end">—</span>
+      </div>
+    </div>
+
+    <div class="alerts">
+      <div class="alert-card">
+        <h3>High-BAD variants</h3>
+        <ul id="alert-variants"><li class="muted">Loading…</li></ul>
+      </div>
+      <div class="alert-card">
+        <h3>Missing photos</h3>
+        <ul id="alert-missing"><li class="muted">Loading…</li></ul>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Recent runs</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th class="num">Units</th>
+            <th class="num">OK%</th>
+            <th class="num">BAD</th>
+            <th class="num">BAD_HEAVY</th>
+            <th>Emailed</th>
+            <th>Report</th>
+          </tr>
+        </thead>
+        <tbody id="runs-tbody">
+          <tr><td colspan="7" class="empty">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const pct = (n) => (n == null || Number.isNaN(n)) ? '—' : Math.round(n) + '%';
+
+    function toast(msg, kind='') {
+      const t = document.createElement('div');
+      t.className = 'toast ' + kind;
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 5000);
+    }
+
+    async function loadDashboard() {
+      const [latestR, runsR, tsR] = await Promise.all([
+        fetch('/api/reshim/latest').then(r => r.json()),
+        fetch('/api/reshim/runs?limit=30').then(r => r.json()),
+        fetch('/api/reshim/timeseries?days=30').then(r => r.json()),
+      ]);
+
+      // Header + KPIs
+      const latest = latestR.run;
+      if (!latest || !latest.summary) {
+        $('status-chip').textContent = 'no runs yet';
+        $('status-chip').className = 'chip warn';
+        $('date-chip').textContent = '';
+      } else {
+        const s = latest.summary;
+        const incl = s.ok + s.bad + s.bad_heavy;
+        const okPct = incl > 0 ? (100 * s.ok / incl) : null;
+        const badPct = incl > 0 ? (100 * s.bad / incl) : null;
+        const bhPct = incl > 0 ? (100 * s.bad_heavy / incl) : null;
+        // Coverage: SNs with photos / total analyzed
+        // (approx from the workbook — better to expose from Python but we can compute from summary counts)
+        $('k-units').textContent = incl;
+        $('k-ok').firstChild.data = okPct == null ? '—' : okPct.toFixed(1);
+        $('k-bad').firstChild.data = badPct == null ? '—' : badPct.toFixed(1);
+        $('k-bad-heavy').firstChild.data = bhPct == null ? '—' : bhPct.toFixed(1);
+        $('k-cov').firstChild.data = '—'; // filled server-side later if we surface it
+
+        $('status-chip').textContent = latest.emailStatus === 'sent' ? '✓ emailed' :
+                                       latest.emailStatus === 'failed' ? '✗ email failed' :
+                                       latest.emailStatus === 'skipped' ? '⊘ email skipped' : 'no email';
+        $('status-chip').className = 'chip ' + (
+          latest.emailStatus === 'sent' ? 'ok' :
+          latest.emailStatus === 'failed' ? 'err' : 'warn'
+        );
+        $('date-chip').textContent = latest.date;
+
+        // High-BAD variants
+        const variantsUl = $('alert-variants');
+        variantsUl.innerHTML = '';
+        (s.high_bad_variants || []).slice(0, 5).forEach(v => {
+          const li = document.createElement('li');
+          const badge = v.bad_pct >= 50 ? 'err' : 'warn';
+          li.innerHTML = `<span class="badge ${badge}">${v.bad_pct.toFixed(0)}%</span>${v.variant} <span class="muted">(n=${v.n})</span>`;
+          variantsUl.appendChild(li);
+        });
+        if (variantsUl.children.length === 0) variantsUl.innerHTML = '<li class="muted">None ≥30% BAD — all families healthy today.</li>';
+      }
+
+      // Sparkline
+      const points = tsR.points || [];
+      renderSparkline(points);
+
+      // Runs table
+      const tbody = $('runs-tbody');
+      tbody.innerHTML = '';
+      (runsR.runs || []).forEach(r => {
+        const tr = document.createElement('tr');
+        const s = r.summary;
+        const incl = s ? (s.ok + s.bad + s.bad_heavy) : 0;
+        const okPct = incl ? (100 * s.ok / incl) : null;
+        const emailChip = r.emailStatus === 'sent' ? `✓ ${r.emailRecipients.length}` :
+                         r.emailStatus === 'failed' ? '✗ failed' :
+                         r.emailStatus === 'skipped' ? '—' : '';
+        tr.innerHTML = `
+          <td>${r.date}</td>
+          <td class="num">${incl}</td>
+          <td class="num">${okPct == null ? '—' : okPct.toFixed(1) + '%'}</td>
+          <td class="num">${s ? s.bad : 0}</td>
+          <td class="num">${s ? s.bad_heavy : 0}</td>
+          <td>${emailChip}</td>
+          <td>${r.hasReport ? `<a href="/api/reshim/runs/${r.date}/report">⬇ xlsx</a>` : '<span class="muted">—</span>'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+      if (tbody.children.length === 0) tbody.innerHTML = '<tr><td colspan="7" class="empty">No runs yet.</td></tr>';
+
+      // "Missing photos" alert — for now, count from summary (better if surfaced explicitly by pipeline)
+      $('alert-missing').innerHTML = '<li class="muted">See per-run xlsx for exact SNs missing photos.</li>';
+    }
+
+    function renderSparkline(points) {
+      const svg = $('sparkline');
+      svg.innerHTML = '';
+      const W = 800, H = 60, pad = 4;
+      if (points.length === 0) return;
+      const values = points.map(p => p.ok_pct).filter(v => v != null);
+      if (values.length === 0) return;
+      const minV = 0;   // fix scale 0-100 so day-to-day changes are honest
+      const maxV = 100;
+      const stepX = (W - 2*pad) / Math.max(1, points.length - 1);
+
+      const coords = points.map((p, i) => {
+        const x = pad + i * stepX;
+        const y = p.ok_pct == null ? null : (H - pad - ((p.ok_pct - minV)/(maxV - minV)) * (H - 2*pad));
+        return { x, y, d: p.date, v: p.ok_pct };
+      });
+
+      // Axis at 90%
+      const y90 = H - pad - (90/100) * (H - 2*pad);
+      const axis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      axis.setAttribute('class','axis');
+      axis.setAttribute('x1', pad); axis.setAttribute('x2', W - pad);
+      axis.setAttribute('y1', y90); axis.setAttribute('y2', y90);
+      axis.setAttribute('stroke-dasharray','2,3');
+      svg.appendChild(axis);
+
+      // Line
+      let path = '';
+      coords.forEach((c, i) => {
+        if (c.y == null) return;
+        path += (path ? ' L' : 'M') + c.x.toFixed(1) + ',' + c.y.toFixed(1);
+      });
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      line.setAttribute('class', 'line');
+      line.setAttribute('d', path);
+      svg.appendChild(line);
+
+      $('spark-start').textContent = coords[0].d;
+      $('spark-end').textContent = coords[coords.length - 1].d;
+    }
+
+    $('refresh-btn').addEventListener('click', () => loadDashboard());
+
+    $('run-btn').addEventListener('click', async () => {
+      const btn = $('run-btn');
+      if (btn.classList.contains('running')) return;
+      btn.classList.add('running');
+      btn.textContent = '⏳ Running…';
+      try {
+        const r = await fetch('/api/reshim/trigger', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
+        const j = await r.json();
+        if (j.ok) {
+          toast('Run complete — refreshing…', 'ok');
+          await loadDashboard();
+        } else {
+          const err = j.result?.stderr?.slice(-200) || j.error || 'unknown error';
+          toast('Run failed: ' + err, 'err');
+        }
+      } catch (e) {
+        toast('Trigger error: ' + e.message, 'err');
+      } finally {
+        btn.classList.remove('running');
+        btn.textContent = '▶ Run now';
+      }
+    });
+
+    loadDashboard();
+  </script>
+</body>
+</html>

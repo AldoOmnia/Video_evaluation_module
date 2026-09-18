@@ -17,6 +17,7 @@ import { lineRouter } from "./routes/line.js";
 import { worldLabsRouter } from "./routes/worldlabs.js";
 import { usageRouter } from "./routes/usage.js";
 import { mesRouter } from "./routes/mes.js";
+import { reshimRouter } from "./routes/reshim.js";
 import { worldLabsConfigured } from "./services/worldlabs.js";
 import { geminiConfigured, VISION_MODEL } from "./services/gemini.js";
 import { loadLedger } from "./services/usage.js";
@@ -29,6 +30,7 @@ import {
   HOME_HTML,
   KNOWLEDGE_HTML,
   REPORTS_HTML,
+  RESHIM_HTML,
   SETTINGS_HTML,
   SYNTHETIC_POV_HTML,
   SHARED_DIR,
@@ -93,6 +95,7 @@ app.use("/api/pov", povRouter);
 app.use("/api/worldlabs", worldLabsRouter);
 app.use("/api/usage", usageRouter);
 app.use("/api/mes", mesRouter);
+app.use("/api/reshim", reshimRouter);
 app.use("/query", queryRouter); // Rokid APK compatibility
 
 // Dev-only: browser posts calibrated splat capture from localStorage (localhost).
@@ -403,6 +406,12 @@ app.get(["/knowledge", "/knowledge/"], (_req, res) => {
 app.get(["/reports", "/reports/"], (_req, res) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
   res.sendFile(REPORTS_HTML);
+});
+
+// Reshim daily-analysis dashboard.
+app.get(["/reshim", "/reshim/"], (_req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.sendFile(RESHIM_HTML);
 });
 
 // Admin settings — profile, AI preferences, error ontology, MCP/VPN docs.
