@@ -166,6 +166,34 @@ Before showing this to the actual client, do at least these two things:
 
 ---
 
+## 6b. Reshim analysis: why runs happen elsewhere
+
+The reshim agent is Python, talks to the plant's SQL Server over ODBC, and
+reads operator photos from SharePoint. The Render service is a Node runtime
+with none of that and no network route to Fargo, so **"Run now" is disabled
+there on purpose** — `GET /api/reshim/capabilities` probes the interpreter and
+the dashboard explains itself rather than surfacing an `ImportError`.
+
+Runs happen in the `reshim-daily` GitHub workflow (or, once the DGX runner is
+registered, on a machine inside the plant). Because the dashboard reads runs
+off its own disk, the workflow hands its output over at the end:
+
+| Where | Name | Value |
+|---|---|---|
+| GitHub repo secrets | `RESHIM_INGEST_URL` | `https://comer.daedalusiq.com` |
+| GitHub repo secrets | `RESHIM_INGEST_TOKEN` | any long random string |
+| Render env var | `RESHIM_INGEST_TOKEN` | the same string |
+
+Generate one with `openssl rand -hex 32`. Until both sides are set the publish
+step is skipped and `POST /api/reshim/runs` returns 503 — the endpoint writes
+to disk, so it stays closed rather than open when unconfigured.
+
+Ingested runs live on the mounted disk at `RESHIM_RUN_ROOT`
+(`/var/reshim/runs`), not in the checkout, so a deploy does not wipe the
+history. Locally you can leave both unset; the page simply says no runs yet.
+
+---
+
 ## 7. Adding the next client (`acme.daedalusiq.com`, etc.)
 
 The platform is intentionally branched per-client. For a new client:

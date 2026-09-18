@@ -9,12 +9,15 @@
  * the on-demand button take exactly the same path.
  */
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { REPO_ROOT, SHARED_DIR } from "../paths.js";
 
-const RUN_ROOT = join(SHARED_DIR, "data", "reshim-runs");
+/* Overridable because the cloud deploy keeps runs on a mounted disk rather than
+ * inside the checkout, which is wiped on every deploy. Defaults to the in-repo
+ * path so local and on-prem installs need no configuration. */
+const RUN_ROOT = process.env.RESHIM_RUN_ROOT?.trim() || join(SHARED_DIR, "data", "reshim-runs");
 const PLANT_TZ = process.env.MES_PLANT_TZ?.trim() || "America/Chicago";
 
 /** Calendar day in the plant zone (not UTC). Matches tools.reshim plant_today(). */
@@ -112,6 +115,72 @@ export function runReportPath(dateStr: string): string | null {
   return join(RUN_ROOT, dateStr, item.reportName);
 }
 
+/* ── Can this host run the agent at all? ──────────────────────────────── */
+
+/**
+ * The agent is Python and talks to the plant's SQL Server over ODBC, so it only
+ * runs where that toolchain and that network exist — a plant machine, or the
+ * CI runner the daily workflow uses. The cloud deploy is a Node service with
+ * neither, so triggering there used to surface a raw ImportError traceback in
+ * the UI. Probing lets the dashboard say so up front instead.
+ *
+ * `tools/reshim/__init__.py` is empty, so importing the package proves nothing;
+ * `tools.reshim.cli` is what pulls typer, pyodbc and the rest, and it is the
+ * same chain `python -m tools.reshim` walks.
+ */
+export interface Toolchain {
+  canTrigger: boolean;
+  reason: string | null;   // human-readable, shown in the UI when it cannot
+  python: string;
+}
+
+let toolchain: Promise<Toolchain> | null = null;
+
+/** First line of a Python traceback that names the actual cause, so the UI gets
+ *  "No module named 'typer'" rather than six frames of file paths. */
+function explainImportFailure(stderr: string): string {
+  const lines = stderr.trim().split("\n").map((l) => l.trim()).filter(Boolean);
+  const named = lines.reverse().find((l) => /^[A-Za-z_.]*(Error|Exception)\b/.test(l));
+  return named ?? lines[0] ?? "python could not import the reshim agent";
+}
+
+export function probeToolchain(): Promise<Toolchain> {
+  // Cached for the process lifetime: an interpreter does not gain modules while
+  // the server is up, and the dashboard asks on every page load.
+  if (toolchain) return toolchain;
+  const python = process.env.RESHIM_PYTHON ?? "python3";
+  toolchain = new Promise<Toolchain>((resolve) => {
+    const child = spawn(python, ["-c", "import tools.reshim.cli"], {
+      cwd: REPO_ROOT,
+      env: { ...process.env },
+    });
+    let stderr = "";
+    let settled = false;
+    const finish = (t: Toolchain) => {
+      if (settled) return;
+      settled = true;
+      resolve(t);
+    };
+    child.stderr?.on("data", (c: Buffer) => (stderr += c.toString()));
+    child.on("error", () =>
+      finish({ canTrigger: false, reason: `${python} is not available on this host`, python }),
+    );
+    child.on("close", (code) =>
+      finish(
+        code === 0
+          ? { canTrigger: true, reason: null, python }
+          : { canTrigger: false, reason: explainImportFailure(stderr), python },
+      ),
+    );
+    // Importing pyodbc can block on a broken driver install; do not hang the request.
+    setTimeout(() => {
+      child.kill("SIGKILL");
+      finish({ canTrigger: false, reason: "python import timed out after 10s", python });
+    }, 10_000).unref();
+  });
+  return toolchain;
+}
+
 /* ── Spawn a fresh run ────────────────────────────────────────────────── */
 
 export interface TriggerRequest {
@@ -174,6 +243,51 @@ export async function triggerRun(req: TriggerRequest): Promise<TriggerResult> {
       });
     });
   });
+}
+
+/* ── Accept a run produced elsewhere ──────────────────────────────────── */
+
+/**
+ * The daily workflow runs the agent where the plant network and the Python
+ * toolchain are, which is never the same host as the cloud dashboard. Without
+ * this the deployed page can only ever say "no runs yet", because it reads the
+ * run directory off local disk. Ingest lets the runner hand its output over.
+ *
+ * Writes the same three artifacts `loadRun` reads, so an ingested run is
+ * indistinguishable from a locally produced one.
+ */
+export interface IngestRun {
+  dateStr: string;
+  summary: ReshimSummary;
+  email?: { status: number; recipients: string[]; subject: string } | null;
+  report?: { name: string; base64: string } | null;
+}
+
+export function saveIngestedRun(run: IngestRun): { wrote: string[] } {
+  const dir = join(RUN_ROOT, run.dateStr);
+  mkdirSync(dir, { recursive: true });
+  const wrote: string[] = [];
+
+  writeFileSync(join(dir, "summary.json"), JSON.stringify(run.summary, null, 2));
+  wrote.push("summary.json");
+
+  if (run.email) {
+    writeFileSync(join(dir, "email.json"), JSON.stringify(run.email, null, 2));
+    wrote.push("email.json");
+  }
+
+  if (run.report) {
+    // The name lands in a filesystem path and later in a Content-Disposition
+    // header, so keep it to a bare .xlsx filename — no separators, no traversal.
+    const name = run.report.name;
+    if (!/^[A-Za-z0-9._-]+\.xlsx$/.test(name) || name.startsWith(".")) {
+      throw new Error("report.name must be a plain .xlsx filename");
+    }
+    writeFileSync(join(dir, name), Buffer.from(run.report.base64, "base64"));
+    wrote.push(name);
+  }
+
+  return { wrote };
 }
 
 /* ── Timeseries for dashboard sparkline ───────────────────────────────── */

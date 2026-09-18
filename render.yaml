@@ -28,6 +28,15 @@ services:
 
     healthCheckPath: /health
 
+    # Reshim runs arrive by POST from the daily workflow (the agent needs the
+    # plant network and a Python/ODBC toolchain this service does not have).
+    # They must outlive a deploy, and the checkout does not, so keep them on a
+    # disk mounted outside it — hence RESHIM_RUN_ROOT below.
+    disk:
+      name: reshim-runs
+      mountPath: /var/reshim
+      sizeGB: 1
+
     envVars:
       - key: NODE_ENV
         value: production
@@ -45,9 +54,17 @@ services:
       # Model is safe to commit; the key is a prompted secret.
       - key: WORLDLABS_MODEL
         value: marble-1.1
+      # Where ingested reshim runs live — on the mounted disk, not in the
+      # checkout, so a deploy does not wipe the history.
+      - key: RESHIM_RUN_ROOT
+        value: /var/reshim/runs
       # Secrets — Render will prompt for these at blueprint-create time
       # and store them outside this file.
       - key: ANTHROPIC_API_KEY
+        sync: false
+      # Shared with the reshim-daily workflow's RESHIM_INGEST_TOKEN secret.
+      # Unset means the ingest endpoint stays closed.
+      - key: RESHIM_INGEST_TOKEN
         sync: false
       - key: AUTH_TOKEN_SECRET
         sync: false

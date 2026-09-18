@@ -99,8 +99,14 @@ for (const theme of ["dark", "light"]) {
       for (const el of document.querySelectorAll("svg text, svg circle, svg line, svg path")) {
         const cs = getComputedStyle(el);
         if (cs.visibility === "hidden" || Number(cs.opacity) < 0.15) continue;
+        // Hairline rules and grid lines are meant to sit near the background;
+        // flagging them buries the real white-on-white cases in noise.
+        if (el.hasAttribute("data-decorative")) continue;
         const b = lum(svgBg(el));
         for (const prop of ["fill", "stroke"]) {
+          // A <line> has no interior, so its fill never paints — reading it
+          // reports the inherited black and invents a failure.
+          if (prop === "fill" && el.tagName === "line") continue;
           const v = cs[prop];
           if (!v || v === "none") continue;
           const f = lum(v);

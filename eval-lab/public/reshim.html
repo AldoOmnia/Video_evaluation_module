@@ -45,6 +45,11 @@
       padding: 6px 10px; border: 1px dashed var(--line-2); border-radius: 6px;
     }
     .actions label input { accent-color: var(--primary); }
+    /* Hosts without the Python agent cannot run anything; grey the controls out
+       rather than letting a click fail. */
+    .actions button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .actions button:disabled:hover { color: var(--ink-2); border-color: var(--line-2); }
+    .actions label.is-off { opacity: 0.4; pointer-events: none; }
 
     .wrap { max-width: 1080px; margin: 0 auto; padding: 26px 22px 70px; }
     .head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
@@ -104,6 +109,15 @@
     td a:hover { text-decoration: underline; }
     tr:hover td { background: color-mix(in srgb, var(--ink-1) 3%, transparent); }
 
+    .notice {
+      display: flex; gap: 9px; align-items: flex-start;
+      border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+      background: color-mix(in srgb, var(--warn) 8%, transparent);
+      border-radius: 8px; padding: 10px 13px; margin-bottom: 20px;
+      font-size: 12.5px; color: var(--ink-2); max-width: 760px;
+    }
+    .notice::before { content: '◐'; color: var(--warn); flex: none; }
+
     .muted { color: var(--ink-3); }
     .empty { color: var(--ink-3); font-style: italic; padding: 14px 0; text-align: center; }
 
@@ -146,6 +160,8 @@
       <span class="muted">station 130/135 (SHIMMING 1/2), Family-specific backlash spec,
       operator photos linked via OCR of the SN label.</span>
     </div>
+
+    <div class="notice" id="trigger-note" hidden></div>
 
     <div class="kpis" id="kpis">
       <div class="kpi"><div class="k">Units</div><div class="v" id="k-units">—</div></div>
@@ -310,6 +326,9 @@
       const y90 = H - pad - (90/100) * (H - 2*pad);
       const axis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
       axis.setAttribute('class','axis');
+      // A dashed reference rule, deliberately at hairline contrast like the
+      // page's other dividers — exempt from the contrast audit.
+      axis.setAttribute('data-decorative','');
       axis.setAttribute('x1', pad); axis.setAttribute('x2', W - pad);
       axis.setAttribute('y1', y90); axis.setAttribute('y2', y90);
       axis.setAttribute('stroke-dasharray','2,3');
@@ -350,8 +369,11 @@
           toast('Run complete — refreshing…', 'ok');
           await loadDashboard();
         } else {
-          const err = j.result?.stderr?.slice(-200) || j.error || 'unknown error';
-          toast('Run failed: ' + err, 'err');
+          // Prefer the server's own sentence; fall back to the line of the
+          // traceback that names the cause rather than its last 200 characters.
+          const trace = j.result?.stderr?.trim().split('\n').map(l => l.trim()).filter(Boolean) || [];
+          const cause = trace.reverse().find(l => /^[A-Za-z_.]*(Error|Exception)\b/.test(l));
+          toast('Run failed: ' + (j.error || cause || 'unknown error'), 'err');
         }
       } catch (e) {
         toast('Trigger error: ' + e.message, 'err');
@@ -361,7 +383,31 @@
       }
     });
 
+    /* The agent is Python and needs the plant network, so it only runs on a plant
+       machine or the CI runner. Ask the server before offering the button. */
+    async function applyCapabilities() {
+      let caps;
+      try {
+        caps = await fetch('/api/reshim/capabilities').then(r => r.json());
+      } catch { return; }
+      if (caps.canTrigger) return;
+
+      $('run-btn').disabled = true;
+      $('run-btn').title = caps.reason || 'This host cannot run the agent';
+      $('email-toggle').classList.add('is-off');
+      $('also-email-cb').disabled = true;
+
+      const note = $('trigger-note');
+      note.innerHTML =
+        'Runs cannot be started from here — this host has no Python agent ' +
+        'and no route to the plant network. The daily workflow runs the analysis ' +
+        'and publishes results to this dashboard. ' +
+        '<span class="muted">(' + (caps.reason || 'toolchain unavailable') + ')</span>';
+      note.hidden = false;
+    }
+
     loadDashboard();
+    applyCapabilities();
   </script>
 </body>
 </html>

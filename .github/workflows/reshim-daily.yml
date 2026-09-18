@@ -105,3 +105,58 @@ jobs:
           name: reshim-run-${{ github.run_id }}
           path: shared/data/reshim-runs/
           retention-days: 30
+
+      # The dashboard reads runs off its own disk, and this runner is never the
+      # host serving it, so hand the output over. Without this the deployed page
+      # can only ever say "no runs yet". Skipped when the secrets are absent, so
+      # a fork or a local act run does not fail here.
+      - name: Publish run to the platform
+        if: always()
+        env:
+          INGEST_URL: ${{ secrets.RESHIM_INGEST_URL }}
+          INGEST_TOKEN: ${{ secrets.RESHIM_INGEST_TOKEN }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_TOKEN" ]; then
+            echo "RESHIM_INGEST_URL/TOKEN not set — skipping publish."
+            exit 0
+          fi
+          python - <<'PY'
+          import base64, json, os, pathlib, urllib.request
+
+          root = pathlib.Path("shared/data/reshim-runs")
+          days = sorted(d for d in root.glob("*") if d.is_dir()) if root.exists() else []
+          if not days:
+              print("no run directory produced — nothing to publish")
+              raise SystemExit(0)
+
+          day = days[-1]
+          summary = day / "summary.json"
+          if not summary.exists():
+              print(f"{day.name}: no summary.json (run likely failed) — nothing to publish")
+              raise SystemExit(0)
+
+          payload = {"date": day.name, "summary": json.loads(summary.read_text())}
+
+          email = day / "email.json"
+          if email.exists():
+              payload["email"] = json.loads(email.read_text())
+
+          xlsx = next(iter(sorted(day.glob("*.xlsx"))), None)
+          if xlsx is not None:
+              payload["report"] = {
+                  "name": xlsx.name,
+                  "base64": base64.b64encode(xlsx.read_bytes()).decode(),
+              }
+
+          req = urllib.request.Request(
+              os.environ["INGEST_URL"].rstrip("/") + "/api/reshim/runs",
+              data=json.dumps(payload).encode(),
+              method="POST",
+              headers={
+                  "Content-Type": "application/json",
+                  "Authorization": "Bearer " + os.environ["INGEST_TOKEN"],
+              },
+          )
+          with urllib.request.urlopen(req, timeout=60) as r:
+              print(day.name, "published:", r.status, r.read().decode()[:200])
+          PY
