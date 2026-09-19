@@ -139,6 +139,78 @@
     td a:hover { text-decoration: underline; }
     tr:hover td { background: color-mix(in srgb, var(--ink-1) 3%, transparent); }
 
+    /* Every figure above the table belongs to one run, so the table is the
+       control that picks it: rows are selectable and the selected one is marked
+       on the left edge, the same device the notice uses for severity. */
+    tbody tr.pick { cursor: pointer; }
+    tbody tr.pick:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+    tbody tr[aria-selected="true"] td { background: color-mix(in srgb, var(--primary) 9%, transparent); }
+    tbody tr[aria-selected="true"] td:first-child { box-shadow: inset 3px 0 0 var(--primary); }
+    tbody tr[aria-selected="true"] td:first-child { font-weight: 600; }
+
+    /* ── Operator photos ───────────────────────── */
+    .sn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 10px; }
+    .sn-card { border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; }
+    .sn-card .sn-head { display: flex; align-items: baseline; gap: 7px; margin-bottom: 7px; }
+    .sn-card .sn {
+      font-family: var(--mono); font-size: 11px; color: var(--ink-1); letter-spacing: 0.02em;
+    }
+    .sn-card .fam { font-family: var(--mono); font-size: 9px; color: var(--ink-3); }
+    .sn-card .st {
+      font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.06em; text-transform: uppercase;
+      border-radius: 3px; padding: 1px 5px; margin-left: auto;
+    }
+    .sn-card .st.ok  { color: var(--ok);   background: color-mix(in srgb, var(--ok) 14%, transparent); }
+    .sn-card .st.bad { color: var(--warn); background: color-mix(in srgb, var(--warn) 16%, transparent); }
+    .sn-card .st.heavy { color: var(--err); background: color-mix(in srgb, var(--err) 16%, transparent); }
+    .thumbs { display: flex; flex-wrap: wrap; gap: 5px; }
+    .thumb {
+      width: 64px; height: 64px; border-radius: 4px; border: 1px solid var(--line-2);
+      object-fit: cover; cursor: zoom-in; background: var(--bg-1); display: block;
+    }
+    .thumb:hover { border-color: var(--primary-dim); }
+    .thumb:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+    /* The tag shot is the SN label the OCR read; it earns a marker because it is
+       the evidence for the match, not just another picture of the unit. */
+    .thumb.tag { border-color: color-mix(in srgb, var(--primary) 45%, transparent); }
+    .sn-card .over {
+      font-family: var(--mono); font-size: 9px; color: var(--ink-3); margin-top: 6px;
+    }
+    .photo-foot {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      margin-top: 12px; font-family: var(--mono); font-size: 9.5px; color: var(--ink-3);
+      letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .photo-foot button {
+      background: transparent; border: 1px solid var(--line-2); border-radius: 6px;
+      color: var(--ink-2); font-family: var(--mono); font-size: 9.5px;
+      letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 11px; cursor: pointer;
+    }
+    .photo-foot button:hover { color: var(--primary); border-color: var(--primary-dim); }
+    .legend { display: flex; gap: 12px; align-items: center; margin-left: auto; }
+    .legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .legend i {
+      width: 9px; height: 9px; border-radius: 2px; border: 1px solid var(--line-2);
+      display: inline-block;
+    }
+    .legend i.tag { border-color: color-mix(in srgb, var(--primary) 45%, transparent); }
+
+    .lightbox {
+      position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 12px; padding: 30px;
+      background: color-mix(in srgb, var(--bg-1) 88%, transparent); backdrop-filter: blur(6px);
+    }
+    .lightbox img {
+      max-width: min(92vw, 720px); max-height: 74vh; border-radius: 8px;
+      border: 1px solid var(--line-2); background: var(--bg-2);
+      /* The stored copy is a 200px thumbnail; scaling it up should not pretend
+         to detail it does not have, but it must stay legible. */
+      image-rendering: auto;
+    }
+    .lightbox .cap { font-family: var(--mono); font-size: 11px; color: var(--ink-2); text-align: center; }
+    .lightbox .cap b { color: var(--ink-1); font-weight: 600; }
+    .lightbox .hint { font-family: var(--mono); font-size: 9px; color: var(--ink-3); }
+
     .notice {
       display: flex; gap: 9px; align-items: flex-start;
       border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
@@ -264,8 +336,15 @@
       </div>
     </div>
 
+    <!-- The photos only exist inside the run's workbook, so this panel is read
+         back out of the report rather than from a separate store. -->
     <div class="panel">
-      <h2>Recent runs</h2>
+      <h2>Operator photos — <span id="photo-date">—</span></h2>
+      <div id="photo-body"><p class="muted" style="font-size:12px">Select a run below.</p></div>
+    </div>
+
+    <div class="panel">
+      <h2>Recent runs <span class="muted" style="text-transform:none;letter-spacing:0">— select a row to inspect that run</span></h2>
       <table>
         <thead>
           <tr>
@@ -344,15 +423,85 @@
       setTimeout(() => t.remove(), 5000);
     }
 
+    /* ── Run selection ────────────────────────── */
+    /* Every figure on the page describes one run, so the page keeps that run in
+       one place and renders from it. The table is the control; the newest run is
+       the default because that is the question people arrive with. */
+    let RUNS = [];
+    let SELECTED = null;              // date string
+    const DETAIL = new Map();         // date -> detail payload, or { error }
+
     async function loadDashboard() {
-      const [latestR, runsR, tsR] = await Promise.all([
-        fetch('/api/reshim/latest').then(r => r.json()),
+      const [runsR, tsR] = await Promise.all([
         fetch('/api/reshim/runs?limit=30').then(r => r.json()),
         fetch('/api/reshim/timeseries?days=30').then(r => r.json()),
       ]);
 
-      // Header + KPIs
-      const latest = latestR.run;
+      RUNS = runsR.runs || [];
+      renderSparkline(tsR.points || []);
+      renderTable();
+
+      // Hold the selection across a refresh when that run is still listed —
+      // clearing samples or seeding should not throw away where you were.
+      const keep = RUNS.some(r => r.date === SELECTED) ? SELECTED : (RUNS[0] || {}).date || null;
+      await selectRun(keep);
+    }
+
+    async function selectRun(date) {
+      SELECTED = date;
+      for (const tr of $('runs-tbody').querySelectorAll('tr[data-date]')) {
+        tr.setAttribute('aria-selected', String(tr.dataset.date === date));
+      }
+      renderRun(RUNS.find(r => r.date === date) || null);
+      await renderPhotos(date);
+    }
+
+    function renderTable() {
+      const tbody = $('runs-tbody');
+      tbody.innerHTML = '';
+      RUNS.forEach(r => {
+        const tr = document.createElement('tr');
+        const s = r.summary;
+        const incl = s ? (s.ok + s.bad + s.bad_heavy) : 0;
+        const okPct = incl ? (100 * s.ok / incl) : null;
+        const emailChip = r.emailStatus === 'sent' ? `sent to ${r.emailRecipients.length}` :
+                         r.emailStatus === 'failed' ? 'failed' :
+                         r.emailStatus === 'skipped' ? '—' : '';
+        // Real and sample runs now sit in one table — the archive keeps real
+        // reports on dates the seeding window also covers — so each row says
+        // which it is rather than leaving the header chip to speak for all of them.
+        tr.className = 'pick';
+        tr.dataset.date = r.date;
+        tr.tabIndex = 0;
+        tr.setAttribute('aria-selected', String(r.date === SELECTED));
+        tr.innerHTML = `
+          <td>${r.date}${r.mock ? ' <span class="row-mock">sample</span>' : ''}</td>
+          <td class="num">${incl}</td>
+          <td class="num">${okPct == null ? '—' : okPct.toFixed(1) + '%'}</td>
+          <td class="num">${s ? s.bad : 0}</td>
+          <td class="num">${s ? s.bad_heavy : 0}</td>
+          <td>${emailChip}</td>
+          <td>${r.hasReport ? `<a href="/api/reshim/runs/${r.date}/report">xlsx</a>` : '<span class="muted">—</span>'}</td>
+        `;
+        tr.addEventListener('click', (e) => {
+          // Let the download link do its own job.
+          if (e.target.closest('a')) return;
+          selectRun(r.date);
+        });
+        tr.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectRun(r.date); }
+        });
+        tbody.appendChild(tr);
+      });
+      if (tbody.children.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty">' +
+          'No runs yet — the daily workflow publishes here once it has run. ' +
+          'Use “Seed sample” for demo figures.</td></tr>';
+      }
+    }
+
+    /** Header, KPIs and the variant alert for one run; null clears them. */
+    function renderRun(latest) {
       if (!latest || !latest.summary) {
         $('status-chip').textContent = 'no runs yet';
         $('status-chip').className = 'chip warn';
@@ -373,13 +522,11 @@
         const okPct = incl > 0 ? (100 * s.ok / incl) : null;
         const badPct = incl > 0 ? (100 * s.bad / incl) : null;
         const bhPct = incl > 0 ? (100 * s.bad_heavy / incl) : null;
-        // Coverage: SNs with photos / total analyzed
-        // (approx from the workbook — better to expose from Python but we can compute from summary counts)
         $('k-units').textContent = incl;
         $('k-ok').firstChild.data = okPct == null ? '—' : okPct.toFixed(1);
         $('k-bad').firstChild.data = badPct == null ? '—' : badPct.toFixed(1);
         $('k-bad-heavy').firstChild.data = bhPct == null ? '—' : bhPct.toFixed(1);
-        $('k-cov').firstChild.data = '—'; // filled server-side later if we surface it
+        // Coverage comes from the workbook, so renderPhotos fills it in.
 
         // Each percentage gets its count and denominator, so a reader is not
         // left converting "7.9%" back into units in their head.
@@ -387,7 +534,6 @@
         setNote('n-ok', `${s.ok} of ${incl}`);
         setNote('n-bad', `${s.bad} of ${incl}`);
         setNote('n-bad-heavy', `${s.bad_heavy} of ${incl}`);
-        setNote('n-cov', 'see per-run xlsx');
 
         $('status-chip').textContent = latest.emailStatus === 'sent' ? 'emailed' :
                                        latest.emailStatus === 'failed' ? 'email failed' :
@@ -411,44 +557,155 @@
         });
         if (variantsUl.children.length === 0) variantsUl.innerHTML = '<li class="muted">None ≥30% BAD — all families healthy today.</li>';
       }
+    }
 
-      // Sparkline
-      const points = tsR.points || [];
-      renderSparkline(points);
+    /* ── Operator photos ──────────────────────── */
+    /* Read back out of the selected run's workbook, which is the only place the
+       photos exist. Cards are added a page at a time: the August run carries
+       1187 photos across 351 serial numbers, and rendering that in one go buys
+       nobody anything. */
+    const PAGE = 12;
+    let shown = 0;
 
-      // Runs table
-      const tbody = $('runs-tbody');
-      tbody.innerHTML = '';
-      (runsR.runs || []).forEach(r => {
-        const tr = document.createElement('tr');
-        const s = r.summary;
-        const incl = s ? (s.ok + s.bad + s.bad_heavy) : 0;
-        const okPct = incl ? (100 * s.ok / incl) : null;
-        const emailChip = r.emailStatus === 'sent' ? `sent to ${r.emailRecipients.length}` :
-                         r.emailStatus === 'failed' ? 'failed' :
-                         r.emailStatus === 'skipped' ? '—' : '';
-        // Real and sample runs now sit in one table — the archive keeps real
-        // reports on dates the seeding window also covers — so each row says
-        // which it is rather than leaving the header chip to speak for all of them.
-        tr.innerHTML = `
-          <td>${r.date}${r.mock ? ' <span class="row-mock">sample</span>' : ''}</td>
-          <td class="num">${incl}</td>
-          <td class="num">${okPct == null ? '—' : okPct.toFixed(1) + '%'}</td>
-          <td class="num">${s ? s.bad : 0}</td>
-          <td class="num">${s ? s.bad_heavy : 0}</td>
-          <td>${emailChip}</td>
-          <td>${r.hasReport ? `<a href="/api/reshim/runs/${r.date}/report">xlsx</a>` : '<span class="muted">—</span>'}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-      if (tbody.children.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty">' +
-          'No runs yet — the daily workflow publishes here once it has run. ' +
-          'Use “Seed sample” for demo figures.</td></tr>';
+    const STATUS_CLASS = { OK: 'ok', BAD: 'bad', BAD_HEAVY: 'heavy' };
+
+    async function renderPhotos(date) {
+      const body = $('photo-body');
+      $('photo-date').textContent = date || '—';
+
+      if (!date) {
+        body.innerHTML = '<p class="muted" style="font-size:12px">No run selected.</p>';
+        setNote('n-cov', 'no runs');
+        $('k-cov').firstChild.data = '—';
+        $('alert-missing').innerHTML = '<li class="muted">No runs yet.</li>';
+        return;
       }
 
-      // "Missing photos" alert — for now, count from summary (better if surfaced explicitly by pipeline)
-      $('alert-missing').innerHTML = '<li class="muted">See per-run xlsx for exact SNs missing photos.</li>';
+      let d = DETAIL.get(date);
+      if (!d) {
+        body.innerHTML = '<p class="muted" style="font-size:12px">Reading the workbook…</p>';
+        try {
+          const r = await fetch(`/api/reshim/runs/${date}/detail`);
+          d = r.ok ? await r.json() : { error: (await r.json().catch(() => ({}))).error || `HTTP ${r.status}` };
+        } catch (e) {
+          d = { error: e.message };
+        }
+        DETAIL.set(date, d);
+      }
+      // A slower fetch must not overwrite a run selected since.
+      if (SELECTED !== date) return;
+
+      if (d.error) {
+        body.innerHTML = `<p class="muted" style="font-size:12px">No photos for this run — ${d.error}.</p>`;
+        $('k-cov').firstChild.data = '—';
+        setNote('n-cov', 'no workbook');
+        $('alert-missing').innerHTML = '<li class="muted">No workbook for this run.</li>';
+        return;
+      }
+
+      $('k-cov').firstChild.data = d.coverage == null ? '—' : d.coverage.toFixed(1);
+      setNote('n-cov', d.units ? `${d.withPhotos} of ${d.units} SNs` : 'no rows');
+
+      // Missing photos, named. The alert used to point at the xlsx; the serial
+      // numbers are the actionable part, so list them and cap the list.
+      const missUl = $('alert-missing');
+      missUl.innerHTML = '';
+      if (d.problem) {
+        missUl.innerHTML = `<li class="muted">Report format not recognised — ${d.problem}.</li>`;
+      } else if (d.missing.length === 0) {
+        missUl.innerHTML = '<li class="muted">Every serial number has at least one photo.</li>';
+      } else {
+        d.missing.slice(0, 6).forEach(sn => {
+          const li = document.createElement('li');
+          li.innerHTML = `<span class="badge warn">no photo</span><span style="font-family:var(--mono);font-size:11px">${sn}</span>`;
+          missUl.appendChild(li);
+        });
+        if (d.missing.length > 6) {
+          const li = document.createElement('li');
+          li.className = 'muted';
+          li.textContent = `and ${d.missing.length - 6} more of ${d.units}`;
+          missUl.appendChild(li);
+        }
+      }
+
+      // Gallery
+      if (d.problem) {
+        body.innerHTML = `<p class="muted" style="font-size:12px">This report's format could not be read — ${d.problem}. The workbook itself still downloads.</p>`;
+        return;
+      }
+      const withPhotos = d.items.filter(i => i.photos.length > 0);
+      if (withPhotos.length === 0) {
+        body.innerHTML = '<p class="muted" style="font-size:12px">' +
+          (d.units ? 'No operator photos in this report.' : 'This report has no rows.') + '</p>';
+        return;
+      }
+
+      body.innerHTML = '<div class="sn-grid" id="sn-grid"></div><div class="photo-foot" id="photo-foot"></div>';
+      shown = 0;
+      appendCards(date, withPhotos);
+    }
+
+    function appendCards(date, withPhotos) {
+      const grid = $('sn-grid');
+      const slice = withPhotos.slice(shown, shown + PAGE);
+      slice.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'sn-card';
+        const st = STATUS_CLASS[item.status] || '';
+        const over = item.matched != null && item.matched > item.photos.length
+          ? `<div class="over">showing ${item.photos.length} of ${item.matched} matched</div>` : '';
+        card.innerHTML =
+          `<div class="sn-head"><span class="sn">${item.sn}</span>` +
+          `<span class="fam">${item.family ? 'fam ' + item.family : ''}</span>` +
+          `<span class="st ${st}">${item.status || 'n/a'}</span></div>` +
+          `<div class="thumbs"></div>${over}`;
+        const thumbs = card.querySelector('.thumbs');
+        item.photos.forEach(p => {
+          const img = document.createElement('img');
+          img.className = 'thumb' + (p.kind === 'tag' ? ' tag' : '');
+          img.loading = 'lazy';
+          img.width = 64; img.height = 64;
+          img.src = `/api/reshim/runs/${date}/photos/${p.id}`;
+          img.alt = `${p.kind === 'tag' ? 'Serial number label' : 'Process photo'} for ${item.sn}`;
+          img.tabIndex = 0;
+          img.addEventListener('click', () => lightbox(img.src, item, p));
+          img.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); lightbox(img.src, item, p); }
+          });
+          thumbs.appendChild(img);
+        });
+        grid.appendChild(card);
+      });
+      shown += slice.length;
+
+      const d = DETAIL.get(date);
+      const foot = $('photo-foot');
+      const more = withPhotos.length - shown;
+      foot.innerHTML =
+        `<span>${d.photoCount} photos · ${withPhotos.length} serial numbers · showing ${shown}</span>` +
+        (more > 0 ? `<button id="more-btn">Show ${Math.min(PAGE, more)} more</button>` : '') +
+        '<span class="legend"><span><i class="tag"></i>SN label (OCR source)</span>' +
+        '<span><i></i>process photo</span></span>';
+      if (more > 0) {
+        $('more-btn').addEventListener('click', () => appendCards(date, withPhotos));
+      }
+    }
+
+    /** Full view of one photo. The stored copy is a 200px thumbnail. */
+    function lightbox(src, item, photo) {
+      const box = document.createElement('div');
+      box.className = 'lightbox';
+      box.innerHTML =
+        `<img src="${src}" alt="${photo.kind === 'tag' ? 'Serial number label' : 'Process photo'} for ${item.sn}" />` +
+        `<div class="cap"><b>${item.sn}</b> · ${photo.kind === 'tag' ? 'SN label, read by OCR' : 'process photo'}` +
+        `${item.family ? ' · family ' + item.family : ''}${item.status ? ' · ' + item.status : ''}` +
+        `${item.backlash != null ? ' · backlash ' + item.backlash.toFixed(2) + ' mm' : ''}</div>` +
+        '<div class="hint">Click anywhere or press Escape to close</div>';
+      const close = () => { box.remove(); document.removeEventListener('keydown', onKey); };
+      const onKey = (e) => { if (e.key === 'Escape') close(); };
+      box.addEventListener('click', close);
+      document.addEventListener('keydown', onKey);
+      document.body.appendChild(box);
     }
 
     function renderSparkline(points) {
@@ -504,7 +761,7 @@
     }
 
     $('refresh-btn').addEventListener('click', () =>
-      withBusy($('refresh-btn'), 'refreshing', () => loadDashboard()));
+      withBusy($('refresh-btn'), 'refreshing', () => { DETAIL.clear(); return loadDashboard(); }));
 
     $('run-btn').addEventListener('click', () => {
       const alsoEmail = $('also-email-cb').checked;
@@ -615,6 +872,7 @@
         } catch (e) {
           toast('Seed error: ' + e.message, 'err');
         }
+        DETAIL.clear();
         await Promise.all([loadDashboard(), applyCapabilities()]);
       });
     });
@@ -630,6 +888,7 @@
         } catch (e) {
           toast('Clear error: ' + e.message, 'err');
         }
+        DETAIL.clear();
         await Promise.all([loadDashboard(), applyCapabilities()]);
       });
     });

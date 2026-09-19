@@ -215,6 +215,41 @@ published by the workflow supersedes an archived copy of the same day.
 Seeding skips any date that already holds a real run, from either root, so
 sample figures cannot mask a genuine report.
 
+### Selecting a run, and the operator photos
+
+The table is the page's control: selecting a row re-renders the chips, the five
+KPI cards, the variant alert and the photo gallery for that run. The newest run
+is selected on load. The sparkline stays as it is — it is the series, not a
+property of one run.
+
+The photos come out of the run's own workbook, because that is the only place
+they exist: the pipeline downscales each one, anchors it to its serial number's
+row, and keeps no separate copy. So `GET /api/reshim/runs/:date/detail` parses
+the xlsx and returns the rows with their photo ids, and
+`GET /api/reshim/runs/:date/photos/:id` serves the bytes, cached immutably since
+a given run's photo never changes. A small LRU keeps the last two runs parsed, so
+a gallery costs one cheap inflate per thumbnail rather than a 20 MB re-parse.
+
+Nothing new has to be published for this to work — it reads reports already in
+the archive or on the disk, including the three historical ones.
+
+Two things the reader is deliberately careful about:
+
+- **Three report generations.** The archived runs differ in string storage
+  (shared vs inline), anchor element (`oneCellAnchor`, `twoCellAnchor`,
+  `xdr:twoCellAnchor`) and relationship form, and the oldest has 23 columns
+  rather than 21. Columns are found by header name and namespaces are stripped
+  before matching. `npx tsx tools/check-reshim-workbooks.mts` checks all three;
+  run it after touching `reshim-xlsx.ts`.
+- **"No photos" is not "cannot read".** A workbook it fails to parse reports the
+  reason, and the dashboard says the format was not recognised rather than
+  implying nobody photographed anything that day.
+
+`Image_Count` in the report counts photos *matched*, which can exceed the photos
+embedded: there are a fixed number of image columns, and one August serial number
+matched 51 photos against 7 columns. A card in that position says "showing 7 of
+51 matched" rather than quietly dropping the rest.
+
 ### Sample data
 
 The dashboard ships **empty**. "Seed sample" writes 30 days of invented runs,

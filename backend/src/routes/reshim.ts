@@ -34,6 +34,7 @@ import {
 } from "../services/reshim.js";
 import { seedSampleRuns } from "../services/reshim-sample.js";
 import { sendRunReport } from "../services/reshim-email.js";
+import { runDetail, runPhoto } from "../services/reshim-detail.js";
 import { mailCapability } from "../services/mail.js";
 import { requireSession } from "./auth.js";
 
@@ -129,6 +130,47 @@ reshimRouter.delete("/sample", requireSession, (_req, res, next) => {
   try {
     const { removed } = clearSampleRuns();
     res.json({ ok: true, removed: removed.length, dates: removed });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/* ── Per-run detail and photos ────────────────────────────────────────── */
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * The rows behind a run, with the photos anchored to each serial number. Read
+ * out of the run's own workbook; see reshim-detail.ts for why that is the only
+ * source.
+ */
+reshimRouter.get("/runs/:date/detail", async (req, res, next) => {
+  try {
+    if (!DATE_RE.test(req.params.date)) {
+      return res.status(400).json({ ok: false, error: "date must be YYYY-MM-DD" });
+    }
+    const detail = await runDetail(req.params.date);
+    if (!detail) return res.status(404).json({ ok: false, error: "no report for that date" });
+    res.json({ ok: true, ...detail });
+  } catch (e) {
+    next(e);
+  }
+});
+
+reshimRouter.get("/runs/:date/photos/:id", async (req, res, next) => {
+  try {
+    if (!DATE_RE.test(req.params.date) || !/^\d+-\d+$/.test(req.params.id)) {
+      return res.status(400).json({ ok: false, error: "bad date or photo id" });
+    }
+    const photo = await runPhoto(req.params.date, req.params.id);
+    if (!photo) return res.status(404).json({ ok: false, error: "no such photo" });
+
+    // A given run's photo never changes, so let the browser keep it: a gallery
+    // of several hundred thumbnails should not re-fetch on every redraw.
+    res.setHeader("Content-Type", photo.type);
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res.setHeader("Content-Length", String(photo.buf.length));
+    res.end(photo.buf);
   } catch (e) {
     next(e);
   }
