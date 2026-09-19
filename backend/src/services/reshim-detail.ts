@@ -138,7 +138,23 @@ async function build(date: string): Promise<Entry | null> {
   }
 
   const workbook = readFileSync(path);
-  const zip = await JSZip.loadAsync(workbook);
+  // Open here so the cache can reuse the archive for photos. readWorkbook
+  // only catches loadAsync when it is given raw bytes, so a corrupt file
+  // must be turned into `problem` here — otherwise the gallery gets a 500.
+  let zip: JSZip;
+  try {
+    zip = await JSZip.loadAsync(workbook);
+  } catch (e) {
+    const { detail, entries } = toDetail(
+      date,
+      [],
+      `not a readable xlsx (${(e as Error).message})`,
+      rev,
+    );
+    const entry: Entry = { key, detail, entries, zip: new JSZip() };
+    touch(date, entry);
+    return entry;
+  }
   const { rows, problem } = await readWorkbook(zip);
   const { detail, entries } = toDetail(date, rows, problem, rev);
   const entry: Entry = { key, detail, entries, zip };
