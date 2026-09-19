@@ -11,7 +11,7 @@
  */
 import ExcelJS from "exceljs";
 
-import { hasRealRun, saveIngestedRun, type IngestRun, type ReshimSummary } from "./reshim.js";
+import { hasRealRun, plantToday, saveIngestedRun, type IngestRun, type ReshimSummary } from "./reshim.js";
 import { sendRunReport } from "./reshim-email.js";
 import { type SendResult } from "./mail.js";
 
@@ -66,9 +66,8 @@ function round(n: number, places: number): number {
 }
 
 function isoDay(offsetDays: number): string {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() - offsetDays);
-  return d.toISOString().slice(0, 10);
+  const [y, m, day] = plantToday().split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, day - offsetDays)).toISOString().slice(0, 10);
 }
 
 /**

@@ -34,7 +34,7 @@ const ARCHIVE_ROOT = join(SHARED_DIR, "data", "reshim-archive");
 const PLANT_TZ = process.env.MES_PLANT_TZ?.trim() || "America/Chicago";
 
 /** Calendar day in the plant zone (not UTC). Matches tools.reshim plant_today(). */
-function plantToday(): string {
+export function plantToday(): string {
   return new Date().toLocaleString("sv-SE", { timeZone: PLANT_TZ }).slice(0, 10);
 }
 
@@ -305,6 +305,26 @@ export function saveIngestedRun(run: IngestRun): { wrote: string[] } {
   mkdirSync(dir, { recursive: true });
   const wrote: string[] = [];
 
+  // The name lands in a filesystem path and later in a Content-Disposition
+  // header, so keep it to a bare .xlsx filename — no separators, no traversal.
+  // Validate before clearing leftovers so a bad name cannot wipe a good run.
+  const reportName = run.report?.name;
+  if (reportName && (!/^[A-Za-z0-9._-]+\.xlsx$/.test(reportName) || reportName.startsWith("."))) {
+    throw new Error("report.name must be a plain .xlsx filename");
+  }
+
+  // Replace rather than layer. A real ingest onto a seeded date must drop the
+  // MOCK marker, leftover .xlsx, and email.json — loadRun treats the marker as
+  // gospel (so clearSampleRuns would wipe the live folder), and readdirSync
+  // may pick the leftover workbook for downloads and resends.
+  const keep = new Set<string>(["summary.json"]);
+  if (run.email) keep.add("email.json");
+  if (reportName) keep.add(reportName);
+  if (run.mock) keep.add(MOCK_MARKER);
+  for (const f of readdirSync(dir)) {
+    if (!keep.has(f)) rmSync(join(dir, f), { recursive: true, force: true });
+  }
+
   writeFileSync(join(dir, "summary.json"), JSON.stringify(run.summary, null, 2));
   wrote.push("summary.json");
 
@@ -313,15 +333,9 @@ export function saveIngestedRun(run: IngestRun): { wrote: string[] } {
     wrote.push("email.json");
   }
 
-  if (run.report) {
-    // The name lands in a filesystem path and later in a Content-Disposition
-    // header, so keep it to a bare .xlsx filename — no separators, no traversal.
-    const name = run.report.name;
-    if (!/^[A-Za-z0-9._-]+\.xlsx$/.test(name) || name.startsWith(".")) {
-      throw new Error("report.name must be a plain .xlsx filename");
-    }
-    writeFileSync(join(dir, name), Buffer.from(run.report.base64, "base64"));
-    wrote.push(name);
+  if (run.report && reportName) {
+    writeFileSync(join(dir, reportName), Buffer.from(run.report.base64, "base64"));
+    wrote.push(reportName);
   }
 
   if (run.mock) {

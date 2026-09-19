@@ -360,6 +360,11 @@
         $('date-chip').textContent = '';
         $('date-chip').hidden = true;
         $('mock-chip').hidden = true;
+        $('k-units').textContent = '—';
+        $('k-ok').firstChild.data = '—';
+        $('k-bad').firstChild.data = '—';
+        $('k-bad-heavy').firstChild.data = '—';
+        $('k-cov').firstChild.data = '—';
         NOTES.forEach((id) => setNote(id, 'no runs'));
         $('alert-variants').innerHTML = '<li class="muted">No runs yet.</li>';
       } else {
@@ -450,9 +455,17 @@
       const svg = $('sparkline');
       svg.innerHTML = '';
       const W = 800, H = 60, pad = 4;
-      if (points.length === 0) return;
+      if (points.length === 0) {
+        $('spark-start').textContent = '—';
+        $('spark-end').textContent = '—';
+        return;
+      }
       const values = points.map(p => p.ok_pct).filter(v => v != null);
-      if (values.length === 0) return;
+      if (values.length === 0) {
+        $('spark-start').textContent = '—';
+        $('spark-end').textContent = '—';
+        return;
+      }
       const minV = 0;   // fix scale 0-100 so day-to-day changes are honest
       const maxV = 100;
       const stepX = (W - 2*pad) / Math.max(1, points.length - 1);
