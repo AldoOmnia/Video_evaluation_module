@@ -583,7 +583,15 @@
     .twin-launch .play {
       width: 44px; height: 44px; border-radius: 50%;
       border: 1.5px solid var(--primary-dim); color: var(--primary);
-      display: flex; align-items: center; justify-content: center; font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    /* The play affordance is drawn, not typed: a triangle glyph renders as an
+       emoji on some platforms. See DESIGN_LANGUAGE.md. */
+    .twin-launch .play::after {
+      content: ''; width: 0; height: 0; margin-left: 3px;
+      border-left: 10px solid currentColor;
+      border-top: 6.5px solid transparent;
+      border-bottom: 6.5px solid transparent;
     }
     .twin-launch .sub { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
     .twin-foot {
@@ -650,9 +658,9 @@
       <div class="fac-legend">
         <span><span class="dot" style="background:var(--primary)"></span><span data-i18n="kb.legActive">active station — full graph live</span></span>
         <span><span class="dot" style="background:#2a2a2a"></span><span data-i18n="kb.legScaffold">scaffold — awaiting material</span></span>
-        <span style="color:var(--ok);" data-i18n="kb.legTwin">✓ twin — digital twin available</span>
+        <span style="color:var(--ok);" data-i18n="kb.legTwin">twin — digital twin available</span>
         <span data-i18n="kb.legCounts">counts: keysteps · material · components</span>
-        <span style="color:var(--warn,#f5a524);" data-i18n="kb.legChecks">⚠ checks — MES acquisitions outside limits (Full_stations_report)</span>
+        <span style="color:var(--warn,#f5a524);" data-i18n="kb.legChecks">checks — MES acquisitions outside limits (Full_stations_report)</span>
         <span style="color:var(--fac-accent-ink);" data-i18n="kb.legUnderlay">underlay — the 2D plant drawing (yellow = aisles &amp; bays) · expand for full detail</span>
       </div>
     </section>
@@ -699,8 +707,8 @@
               </button>
               <input type="file" id="pov-file" accept=".mp4,.mov,.webm,video/*" hidden />
               <div class="seg" id="pov-seg">
-                <button type="button" class="correct is-on" data-tag="correct" data-i18n="kb.povCorrect">✓ done correctly</button>
-                <button type="button" class="mistake" data-tag="mistake" data-i18n="kb.povMistake">✕ contains mistakes</button>
+                <button type="button" class="correct is-on" data-tag="correct" data-i18n="kb.povCorrect">done correctly</button>
+                <button type="button" class="mistake" data-tag="mistake" data-i18n="kb.povMistake">contains mistakes</button>
               </div>
               <textarea id="pov-transcript" data-i18n-ph="kb.povTranscriptPh" placeholder="Audio transcript — what was said / heard in the recording. Typed for now; auto-transcription (ASR) fills this once wired."></textarea>
               <textarea id="pov-note" style="min-height:38px;" data-i18n-ph="kb.povNotePh" placeholder="Operator note (optional) — what you think went wrong or should be watched…"></textarea>
@@ -760,10 +768,10 @@
 
       <!-- Station digital twin (only stations with a capture — today: pinion guide) -->
       <div class="panel" style="margin-top:16px;" id="st-twin-panel" hidden>
-        <div class="panel-h"><span class="n">05</span> <span data-i18n="kb.p05">Digital twin</span> <span class="count" style="color:var(--ok);" data-i18n="kb.twinAvail">✓ available</span></div>
+        <div class="panel-h"><span class="n">05</span> <span data-i18n="kb.p05">Digital twin</span> <span class="count" style="color:var(--ok);" data-i18n="kb.twinAvail">available</span></div>
         <div class="twin-shell" id="st-twin-shell">
           <button type="button" class="twin-launch" id="st-twin-launch">
-            <span class="play">▶</span>
+            <span class="play"></span>
             <span id="st-twin-title" data-i18n="kb.twinLoad">Load the pinion guide digital twin</span>
             <span class="sub" data-i18n="kb.twinSub">gaussian-splat capture of the pinion guide area · operator + station geometry</span>
           </button>
@@ -981,14 +989,14 @@
             ${full && !n.lite ? `<text class="nd-counts" x="${n.x}" y="${countsY}" text-anchor="middle">${countsTxt}</text>` : ''}
             ${s.report && !twin && !n.lite ? `
             <text class="nd-report ${s.report.nok > 0 ? 'warn' : 'ok'}" x="${n.x}" y="${reportY}" text-anchor="middle">${
-              s.report.nok > 0 ? `⚠ ${s.report.nok}/${s.report.checks} checks NOT OK` : `✓ ${s.report.checks} checks OK`
+              s.report.nok > 0 ? `${s.report.nok}/${s.report.checks} checks NOT OK` : `${s.report.checks} checks OK`
             }</text>` : ''}
             ${!s.report && !n.lite ? `
             <text class="nd-report" x="${n.x}" y="${reportY}" text-anchor="middle" fill="#4a4a4a">${esc(n.nodata || 'no MES data yet')}</text>` : ''}
             ${twin ? `
             <g class="fac-twin" data-twin="${s.id}" role="link" aria-label="Open the digital twin viewer">
               <rect x="${n.x - 46}" y="${pillY}" width="92" height="17" rx="8.5"/>
-              <text x="${n.x}" y="${pillY + 12}" text-anchor="middle">✓ digital twin</text>
+              <text x="${n.x}" y="${pillY + 12}" text-anchor="middle">digital twin</text>
             </g>` : ''}
           </g>`;
       }).join('');
@@ -1112,7 +1120,7 @@
       (current.components || []).forEach((c) => ring.push({ kind: 'comp', label: c.name.slice(0, 12), full: c.name, color: '#f472b6', img: (c.images[0] || {}).url, ref: c }));
       (current.povs || []).forEach((p) => ring.push({
         kind: 'pov',
-        label: p.label === 'mistake' ? 'POV ✕' : 'POV ✓',
+        label: p.label === 'mistake' ? 'POV mistake' : 'POV correct',
         full: p.name, ref: p,
         color: p.label === 'mistake' ? '#ef4444' : '#4ade80',
       }));
@@ -1276,7 +1284,7 @@
         }
         if (c.warning && c.warning.headline) {
           body += `<div><div class="ni-h">Live glasses warning</div>
-            <div class="ni-warn"><b>⚠ ${esc(c.warning.headline)}</b><br/>${esc(c.warning.action)}</div></div>`;
+            <div class="ni-warn"><b>${esc(c.warning.headline)}</b><br/>${esc(c.warning.action)}</div></div>`;
         }
         body += `<div id="ni-report"><div class="ni-h">In the warnings report</div><div class="ni-foot">checking captured warnings…</div></div>`;
         body += `<div class="ni-foot">${esc(sourceLine(c))}</div>`;
@@ -1303,7 +1311,7 @@
 
       } else if (node.kind === 'pov') {
         const p = node.ref;
-        body += `<div class="ni-row"><b>${p.label === 'mistake' ? '✕ contains mistakes' : '✓ done correctly'}</b>${p.durationS ? ' · ' + fmtDur(p.durationS) : ''}${p.note ? `<span class="sub">${esc(p.note)}</span>` : ''}</div>`;
+        body += `<div class="ni-row"><b>${p.label === 'mistake' ? 'contains mistakes' : 'done correctly'}</b>${p.durationS ? ' · ' + fmtDur(p.durationS) : ''}${p.note ? `<span class="sub">${esc(p.note)}</span>` : ''}</div>`;
         if (p.analysis) {
           body += `<div><div class="ni-h">Comer AI analysis</div><div class="ni-row">${esc(p.analysis.summary)}</div>` +
             (p.analysis.suggestions || []).map((s) => `<div class="ni-row">
@@ -1397,9 +1405,9 @@
             ? '<span class="glasses-pill" title="Loaded on the Rokid glasses build — managed in comer-rokid-demo">⟲ glasses</span>'
             : a.source === 'report'
             ? `<span class="glasses-pill" style="color:var(--ink-2);border-color:var(--line-2);background:transparent;" title="Extracted from Full_stations_report.xlsx (MES acquisition export)">▦ MES report</span>
-          <button class="art-del" data-del-art="${a.id}" title="Remove from the knowledge base">✕</button>`
+          <button class="art-del" data-del-art="${a.id}" title="Remove from the knowledge base">×</button>`
             : `<span class="art-size">${fmtSize(a.size)}</span>
-          <button class="art-del" data-del-art="${a.id}" title="Remove from the knowledge base">✕</button>`}
+          <button class="art-del" data-del-art="${a.id}" title="Remove from the knowledge base">×</button>`}
         </div>`).join('');
       list.querySelectorAll('[data-del-art]').forEach((b) => b.addEventListener('click', async () => {
         await fetch(`/api/kb/stations/${current.station.id}/artifacts/${b.dataset.delArt}`, { method: 'DELETE' });
@@ -1640,7 +1648,7 @@
       const step = s.step ? `<span class="err-chip" style="border-color:#60a5fa;color:#60a5fa;">${esc(s.step)}</span>` : '';
       return `
         <div class="sugg">
-          <div class="head">${step}${code}<span class="warn-line">⚠ ${esc(s.glassesWarning || '—')}</span></div>
+          <div class="head">${step}${code}<span class="warn-line">${esc(s.glassesWarning || '—')}</span></div>
           ${s.observed ? `<div class="kv"><b>Observed:</b> ${esc(s.observed)}</div>` : ''}
           ${s.detect ? `<div class="kv"><b>Detect:</b> ${esc(s.detect)}</div>` : ''}
         </div>`;
@@ -1656,7 +1664,7 @@
           <div class="pov-top">
             <span class="nm" title="${esc(p.name)}">${esc(p.name)}</span>
             <span class="pov-tag ${p.label}">${p.label}</span>
-            <span class="pov-meta">${fmtDur(p.durationS)}${p.size ? ' · ' + fmtSize(p.size) : ''}${p.transcript ? ' · audio ✓' : ' · no audio transcript'}</span>
+            <span class="pov-meta">${fmtDur(p.durationS)}${p.size ? ' · ' + fmtSize(p.size) : ''}${p.transcript ? ' · audio' : ' · no audio transcript'}</span>
           </div>
           ${p.note ? `<div class="kv" style="font-size:11px;color:var(--ink-3);">${esc(p.note)}</div>` : ''}
           ${p.analysis ? `
@@ -1722,7 +1730,7 @@
       if (shell.querySelector('iframe')) {
         shell.innerHTML = `
           <button type="button" class="twin-launch" id="st-twin-launch">
-            <span class="play">▶</span>
+            <span class="play"></span>
             <span id="st-twin-title">Load the pinion guide digital twin</span>
             <span class="sub">gaussian-splat capture of the pinion guide area · operator + station geometry</span>
           </button>`;

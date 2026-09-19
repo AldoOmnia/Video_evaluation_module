@@ -24,9 +24,14 @@ Rules mirror the memory playbook `fargo-reshim-analysis`:
 from __future__ import annotations
 from dataclasses import dataclass, asdict
 from datetime import date, datetime
-from typing import Iterable
+from typing import TYPE_CHECKING, Iterable
 
-from .pull import MeasurementRow
+# Only needed for the annotation below, and importing it for real drags in
+# pyodbc — which means the classification and reporting code cannot be used
+# anywhere the MSSQL driver is missing, including a plain `test-email` from a
+# laptop. Annotations are already lazy here via `from __future__`.
+if TYPE_CHECKING:
+    from .pull import MeasurementRow
 
 
 SPEC_BY_FAMILY: dict[str, tuple[float, float]] = {

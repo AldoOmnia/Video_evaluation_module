@@ -23,16 +23,18 @@ Test immediately without waiting for 17:00: `launchctl start io.omnia.reshim.dai
 
 ## B) GitHub Actions cron — production, on DGX self-hosted runner
 
-`.github/workflows/reshim-daily.yml` fires at 22:00 UTC daily. To move it off
-the hosted `ubuntu-latest` runner (which cannot reach Comer's MSSQL) and onto
-your DGX box:
+`.github/workflows/reshim-daily.yml` is manual-dispatch only: its 22:00 UTC cron
+is commented out, because the hosted runner cannot reach Comer's MSSQL and a
+nightly trigger would only mail a failure. To move it onto your DGX box and arm
+it for real:
 
 1. Install the GH Actions runner on the DGX:
    `https://github.com/AldoOmnia/Video_evaluation_module/settings/actions/runners/new`
 
 2. Register with a label like `dgx-vpn-comer`.
 
-3. Edit the workflow: change `runs-on: ubuntu-latest` → `runs-on: [self-hosted, dgx-vpn-comer]`.
+3. Edit the workflow: change `runs-on: ubuntu-22.04` → `runs-on: [self-hosted, dgx-vpn-comer]`,
+   and uncomment the `schedule:` block under `on:`.
 
 4. Populate GitHub Secrets: `MES_MSSQL_*`, `ANTHROPIC_API_KEY`, `MSAL_*`,
    `SHAREPOINT_SHARE_URL`, `MAIL_*`. The workflow materializes `backend/.env`

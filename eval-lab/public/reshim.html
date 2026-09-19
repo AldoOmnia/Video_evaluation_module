@@ -7,18 +7,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/lab/assets/platform.css?v=1" />
-  <script src="/lab/assets/platform.js?v=1"></script>
+  <link rel="stylesheet" href="/lab/assets/platform.css?v=2" />
+  <script src="/lab/assets/platform.js?v=2"></script>
   <style>
     .bg { position: fixed; inset: 0; z-index: -1;
       background:
-        radial-gradient(1100px 500px at 80% -10%, rgba(0,229,160,0.05), transparent 60%),
-        radial-gradient(900px 500px at 0% 110%, rgba(0,229,160,0.04), transparent 55%);
+        radial-gradient(1100px 500px at 80% -10%, color-mix(in srgb, var(--primary) 5%, transparent), transparent 60%),
+        radial-gradient(900px 500px at 0% 110%, color-mix(in srgb, var(--primary) 4%, transparent), transparent 55%);
     }
     .topbar {
       display: flex; align-items: center; gap: 14px;
       padding: 13px 22px; border-bottom: 1px solid var(--line);
-      background: rgba(5,5,5,0.85); backdrop-filter: blur(10px);
+      background: var(--bg-veil); backdrop-filter: blur(10px);
       position: sticky; top: 0; z-index: 20;
     }
     .back-home {
@@ -29,7 +29,8 @@
     .back-home:hover { color: var(--primary); border-color: var(--primary-dim); }
     .topbar-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
     .topbar-title strong { color: var(--ink-1); font-weight: 500; }
-    .actions { margin-left: auto; display: flex; gap: 8px; }
+    .actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+    .actions .divider { width: 1px; align-self: stretch; background: var(--line); margin: 2px 2px; }
     .actions button, .actions a {
       background: transparent; border: 1px solid var(--line-2); border-radius: 6px;
       color: var(--ink-2); font-family: var(--mono); font-size: 10px;
@@ -38,6 +39,18 @@
     }
     .actions button:hover, .actions a:hover { color: var(--primary); border-color: var(--primary-dim); }
     .actions .primary { color: var(--primary); border-color: var(--primary-dim); }
+    .actions label {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--ink-3); cursor: pointer;
+      padding: 6px 10px; border: 1px dashed var(--line-2); border-radius: 6px;
+    }
+    .actions label input { accent-color: var(--primary); }
+    /* Hosts without the Python agent cannot run anything; grey the controls out
+       rather than letting a click fail. */
+    .actions button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .actions button:disabled:hover { color: var(--ink-2); border-color: var(--line-2); }
+    .actions label.is-off { opacity: 0.4; pointer-events: none; }
 
     .wrap { max-width: 1080px; margin: 0 auto; padding: 26px 22px 70px; }
     .head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
@@ -46,16 +59,45 @@
       font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
       padding: 3px 9px; border-radius: 12px; border: 1px solid var(--line-2); color: var(--ink-3);
     }
-    .head .chip.ok { color: var(--ok); border-color: rgba(74,222,128,0.35); }
-    .head .chip.warn { color: var(--warn); border-color: rgba(245,158,11,0.35); }
-    .head .chip.err { color: var(--err); border-color: rgba(239,68,68,0.35); }
-    .sub { color: var(--ink-2); font-size: 12.5px; max-width: 720px; margin-bottom: 22px; }
+    .head .chip.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
+    .head .chip.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
+    .head .chip.err { color: var(--err); border-color: color-mix(in srgb, var(--err) 35%, transparent); }
+    /* Filled rather than outlined, unlike every other chip, so seeded numbers
+       cannot be mistaken for the line's real output at a glance. */
+    .head .chip.mock {
+      background: var(--err); border-color: var(--err); color: #fff; font-weight: 600;
+    }
+    /* Full content width, like the notice and the KPI row — the 720px cap broke
+       this into three short lines against a 1080px page. */
+    .sub { color: var(--ink-2); font-size: 12.5px; margin-bottom: 22px; }
 
     .kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
     @media (max-width: 720px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
     .kpi {
       background: var(--bg-2); border: 1px solid var(--line-2);
       border-radius: 8px; padding: 12px 14px;
+      position: relative; overflow: hidden;
+    }
+    .kpi .n {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--ink-3); margin-top: 7px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    /* Work in progress is announced on the cards whose numbers it will change:
+       the note names the operation and a rule sweeps the foot of each card. No
+       spinner glyph — see DESIGN_LANGUAGE.md. */
+    .kpis[data-busy] .kpi .n { color: var(--primary); }
+    .kpis[data-busy] .kpi::after {
+      content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--primary), transparent);
+      animation: kpi-sweep 1.15s linear infinite;
+    }
+    @keyframes kpi-sweep {
+      from { transform: translateX(-100%); }
+      to   { transform: translateX(100%); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .kpis[data-busy] .kpi::after { animation: none; opacity: 0.55; }
     }
     .kpi .k { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
     .kpi .v { font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--ink-1); margin-top: 4px; }
@@ -85,8 +127,8 @@
     .alert-card ul { list-style: none; padding: 0; margin: 0; font-size: 12px; color: var(--ink-1); }
     .alert-card li { padding: 3px 0; }
     .alert-card .badge { font-family: var(--mono); font-size: 10px; padding: 1px 6px; border-radius: 4px; margin-right: 6px; }
-    .alert-card .badge.warn { background: rgba(245,158,11,0.15); color: var(--warn); }
-    .alert-card .badge.err  { background: rgba(239,68,68,0.15);  color: var(--err); }
+    .alert-card .badge.warn { background: color-mix(in srgb, var(--warn) 15%, transparent); color: var(--warn); }
+    .alert-card .badge.err  { background: color-mix(in srgb, var(--err) 15%, transparent);  color: var(--err); }
 
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
     th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
@@ -95,31 +137,135 @@
     td.num { font-family: var(--mono); text-align: right; }
     td a { color: var(--primary); text-decoration: none; }
     td a:hover { text-decoration: underline; }
-    tr:hover td { background: rgba(255,255,255,0.02); }
+    tr:hover td { background: color-mix(in srgb, var(--ink-1) 3%, transparent); }
+
+    /* Every figure above the table belongs to one run, so the table is the
+       control that picks it: rows are selectable and the selected one is marked
+       on the left edge, the same device the notice uses for severity. */
+    tbody tr.pick { cursor: pointer; }
+    tbody tr.pick:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+    tbody tr[aria-selected="true"] td { background: color-mix(in srgb, var(--primary) 9%, transparent); }
+    tbody tr[aria-selected="true"] td:first-child { box-shadow: inset 3px 0 0 var(--primary); }
+    tbody tr[aria-selected="true"] td:first-child { font-weight: 600; }
+
+    /* ── Operator photos ───────────────────────── */
+    .sn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 10px; }
+    .sn-card { border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; }
+    .sn-card .sn-head { display: flex; align-items: baseline; gap: 7px; margin-bottom: 7px; }
+    .sn-card .sn {
+      font-family: var(--mono); font-size: 11px; color: var(--ink-1); letter-spacing: 0.02em;
+    }
+    .sn-card .fam { font-family: var(--mono); font-size: 9px; color: var(--ink-3); }
+    .sn-card .st {
+      font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.06em; text-transform: uppercase;
+      border-radius: 3px; padding: 1px 5px; margin-left: auto;
+    }
+    .sn-card .st.ok  { color: var(--ok);   background: color-mix(in srgb, var(--ok) 14%, transparent); }
+    .sn-card .st.bad { color: var(--warn); background: color-mix(in srgb, var(--warn) 16%, transparent); }
+    .sn-card .st.heavy { color: var(--err); background: color-mix(in srgb, var(--err) 16%, transparent); }
+    .thumbs { display: flex; flex-wrap: wrap; gap: 5px; }
+    .thumb {
+      width: 64px; height: 64px; border-radius: 4px; border: 1px solid var(--line-2);
+      object-fit: cover; cursor: zoom-in; background: var(--bg-1); display: block;
+    }
+    .thumb:hover { border-color: var(--primary-dim); }
+    .thumb:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+    /* The tag shot is the SN label the OCR read; it earns a marker because it is
+       the evidence for the match, not just another picture of the unit. */
+    .thumb.tag { border-color: color-mix(in srgb, var(--primary) 45%, transparent); }
+    .sn-card .over {
+      font-family: var(--mono); font-size: 9px; color: var(--ink-3); margin-top: 6px;
+    }
+    .photo-foot {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      margin-top: 12px; font-family: var(--mono); font-size: 9.5px; color: var(--ink-3);
+      letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .photo-foot button {
+      background: transparent; border: 1px solid var(--line-2); border-radius: 6px;
+      color: var(--ink-2); font-family: var(--mono); font-size: 9.5px;
+      letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 11px; cursor: pointer;
+    }
+    .photo-foot button:hover { color: var(--primary); border-color: var(--primary-dim); }
+    .legend { display: flex; gap: 12px; align-items: center; margin-left: auto; }
+    .legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .legend i {
+      width: 9px; height: 9px; border-radius: 2px; border: 1px solid var(--line-2);
+      display: inline-block;
+    }
+    .legend i.tag { border-color: color-mix(in srgb, var(--primary) 45%, transparent); }
+
+    .lightbox {
+      position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 12px; padding: 30px;
+      background: color-mix(in srgb, var(--bg-1) 88%, transparent); backdrop-filter: blur(6px);
+    }
+    .lightbox img {
+      max-width: min(92vw, 720px); max-height: 74vh; border-radius: 8px;
+      border: 1px solid var(--line-2); background: var(--bg-2);
+      /* The stored copy is a 200px thumbnail; scaling it up should not pretend
+         to detail it does not have, but it must stay legible. */
+      image-rendering: auto;
+    }
+    .lightbox .cap { font-family: var(--mono); font-size: 11px; color: var(--ink-2); text-align: center; }
+    .lightbox .cap b { color: var(--ink-1); font-weight: 600; }
+    .lightbox .hint { font-family: var(--mono); font-size: 9px; color: var(--ink-3); }
+
+    .notice {
+      display: flex; gap: 9px; align-items: flex-start;
+      border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+      /* A weighted left edge carries the severity, in place of a warning glyph. */
+      border-left: 3px solid var(--warn);
+      background: color-mix(in srgb, var(--warn) 8%, transparent);
+      border-radius: 8px; padding: 10px 13px; margin-bottom: 20px;
+      font-size: 12.5px; color: var(--ink-2);
+      /* Full content width, matching the KPI row below it — the sentence reads
+         as one line of prose rather than a narrow wrapped column. */
+    }
+    /* Pushed to the far right so the sentence keeps a clean left column; it is
+       diagnostic detail, not part of the prose. */
+    .notice .reason { color: var(--ink-3); white-space: nowrap; margin-left: auto; padding-left: 14px; }
+    @media (max-width: 900px) {
+      .notice { flex-wrap: wrap; }
+      .notice .reason { margin-left: 0; padding-left: 0; }
+    }
+
+    .row-mock {
+      font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--err);
+      border: 1px solid color-mix(in srgb, var(--err) 40%, transparent);
+      border-radius: 3px; padding: 1px 4px; margin-left: 7px; vertical-align: 1px;
+    }
 
     .muted { color: var(--ink-3); }
     .empty { color: var(--ink-3); font-style: italic; padding: 14px 0; text-align: center; }
 
-    #run-btn.running { opacity: 0.5; cursor: wait; }
+    .actions button.running { opacity: 0.5; cursor: wait; }
     .toast {
       position: fixed; bottom: 20px; right: 20px; z-index: 100;
       background: var(--bg-2); border: 1px solid var(--line-2);
       border-radius: 6px; padding: 10px 14px; font-size: 12px; color: var(--ink-1);
       max-width: 400px;
     }
-    .toast.err { border-color: rgba(239,68,68,0.5); }
-    .toast.ok  { border-color: rgba(74,222,128,0.5); }
+    .toast.err { border-color: color-mix(in srgb, var(--err) 50%, transparent); }
+    .toast.ok  { border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
   </style>
 </head>
 <body>
   <div class="bg"></div>
 
   <div class="topbar">
-    <a class="back-home" href="/">← Home</a>
-    <span class="topbar-title">Omnia · Comer · <strong>Reshim analysis</strong></span>
+    <a class="back-home" href="/home/">← Home</a>
+    <span class="topbar-title"><strong>Reshim analysis</strong> · shim stack audit</span>
     <div class="actions">
+      <label id="email-toggle" title="Runs email the configured recipients. Untick to produce the report without sending.">
+        <input type="checkbox" id="also-email-cb" checked />
+        <span>Also email</span>
+      </label>
+      <span class="divider"></span>
       <button id="refresh-btn">Refresh</button>
-      <button id="run-btn" class="primary">▶ Run now</button>
+      <button id="run-btn" class="primary">Run now</button>
+      <button class="theme-toggle"></button>
     </div>
   </div>
 
@@ -128,6 +274,7 @@
       <h1>Reshim analysis</h1>
       <span class="chip" id="status-chip">loading…</span>
       <span class="chip" id="date-chip"></span>
+      <span class="chip mock" id="mock-chip" hidden>sample data</span>
     </div>
     <div class="sub">
       Daily automated analysis of Comer Fargo reshim events —
@@ -135,16 +282,39 @@
       operator photos linked via OCR of the SN label.</span>
     </div>
 
+    <div class="notice" id="trigger-note" hidden></div>
+
+    <!-- The note under each value carries both the figure's denominator and,
+         while work is in flight, the name of that work. Progress belongs next to
+         the numbers it is about to change, not inside the button that started it. -->
     <div class="kpis" id="kpis">
-      <div class="kpi"><div class="k">Units</div><div class="v" id="k-units">—</div></div>
-      <div class="kpi"><div class="k">OK</div><div class="v ok" id="k-ok">—<span class="u">%</span></div></div>
-      <div class="kpi"><div class="k">BAD</div><div class="v warn" id="k-bad">—<span class="u">%</span></div></div>
-      <div class="kpi"><div class="k">BAD_HEAVY</div><div class="v err" id="k-bad-heavy">—<span class="u">%</span></div></div>
-      <div class="kpi"><div class="k">Photo coverage</div><div class="v" id="k-cov">—<span class="u">%</span></div></div>
+      <div class="kpi">
+        <div class="k">Units</div><div class="v" id="k-units">—</div>
+        <div class="n" id="n-units">awaiting data</div>
+      </div>
+      <div class="kpi">
+        <div class="k">OK</div><div class="v ok" id="k-ok">—<span class="u">%</span></div>
+        <div class="n" id="n-ok">awaiting data</div>
+      </div>
+      <div class="kpi">
+        <div class="k">BAD</div><div class="v warn" id="k-bad">—<span class="u">%</span></div>
+        <div class="n" id="n-bad">awaiting data</div>
+      </div>
+      <div class="kpi">
+        <div class="k">BAD_HEAVY</div><div class="v err" id="k-bad-heavy">—<span class="u">%</span></div>
+        <div class="n" id="n-bad-heavy">awaiting data</div>
+      </div>
+      <div class="kpi">
+        <div class="k">Photo coverage</div><div class="v" id="k-cov">—<span class="u">%</span></div>
+        <div class="n" id="n-cov">awaiting data</div>
+      </div>
     </div>
 
     <div class="panel">
-      <h2>OK% — last 30 days</h2>
+      <!-- The series is the last 30 *runs*, not 30 calendar days: the agent does
+           not run every day, and with two archived runs a month apart the old
+           heading claimed a window the data does not cover. -->
+      <h2>OK% — last 30 runs</h2>
       <svg class="spark" id="sparkline" viewBox="0 0 800 60" preserveAspectRatio="none"></svg>
       <div class="spark-labels">
         <span id="spark-start">—</span>
@@ -163,8 +333,15 @@
       </div>
     </div>
 
+    <!-- The photos only exist inside the run's workbook, so this panel is read
+         back out of the report rather than from a separate store. -->
     <div class="panel">
-      <h2>Recent runs</h2>
+      <h2>Operator photos — <span id="photo-date">—</span></h2>
+      <div id="photo-body"><p class="muted" style="font-size:12px">Select a run below.</p></div>
+    </div>
+
+    <div class="panel">
+      <h2>Recent runs <span class="muted" style="text-transform:none;letter-spacing:0">— select a row to inspect that run</span></h2>
       <table>
         <thead>
           <tr>
@@ -185,8 +362,51 @@
   </div>
 
   <script>
+    /* ── Session gate ─────────────────────────── */
+    let SESSION = null;
+    try {
+      SESSION = JSON.parse(localStorage.getItem('omnia.session') || 'null');
+      if (!SESSION || SESSION.tenant !== 'comer' || SESSION.expiresAt <= Date.now()) window.location.replace('/login');
+    } catch { window.location.replace('/login'); }
+
     const $ = (id) => document.getElementById(id);
     const pct = (n) => (n == null || Number.isNaN(n)) ? '—' : Math.round(n) + '%';
+    let CAPS = { canTrigger: false, canEmail: false, recipientCount: 0 };
+
+    /* ── KPI notes and the busy indicator ─────── */
+    const NOTES = ['n-units', 'n-ok', 'n-bad', 'n-bad-heavy', 'n-cov'];
+    let notesBeforeBusy = null;   // non-null only while a busy label is showing
+
+    /* While the busy label is showing, note writes are held rather than applied:
+       a reload finishing mid-operation would otherwise flicker the real figures
+       in behind the label, and then be overwritten when the label clears. */
+    function setNote(id, text) {
+      const held = notesBeforeBusy ? NOTES.indexOf(id) : -1;
+      if (held >= 0) notesBeforeBusy[held] = text;
+      else $(id).textContent = text;
+    }
+
+    /** Announce work on the cards it affects; pass null when it finishes. On
+     *  clear the held notes are flushed, which is either what the reload wrote
+     *  or — if the operation failed before reloading — what was there before,
+     *  so the cards never stay stuck on a verb. */
+    function setBusy(label) {
+      const kpis = $('kpis');
+      if (!label) {
+        delete kpis.dataset.busy;
+        // Drop the hold *before* flushing, or setNote routes the flush straight
+        // back into the snapshot it came from and the DOM never updates.
+        const held = notesBeforeBusy;
+        notesBeforeBusy = null;
+        if (held) NOTES.forEach((id, i) => setNote(id, held[i]));
+        return;
+      }
+      if (!notesBeforeBusy) notesBeforeBusy = NOTES.map((id) => $(id).textContent);
+      kpis.dataset.busy = '';
+      // Written straight to the DOM: the label *is* the display while busy, so it
+      // must not go through setNote's hold, which exists to defer data notes.
+      NOTES.forEach((id) => ($(id).textContent = label));
+    }
 
     function toast(msg, kind='') {
       const t = document.createElement('div');
@@ -196,41 +416,129 @@
       setTimeout(() => t.remove(), 5000);
     }
 
-    async function loadDashboard() {
-      const [latestR, runsR, tsR] = await Promise.all([
-        fetch('/api/reshim/latest').then(r => r.json()),
+    /* ── Run selection ────────────────────────── */
+    /* Every figure on the page describes one run, so the page keeps that run in
+       one place and renders from it. The table is the control; the newest run is
+       the default because that is the question people arrive with. */
+    let RUNS = [];
+    let SELECTED = null;              // date string
+    const DETAIL = new Map();         // date -> detail payload, or { error }
+
+    async function loadDashboard(prefer) {
+      const [runsR, tsR] = await Promise.all([
         fetch('/api/reshim/runs?limit=30').then(r => r.json()),
         fetch('/api/reshim/timeseries?days=30').then(r => r.json()),
       ]);
 
-      // Header + KPIs
-      const latest = latestR.run;
+      RUNS = runsR.runs || [];
+      renderSparkline(tsR.points || []);
+      renderTable();
+
+      // Hold the selection across a refresh when that run is still listed.
+      // A just-finished trigger passes its date so the new run is selected.
+      const keep = (prefer && RUNS.some(r => r.date === prefer)) ? prefer
+                 : RUNS.some(r => r.date === SELECTED) ? SELECTED
+                 : (RUNS[0] || {}).date || null;
+      await selectRun(keep);
+    }
+
+    async function selectRun(date) {
+      SELECTED = date;
+      for (const tr of $('runs-tbody').querySelectorAll('tr[data-date]')) {
+        tr.setAttribute('aria-selected', String(tr.dataset.date === date));
+      }
+      renderRun(RUNS.find(r => r.date === date) || null);
+      await renderPhotos(date);
+    }
+
+    function renderTable() {
+      const tbody = $('runs-tbody');
+      tbody.innerHTML = '';
+      RUNS.forEach(r => {
+        const tr = document.createElement('tr');
+        const s = r.summary;
+        const incl = s ? (s.ok + s.bad + s.bad_heavy) : 0;
+        const okPct = incl ? (100 * s.ok / incl) : null;
+        const emailChip = r.emailStatus === 'sent' ? `sent to ${r.emailRecipients.length}` :
+                         r.emailStatus === 'failed' ? 'failed' :
+                         r.emailStatus === 'skipped' ? '—' : '';
+        // Real and sample runs now sit in one table — the archive keeps real
+        // reports on dates the seeding window also covers — so each row says
+        // which it is rather than leaving the header chip to speak for all of them.
+        tr.className = 'pick';
+        tr.dataset.date = r.date;
+        tr.tabIndex = 0;
+        tr.setAttribute('aria-selected', String(r.date === SELECTED));
+        tr.innerHTML = `
+          <td>${r.date}${r.mock ? ' <span class="row-mock">sample</span>' : ''}</td>
+          <td class="num">${incl}</td>
+          <td class="num">${okPct == null ? '—' : okPct.toFixed(1) + '%'}</td>
+          <td class="num">${s ? s.bad : 0}</td>
+          <td class="num">${s ? s.bad_heavy : 0}</td>
+          <td>${emailChip}</td>
+          <td>${r.hasReport ? `<a href="/api/reshim/runs/${r.date}/report">xlsx</a>` : '<span class="muted">—</span>'}</td>
+        `;
+        tr.addEventListener('click', (e) => {
+          // Let the download link do its own job.
+          if (e.target.closest('a')) return;
+          selectRun(r.date);
+        });
+        tr.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectRun(r.date); }
+        });
+        tbody.appendChild(tr);
+      });
+      if (tbody.children.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty">' +
+          'No runs yet — the daily workflow publishes here once it has run.</td></tr>';
+      }
+    }
+
+    /** Header, KPIs and the variant alert for one run; null clears them. */
+    function renderRun(latest) {
       if (!latest || !latest.summary) {
         $('status-chip').textContent = 'no runs yet';
         $('status-chip').className = 'chip warn';
+        // Hidden rather than blanked: an empty chip still draws its border.
         $('date-chip').textContent = '';
+        $('date-chip').hidden = true;
+        $('mock-chip').hidden = true;
+        $('k-units').textContent = '—';
+        $('k-ok').firstChild.data = '—';
+        $('k-bad').firstChild.data = '—';
+        $('k-bad-heavy').firstChild.data = '—';
+        $('k-cov').firstChild.data = '—';
+        NOTES.forEach((id) => setNote(id, 'no runs'));
+        $('alert-variants').innerHTML = '<li class="muted">No runs yet.</li>';
       } else {
         const s = latest.summary;
         const incl = s.ok + s.bad + s.bad_heavy;
         const okPct = incl > 0 ? (100 * s.ok / incl) : null;
         const badPct = incl > 0 ? (100 * s.bad / incl) : null;
         const bhPct = incl > 0 ? (100 * s.bad_heavy / incl) : null;
-        // Coverage: SNs with photos / total analyzed
-        // (approx from the workbook — better to expose from Python but we can compute from summary counts)
         $('k-units').textContent = incl;
         $('k-ok').firstChild.data = okPct == null ? '—' : okPct.toFixed(1);
         $('k-bad').firstChild.data = badPct == null ? '—' : badPct.toFixed(1);
         $('k-bad-heavy').firstChild.data = bhPct == null ? '—' : bhPct.toFixed(1);
-        $('k-cov').firstChild.data = '—'; // filled server-side later if we surface it
+        // Coverage comes from the workbook, so renderPhotos fills it in.
 
-        $('status-chip').textContent = latest.emailStatus === 'sent' ? '✓ emailed' :
-                                       latest.emailStatus === 'failed' ? '✗ email failed' :
-                                       latest.emailStatus === 'skipped' ? '⊘ email skipped' : 'no email';
+        // Each percentage gets its count and denominator, so a reader is not
+        // left converting "7.9%" back into units in their head.
+        setNote('n-units', s.excluded > 0 ? `${s.excluded} excluded` : 'none excluded');
+        setNote('n-ok', `${s.ok} of ${incl}`);
+        setNote('n-bad', `${s.bad} of ${incl}`);
+        setNote('n-bad-heavy', `${s.bad_heavy} of ${incl}`);
+
+        $('status-chip').textContent = latest.emailStatus === 'sent' ? 'emailed' :
+                                       latest.emailStatus === 'failed' ? 'email failed' :
+                                       latest.emailStatus === 'skipped' ? 'email skipped' : 'no email';
         $('status-chip').className = 'chip ' + (
           latest.emailStatus === 'sent' ? 'ok' :
           latest.emailStatus === 'failed' ? 'err' : 'warn'
         );
         $('date-chip').textContent = latest.date;
+        $('date-chip').hidden = false;
+        $('mock-chip').hidden = !latest.mock;
 
         // High-BAD variants
         const variantsUl = $('alert-variants');
@@ -243,46 +551,172 @@
         });
         if (variantsUl.children.length === 0) variantsUl.innerHTML = '<li class="muted">None ≥30% BAD — all families healthy today.</li>';
       }
+    }
 
-      // Sparkline
-      const points = tsR.points || [];
-      renderSparkline(points);
+    /* ── Operator photos ──────────────────────── */
+    /* Read back out of the selected run's workbook, which is the only place the
+       photos exist. Cards are added a page at a time: the August run carries
+       1187 photos across 351 serial numbers, and rendering that in one go buys
+       nobody anything. */
+    const PAGE = 12;
+    let shown = 0;
 
-      // Runs table
-      const tbody = $('runs-tbody');
-      tbody.innerHTML = '';
-      (runsR.runs || []).forEach(r => {
-        const tr = document.createElement('tr');
-        const s = r.summary;
-        const incl = s ? (s.ok + s.bad + s.bad_heavy) : 0;
-        const okPct = incl ? (100 * s.ok / incl) : null;
-        const emailChip = r.emailStatus === 'sent' ? `✓ ${r.emailRecipients.length}` :
-                         r.emailStatus === 'failed' ? '✗ failed' :
-                         r.emailStatus === 'skipped' ? '—' : '';
-        tr.innerHTML = `
-          <td>${r.date}</td>
-          <td class="num">${incl}</td>
-          <td class="num">${okPct == null ? '—' : okPct.toFixed(1) + '%'}</td>
-          <td class="num">${s ? s.bad : 0}</td>
-          <td class="num">${s ? s.bad_heavy : 0}</td>
-          <td>${emailChip}</td>
-          <td>${r.hasReport ? `<a href="/api/reshim/runs/${r.date}/report">⬇ xlsx</a>` : '<span class="muted">—</span>'}</td>
-        `;
-        tbody.appendChild(tr);
+    const STATUS_CLASS = { OK: 'ok', BAD: 'bad', BAD_HEAVY: 'heavy' };
+
+    async function renderPhotos(date) {
+      const body = $('photo-body');
+      $('photo-date').textContent = date || '—';
+
+      if (!date) {
+        body.innerHTML = '<p class="muted" style="font-size:12px">No run selected.</p>';
+        setNote('n-cov', 'no runs');
+        $('k-cov').firstChild.data = '—';
+        $('alert-missing').innerHTML = '<li class="muted">No runs yet.</li>';
+        return;
+      }
+
+      let d = DETAIL.get(date);
+      if (!d) {
+        body.innerHTML = '<p class="muted" style="font-size:12px">Reading the workbook…</p>';
+        try {
+          const r = await fetch(`/api/reshim/runs/${date}/detail`);
+          d = r.ok ? await r.json() : { error: (await r.json().catch(() => ({}))).error || `HTTP ${r.status}` };
+        } catch (e) {
+          d = { error: e.message };
+        }
+        DETAIL.set(date, d);
+      }
+      // A slower fetch must not overwrite a run selected since.
+      if (SELECTED !== date) return;
+
+      if (d.error) {
+        body.innerHTML = `<p class="muted" style="font-size:12px">No photos for this run — ${d.error}.</p>`;
+        $('k-cov').firstChild.data = '—';
+        setNote('n-cov', 'no workbook');
+        $('alert-missing').innerHTML = '<li class="muted">No workbook for this run.</li>';
+        return;
+      }
+
+      $('k-cov').firstChild.data = d.coverage == null ? '—' : d.coverage.toFixed(1);
+      setNote('n-cov', d.units ? `${d.withPhotos} of ${d.units} SNs` : 'no rows');
+
+      // Missing photos, named. The alert used to point at the xlsx; the serial
+      // numbers are the actionable part, so list them and cap the list.
+      const missUl = $('alert-missing');
+      missUl.innerHTML = '';
+      if (d.problem) {
+        missUl.innerHTML = `<li class="muted">Report format not recognised — ${d.problem}.</li>`;
+      } else if (d.missing.length === 0) {
+        missUl.innerHTML = '<li class="muted">Every serial number has at least one photo.</li>';
+      } else {
+        d.missing.slice(0, 6).forEach(sn => {
+          const li = document.createElement('li');
+          li.innerHTML = `<span class="badge warn">no photo</span><span style="font-family:var(--mono);font-size:11px">${sn}</span>`;
+          missUl.appendChild(li);
+        });
+        if (d.missing.length > 6) {
+          const li = document.createElement('li');
+          li.className = 'muted';
+          li.textContent = `and ${d.missing.length - 6} more of ${d.units}`;
+          missUl.appendChild(li);
+        }
+      }
+
+      // Gallery
+      if (d.problem) {
+        body.innerHTML = `<p class="muted" style="font-size:12px">This report's format could not be read — ${d.problem}. The workbook itself still downloads.</p>`;
+        return;
+      }
+      const withPhotos = d.items.filter(i => i.photos.length > 0);
+      if (withPhotos.length === 0) {
+        body.innerHTML = '<p class="muted" style="font-size:12px">' +
+          (d.units ? 'No operator photos in this report.' : 'This report has no rows.') + '</p>';
+        return;
+      }
+
+      body.innerHTML = '<div class="sn-grid" id="sn-grid"></div><div class="photo-foot" id="photo-foot"></div>';
+      shown = 0;
+      appendCards(date, withPhotos);
+    }
+
+    function appendCards(date, withPhotos) {
+      const d = DETAIL.get(date);
+      const grid = $('sn-grid');
+      const slice = withPhotos.slice(shown, shown + PAGE);
+      slice.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'sn-card';
+        const st = STATUS_CLASS[item.status] || '';
+        const over = item.matched != null && item.matched > item.photos.length
+          ? `<div class="over">showing ${item.photos.length} of ${item.matched} matched</div>` : '';
+        card.innerHTML =
+          `<div class="sn-head"><span class="sn">${item.sn}</span>` +
+          `<span class="fam">${item.family ? 'fam ' + item.family : ''}</span>` +
+          `<span class="st ${st}">${item.status || 'n/a'}</span></div>` +
+          `<div class="thumbs"></div>${over}`;
+        const thumbs = card.querySelector('.thumbs');
+        item.photos.forEach(p => {
+          const img = document.createElement('img');
+          img.className = 'thumb' + (p.kind === 'tag' ? ' tag' : '');
+          img.loading = 'lazy';
+          img.width = 64; img.height = 64;
+          img.src = `/api/reshim/runs/${date}/photos/${p.id}` + (d && d.rev ? `?v=${encodeURIComponent(d.rev)}` : '');
+          img.alt = `${p.kind === 'tag' ? 'Serial number label' : 'Process photo'} for ${item.sn}`;
+          img.tabIndex = 0;
+          img.addEventListener('click', () => lightbox(img.src, item, p));
+          img.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); lightbox(img.src, item, p); }
+          });
+          thumbs.appendChild(img);
+        });
+        grid.appendChild(card);
       });
-      if (tbody.children.length === 0) tbody.innerHTML = '<tr><td colspan="7" class="empty">No runs yet.</td></tr>';
+      shown += slice.length;
 
-      // "Missing photos" alert — for now, count from summary (better if surfaced explicitly by pipeline)
-      $('alert-missing').innerHTML = '<li class="muted">See per-run xlsx for exact SNs missing photos.</li>';
+      const foot = $('photo-foot');
+      const more = withPhotos.length - shown;
+      foot.innerHTML =
+        `<span>${d.photoCount} photos · ${withPhotos.length} serial numbers · showing ${shown}</span>` +
+        (more > 0 ? `<button id="more-btn">Show ${Math.min(PAGE, more)} more</button>` : '') +
+        '<span class="legend"><span><i class="tag"></i>SN label (OCR source)</span>' +
+        '<span><i></i>process photo</span></span>';
+      if (more > 0) {
+        $('more-btn').addEventListener('click', () => appendCards(date, withPhotos));
+      }
+    }
+
+    /** Full view of one photo. The stored copy is a 200px thumbnail. */
+    function lightbox(src, item, photo) {
+      const box = document.createElement('div');
+      box.className = 'lightbox';
+      box.innerHTML =
+        `<img src="${src}" alt="${photo.kind === 'tag' ? 'Serial number label' : 'Process photo'} for ${item.sn}" />` +
+        `<div class="cap"><b>${item.sn}</b> · ${photo.kind === 'tag' ? 'SN label, read by OCR' : 'process photo'}` +
+        `${item.family ? ' · family ' + item.family : ''}${item.status ? ' · ' + item.status : ''}` +
+        `${item.backlash != null ? ' · backlash ' + item.backlash.toFixed(2) + ' mm' : ''}</div>` +
+        '<div class="hint">Click anywhere or press Escape to close</div>';
+      const close = () => { box.remove(); document.removeEventListener('keydown', onKey); };
+      const onKey = (e) => { if (e.key === 'Escape') close(); };
+      box.addEventListener('click', close);
+      document.addEventListener('keydown', onKey);
+      document.body.appendChild(box);
     }
 
     function renderSparkline(points) {
       const svg = $('sparkline');
       svg.innerHTML = '';
       const W = 800, H = 60, pad = 4;
-      if (points.length === 0) return;
+      if (points.length === 0) {
+        $('spark-start').textContent = '—';
+        $('spark-end').textContent = '—';
+        return;
+      }
       const values = points.map(p => p.ok_pct).filter(v => v != null);
-      if (values.length === 0) return;
+      if (values.length === 0) {
+        $('spark-start').textContent = '—';
+        $('spark-end').textContent = '—';
+        return;
+      }
       const minV = 0;   // fix scale 0-100 so day-to-day changes are honest
       const maxV = 100;
       const stepX = (W - 2*pad) / Math.max(1, points.length - 1);
@@ -297,6 +731,9 @@
       const y90 = H - pad - (90/100) * (H - 2*pad);
       const axis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
       axis.setAttribute('class','axis');
+      // A dashed reference rule, deliberately at hairline contrast like the
+      // page's other dividers — exempt from the contrast audit.
+      axis.setAttribute('data-decorative','');
       axis.setAttribute('x1', pad); axis.setAttribute('x2', W - pad);
       axis.setAttribute('y1', y90); axis.setAttribute('y2', y90);
       axis.setAttribute('stroke-dasharray','2,3');
@@ -317,32 +754,85 @@
       $('spark-end').textContent = coords[coords.length - 1].d;
     }
 
-    $('refresh-btn').addEventListener('click', () => loadDashboard());
+    $('refresh-btn').addEventListener('click', () =>
+      withBusy($('refresh-btn'), 'refreshing', () => { DETAIL.clear(); return loadDashboard(); }));
 
-    $('run-btn').addEventListener('click', async () => {
-      const btn = $('run-btn');
-      if (btn.classList.contains('running')) return;
-      btn.classList.add('running');
-      btn.textContent = '⏳ Running…';
-      try {
-        const r = await fetch('/api/reshim/trigger', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
-        const j = await r.json();
-        if (j.ok) {
-          toast('Run complete — refreshing…', 'ok');
-          await loadDashboard();
-        } else {
-          const err = j.result?.stderr?.slice(-200) || j.error || 'unknown error';
-          toast('Run failed: ' + err, 'err');
+    $('run-btn').addEventListener('click', () => {
+      const alsoEmail = $('also-email-cb').checked;
+      if (alsoEmail && !confirm('This will email the Comer recipients now. Continue?')) return;
+
+      withBusy($('run-btn'), 'running', async () => {
+        try {
+          // Runs email by default; the checkbox is the opt-out.
+          const body = JSON.stringify({ skipEmail: !alsoEmail });
+          const r = await fetch('/api/reshim/trigger', { method: 'POST', headers: {'Content-Type':'application/json'}, body });
+          const j = await r.json();
+          if (j.ok) {
+            toast('Run complete.', 'ok');
+            DETAIL.clear();
+            await loadDashboard(j.result && j.result.dateStr);
+          } else {
+            // Prefer the server's own sentence; fall back to the line of the
+            // traceback that names the cause rather than its last 200 characters.
+            const trace = j.result?.stderr?.trim().split('\n').map(l => l.trim()).filter(Boolean) || [];
+            const cause = trace.reverse().find(l => /^[A-Za-z_.]*(Error|Exception)\b/.test(l));
+            toast('Run failed: ' + (j.error || cause || 'unknown error'), 'err');
+          }
+        } catch (e) {
+          toast('Trigger error: ' + e.message, 'err');
         }
-      } catch (e) {
-        toast('Trigger error: ' + e.message, 'err');
-      } finally {
-        btn.classList.remove('running');
-        btn.textContent = '▶ Run now';
-      }
+      });
     });
 
-    loadDashboard();
+    /* Computing a report and sending one are separate abilities. The cloud host
+       has no Python agent and no route to the plant, so it cannot run anything —
+       but it holds mail credentials, so it can still send. Reflect each one on
+       its own control instead of greying out both because the agent is absent. */
+    async function applyCapabilities() {
+      try {
+        CAPS = await fetch('/api/reshim/capabilities').then(r => r.json());
+      } catch { return; }
+
+      /* The Python agent carries its own mail config, so a host that can run is
+         assumed able to send even when the Node process has no credentials of
+         its own; only disable when neither path could possibly deliver. */
+      const canDeliver = CAPS.canEmail || CAPS.canTrigger;
+      $('email-toggle').classList.toggle('is-off', !canDeliver);
+      $('also-email-cb').disabled = !canDeliver;
+      $('email-toggle').title = canDeliver
+        ? `Sends to the ${CAPS.recipientCount || 'configured'} recipient(s). Untick to produce the report without sending.`
+        : 'No mail credentials on this host: ' + (CAPS.emailReason || 'unavailable');
+
+      if (CAPS.canTrigger) return;
+      $('run-btn').disabled = true;
+      $('run-btn').title = CAPS.reason || 'This host cannot run the agent';
+
+      const note = $('trigger-note');
+      note.innerHTML =
+        '<span>Runs cannot be started from here — this host has no Python agent ' +
+        'and no route to the plant network. The daily workflow runs the analysis ' +
+        'and publishes results to this dashboard.</span>' +
+        '<span class="reason">' + (CAPS.reason || 'toolchain unavailable') + '</span>';
+      note.hidden = false;
+    }
+
+    /** Dim the button that started the work and name the work on the KPI cards.
+     *  The button keeps its label: it says what it does, not what it is doing. */
+    async function withBusy(btn, label, fn) {
+      if (btn.classList.contains('running')) return;
+      btn.classList.add('running');
+      setBusy(label);
+      try {
+        await fn();
+      } finally {
+        btn.classList.remove('running');
+        setBusy(null);
+      }
+    }
+
+    setBusy('loading');
+    loadDashboard().finally(() => setBusy(null));
+    applyCapabilities();
   </script>
 </body>
 </html>

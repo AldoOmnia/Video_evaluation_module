@@ -552,7 +552,7 @@
       <span class="ico">◈</span> Home · Chat
     </button>
     <a class="nav-item" href="/knowledge/">
-      <span class="ico">⬡</span> Knowledge base <span class="ext">↗</span>
+      <span class="ico">◇</span> Knowledge base <span class="ext">↗</span>
     </a>
     <button class="nav-item" data-nav-line>
       <span class="ico">◉</span> <span data-i18n="home.navLiveLine">Live line</span>
@@ -568,7 +568,7 @@
       <span class="ico">◳</span> Eval Lab · PG-04 <span class="ext">↗</span>
     </a>
     <a class="nav-item" href="/synthetic-pov?zone=1">
-      <span class="ico">✦</span> Digital twin <span class="ext">↗</span>
+      <span class="ico">◎</span> Digital twin <span class="ext">↗</span>
     </a>
     <div class="nav-foot">
       <a class="nav-item" href="/settings/">
@@ -610,7 +610,7 @@
       <div class="chat-attach-preview" id="chat-preview">
         <img id="chat-preview-img" alt="" />
         <span id="chat-preview-name"></span>
-        <button type="button" id="chat-preview-x" data-i18n-title="home.removeImage" title="Remove image" aria-label="Remove image">✕</button>
+        <button type="button" id="chat-preview-x" data-i18n-title="home.removeImage" title="Remove image" aria-label="Remove image">×</button>
       </div>
       <form class="chat-form" id="chat-form">
         <input id="chat-input" type="text" autocomplete="off" data-i18n-ph="home.chatPh"
@@ -981,7 +981,7 @@
         '<div class="rich">' +
           '<div class="rich-h"><span>' + esc(T('home.liveLine', 'Live line')) + ' · ' + esc(s.station_id || 'PG-04') + '</span>' +
           '<span class="chip ' + (live
-            ? 'live">' + esc(T('home.mesConnectedChip', 'MES connected ✓'))
+            ? 'live">' + esc(T('home.mesConnectedChip', 'MES connected'))
             : 'stub">' + esc(d.degraded === 'reconnecting'
                 ? T('home.reconnecting', 'reconnecting')
                 : T('home.demoData', 'demo data'))) + '</span></div>' +
@@ -1064,7 +1064,7 @@
         const reconnecting = !live && d.degraded === 'reconnecting';
         const st = document.getElementById('mes-state');
         st.className = 'mes-state ' + (live ? 'ok' : 'demo');
-        document.getElementById('mes-state-ico').textContent = live ? '✓' : '●';
+        document.getElementById('mes-state-ico').textContent = live ? '●' : '○';
         document.getElementById('mes-state-txt').textContent = live
           ? T('home.mesConnected', 'MES connected')
           : reconnecting

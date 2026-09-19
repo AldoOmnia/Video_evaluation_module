@@ -5,22 +5,32 @@
  *   GET  /api/reshim/runs?limit=30      list historical runs (default 30)
  *   GET  /api/reshim/timeseries?days=30 OK% per day for the sparkline
  *   GET  /api/reshim/runs/:date/report  download the xlsx for a specific day
+ *   GET  /api/reshim/capabilities       whether this host can run / can email
  *   POST /api/reshim/trigger            run the Python pipeline now
+ *   POST /api/reshim/runs               ingest a run produced on another host
  *
- * Trigger is guarded: only one run at a time.
+ * Trigger is guarded: only one run at a time, and only where the Python
+ * toolchain exists. Ingest is guarded by a bearer token.
  */
 import { Router } from "express";
 import { existsSync, statSync, createReadStream } from "node:fs";
 import { basename } from "node:path";
+import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 
 import {
   latestRun,
   listRuns,
   okPctTimeseries,
+  probeToolchain,
   runReportPath,
+  saveIngestedRun,
   triggerRun,
 } from "../services/reshim.js";
+import { sendRunReport } from "../services/reshim-email.js";
+import { runDetail, runPhoto } from "../services/reshim-detail.js";
+import { mailCapability } from "../services/mail.js";
+import { requireSession } from "./auth.js";
 
 export const reshimRouter = Router();
 
@@ -57,6 +67,101 @@ reshimRouter.get("/runs/:date/report", (req, res) => {
   createReadStream(path).pipe(res);
 });
 
+reshimRouter.get("/capabilities", async (_req, res, next) => {
+  try {
+    const t = await probeToolchain();
+    const m = mailCapability();
+    res.json({
+      ok: true,
+      canTrigger: t.canTrigger,
+      reason: t.reason,
+      // Emailing is independent of running: the cloud host cannot compute a
+      // report but can perfectly well send one, so the two are reported apart.
+      canEmail: m.canSend,
+      emailReason: m.reason,
+      recipientCount: m.recipients.length,
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/* ── Per-run detail and photos ────────────────────────────────────────── */
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * The rows behind a run, with the photos anchored to each serial number. Read
+ * out of the run's own workbook; see reshim-detail.ts for why that is the only
+ * source.
+ */
+reshimRouter.get("/runs/:date/detail", async (req, res, next) => {
+  try {
+    if (!DATE_RE.test(req.params.date)) {
+      return res.status(400).json({ ok: false, error: "date must be YYYY-MM-DD" });
+    }
+    const detail = await runDetail(req.params.date);
+    if (!detail) return res.status(404).json({ ok: false, error: "no report for that date" });
+    res.json({ ok: true, ...detail });
+  } catch (e) {
+    next(e);
+  }
+});
+
+reshimRouter.get("/runs/:date/photos/:id", async (req, res, next) => {
+  try {
+    if (!DATE_RE.test(req.params.date) || !/^\d+-\d+$/.test(req.params.id)) {
+      return res.status(400).json({ ok: false, error: "bad date or photo id" });
+    }
+    const photo = await runPhoto(req.params.date, req.params.id);
+    if (!photo) return res.status(404).json({ ok: false, error: "no such photo" });
+
+    // A given workbook's photo never changes, so let the browser keep it: a
+    // gallery of several hundred thumbnails should not re-fetch on every redraw.
+    // The URL carries a workbook rev so a replaced run is a new cache key.
+    res.setHeader("Content-Type", photo.type);
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res.setHeader("Content-Length", String(photo.buf.length));
+    res.end(photo.buf);
+  } catch (e) {
+    next(e);
+  }
+});
+
+const EmailBody = z.object({
+  /** Override the distribution list, e.g. to send a real report to yourself first. */
+  to: z.array(z.string().email()).min(1).optional(),
+});
+
+/**
+ * Email the report for a run that already exists. The daily workflow sends its
+ * own report as it finishes; this covers a run that was produced elsewhere —
+ * an archived one, or one whose send failed at the time.
+ */
+reshimRouter.post("/runs/:date/email", requireSession, async (req, res, next) => {
+  try {
+    const date = req.params.date;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ ok: false, error: "date must be YYYY-MM-DD" });
+    }
+    const m = mailCapability();
+    if (!m.canSend) {
+      return res.status(503).json({ ok: false, error: `Cannot send mail: ${m.reason}` });
+    }
+    const body = EmailBody.parse(req.body ?? {});
+    const result = await sendRunReport(date, { to: body.to });
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    if (e instanceof Error && /^no run for|has no summary/.test(e.message)) {
+      return res.status(404).json({ ok: false, error: e.message });
+    }
+    if (e instanceof Error && /Graph|token request/.test(e.message)) {
+      return res.status(502).json({ ok: false, error: e.message });
+    }
+    next(e);
+  }
+});
+
 /* ── Trigger a run (single-flight) ────────────────────────────────────── */
 
 let inflight: Promise<unknown> | null = null;
@@ -77,6 +182,16 @@ reshimRouter.post("/trigger", async (req, res, next) => {
     });
   }
   try {
+    // Fail with a sentence rather than letting the UI print a Python traceback
+    // on hosts that were never provisioned to run the agent.
+    const t = await probeToolchain();
+    if (!t.canTrigger) {
+      return res.status(503).json({
+        ok: false,
+        error: `This host cannot run the reshim agent (${t.reason}). ` +
+          "Runs happen on the plant network via the daily workflow.",
+      });
+    }
     const body = TriggerBody.parse(req.body ?? {});
     lastTriggered = Date.now();
     const runP = triggerRun({
@@ -91,6 +206,73 @@ reshimRouter.post("/trigger", async (req, res, next) => {
     res.status(result.ok ? 200 : 502).json({ ok: result.ok, result });
   } catch (e) {
     inflight = null;
+    next(e);
+  }
+});
+
+/* ── Ingest a run from the host that produced it ───────────────────────── */
+
+const IngestBody = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  summary: z.object({
+    total: z.number(),
+    excluded: z.number(),
+    ok: z.number(),
+    bad: z.number(),
+    bad_heavy: z.number(),
+    unknown_family: z.number(),
+    by_family: z.record(z.record(z.number())),
+    by_variant: z.record(z.record(z.number())),
+    high_bad_variants: z.array(
+      z.object({ variant: z.string(), n: z.number(), bad_pct: z.number() }),
+    ),
+  }),
+  email: z
+    .object({
+      status: z.number(),
+      recipients: z.array(z.string()),
+      subject: z.string(),
+    })
+    .nullish(),
+  report: z
+    .object({ name: z.string().max(200), base64: z.string() })
+    .nullish(),
+  mock: z.boolean().optional(),
+});
+
+/** Constant-time bearer check against RESHIM_INGEST_TOKEN. Unset means the
+ *  endpoint is closed rather than open — this route writes to disk, and no
+ *  other endpoint here is authenticated, so it must not default to allowing. */
+function ingestAuthorized(header: string | undefined): boolean {
+  const expected = process.env.RESHIM_INGEST_TOKEN?.trim();
+  if (!expected) return false;
+  const got = header?.replace(/^Bearer\s+/i, "").trim() ?? "";
+  const a = Buffer.from(got);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+reshimRouter.post("/runs", (req, res, next) => {
+  if (!process.env.RESHIM_INGEST_TOKEN?.trim()) {
+    return res.status(503).json({ ok: false, error: "ingest is not configured on this host" });
+  }
+  if (!ingestAuthorized(req.headers.authorization)) {
+    return res.status(401).json({ ok: false, error: "invalid ingest token" });
+  }
+  try {
+    const body = IngestBody.parse(req.body ?? {});
+    const { wrote } = saveIngestedRun({
+      dateStr: body.date,
+      summary: body.summary,
+      email: body.email ?? null,
+      report: body.report ?? null,
+      mock: body.mock ?? false,
+    });
+    res.json({ ok: true, date: body.date, wrote });
+  } catch (e) {
+    if (e instanceof Error && e.message.includes("report.name")) {
+      return res.status(400).json({ ok: false, error: e.message });
+    }
     next(e);
   }
 });
