@@ -165,8 +165,9 @@ reshimRouter.get("/runs/:date/photos/:id", async (req, res, next) => {
     const photo = await runPhoto(req.params.date, req.params.id);
     if (!photo) return res.status(404).json({ ok: false, error: "no such photo" });
 
-    // A given run's photo never changes, so let the browser keep it: a gallery
-    // of several hundred thumbnails should not re-fetch on every redraw.
+    // A given workbook's photo never changes, so let the browser keep it: a
+    // gallery of several hundred thumbnails should not re-fetch on every redraw.
+    // The URL carries a workbook rev so a replaced run is a new cache key.
     res.setHeader("Content-Type", photo.type);
     res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
     res.setHeader("Content-Length", String(photo.buf.length));

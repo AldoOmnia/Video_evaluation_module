@@ -15,11 +15,18 @@
  *
  * Hence: namespace prefixes are stripped before matching, both anchor kinds are
  * accepted, rel targets are normalised, and columns are located by header name
- * instead of by position (the oldest layout has 23 columns, not 21). A workbook
+ * instead of by position (the oldest layout has 23 columns, not 21). Sample
+ * workbooks put a banner in row 1 and titles such as `Serial number` later;
+ * the header is the first row that names a serial-number column. A workbook
  * this cannot make sense of reports zero photos *and* says why, so the dashboard
  * can tell "no photos taken" apart from "cannot read this report".
  */
 import JSZip from "jszip";
+
+/** True when `source` is an already-opened archive, not the raw xlsx bytes. */
+function isOpenZip(source: Buffer | JSZip): source is JSZip {
+  return typeof (source as JSZip).files === "object" && typeof (source as JSZip).file === "function";
+}
 
 /** A photo anchored to a serial number's row. */
 export interface SheetPhoto {
@@ -199,17 +206,17 @@ async function readAnchors(zip: JSZip, sheetPath: string): Promise<Anchor[]> {
 
 /** Header names this needs, in the order the pipeline has ever written them. */
 const HEADER_ALIASES: Record<keyof Omit<SheetRow, "photos" | "matched">, string[]> = {
-  sn: ["Serial_Number", "SN", "Serial Number"],
+  sn: ["Serial_Number", "SN", "Serial Number", "Serial number"],
   partNumber: ["Internal_Part_Number", "Customer_Part_Number", "Part_Number"],
   family: ["Family"],
-  status: ["Backlash_Status", "Status"],
-  backlash: ["Backlash_avg_mm", "Backlash_Avg_mm", "Backlash_mm"],
+  status: ["Backlash_Status", "Status", "Result"],
+  backlash: ["Backlash_avg_mm", "Backlash_Avg_mm", "Backlash_mm", "Backlash (mm)"],
 };
 
-export async function readWorkbook(buf: Buffer): Promise<WorkbookRead> {
+export async function readWorkbook(source: Buffer | JSZip): Promise<WorkbookRead> {
   let zip: JSZip;
   try {
-    zip = await JSZip.loadAsync(buf);
+    zip = isOpenZip(source) ? source : await JSZip.loadAsync(source);
   } catch (e) {
     return { rows: [], problem: `not a readable xlsx (${(e as Error).message})` };
   }
@@ -230,15 +237,38 @@ export async function readWorkbook(buf: Buffer): Promise<WorkbookRead> {
   }
   if (rowCells.size < 2) return { rows: [], problem: "the data sheet has no rows" };
 
-  // Header row: lowest row number present, usually 1.
-  const headerRowNum = Math.min(...rowCells.keys());
-  const header = rowCells.get(headerRowNum)!;
+  const headerKey = (s: string) => s.trim().toLowerCase();
+  const snHeaders = new Set(HEADER_ALIASES.sn.map(headerKey));
+
+  // Header row: the first row that names a serial-number column. Archived
+  // reports put that in row 1; sample workbooks put a banner there.
+  let headerRowNum: number | null = null;
+  let header: Map<string, string> | undefined;
+  for (const [rowNum, cells] of [...rowCells].sort((a, b) => a[0] - b[0])) {
+    for (const text of cells.values()) {
+      if (snHeaders.has(headerKey(text))) {
+        headerRowNum = rowNum;
+        header = cells;
+        break;
+      }
+    }
+    if (header) break;
+  }
+  if (!header || headerRowNum == null) {
+    const first = rowCells.get(Math.min(...rowCells.keys()))!;
+    const found = [...first.values()].map((t) => t.trim()).filter(Boolean).slice(0, 6);
+    return {
+      rows: [],
+      problem: `no Serial_Number column (found: ${found.join(", ") || "no headers"})`,
+    };
+  }
+
   const byName = new Map<string, string>();
-  for (const [col, text] of header) byName.set(text.trim(), col);
+  for (const [col, text] of header) byName.set(headerKey(text), col);
 
   const col = (field: keyof typeof HEADER_ALIASES): string | null => {
     for (const name of HEADER_ALIASES[field]) {
-      const c = byName.get(name);
+      const c = byName.get(headerKey(name));
       if (c) return c;
     }
     return null;
@@ -247,14 +277,14 @@ export async function readWorkbook(buf: Buffer): Promise<WorkbookRead> {
   if (!snCol) {
     return {
       rows: [],
-      problem: `no Serial_Number column (found: ${[...byName.keys()].slice(0, 6).join(", ") || "no headers"})`,
+      problem: `no Serial_Number column (found: ${[...header.values()].map((t) => t.trim()).filter(Boolean).slice(0, 6).join(", ") || "no headers"})`,
     };
   }
 
   // Image columns, so a photo's column can be read as tag vs process. Falls
   // back to "leftmost anchored column is the tag shot", which is how every
   // generation has laid them out.
-  const tagCol = byName.get("Tag_Image") ?? null;
+  const tagCol = byName.get(headerKey("Tag_Image")) ?? null;
   const tagIdx = tagCol ? colIndex(tagCol) : null;
 
   const anchors = await readAnchors(zip, sheetPath);
@@ -270,7 +300,7 @@ export async function readWorkbook(buf: Buffer): Promise<WorkbookRead> {
 
   const rows: SheetRow[] = [];
   for (const [rowNum, cells] of [...rowCells].sort((a, b) => a[0] - b[0])) {
-    if (rowNum === headerRowNum) continue;
+    if (rowNum <= headerRowNum) continue;
     const sn = (cells.get(snCol) ?? "").trim();
     if (!sn) continue;
 
@@ -282,7 +312,7 @@ export async function readWorkbook(buf: Buffer): Promise<WorkbookRead> {
         seq: i,
       }));
 
-    const matchedCol = byName.get("Image_Count");
+    const matchedCol = byName.get(headerKey("Image_Count"));
     const matchedRaw = matchedCol ? cells.get(matchedCol) : undefined;
     const matched = matchedRaw == null || matchedRaw === "" ? null : Number(matchedRaw);
 
@@ -302,9 +332,10 @@ export async function readWorkbook(buf: Buffer): Promise<WorkbookRead> {
   return { rows, problem: null };
 }
 
-/** Read one media entry's bytes. */
-export async function readMedia(buf: Buffer, entry: string): Promise<Buffer | null> {
-  const zip = await JSZip.loadAsync(buf);
+/** Read one media entry's bytes. Accepts an already-open archive so a gallery
+ *  does not re-parse the whole xlsx for every thumbnail. */
+export async function readMedia(source: Buffer | JSZip, entry: string): Promise<Buffer | null> {
+  const zip = isOpenZip(source) ? source : await JSZip.loadAsync(source);
   const f = zip.file(entry);
   return f ? Buffer.from(await f.async("nodebuffer")) : null;
 }

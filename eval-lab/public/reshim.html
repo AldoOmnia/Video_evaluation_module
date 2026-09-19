@@ -431,7 +431,7 @@
     let SELECTED = null;              // date string
     const DETAIL = new Map();         // date -> detail payload, or { error }
 
-    async function loadDashboard() {
+    async function loadDashboard(prefer) {
       const [runsR, tsR] = await Promise.all([
         fetch('/api/reshim/runs?limit=30').then(r => r.json()),
         fetch('/api/reshim/timeseries?days=30').then(r => r.json()),
@@ -443,7 +443,10 @@
 
       // Hold the selection across a refresh when that run is still listed —
       // clearing samples or seeding should not throw away where you were.
-      const keep = RUNS.some(r => r.date === SELECTED) ? SELECTED : (RUNS[0] || {}).date || null;
+      // A just-finished trigger passes its date so the new run is selected.
+      const keep = (prefer && RUNS.some(r => r.date === prefer)) ? prefer
+                 : RUNS.some(r => r.date === SELECTED) ? SELECTED
+                 : (RUNS[0] || {}).date || null;
       await selectRun(keep);
     }
 
@@ -646,6 +649,7 @@
     }
 
     function appendCards(date, withPhotos) {
+      const d = DETAIL.get(date);
       const grid = $('sn-grid');
       const slice = withPhotos.slice(shown, shown + PAGE);
       slice.forEach(item => {
@@ -665,7 +669,7 @@
           img.className = 'thumb' + (p.kind === 'tag' ? ' tag' : '');
           img.loading = 'lazy';
           img.width = 64; img.height = 64;
-          img.src = `/api/reshim/runs/${date}/photos/${p.id}`;
+          img.src = `/api/reshim/runs/${date}/photos/${p.id}` + (d && d.rev ? `?v=${encodeURIComponent(d.rev)}` : '');
           img.alt = `${p.kind === 'tag' ? 'Serial number label' : 'Process photo'} for ${item.sn}`;
           img.tabIndex = 0;
           img.addEventListener('click', () => lightbox(img.src, item, p));
@@ -678,7 +682,6 @@
       });
       shown += slice.length;
 
-      const d = DETAIL.get(date);
       const foot = $('photo-foot');
       const more = withPhotos.length - shown;
       foot.innerHTML =
@@ -775,7 +778,8 @@
           const j = await r.json();
           if (j.ok) {
             toast('Run complete.', 'ok');
-            await loadDashboard();
+            DETAIL.clear();
+            await loadDashboard(j.result && j.result.dateStr);
           } else {
             // Prefer the server's own sentence; fall back to the line of the
             // traceback that names the cause rather than its last 200 characters.

@@ -10,6 +10,8 @@
  */
 import { readFileSync, statSync } from "node:fs";
 
+import JSZip from "jszip";
+
 import { readMedia, readWorkbook, type SheetRow } from "./reshim-xlsx.js";
 import { runReportPath } from "./reshim.js";
 
@@ -47,6 +49,11 @@ export interface RunDetail {
    * presented as a day when nobody took pictures.
    */
   problem: string | null;
+  /**
+   * Workbook identity: changes when the report is replaced, so photo URLs
+   * that include it do not serve a previous run's bytes.
+   */
+  rev: string;
 }
 
 interface Entry {
@@ -54,7 +61,8 @@ interface Entry {
   detail: RunDetail;
   /** Photo id to zip entry, for serving bytes without re-parsing the sheet. */
   entries: Map<string, string>;
-  workbook: Buffer;
+  /** Already-open archive: a gallery then inflates one entry per image. */
+  zip: JSZip;
 }
 
 /** Two runs is enough for looking at one and comparing with another. */
@@ -62,9 +70,9 @@ const MAX_CACHED = 2;
 const cache = new Map<string, Entry>();
 const inflight = new Map<string, Promise<Entry | null>>();
 
-function stamp(path: string): string {
+function stamp(path: string): { key: string; rev: string } {
   const s = statSync(path);
-  return `${path}:${s.mtimeMs}:${s.size}`;
+  return { key: `${path}:${s.mtimeMs}:${s.size}`, rev: `${s.mtimeMs}-${s.size}` };
 }
 
 function touch(date: string, entry: Entry): void {
@@ -73,7 +81,7 @@ function touch(date: string, entry: Entry): void {
   while (cache.size > MAX_CACHED) cache.delete(cache.keys().next().value as string);
 }
 
-function toDetail(date: string, rows: SheetRow[], problem: string | null): {
+function toDetail(date: string, rows: SheetRow[], problem: string | null, rev: string): {
   detail: RunDetail;
   entries: Map<string, string>;
 } {
@@ -112,6 +120,7 @@ function toDetail(date: string, rows: SheetRow[], problem: string | null): {
       missing,
       items,
       problem,
+      rev,
     },
     entries,
   };
@@ -121,7 +130,7 @@ async function build(date: string): Promise<Entry | null> {
   const path = runReportPath(date);
   if (!path) return null;
 
-  const key = stamp(path);
+  const { key, rev } = stamp(path);
   const hit = cache.get(date);
   if (hit && hit.key === key) {
     touch(date, hit);
@@ -129,9 +138,10 @@ async function build(date: string): Promise<Entry | null> {
   }
 
   const workbook = readFileSync(path);
-  const { rows, problem } = await readWorkbook(workbook);
-  const { detail, entries } = toDetail(date, rows, problem);
-  const entry: Entry = { key, detail, entries, workbook };
+  const zip = await JSZip.loadAsync(workbook);
+  const { rows, problem } = await readWorkbook(zip);
+  const { detail, entries } = toDetail(date, rows, problem, rev);
+  const entry: Entry = { key, detail, entries, zip };
   touch(date, entry);
   return entry;
 }
@@ -165,7 +175,7 @@ export async function runPhoto(date: string, id: string): Promise<PhotoBytes | n
   const zipPath = entry?.entries.get(id);
   if (!entry || !zipPath) return null;
 
-  const buf = await readMedia(entry.workbook, zipPath);
+  const buf = await readMedia(entry.zip, zipPath);
   if (!buf) return null;
   const ext = zipPath.slice(zipPath.lastIndexOf(".") + 1).toLowerCase();
   return { buf, type: MIME[ext] ?? "application/octet-stream" };
