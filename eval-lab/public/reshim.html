@@ -258,13 +258,10 @@
     <a class="back-home" href="/home/">← Home</a>
     <span class="topbar-title"><strong>Reshim analysis</strong> · shim stack audit</span>
     <div class="actions">
-      <label id="email-toggle" title="Runs and sample sends email the configured recipients. Untick to produce the report without sending.">
+      <label id="email-toggle" title="Runs email the configured recipients. Untick to produce the report without sending.">
         <input type="checkbox" id="also-email-cb" checked />
         <span>Also email</span>
       </label>
-      <span class="divider"></span>
-      <button id="seed-btn" title="Write 30 days of invented runs, for demos and for testing the email path">Seed sample</button>
-      <button id="clear-btn" hidden title="Remove every seeded run; real analyses are left alone">Clear sample</button>
       <span class="divider"></span>
       <button id="refresh-btn">Refresh</button>
       <button id="run-btn" class="primary">Run now</button>
@@ -372,13 +369,9 @@
       if (!SESSION || SESSION.tenant !== 'comer' || SESSION.expiresAt <= Date.now()) window.location.replace('/login');
     } catch { window.location.replace('/login'); }
 
-    /* Seeding can send mail to the customer's distribution list and clearing
-       deletes runs, so the server checks the login token on both. */
-    const authHeaders = () => (SESSION && SESSION.token ? { 'Authorization': 'Bearer ' + SESSION.token } : {});
-
     const $ = (id) => document.getElementById(id);
     const pct = (n) => (n == null || Number.isNaN(n)) ? '—' : Math.round(n) + '%';
-    let CAPS = { canTrigger: false, canEmail: false, recipientCount: 0, sampleRuns: 0 };
+    let CAPS = { canTrigger: false, canEmail: false, recipientCount: 0 };
 
     /* ── KPI notes and the busy indicator ─────── */
     const NOTES = ['n-units', 'n-ok', 'n-bad', 'n-bad-heavy', 'n-cov'];
@@ -441,8 +434,7 @@
       renderSparkline(tsR.points || []);
       renderTable();
 
-      // Hold the selection across a refresh when that run is still listed —
-      // clearing samples or seeding should not throw away where you were.
+      // Hold the selection across a refresh when that run is still listed.
       // A just-finished trigger passes its date so the new run is selected.
       const keep = (prefer && RUNS.some(r => r.date === prefer)) ? prefer
                  : RUNS.some(r => r.date === SELECTED) ? SELECTED
@@ -498,8 +490,7 @@
       });
       if (tbody.children.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="empty">' +
-          'No runs yet — the daily workflow publishes here once it has run. ' +
-          'Use “Seed sample” for demo figures.</td></tr>';
+          'No runs yet — the daily workflow publishes here once it has run.</td></tr>';
       }
     }
 
@@ -802,9 +793,6 @@
         CAPS = await fetch('/api/reshim/capabilities').then(r => r.json());
       } catch { return; }
 
-      $('clear-btn').hidden = !CAPS.sampleRuns;
-      $('clear-btn').textContent = 'Clear sample' + (CAPS.sampleRuns ? ` (${CAPS.sampleRuns})` : '');
-
       /* The Python agent carries its own mail config, so a host that can run is
          assumed able to send even when the Node process has no credentials of
          its own; only disable when neither path could possibly deliver. */
@@ -828,10 +816,6 @@
       note.hidden = false;
     }
 
-    /* ── Sample data ──────────────────────────── */
-    /* Off by default: the dashboard ships empty and stays empty until someone
-       asks for demo figures, because these numbers are visible to the customer. */
-
     /** Dim the button that started the work and name the work on the KPI cards.
      *  The button keeps its label: it says what it does, not what it is doing. */
     async function withBusy(btn, label, fn) {
@@ -845,57 +829,6 @@
         setBusy(null);
       }
     }
-
-    $('seed-btn').addEventListener('click', () => {
-      const email = CAPS.canEmail && $('also-email-cb').checked;
-      const msg = email
-        ? `Seed 30 days of sample data and email a [SAMPLE] report to the ${CAPS.recipientCount} configured recipient(s)?\n\n` +
-          'The figures are invented. The subject and the first line of the email say so.'
-        : 'Seed 30 days of sample data? The figures are invented and the dashboard will badge them.';
-      if (!confirm(msg)) return;
-
-      withBusy($('seed-btn'), 'seeding', async () => {
-        try {
-          const r = await fetch('/api/reshim/sample', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...authHeaders() },
-            body: JSON.stringify({ days: 30, email }),
-          });
-          const j = await r.json();
-          if (j.ok) {
-            // Real runs in the window are left alone; say so rather than letting
-            // the count quietly disagree with what was asked for.
-            const kept = j.skipped?.length
-              ? ` ${j.skipped.length} day(s) left as real runs.` : '';
-            toast((j.email
-              ? `Seeded ${j.dates.length} sample runs — emailed ${j.email.recipients.length} recipient(s).`
-              : `Seeded ${j.dates.length} sample runs.`) + kept, 'ok');
-          } else {
-            toast((j.seeded ? 'Seeded, but the email failed: ' : 'Seed failed: ') + (j.error || 'unknown error'), 'err');
-          }
-        } catch (e) {
-          toast('Seed error: ' + e.message, 'err');
-        }
-        DETAIL.clear();
-        await Promise.all([loadDashboard(), applyCapabilities()]);
-      });
-    });
-
-    $('clear-btn').addEventListener('click', () => {
-      if (!confirm('Remove every seeded run? Real analyses are left untouched.')) return;
-      withBusy($('clear-btn'), 'clearing', async () => {
-        try {
-          const r = await fetch('/api/reshim/sample', { method: 'DELETE', headers: authHeaders() });
-          const j = await r.json();
-          toast(j.ok ? `Removed ${j.removed} sample run(s).` : 'Clear failed: ' + (j.error || 'unknown error'),
-                j.ok ? 'ok' : 'err');
-        } catch (e) {
-          toast('Clear error: ' + e.message, 'err');
-        }
-        DETAIL.clear();
-        await Promise.all([loadDashboard(), applyCapabilities()]);
-      });
-    });
 
     setBusy('loading');
     loadDashboard().finally(() => setBusy(null));

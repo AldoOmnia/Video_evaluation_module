@@ -14,7 +14,7 @@ import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 
 import { sendMail, type SendResult } from "./mail.js";
-import { latestRun, listRuns, runReportPath, type ReshimSummary } from "./reshim.js";
+import { listRuns, runReportPath, type ReshimSummary } from "./reshim.js";
 
 const CONTEXT =
   "Station 130/135 (SHIMMING 1/2) · family-specific backlash spec · " +
@@ -149,11 +149,4 @@ export async function sendRunReport(dateStr: string, opts: SendRunOptions = {}):
     to: opts.to,
     attachments,
   });
-}
-
-/** Convenience for the seeder: the newest run is the one it just wrote. */
-export async function sendLatestRunReport(opts: SendRunOptions = {}): Promise<SendResult> {
-  const latest = latestRun();
-  if (!latest) throw new Error("no runs to report");
-  return sendRunReport(latest.date, opts);
 }

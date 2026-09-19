@@ -212,9 +212,6 @@ that checks the code out shows it — a fresh disk, a new client environment, a
 local clone. The live root wins on a date present in both, so a real run
 published by the workflow supersedes an archived copy of the same day.
 
-Seeding skips any date that already holds a real run, from either root, so
-sample figures cannot mask a genuine report.
-
 ### Selecting a run, and the operator photos
 
 The table is the page's control: selecting a row re-renders the chips, the five
@@ -250,16 +247,6 @@ embedded: there are a fixed number of image columns, and one August serial numbe
 matched 51 photos against 7 columns. A card in that position says "showing 7 of
 51 matched" rather than quietly dropping the rest.
 
-### Sample data
-
-The dashboard ships **empty**. "Seed sample" writes 30 days of invented runs,
-each badged `SAMPLE DATA` on screen and banner-marked on the first line of its
-workbook; "Clear sample" removes exactly those and leaves real analyses alone.
-Both are behind the platform login, because seeding can send mail.
-
-Seeded figures are deterministic, so a demo shown twice tells the same story.
-Nothing here touches the plant.
-
 ### Emailing from the dashboard
 
 Sending is independent of running: the Render service cannot compute a report
@@ -271,10 +258,6 @@ Set the Graph app-only credentials on the service — `MSAL_TENANT_ID`,
 `MAIL_RECIPIENTS` — the same values `tools/reshim/config.py` reads. The app
 registration needs the **Mail.Send application** permission with admin consent.
 Leave them unset and "Also email" greys out with the reason in its tooltip.
-
-A sample send goes to the standing `MAIL_RECIPIENTS` list, subject-prefixed
-`[SAMPLE]`, with a red banner as the first line of the body. Untick "Also email"
-to seed silently.
 
 #### Re-sending a report that already exists
 
@@ -294,7 +277,7 @@ cannot be dressed as a sample, or the reverse. Pass `{"to": ["you@..."]}` to
 preview a real report on yourself before the customer sees it.
 
 Deliberately not wired to a button: the send is irreversible and goes to the
-customer, which is a poor fit for a control sitting next to "Clear sample".
+customer.
 
 ---
 

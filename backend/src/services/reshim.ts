@@ -313,10 +313,10 @@ export function saveIngestedRun(run: IngestRun): { wrote: string[] } {
     throw new Error("report.name must be a plain .xlsx filename");
   }
 
-  // Replace rather than layer. A real ingest onto a seeded date must drop the
-  // MOCK marker, leftover .xlsx, and email.json — loadRun treats the marker as
-  // gospel (so clearSampleRuns would wipe the live folder), and readdirSync
-  // may pick the leftover workbook for downloads and resends.
+  // Replace rather than layer. A real ingest onto a date that once held a
+  // seeded run must drop the MOCK marker, leftover .xlsx, and email.json —
+  // loadRun treats the marker as gospel, and readdirSync may pick the leftover
+  // workbook for downloads and resends.
   const keep = new Set<string>(["summary.json"]);
   if (run.email) keep.add("email.json");
   if (reportName) keep.add(reportName);
@@ -344,47 +344,6 @@ export function saveIngestedRun(run: IngestRun): { wrote: string[] } {
   }
 
   return { wrote };
-}
-
-/* ── Sample runs ──────────────────────────────────────────────────────── */
-
-/** How many of the runs on disk are seeded rather than real. Lets the dashboard
- *  offer "clear" only when there is something to clear. */
-export function countSampleRuns(): number {
-  return listRuns(365).filter((r) => r.mock).length;
-}
-
-/**
- * Whether a genuine analysis already occupies this date, from either root.
- * Seeding covers a window of recent days and would otherwise write over a real
- * report — invented figures must never mask one.
- */
-export function hasRealRun(dateStr: string): boolean {
-  if (!runDir(dateStr)) return false;
-  const run = loadRun(dateStr);
-  return !run.mock && (run.summary !== null || run.hasReport);
-}
-
-/**
- * Remove every seeded run, leaving real ones alone — the marker file is the
- * only thing consulted, so a day that was later overwritten by a genuine
- * analysis survives. Sample data must never be the default state of a
- * client-visible dashboard, and this is how it gets taken back out.
- */
-export function clearSampleRuns(): { removed: string[] } {
-  ensureRoot();
-  const removed: string[] = [];
-  for (const run of listRuns(365)) {
-    if (!run.mock) continue;
-    // Only ever delete from the writable root. The archive is the kept record of
-    // real runs and nothing seeded can land there, but this is a delete taking a
-    // caller-influenced path, so it does not rely on that being true.
-    const dir = join(RUN_ROOT, run.date);
-    if (!existsSync(dir)) continue;
-    rmSync(dir, { recursive: true, force: true });
-    removed.push(run.date);
-  }
-  return { removed };
 }
 
 /* ── Timeseries for dashboard sparkline ───────────────────────────────── */
