@@ -174,9 +174,13 @@ with none of that and no network route to Fargo, so **"Run now" is disabled
 there on purpose** — `GET /api/reshim/capabilities` probes the interpreter and
 the dashboard explains itself rather than surfacing an `ImportError`.
 
-Runs happen in the `reshim-daily` GitHub workflow (or, once the DGX runner is
-registered, on a machine inside the plant). Because the dashboard reads runs
-off its own disk, the workflow hands its output over at the end:
+Runs happen in the `reshim-daily` workflow, which needs a runner **inside the
+plant network**: the SQL Server is `WARKFSQL002`, a bare hostname only Comer's
+internal DNS resolves, so no GitHub-hosted runner can reach it however it is
+configured. Its `schedule:` is disarmed for that reason and the workflow is
+manual-dispatch only; re-arm the cron and `runs-on: self-hosted` together once
+the DGX/Tailscale runner is registered. Because the dashboard reads runs off its
+own disk, the workflow hands its output over at the end:
 
 | Where | Name | Value |
 |---|---|---|
