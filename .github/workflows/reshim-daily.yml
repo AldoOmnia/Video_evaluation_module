@@ -2,6 +2,8 @@ name: reshim-daily
 
 # Runs the daily Fargo reshim analysis + email report.
 #
+# Currently manual-dispatch only: see the disarmed schedule under `on:`.
+#
 # Cron is UTC. 22:00 UTC = 17:00 CDT (Mar-Nov) / 16:00 CST (Nov-Mar).
 # Comer plant runs on Central time year-round; DST discrepancy is one hour
 # for ~5 months of the year and only shifts the trigger between "end of first
@@ -9,8 +11,14 @@ name: reshim-daily
 # When Tailscale/DGX is live, switch runs-on to the self-hosted label.
 
 on:
-  schedule:
-    - cron: "0 22 * * *"        # 22:00 UTC daily
+  # The schedule is deliberately disarmed. The analysis has to reach WARKFSQL002
+  # on Comer's plant network, which a GitHub-hosted runner can neither resolve
+  # nor route to, and this repo has no Actions secrets set — so a nightly trigger
+  # can only ever produce a failure email. Re-arm these two lines together with
+  # runs-on: self-hosted below, once the Tailscale/DGX runner is registered and
+  # the secrets listed under "Materialize backend/.env" exist.
+  # schedule:
+  #   - cron: "0 22 * * *"      # 22:00 UTC daily
   workflow_dispatch:            # manual trigger from GitHub Actions UI
     inputs:
       date:
@@ -37,8 +45,18 @@ jobs:
 
       - name: Install msodbcsql (Ubuntu)
         run: |
-          curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
-          curl https://packages.microsoft.com/config/ubuntu/22.04/prod.list \
+          set -euo pipefail
+          # The runner image already carries a Microsoft apt source pinned to
+          # /usr/share/keyrings/microsoft-prod.gpg. A second entry for the same
+          # repo with a different (or absent) signed-by makes apt refuse to read
+          # any sources at all -- "Conflicting values set for option Signed-By",
+          # exit 100 -- so replace the lists with one entry rather than adding
+          # alongside them, and drop the deprecated apt-key while here.
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list \
+                     /etc/apt/sources.list.d/mssql-release.list
+          curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
+            | sudo gpg --yes --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/ubuntu/22.04/prod jammy main" \
             | sudo tee /etc/apt/sources.list.d/mssql-release.list
           sudo apt-get update
           sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev
@@ -105,3 +123,58 @@ jobs:
           name: reshim-run-${{ github.run_id }}
           path: shared/data/reshim-runs/
           retention-days: 30
+
+      # The dashboard reads runs off its own disk, and this runner is never the
+      # host serving it, so hand the output over. Without this the deployed page
+      # can only ever say "no runs yet". Skipped when the secrets are absent, so
+      # a fork or a local act run does not fail here.
+      - name: Publish run to the platform
+        if: always()
+        env:
+          INGEST_URL: ${{ secrets.RESHIM_INGEST_URL }}
+          INGEST_TOKEN: ${{ secrets.RESHIM_INGEST_TOKEN }}
+        run: |
+          if [ -z "$INGEST_URL" ] || [ -z "$INGEST_TOKEN" ]; then
+            echo "RESHIM_INGEST_URL/TOKEN not set — skipping publish."
+            exit 0
+          fi
+          python - <<'PY'
+          import base64, json, os, pathlib, urllib.request
+
+          root = pathlib.Path("shared/data/reshim-runs")
+          days = sorted(d for d in root.glob("*") if d.is_dir()) if root.exists() else []
+          if not days:
+              print("no run directory produced — nothing to publish")
+              raise SystemExit(0)
+
+          day = days[-1]
+          summary = day / "summary.json"
+          if not summary.exists():
+              print(f"{day.name}: no summary.json (run likely failed) — nothing to publish")
+              raise SystemExit(0)
+
+          payload = {"date": day.name, "summary": json.loads(summary.read_text())}
+
+          email = day / "email.json"
+          if email.exists():
+              payload["email"] = json.loads(email.read_text())
+
+          xlsx = next(iter(sorted(day.glob("*.xlsx"))), None)
+          if xlsx is not None:
+              payload["report"] = {
+                  "name": xlsx.name,
+                  "base64": base64.b64encode(xlsx.read_bytes()).decode(),
+              }
+
+          req = urllib.request.Request(
+              os.environ["INGEST_URL"].rstrip("/") + "/api/reshim/runs",
+              data=json.dumps(payload).encode(),
+              method="POST",
+              headers={
+                  "Content-Type": "application/json",
+                  "Authorization": "Bearer " + os.environ["INGEST_TOKEN"],
+              },
+          )
+          with urllib.request.urlopen(req, timeout=60) as r:
+              print(day.name, "published:", r.status, r.read().decode()[:200])
+          PY
