@@ -15,6 +15,7 @@ import { basename } from "node:path";
 
 import { sendMail, type SendResult } from "./mail.js";
 import { listRuns, runReportPath, type ReshimSummary } from "./reshim.js";
+import { runDetail } from "./reshim-detail.js";
 
 const CONTEXT =
   "Station 130/135 (SHIMMING 1/2) · family-specific backlash spec · " +
@@ -83,10 +84,39 @@ export function buildReportSubject(dateStr: string, s: ReshimSummary, sample: bo
   return sample ? `[SAMPLE] ${subject}` : subject;
 }
 
+/**
+ * Serials whose photo the pipeline could not link. The daily Python agent
+ * already prints this in its plain-text body; the platform-side send mirrors
+ * the same list so a report triggered from the dashboard tells recipients
+ * the same story a cron run would.
+ */
+function missingPhotosSection(missing: string[]): string {
+  if (missing.length === 0) return "";
+  const shown = missing.slice(0, 20);
+  const rest = missing.length - shown.length;
+  const chips = shown
+    .map(
+      (sn) =>
+        `<span style="display:inline-block;font-family:ui-monospace,Menlo,monospace;font-size:12px;` +
+        `background:#fef3c7;color:#78350f;border:1px solid #fcd34d;border-radius:4px;` +
+        `padding:2px 8px;margin:2px 4px 2px 0">${sn}</span>`,
+    )
+    .join("");
+  const overflow =
+    rest > 0
+      ? `<span style="color:#6b7280;font-size:12px">&nbsp;… and ${rest} more (see attachment).</span>`
+      : "";
+  return (
+    `<p style="margin:18px 0 6px;font-size:13px;color:#6b7280">` +
+    `Missing photos — ${missing.length} unit${missing.length === 1 ? "" : "s"} to review manually` +
+    `</p><div>${chips}${overflow}</div>`
+  );
+}
+
 export function buildReportHtml(
   dateStr: string,
   s: ReshimSummary,
-  opts: { sample: boolean; attachmentName?: string },
+  opts: { sample: boolean; attachmentName?: string; missing?: string[] },
 ): string {
   const banner = opts.sample
     ? `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:12px 14px;margin-bottom:18px">` +
@@ -108,6 +138,7 @@ export function buildReportHtml(
     `<p style="margin:0;color:#6b7280;font-size:13px">${CONTEXT}</p>` +
     summaryTable(s) +
     familyTable(s) +
+    missingPhotosSection(opts.missing ?? []) +
     attachment +
     `<p style="color:#9ca3af;font-size:12px;margin:22px 0 0">— Daedalus reshim agent. ` +
     `Reply to this email to reach Aldo.</p>` +
@@ -139,12 +170,25 @@ export async function sendRunReport(dateStr: string, opts: SendRunOptions = {}):
     ? [{ name: basename(path), contentBytes: readFileSync(path).toString("base64") }]
     : [];
 
+  // Best-effort read of the workbook to enumerate serials without photos.
+  // A parse failure or a missing report is not fatal — the summary is; the
+  // missing-photos list is a courtesy signal so recipients don't have to open
+  // the xlsx to notice.
+  let missing: string[] = [];
+  try {
+    const detail = await runDetail(dateStr);
+    missing = detail?.missing ?? [];
+  } catch {
+    // Fall through — recipients still get the report, just without the chip list.
+  }
+
   const sample = opts.sample ?? run.mock;
   return sendMail({
     subject: buildReportSubject(dateStr, run.summary, sample),
     html: buildReportHtml(dateStr, run.summary, {
       sample,
       attachmentName: attachments[0]?.name,
+      missing,
     }),
     to: opts.to,
     attachments,
