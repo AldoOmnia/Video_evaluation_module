@@ -1,0 +1,22 @@
+{
+  "total": 8,
+  "excluded": 0,
+  "ok": 8,
+  "bad": 0,
+  "bad_heavy": 0,
+  "unknown_family": 0,
+  "by_family": {
+    "600": {
+      "OK": 8
+    }
+  },
+  "by_variant": {
+    "X900.QTF.902.A01": {
+      "OK": 6
+    },
+    "X900.QTR.902.A01": {
+      "OK": 2
+    }
+  },
+  "high_bad_variants": []
+}
