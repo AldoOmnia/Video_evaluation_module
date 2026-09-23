@@ -33,6 +33,7 @@ import {
   RESHIM_HTML,
   SETTINGS_HTML,
   SYNTHETIC_POV_HTML,
+  VISION_CASES_HTML,
   SHARED_DIR,
 } from "./paths.js";
 
@@ -435,6 +436,12 @@ app.get(["/reshim", "/reshim/"], (_req, res) => {
 app.get(["/settings", "/settings/"], (_req, res) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
   res.sendFile(SETTINGS_HTML);
+});
+
+// GlassKit vision cases imported from comer-rokid-demo #61 (vision-eval).
+app.get(["/vision-cases", "/vision-cases/"], (_req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.sendFile(VISION_CASES_HTML);
 });
 
 app.get("/lab/", (_req, res) => {

@@ -1,0 +1,60 @@
+[
+  {
+    "ts": 120,
+    "phase": "4900.12001 P100 SUP BEARING ON PINION",
+    "stepId": "step:06",
+    "label": "correct",
+    "outcome": "n/a",
+    "rationale": "reviewed"
+  },
+  {
+    "ts": 168,
+    "phase": "4900.12001 P100 SUP BEARING ON PINION",
+    "stepId": "step:06",
+    "label": "incorrect",
+    "errorType": "ORIENTATION",
+    "priority": "high",
+    "outcome": "n/a",
+    "rationale": "reviewed; expect 67190R91-FLIP"
+  },
+  {
+    "ts": 168.5,
+    "phase": "4900.12001 P100 SUP BEARING ON PINION",
+    "stepId": "step:06",
+    "label": "correct",
+    "outcome": "n/a",
+    "rationale": "reviewed"
+  },
+  {
+    "ts": 0,
+    "phase": "4900.12001 P100 SHIM PACK",
+    "stepId": "step:07",
+    "label": "correct",
+    "outcome": "n/a",
+    "rationale": "reviewed"
+  },
+  {
+    "ts": 0,
+    "phase": "4900.12001 P100 RING RETAINER",
+    "stepId": "step:08",
+    "label": "correct",
+    "outcome": "n/a",
+    "rationale": "reviewed"
+  },
+  {
+    "ts": 35,
+    "phase": "4900.12001 P100 RING RETAINER CHECK",
+    "stepId": "step:09",
+    "label": "correct",
+    "outcome": "n/a",
+    "rationale": "reviewed"
+  },
+  {
+    "ts": 0,
+    "phase": "4900.12001 P100 1 FREE ROLLING",
+    "stepId": "step:10",
+    "label": "correct",
+    "outcome": "n/a",
+    "rationale": "reviewed; ignored: Step 10 has no expected parts, so the glasses wrong-part guard is disabled."
+  }
+]
