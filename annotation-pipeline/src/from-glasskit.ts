@@ -12,8 +12,12 @@
  *     --csv annotation-pipeline/data/incoming/video-index.csv \
  *     --json annotation-pipeline/data/incoming/session-events.json \
  *     --out annotation-pipeline/data/labeled
+ *
+ * Validated JSON is written to --out. The same files, plus the source
+ * video-index.csv, are also published to eval-lab/public/glasskit so
+ * /vision-cases/ and /lab/glasskit/ serve this import.
  */
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -28,6 +32,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_OUT = resolve(HERE, "../data/labeled");
 const DEFAULT_CSV = resolve(HERE, "../data/incoming/video-index.csv");
 const DEFAULT_JSON = resolve(HERE, "../data/incoming/session-events.json");
+/** What `express.static` on eval-lab/public exposes at /lab/glasskit/. */
+const SERVED_DIR = resolve(HERE, "../../eval-lab/public/glasskit");
 
 function arg(flag: string): string | undefined {
   const i = process.argv.indexOf(flag);
@@ -132,14 +138,20 @@ const csvPath = resolve(arg("--csv") || DEFAULT_CSV);
 const jsonPath = resolve(arg("--json") || DEFAULT_JSON);
 const outDir = resolve(arg("--out") || DEFAULT_OUT);
 
-mkdirSync(outDir, { recursive: true });
-
 const segments = segmentsFromCsv(parseCsv(readFileSync(csvPath, "utf8")));
-writeFileSync(resolve(outDir, "video-segments.json"), `${JSON.stringify(segments, null, 2)}\n`);
-
 const events = eventsFromJson(JSON.parse(readFileSync(jsonPath, "utf8")));
-writeFileSync(resolve(outDir, "session-events.json"), `${JSON.stringify(events, null, 2)}\n`);
+
+const segmentsJson = `${JSON.stringify(segments, null, 2)}\n`;
+const eventsJson = `${JSON.stringify(events, null, 2)}\n`;
+for (const dir of new Set([outDir, SERVED_DIR])) {
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(resolve(dir, "video-segments.json"), segmentsJson);
+  writeFileSync(resolve(dir, "session-events.json"), eventsJson);
+}
+
+const servedCsv = resolve(SERVED_DIR, "video-index.csv");
+if (resolve(csvPath) !== servedCsv) copyFileSync(csvPath, servedCsv);
 
 console.log(
-  `imported ${segments.length} VideoSegment(s), ${events.length} SessionEvent(s) → ${outDir}`,
+  `imported ${segments.length} VideoSegment(s), ${events.length} SessionEvent(s) → ${outDir} (served ${SERVED_DIR})`,
 );
