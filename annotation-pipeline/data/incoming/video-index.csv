@@ -1,0 +1,8 @@
+video_file,step_id,label,error_type,start_s,end_s,notes,reviewed
+Phase6_Video.MP4,step:06,correct,,120,168,reviewed,true
+Phase6_Video.MP4,step:06,incorrect,ORIENTATION,168,168,reviewed; expect 67190R91-FLIP,true
+Phase6_Video.MP4,step:06,correct,,168.5,200,reviewed,true
+Phase7_Video.MP4,step:07,correct,,0,40,reviewed,true
+Phase_8_Video.MP4,step:08,correct,,0,243,reviewed,true
+Phase_9_Video.MP4,step:09,correct,,35,70,reviewed,true
+Phase10_Video.MP4,step:10,correct,,0,70,"reviewed; ignored: Step 10 has no expected parts, so the glasses wrong-part guard is disabled.",true

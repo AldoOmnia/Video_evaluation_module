@@ -1,0 +1,25 @@
+{
+  "total": 6,
+  "excluded": 0,
+  "ok": 5,
+  "bad": 0,
+  "bad_heavy": 0,
+  "unknown_family": 1,
+  "by_family": {
+    "600": {
+      "OK": 5
+    },
+    "UNKNOWN": {
+      "UNKNOWN_FAMILY": 1
+    }
+  },
+  "by_variant": {
+    "X900.QTF.902.A01": {
+      "OK": 5
+    },
+    "": {
+      "UNKNOWN_FAMILY": 1
+    }
+  },
+  "high_bad_variants": []
+}

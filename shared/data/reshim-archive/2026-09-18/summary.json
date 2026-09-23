@@ -1,28 +1,44 @@
 {
   "total": 11,
   "excluded": 0,
-  "ok": 11,
-  "bad": 0,
-  "bad_heavy": 0,
+  "ok": 7,
+  "bad": 3,
+  "bad_heavy": 1,
   "unknown_family": 0,
   "by_family": {
     "600": {
-      "OK": 6
+      "BAD": 3,
+      "OK": 4,
+      "BAD_HEAVY": 1
     },
     "425": {
-      "OK": 5
+      "OK": 3
     }
   },
   "by_variant": {
-    "X900.LWR.902.A01": {
+    "X900.QTF.902.A01": {
+      "BAD": 1,
       "OK": 1
     },
-    "X900.SWF.901.A01": {
-      "OK": 5
+    "X900.SWR.901.A01": {
+      "OK": 3
     },
     "X900.QTR.902.A01": {
-      "OK": 5
+      "OK": 3,
+      "BAD": 2,
+      "BAD_HEAVY": 1
     }
   },
-  "high_bad_variants": []
+  "high_bad_variants": [
+    {
+      "variant": "X900.QTR.902.A01",
+      "n": 6,
+      "bad_pct": 50.0
+    },
+    {
+      "variant": "X900.QTF.902.A01",
+      "n": 2,
+      "bad_pct": 50.0
+    }
+  ]
 }

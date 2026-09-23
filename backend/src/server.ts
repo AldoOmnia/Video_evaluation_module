@@ -33,6 +33,7 @@ import {
   RESHIM_HTML,
   SETTINGS_HTML,
   SYNTHETIC_POV_HTML,
+  VISION_CASES_HTML,
   SHARED_DIR,
 } from "./paths.js";
 
@@ -346,6 +347,23 @@ app.get(
 
 // Serve large lab assets with long cache (splats, GLBs, video) — HTML stays no-store.
 const LAB_ASSETS_DIR = join(EVAL_LAB_PUBLIC, "assets");
+
+/* Browsers ask the origin root for these regardless of what the pages link to,
+   and without a route they fall through to the SPA catch-all and get HTML back.
+   The manifest has to answer from the root too, because its scope is "/" and a
+   manifest cannot claim a scope above its own directory. */
+for (const [route, file, type] of [
+  ["/favicon.ico", "favicon.ico", "image/x-icon"],
+  ["/apple-touch-icon.png", "apple-touch-icon.png", "image/png"],
+  ["/apple-touch-icon-precomposed.png", "apple-touch-icon.png", "image/png"],
+  ["/site.webmanifest", "site.webmanifest", "application/manifest+json"],
+] as const) {
+  app.get(route, (_req, res) => {
+    res.type(type);
+    res.setHeader("Cache-Control", "public, max-age=604800");
+    res.sendFile(join(LAB_ASSETS_DIR, file));
+  });
+}
 const OPERATOR_GLB_RE = /\/operator(?:-[^/]+)?\.glb$/i;
 app.use("/lab/assets", (req, res, next) => {
   if (process.env.NODE_ENV === "production" && OPERATOR_GLB_RE.test(req.path)) {
@@ -418,6 +436,12 @@ app.get(["/reshim", "/reshim/"], (_req, res) => {
 app.get(["/settings", "/settings/"], (_req, res) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
   res.sendFile(SETTINGS_HTML);
+});
+
+// GlassKit vision cases imported from comer-rokid-demo #61 (vision-eval).
+app.get(["/vision-cases", "/vision-cases/"], (_req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.sendFile(VISION_CASES_HTML);
 });
 
 app.get("/lab/", (_req, res) => {

@@ -1,0 +1,73 @@
+[
+  {
+    "id": "vid:Phase6_Video-MP4-step:06-0",
+    "type": "VideoSegment",
+    "label": "Phase6_Video.MP4 → step:06 (correct)",
+    "fileName": "Phase6_Video.MP4",
+    "timestampStart": 120,
+    "timestampEnd": 168,
+    "isCorrectExecution": true,
+    "attachedTo": "step:06"
+  },
+  {
+    "id": "vid:Phase6_Video-MP4-step:06-1",
+    "type": "VideoSegment",
+    "label": "Phase6_Video.MP4 → step:06 (incorrect)",
+    "fileName": "Phase6_Video.MP4",
+    "timestampStart": 168,
+    "timestampEnd": 168,
+    "errorType": "ORIENTATION",
+    "isCorrectExecution": false,
+    "attachedTo": "step:06"
+  },
+  {
+    "id": "vid:Phase6_Video-MP4-step:06-2",
+    "type": "VideoSegment",
+    "label": "Phase6_Video.MP4 → step:06 (correct)",
+    "fileName": "Phase6_Video.MP4",
+    "timestampStart": 168.5,
+    "timestampEnd": 200,
+    "isCorrectExecution": true,
+    "attachedTo": "step:06"
+  },
+  {
+    "id": "vid:Phase7_Video-MP4-step:07-3",
+    "type": "VideoSegment",
+    "label": "Phase7_Video.MP4 → step:07 (correct)",
+    "fileName": "Phase7_Video.MP4",
+    "timestampStart": 0,
+    "timestampEnd": 40,
+    "isCorrectExecution": true,
+    "attachedTo": "step:07"
+  },
+  {
+    "id": "vid:Phase_8_Video-MP4-step:08-4",
+    "type": "VideoSegment",
+    "label": "Phase_8_Video.MP4 → step:08 (correct)",
+    "fileName": "Phase_8_Video.MP4",
+    "timestampStart": 0,
+    "timestampEnd": 243,
+    "isCorrectExecution": true,
+    "attachedTo": "step:08"
+  },
+  {
+    "id": "vid:Phase_9_Video-MP4-step:09-5",
+    "type": "VideoSegment",
+    "label": "Phase_9_Video.MP4 → step:09 (correct)",
+    "fileName": "Phase_9_Video.MP4",
+    "timestampStart": 35,
+    "timestampEnd": 70,
+    "isCorrectExecution": true,
+    "attachedTo": "step:09"
+  },
+  {
+    "id": "vid:Phase10_Video-MP4-step:10-6",
+    "type": "VideoSegment",
+    "label": "Phase10_Video.MP4 → step:10 (correct)",
+    "fileName": "Phase10_Video.MP4",
+    "timestampStart": 0,
+    "timestampEnd": 70,
+    "isCorrectExecution": true,
+    "attachedTo": "step:10"
+  }
+]
