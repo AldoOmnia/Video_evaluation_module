@@ -69,6 +69,10 @@ eval-lab/public/assets/Worker/
 June18_Panos/_previews/
 CNH Layout 1.dwg
 .usage/
+# Large source videos for the GlassKit importer. Labeled JSON is committed.
+annotation-pipeline/data/raw/*
+!annotation-pipeline/data/raw/.gitkeep
+
 # Scratch output from whichever machine last ran the agent. Runs worth keeping
 # are committed to shared/data/reshim-archive/ instead, which the dashboard reads
 # alongside this, so they show up on every host that checks the code out.

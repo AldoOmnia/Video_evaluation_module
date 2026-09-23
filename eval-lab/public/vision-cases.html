@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vision cases · GlassKit · Comer Industries</title>
+  <link rel="icon" href="/lab/assets/daedalus-mark.svg?v=1" type="image/svg+xml" />
+  <link rel="icon" href="/lab/assets/favicon-32.png?v=1" sizes="32x32" type="image/png" />
+  <link rel="apple-touch-icon" href="/lab/assets/apple-touch-icon.png?v=1" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <meta name="theme-color" content="#050505" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/lab/assets/platform.css?v=2" />
+  <script src="/lab/assets/platform.js?v=2"></script>
+  <style>
+    .bg { position: fixed; inset: 0; z-index: -1;
+      background:
+        radial-gradient(1100px 500px at 80% -10%, color-mix(in srgb, var(--primary) 5%, transparent), transparent 60%),
+        radial-gradient(900px 500px at 0% 110%, color-mix(in srgb, var(--primary) 4%, transparent), transparent 55%);
+    }
+    .topbar {
+      display: flex; align-items: center; gap: 14px;
+      padding: 13px 22px; border-bottom: 1px solid var(--line);
+      background: var(--bg-veil); backdrop-filter: blur(10px);
+      position: sticky; top: 0; z-index: 20;
+    }
+    .back-home {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--ink-2); text-decoration: none;
+      border: 1px solid var(--line-2); border-radius: 6px; padding: 6px 10px;
+    }
+    .back-home:hover { color: var(--primary); border-color: var(--primary-dim); }
+    .topbar-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+    .topbar-title strong { color: var(--ink-1); font-weight: 500; }
+    .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .wrap { max-width: 1040px; margin: 0 auto; padding: 26px 22px 80px; }
+    .head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+    .head h1 { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
+    .chip {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 3px 9px; border-radius: 12px; border: 1px solid var(--line-2); color: var(--ink-3);
+    }
+    .chip.ok { color: var(--ok); border-color: rgba(74,222,128,0.35); }
+    .sub { color: var(--ink-2); font-size: 12.5px; max-width: 720px; margin-bottom: 22px; line-height: 1.55; }
+    .totals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 24px; }
+    @media (max-width: 640px) { .totals { grid-template-columns: repeat(2, 1fr); } }
+    .totals .cell {
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      border-radius: 10px; padding: 16px 10px; text-align: center;
+    }
+    .totals .n { font-family: var(--mono); font-size: 24px; font-weight: 500; }
+    .totals .n.good { color: var(--ok); }
+    .totals .n.bad { color: var(--err); }
+    .totals .l {
+      font-family: var(--mono); font-size: 8.5px;
+      letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-top: 5px;
+    }
+    .sec-h {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--ink-3); margin: 0 0 10px 2px;
+    }
+    .rows { display: flex; flex-direction: column; gap: 10px; }
+    .row {
+      display: grid; grid-template-columns: 88px 1fr auto;
+      gap: 14px; align-items: start;
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      border-radius: 12px; padding: 14px 16px;
+    }
+    @media (max-width: 720px) { .row { grid-template-columns: 1fr; } }
+    .row .step {
+      font-family: var(--mono); font-size: 18px; font-weight: 600; color: var(--ink-1);
+    }
+    .row .file { font-family: var(--mono); font-size: 12px; color: var(--ink-1); }
+    .row .phase { font-size: 12px; color: var(--ink-2); margin-top: 3px; }
+    .row .meta { font-family: var(--mono); font-size: 10px; color: var(--ink-3); margin-top: 6px; }
+    .tag {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 4px 8px; border-radius: 999px; border: 1px solid var(--line-2); white-space: nowrap;
+    }
+    .tag.correct { color: var(--ok); border-color: rgba(74,222,128,0.35); }
+    .tag.incorrect { color: var(--err); border-color: rgba(239,68,68,0.4); }
+    .tag.ignore { color: var(--ink-3); }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0 28px; }
+    .actions a {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+      text-decoration: none; color: var(--ink-1);
+      border: 1px solid var(--line-2); border-radius: 6px; padding: 8px 12px;
+    }
+    .actions a:hover { color: var(--primary); border-color: var(--primary-dim); }
+    .note { font-family: var(--mono); font-size: 10px; color: var(--ink-3); line-height: 1.7; margin-top: 22px;
+      border-top: 1px solid var(--line); padding-top: 14px; }
+    .status { font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.05em; padding: 40px 0; text-align: center; }
+    .status.err { color: var(--err); }
+  </style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="back-home" href="/home/">← Home</a>
+    <span class="topbar-title"><strong>Vision cases</strong> · GlassKit · PG-04</span>
+    <div class="topbar-right">
+      <a class="back-home" href="/lab/">Eval Lab</a>
+      <button class="theme-toggle"></button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="head">
+      <h1>Reviewed phase footage</h1>
+      <span class="chip ok" id="src-chip">comer-rokid-demo #61</span>
+    </div>
+    <p class="sub">
+      Ground truth from the glasses eval harness on <code>vision-eval</code>.
+      Phases 06–09 are manually reviewed. Phase 10 is scored as ignore — step 10
+      has no expected parts, so the wrong-part guard is off. This page does not
+      change the live ST.100 glasses app.
+    </p>
+    <div class="actions">
+      <a href="/lab/">Open Eval Lab</a>
+      <a href="/lab/glasskit/video-index.csv" download>Download video-index.csv</a>
+      <a href="/lab/glasskit/session-events.json" download>Download session-events.json</a>
+    </div>
+    <div id="body"><div class="status">loading GlassKit cases…</div></div>
+    <p class="note">
+      Source: <code>comer-rokid-demo/backend/eval/export-portal.mjs</code> →
+      <code>annotation-pipeline/src/from-glasskit.ts</code>.
+      Drop the CSV plus the matching <code>Phase*_Video.MP4</code> files on the
+      Brain page, then use <strong>Import session from uploaded clips</strong>
+      in Evaluate. Re-import after a new glasses-side export with
+      <code>npm run import:glasskit</code>.
+    </p>
+  </div>
+
+  <script>
+    try {
+      const s = JSON.parse(localStorage.getItem('omnia.session') || 'null');
+      if (!s || s.tenant !== 'comer' || s.expiresAt <= Date.now()) window.location.replace('/login');
+    } catch { window.location.replace('/login'); }
+
+    function fmtRange(a, b) {
+      const s = Number(a);
+      const e = Number(b);
+      if (!Number.isFinite(s)) return '—';
+      if (!Number.isFinite(e) || e === s) return `${s}s`;
+      return `${s}–${e}s`;
+    }
+
+    async function load() {
+      try {
+        const [segRes, evRes] = await Promise.all([
+          fetch('/lab/glasskit/video-segments.json', { cache: 'no-store' }),
+          fetch('/lab/glasskit/session-events.json', { cache: 'no-store' }),
+        ]);
+        if (!segRes.ok || !evRes.ok) throw new Error('could not load labeled GlassKit artifacts');
+        const segments = await segRes.json();
+        const events = await evRes.json();
+        const incorrect = segments.filter((x) => !x.isCorrectExecution).length;
+        const correct = segments.filter((x) => x.isCorrectExecution).length;
+        const rows = segments.map((seg, i) => {
+          const ev = events[i] || {};
+          const label = ev.label || (seg.isCorrectExecution ? 'correct' : 'incorrect');
+          const ignored = /ignored/i.test(ev.rationale || '');
+          return `<article class="row">
+            <div class="step">${esc(seg.attachedTo || '')}</div>
+            <div>
+              <div class="file">${esc(seg.fileName)}</div>
+              <div class="phase">${esc(ev.phase || seg.label)}</div>
+              <div class="meta">${esc(fmtRange(seg.timestampStart, seg.timestampEnd))}
+                ${ev.rationale ? ' · ' + esc(ev.rationale) : ''}</div>
+            </div>
+            <div>
+              <span class="tag ${ignored ? 'ignore' : esc(label)}">${esc(ignored ? 'ignore' : label)}</span>
+              ${seg.errorType ? `<span class="tag incorrect">${esc(seg.errorType)}</span>` : ''}
+            </div>
+          </article>`;
+        }).join('');
+        document.getElementById('body').innerHTML = `
+          <div class="totals">
+            <div class="cell"><div class="n">${segments.length}</div><div class="l">reviewed samples</div></div>
+            <div class="cell"><div class="n good">${correct}</div><div class="l">correct</div></div>
+            <div class="cell"><div class="n bad">${incorrect}</div><div class="l">orientation raise</div></div>
+            <div class="cell"><div class="n">${events.length}</div><div class="l">session events</div></div>
+          </div>
+          <div class="sec-h">Phases 06–10 · pinion guide</div>
+          <div class="rows">${rows}</div>`;
+      } catch (e) {
+        document.getElementById('body').innerHTML =
+          `<div class="status err">${esc(e.message || String(e))}</div>`;
+      }
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', load);
+    else load();
+  </script>
+  <script>
+    window.BrainDockContext = () => ({
+      page: 'Vision cases',
+      view: 'GlassKit reviewed phase footage from comer-rokid-demo #61',
+    });
+  </script>
+  <script src="/lab/assets/i18n.js?v=13" defer></script>
+  <script src="/lab/assets/brain-dock.js?v=14" defer></script>
+</body>
+</html>
