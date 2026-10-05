@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Emotiv · Platform</title>
+  <link rel="icon" href="/lab/assets/daedalus-mark.svg?v=1" type="image/svg+xml" />
+  <link rel="stylesheet" href="/lab/assets/platform.css?v=2" />
+  <link rel="stylesheet" href="/lab/assets/emotiv-portal.css?v=1" />
+  <script src="/lab/assets/platform.js?v=2"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="mark" href="/home/">Emotiv</a>
+    <span class="topbar-title">Daedalus · Emotiv platform</span>
+    <div class="topbar-right">
+      <button class="theme-toggle" type="button"></button>
+      <button class="signout" id="signout" type="button">Sign out</button>
+    </div>
+  </header>
+  <main class="stage">
+    <h1>Emotiv platform</h1>
+    <p class="sub">Same Daedalus shell as the other portals. Agent and monitoring are Emotiv’s own services — nothing is connected until the feeds are shared.</p>
+    <div class="grid">
+      <a class="svc" href="/agent/">
+        <div class="tag">01 · Service</div>
+        <h2>Agent</h2>
+        <p>The Emotiv agent. The service slot is open; the model, tools, and session data are not wired yet.</p>
+        <span class="cta">Open agent</span>
+      </a>
+      <a class="svc" href="/monitor/">
+        <div class="tag">02 · Service</div>
+        <h2>Monitoring</h2>
+        <p>Live monitoring for Emotiv sessions. The panel is ready; no stream is attached.</p>
+        <span class="cta">Open monitoring</span>
+      </a>
+    </div>
+  </main>
+  <script>
+    try {
+      const s = JSON.parse(localStorage.getItem('omnia.session') || 'null');
+      if (!s || s.tenant !== 'emotiv' || s.expiresAt <= Date.now()) location.replace('/login');
+    } catch { location.replace('/login'); }
+    document.getElementById('signout').onclick = () => {
+      localStorage.removeItem('omnia.session');
+      location.replace('/login');
+    };
+  </script>
+</body>
+</html>

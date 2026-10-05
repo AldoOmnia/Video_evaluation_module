@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent · Emotiv</title>
+  <link rel="icon" href="/lab/assets/daedalus-mark.svg?v=1" type="image/svg+xml" />
+  <link rel="stylesheet" href="/lab/assets/platform.css?v=2" />
+  <link rel="stylesheet" href="/lab/assets/emotiv-portal.css?v=1" />
+  <script src="/lab/assets/platform.js?v=2"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="mark" href="/home/">Emotiv</a>
+    <span class="topbar-title">Agent</span>
+    <div class="topbar-right">
+      <a class="nav-link" href="/home/">Home</a>
+      <button class="theme-toggle" type="button"></button>
+    </div>
+  </header>
+  <main class="stage">
+    <div class="panel">
+      <div class="tag">01 · Service</div>
+      <h2>Agent</h2>
+      <p id="note">Checking the agent service…</p>
+      <div class="status" id="status"></div>
+    </div>
+  </main>
+  <script>
+    try {
+      const s = JSON.parse(localStorage.getItem('omnia.session') || 'null');
+      if (!s || s.tenant !== 'emotiv' || s.expiresAt <= Date.now()) location.replace('/login');
+    } catch { location.replace('/login'); }
+    fetch('/api/emotiv/agent', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d) => {
+        document.getElementById('note').textContent = d.note || 'Agent service has no feed yet.';
+        document.getElementById('status').textContent = d.configured ? 'Connected' : 'Not connected';
+      })
+      .catch(() => {
+        document.getElementById('note').textContent = 'The agent service did not respond.';
+        document.getElementById('status').textContent = 'Unavailable';
+      });
+  </script>
+</body>
+</html>

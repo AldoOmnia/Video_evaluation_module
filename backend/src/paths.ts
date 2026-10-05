@@ -41,3 +41,6 @@ export const RESHIM_HTML = join(EVAL_LAB_PUBLIC, "reshim.html");
 export const SETTINGS_HTML = join(EVAL_LAB_PUBLIC, "settings.html");
 export const SYNTHETIC_POV_HTML = join(EVAL_LAB_PUBLIC, "synthetic-pov.html");
 export const VISION_CASES_HTML = join(EVAL_LAB_PUBLIC, "vision-cases.html");
+export const EMOTIV_HOME_HTML = join(EVAL_LAB_PUBLIC, "emotiv-home.html");
+export const EMOTIV_AGENT_HTML = join(EVAL_LAB_PUBLIC, "emotiv-agent.html");
+export const EMOTIV_MONITOR_HTML = join(EVAL_LAB_PUBLIC, "emotiv-monitor.html");

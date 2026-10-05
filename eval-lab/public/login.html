@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="referrer" content="no-referrer" />
-  <title>Comer Industries · Sign in</title>
+  <title>Emotiv · Sign in</title>
   <link rel="icon" href="/lab/assets/daedalus-mark.svg?v=1" type="image/svg+xml" />
   <link rel="icon" href="/lab/assets/favicon-32.png?v=1" sizes="32x32" type="image/png" />
   <link rel="apple-touch-icon" href="/lab/assets/apple-touch-icon.png?v=1" />
@@ -138,6 +138,13 @@
       max-width: 100%; max-height: 100%;
       object-fit: contain;
       filter: drop-shadow(0 0 6px rgba(255,255,255,0.05));
+    }
+    .emotiv-mark {
+      font-family: var(--mono);
+      font-size: 13px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink-1);
     }
     .client-name {
       font-family: var(--mono);
@@ -367,21 +374,21 @@
 
       <div class="client-logo-wrap">
         <div class="client-logo">
-          <img src="/lab/assets/comer-logo.png" alt="Comer Industries" />
+          <div class="emotiv-mark">Emotiv</div>
         </div>
-        <div class="client-name">CLIENT · <strong>COMER INDUSTRIES</strong></div>
+        <div class="client-name">CLIENT · <strong>EMOTIV</strong></div>
       </div>
 
       <form class="card" id="login-form" autocomplete="off" novalidate>
         <h1>Sign in</h1>
-        <div class="sub">Pinion Guide Assembly · Rockford Station</div>
+        <div class="sub">Agent · Monitoring</div>
 
         <div class="field">
           <label for="username">Email</label>
           <input
             id="username" name="username" type="email"
             autocomplete="username" inputmode="email"
-            placeholder="you@comer.com" required
+            placeholder="you@emotiv.com" required
           />
         </div>
 
@@ -400,8 +407,8 @@
 
         <div class="creds-hint">
           <span class="k">Demo credentials — placeholder build</span>
-          username <code>admin@comer.com</code><br />
-          password <code>rockford123</code>
+          username <code>admin@emotiv.com</code><br />
+          password <code>emotiv123</code>
         </div>
       </form>
 
@@ -410,7 +417,7 @@
     <footer class="powered">
       <div class="pb-k">Powered by</div>
       <span class="vendor-mark" role="img" aria-label="Daedalus"></span>
-      <div class="pb-meta">Comer · platform-comer · build v0.5</div>
+      <div class="pb-meta">Emotiv · platform-emotiv · build v0.5</div>
     </footer>
   </main>
 
@@ -470,17 +477,13 @@
       const btn = document.getElementById('btn-login');
 
       function resumeSessionRedirect() {
-        if (localStorage.getItem('omnia.introSeen') === '1') {
-          window.location.replace('/home/');
-        } else {
-          window.location.replace('/welcome/');
-        }
+        window.location.replace('/home/');
       }
 
       // If a previous session is still valid, skip the login screen.
       try {
         const session = JSON.parse(localStorage.getItem('omnia.session') || 'null');
-        if (session && session.tenant === 'comer' && session.expiresAt > Date.now()) {
+        if (session && session.tenant === 'emotiv' && session.expiresAt > Date.now()) {
           resumeSessionRedirect();
           return;
         }
@@ -508,7 +511,7 @@
           const r = await fetch('/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tenant: 'comer', username, password }),
+            body: JSON.stringify({ tenant: 'emotiv', username, password }),
           });
           const data = await r.json().catch(() => ({}));
           if (!r.ok || !data.ok) {
@@ -519,7 +522,7 @@
           localStorage.setItem(
             'omnia.session',
             JSON.stringify({
-              tenant: 'comer',
+              tenant: 'emotiv',
               token: data.token,
               user: data.user,
               expiresAt: Date.now() + (data.ttlSec ?? 60 * 60 * 8) * 1000,

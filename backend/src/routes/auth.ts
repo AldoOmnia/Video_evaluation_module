@@ -1,8 +1,8 @@
 /**
  * Tenant-scoped login for the white-labelled enterprise platform.
  *
- * This branch is `platform-comer`, so the only tenant configured here is
- * `comer`. Other clients live on their own branches with their own
+ * This branch is `platform-emotiv`, so the only tenant configured here is
+ * `emotiv`. Other clients live on their own branches with their own
  * tenant config; the same shape is expected (id, label, users[]).
  *
  * Security note (placeholder build):
@@ -34,16 +34,16 @@ interface Tenant {
   users: TenantUser[];
 }
 
-/** Per-branch tenant config. `platform-comer` only ships Comer. */
+/** Per-branch tenant config. `platform-emotiv` only ships Emotiv. */
 const TENANTS: Record<string, Tenant> = {
-  comer: {
-    id: "comer",
-    label: "Comer Industries",
+  emotiv: {
+    id: "emotiv",
+    label: "Emotiv",
     users: [
       {
-        username: "admin@comer.com",
-        password: "rockford123",
-        display: "Comer Admin",
+        username: "admin@emotiv.com",
+        password: "emotiv123",
+        display: "Emotiv Admin",
         role: "admin",
       },
     ],

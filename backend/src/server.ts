@@ -18,6 +18,7 @@ import { worldLabsRouter } from "./routes/worldlabs.js";
 import { usageRouter } from "./routes/usage.js";
 import { mesRouter } from "./routes/mes.js";
 import { reshimRouter } from "./routes/reshim.js";
+import { emotivRouter } from "./routes/emotiv.js";
 import { worldLabsConfigured } from "./services/worldlabs.js";
 import { geminiConfigured, VISION_MODEL } from "./services/gemini.js";
 import { loadLedger } from "./services/usage.js";
@@ -27,13 +28,15 @@ import {
   LAB_HTML,
   LOGIN_HTML,
   WELCOME_HTML,
-  HOME_HTML,
   KNOWLEDGE_HTML,
   REPORTS_HTML,
   RESHIM_HTML,
   SETTINGS_HTML,
   SYNTHETIC_POV_HTML,
   VISION_CASES_HTML,
+  EMOTIV_HOME_HTML,
+  EMOTIV_AGENT_HTML,
+  EMOTIV_MONITOR_HTML,
   SHARED_DIR,
 } from "./paths.js";
 
@@ -97,6 +100,7 @@ app.use("/api/worldlabs", worldLabsRouter);
 app.use("/api/usage", usageRouter);
 app.use("/api/mes", mesRouter);
 app.use("/api/reshim", reshimRouter);
+app.use("/api/emotiv", emotivRouter);
 app.use("/query", queryRouter); // Rokid APK compatibility
 
 // Dev-only: browser posts calibrated splat capture from localStorage (localhost).
@@ -408,10 +412,20 @@ app.get(["/welcome", "/welcome/"], (_req, res) => {
   res.sendFile(WELCOME_HTML);
 });
 
-// Unified platform home — chat + the three services (post-login landing).
+// Emotiv portal home — agent and monitoring, not the Comer services.
 app.get(["/home", "/home/"], (_req, res) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
-  res.sendFile(HOME_HTML);
+  res.sendFile(EMOTIV_HOME_HTML);
+});
+
+app.get(["/agent", "/agent/"], (_req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.sendFile(EMOTIV_AGENT_HTML);
+});
+
+app.get(["/monitor", "/monitor/"], (_req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.sendFile(EMOTIV_MONITOR_HTML);
 });
 
 // Facility knowledge base — per-station node graphs + component references.
