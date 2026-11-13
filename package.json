@@ -19,7 +19,8 @@
     "dev:live": "bash scripts/dev-live.sh",
     "mes:check": "tsx tools/mes-check.mjs",
     "test:sql-guard": "tsx tools/test-sql-guard.mjs",
-    "check:design": "node tools/check-design-language.mjs"
+    "check:design": "node tools/check-design-language.mjs",
+    "import:glasskit": "tsx annotation-pipeline/src/from-glasskit.ts"
   },
   "devDependencies": {
     "tsx": "^4.7.2",

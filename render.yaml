@@ -58,6 +58,27 @@ services:
       # checkout, so a deploy does not wipe the history.
       - key: RESHIM_RUN_ROOT
         value: /var/reshim/runs
+      # Live line (MES) — declared here so switching the home card off demo
+      # data is only a matter of filling in the credentials below, with no
+      # code or blueprint change. They are deliberately unset today.
+      #
+      # This service runs in Oregon and the MES sits on Comer's private LAN
+      # (WARKFSQL002 / 10.240.32.32), so there is no route to it from here.
+      # Setting the credentials without first publishing a route would not
+      # produce live data — every read would time out and the card would show
+      # "line connection dropped · retrying" instead of the honest
+      # "demo data · bridge pending". See docs/live-line-qa.md § Reachability.
+      #
+      # Until then the demo runs on a laptop on the plant network, where direct
+      # SQL works. The non-secret values are fixed for this tenant; the rest
+      # are secrets below. Optional MES_* tuning vars are left to their code
+      # defaults (MES_PLANT_TZ America/Chicago, MES_MAX_ROWS 200, …).
+      - key: MES_MSSQL_PORT
+        value: "1433"
+      - key: MES_MSSQL_DATABASE
+        value: SSL04_FARGO
+      - key: MES_STATION_NUMBER
+        value: "100"
       # Secrets — Render will prompt for these at blueprint-create time
       # and store them outside this file.
       - key: ANTHROPIC_API_KEY
@@ -86,4 +107,25 @@ services:
       # Comma-separated. This is who a sample send reaches, so it is the same
       # standing list a real report goes to.
       - key: MAIL_RECIPIENTS
+        sync: false
+      # Live line credentials. Empty is a supported state: mesConfigured()
+      # needs HOST + USER + PASSWORD together, so a partial fill still serves
+      # the demo snapshot rather than half-connecting.
+      #
+      # Ask Comer IT for a read-only login — the SQL guard enforces read-only
+      # regardless, but least privilege is the right posture on a production
+      # MES. HOST is the plant address today and would become the published
+      # hostname if the database is ever fronted by a tunnel.
+      - key: MES_MSSQL_HOST
+        sync: false
+      - key: MES_MSSQL_USER
+        sync: false
+      - key: MES_MSSQL_PASSWORD
+        sync: false
+      # Fallback path, only for a deployment with HTTP reach into the plant but
+      # not SQL reach. Direct SQL above wins when both are set. The key must
+      # equal the on-site connector's BACKEND_API_KEY.
+      - key: LINE_BRIDGE_URL
+        sync: false
+      - key: LINE_BRIDGE_API_KEY
         sync: false

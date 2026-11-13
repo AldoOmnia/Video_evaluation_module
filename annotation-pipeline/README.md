@@ -1,37 +1,62 @@
-# Annotation Pipeline (scaffold)
+# Annotation Pipeline
 
-Placeholder for Priority 5 in `CURSOR-HANDOFF.md`. When real Comer footage
-arrives, this becomes:
+First real slice: import the reviewed GlassKit cases from
+`comer-rokid-demo/backend/eval` (`vision-eval`, PR #61) into the portal
+contracts (`VideoSegment`, `SessionEvent`). SAM2 / Whisper stay deferred —
+eleven minutes of footage does not need mask propagation.
 
-- A backend service that accepts uploaded videos (presumably from
-  `glasses-app` or directly from QA)
-- SAM2 mask propagation for object tracking (or YOLOv11 + label
-  propagation per Budvytis)
-- Whisper transcription for worker voice
-- An exporter that emits `SessionEvent[]` JSON conforming to
-  `shared/types/events.ts`
+## Why this exists
 
-Until then, the eval lab uses the in-browser simulated session generator
-in `eval-lab/src/sessionGen.ts`, and the manual VideoSegment tagging in
-`brain-eval-lab.html` covers the small-scale labeling case.
+The web portal reports catch rate / false-positive rate and feeds
+`POST /api/eval` so a prompt or model change can be scored without
+re-wearing the glasses. It does **not** want embeddings. It wants:
 
-## Suggested folder layout once we start
+| Artifact | Portal consumer |
+| --- | --- |
+| `video-index.csv` | Brain drop target → `VideoSegment` nodes (`ingestVideoIndex`) |
+| `session-events.json` | Evaluate page / `POST /api/eval` |
+| `/vision-cases/` | Dedicated review pane for the imported cases |
+
+Those two files are produced on the glasses side:
+
+```sh
+# in comer-rokid-demo/backend  (branch vision-eval)
+node eval/export-portal.mjs
+```
+
+Copy the result into `annotation-pipeline/data/incoming/` and re-import.
+
+## Import (this repo)
+
+```sh
+npm run import:glasskit
+```
+
+That runs `src/from-glasskit.ts` against the incoming CSV/JSON, writes
+validated `data/labeled/*.json`, and those files are what `/vision-cases/`
+and `/lab/glasskit/` serve.
+
+The importer is a Zod gate. A row that is not `step:NN`, or an
+`errorType` outside the 19-code taxonomy, fails closed instead of
+landing in the graph.
+
+Then, in the lab (`npm run dev`):
+
+1. Open **http://localhost:3001/vision-cases/** to review the imported cases.
+2. Brain mode: drop `/lab/glasskit/video-index.csv` and the matching `Phase*_Video.MP4`.
+3. Evaluate mode: **Import session from uploaded clips**.
+4. Run sim or live LLM. That is the reporting loop.
+
+## Still deferred
 
 ```
 annotation-pipeline/
   src/
-    sam2-propagator.ts
+    from-glasskit.ts           # THIS FILE — GlassKit → portal
+    sam2-propagator.ts         # later, at hundreds of hours of footage
     whisper-transcriber.ts
-    session-exporter.ts        # → SessionEvent[] (validated by Zod)
-    review-ui/                 # next/vite app for low-confidence flags
-  workers/
-    track-objects.py           # heavy CV stays in Python
-    transcribe.py
   data/
-    raw/                       # uploaded video, ignored by git
-    labeled/                   # exported JSON (the eval consumes these)
+    incoming/                  # exporter output from comer-rokid-demo #61
+    raw/                       # uploaded video, gitignored
+    labeled/                   # validated JSON the eval consumes
 ```
-
-The output JSON format is already nailed down — see
-`shared/types/events.ts` and the example payload in
-`CURSOR-HANDOFF.md` §"Reference: data the eval produces."

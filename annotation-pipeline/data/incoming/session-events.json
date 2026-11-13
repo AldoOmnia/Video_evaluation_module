@@ -1,0 +1,180 @@
+{
+  "hardwareId": "rokid_ai",
+  "strategyId": "tiered_proactive",
+  "procedureId": "proc:pinion-guide",
+  "source": "comer-rokid-demo/backend/eval",
+  "run": null,
+  "events": [
+    {
+      "ts": 120,
+      "phase": "4900.12001 P100 SUP BEARING ON PINION",
+      "stepId": "step:06",
+      "label": "correct",
+      "errorType": null,
+      "priority": null,
+      "outcome": "n/a",
+      "latencyMs": null,
+      "rationale": "reviewed"
+    },
+    {
+      "ts": 168,
+      "phase": "4900.12001 P100 SUP BEARING ON PINION",
+      "stepId": "step:06",
+      "label": "incorrect",
+      "errorType": "ORIENTATION",
+      "priority": "high",
+      "outcome": "n/a",
+      "latencyMs": null,
+      "rationale": "reviewed; expect 67190R91-FLIP"
+    },
+    {
+      "ts": 168.5,
+      "phase": "4900.12001 P100 SUP BEARING ON PINION",
+      "stepId": "step:06",
+      "label": "correct",
+      "errorType": null,
+      "priority": null,
+      "outcome": "n/a",
+      "latencyMs": null,
+      "rationale": "reviewed"
+    },
+    {
+      "ts": 0,
+      "phase": "4900.12001 P100 SHIM PACK",
+      "stepId": "step:07",
+      "label": "correct",
+      "errorType": null,
+      "priority": null,
+      "outcome": "n/a",
+      "latencyMs": null,
+      "rationale": "reviewed"
+    },
+    {
+      "ts": 0,
+      "phase": "4900.12001 P100 RING RETAINER",
+      "stepId": "step:08",
+      "label": "correct",
+      "errorType": null,
+      "priority": null,
+      "outcome": "n/a",
+      "latencyMs": null,
+      "rationale": "reviewed"
+    },
+    {
+      "ts": 35,
+      "phase": "4900.12001 P100 RING RETAINER CHECK",
+      "stepId": "step:09",
+      "label": "correct",
+      "errorType": null,
+      "priority": null,
+      "outcome": "n/a",
+      "latencyMs": null,
+      "rationale": "reviewed"
+    },
+    {
+      "ts": 0,
+      "phase": "4900.12001 P100 1 FREE ROLLING",
+      "stepId": "step:10",
+      "label": "correct",
+      "errorType": null,
+      "priority": null,
+      "outcome": "n/a",
+      "latencyMs": null,
+      "rationale": "reviewed; ignored: Step 10 has no expected parts, so the glasses wrong-part guard is disabled."
+    }
+  ],
+  "videoSegments": [
+    {
+      "id": "vid:Phase6_Video-MP4-step:06-120-168",
+      "type": "VideoSegment",
+      "label": "Phase6_Video.MP4 → step:06 (correct)",
+      "fileName": "Phase6_Video.MP4",
+      "timestampStart": 120,
+      "timestampEnd": 168,
+      "isCorrectExecution": true,
+      "attachedTo": "step:06",
+      "notes": "reviewed",
+      "reviewed": true,
+      "ignored": false
+    },
+    {
+      "id": "vid:Phase6_Video-MP4-step:06-168-168",
+      "type": "VideoSegment",
+      "label": "Phase6_Video.MP4 → step:06 (incorrect)",
+      "fileName": "Phase6_Video.MP4",
+      "timestampStart": 168,
+      "timestampEnd": 168,
+      "errorType": "ORIENTATION",
+      "isCorrectExecution": false,
+      "attachedTo": "step:06",
+      "notes": "reviewed; expect 67190R91-FLIP",
+      "reviewed": true,
+      "ignored": false
+    },
+    {
+      "id": "vid:Phase6_Video-MP4-step:06-168.5-200",
+      "type": "VideoSegment",
+      "label": "Phase6_Video.MP4 → step:06 (correct)",
+      "fileName": "Phase6_Video.MP4",
+      "timestampStart": 168.5,
+      "timestampEnd": 200,
+      "isCorrectExecution": true,
+      "attachedTo": "step:06",
+      "notes": "reviewed",
+      "reviewed": true,
+      "ignored": false
+    },
+    {
+      "id": "vid:Phase7_Video-MP4-step:07-0-40",
+      "type": "VideoSegment",
+      "label": "Phase7_Video.MP4 → step:07 (correct)",
+      "fileName": "Phase7_Video.MP4",
+      "timestampStart": 0,
+      "timestampEnd": 40,
+      "isCorrectExecution": true,
+      "attachedTo": "step:07",
+      "notes": "reviewed",
+      "reviewed": true,
+      "ignored": false
+    },
+    {
+      "id": "vid:Phase_8_Video-MP4-step:08-0-243",
+      "type": "VideoSegment",
+      "label": "Phase_8_Video.MP4 → step:08 (correct)",
+      "fileName": "Phase_8_Video.MP4",
+      "timestampStart": 0,
+      "timestampEnd": 243,
+      "isCorrectExecution": true,
+      "attachedTo": "step:08",
+      "notes": "reviewed",
+      "reviewed": true,
+      "ignored": false
+    },
+    {
+      "id": "vid:Phase_9_Video-MP4-step:09-35-70",
+      "type": "VideoSegment",
+      "label": "Phase_9_Video.MP4 → step:09 (correct)",
+      "fileName": "Phase_9_Video.MP4",
+      "timestampStart": 35,
+      "timestampEnd": 70,
+      "isCorrectExecution": true,
+      "attachedTo": "step:09",
+      "notes": "reviewed",
+      "reviewed": true,
+      "ignored": false
+    },
+    {
+      "id": "vid:Phase10_Video-MP4-step:10-0-70",
+      "type": "VideoSegment",
+      "label": "Phase10_Video.MP4 → step:10 (correct)",
+      "fileName": "Phase10_Video.MP4",
+      "timestampStart": 0,
+      "timestampEnd": 70,
+      "isCorrectExecution": true,
+      "attachedTo": "step:10",
+      "notes": "reviewed; ignored: Step 10 has no expected parts, so the glasses wrong-part guard is disabled.",
+      "reviewed": true,
+      "ignored": true
+    }
+  ]
+}
