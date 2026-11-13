@@ -371,7 +371,7 @@
     let SESSION = null;
     try {
       SESSION = JSON.parse(localStorage.getItem('omnia.session') || 'null');
-      if (!SESSION || SESSION.tenant !== 'comer' || SESSION.expiresAt <= Date.now()) window.location.replace('/login');
+      if (!SESSION || SESSION.tenant !== 'emotiv' || SESSION.expiresAt <= Date.now()) window.location.replace('/login');
     } catch { window.location.replace('/login'); }
 
     const $ = (id) => document.getElementById(id);
