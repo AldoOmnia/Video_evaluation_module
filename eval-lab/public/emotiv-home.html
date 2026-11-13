@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Emotiv · Platform</title>
+  <link rel="icon" href="/lab/assets/daedalus-mark.svg?v=1" type="image/svg+xml" />
+  <link rel="stylesheet" href="/lab/assets/platform.css?v=2" />
+  <link rel="stylesheet" href="/lab/assets/emotiv-portal.css?v=2" />
+  <script src="/lab/assets/platform.js?v=2"></script>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="mark" href="/home/"><img class="brand" src="/lab/assets/emotiv-logo.png?v=2" alt="Emotiv" /></a>
+    <span class="topbar-title">Daedalus · Emotiv platform · Dakkota</span>
+    <div class="topbar-right">
+      <button class="theme-toggle" type="button"></button>
+      <button class="signout" id="signout" type="button">Sign out</button>
+    </div>
+  </header>
+
+  <div class="shell">
+    <main class="main">
+      <div class="hero">
+        <img class="hero-logo" src="/lab/assets/emotiv-logo.png?v=2" alt="Emotiv" />
+        <h1>Dakkota station intelligence</h1>
+        <p class="sub">One service for the Emotiv stack so far: station replay. The rail on the right lists the models that stack routes, as it reported them on the newest replay.</p>
+      </div>
+
+      <a class="svc" href="/monitor/" id="svc-live">
+        <div class="tag">01 · Service</div>
+        <h2>Station replay</h2>
+        <p>Glasses recordings from the Dakkota line, played back through the Emotiv stack. The panel the wearer sees is drawn on the picture, with the count, the part numbers and each model's answer beside it. Recorded sessions only; no live stream is attached.</p>
+        <div class="facts" id="live-facts">
+          <div class="row"><span class="k">Recordings</span><span class="v" id="lf-clips">—</span></div>
+          <div class="row"><span class="k">Replayed</span><span class="v" id="lf-replayed">—</span></div>
+          <div class="row"><span class="k">Stack</span><span class="v" id="lf-stack">—</span></div>
+        </div>
+        <span class="pill" id="live-pill">Recorded</span>
+        <span class="cta">Open station replay</span>
+      </a>
+    </main>
+
+    <aside class="side" aria-label="Routed models">
+      <div class="side-head">
+        <div class="k">Side tab · routed models</div>
+        <div class="t">Models on Emotiv-Dakkota</div>
+        <div class="note" id="models-note">Loading the model rail…</div>
+      </div>
+      <div id="models"></div>
+    </aside>
+  </div>
+
+  <script>
+    try {
+      const s = JSON.parse(localStorage.getItem('omnia.session') || 'null');
+      if (!s || s.tenant !== 'emotiv' || s.expiresAt <= Date.now()) location.replace('/login');
+    } catch { location.replace('/login'); }
+
+    const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    document.getElementById('signout').onclick = () => {
+      localStorage.removeItem('omnia.session');
+      location.replace('/login');
+    };
+
+    function scoreClass(tone) {
+      if (tone === 'ok') return 'score';
+      if (tone === 'warn') return 'score warn';
+      if (tone === 'bad') return 'score bad';
+      return 'score warn';
+    }
+
+    function paintModels(body) {
+      document.getElementById('models-note').textContent = body.note || '';
+      document.getElementById('models').innerHTML = (body.models || []).map((m) => `
+        <div class="model">
+          <div class="slot">${esc(m.slot)}</div>
+          <div class="id">${esc(m.id)}</div>
+          <div class="role">${esc(m.role)}</div>
+          <div class="meta">
+            <span class="${scoreClass(m.tone)}">${esc(m.metric)}</span>
+            <span>${esc(m.status)}</span>
+          </div>
+        </div>`).join('') || '<div class="model"><div class="role">No model rows yet.</div></div>';
+    }
+
+    // The replay card counts what is on disk: the recordings, and which of
+    // them have been through the stack.
+    fetch('/lab/assets/emotiv/clips.json', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then(async (body) => {
+        const clips = body.clips || body;
+        const done = clips.filter((c) => !c.pending);
+        document.getElementById('lf-clips').textContent = String(clips.length);
+        document.getElementById('lf-replayed').textContent = `${done.length} of ${clips.length}`;
+        if (!done.length) return;
+        const trace = await fetch(`/lab/assets/emotiv/traces/${done[0].id}.json`).then((r) => r.json());
+        document.getElementById('lf-stack').textContent = `${trace.source.branch} ${trace.source.commit}`;
+      })
+      .catch(() => {});
+
+    fetch('/api/emotiv/models', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then(paintModels)
+      .catch((e) => {
+        document.getElementById('models-note').textContent = e.message || String(e);
+      });
+  </script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+{
+ "note": "Glasses recordings shown on the Emotiv station page. `file` is the web copy under clips/, `trace` the replay under traces/. A clip with `pending` has no replay yet and says why. A clip with `script` is kept as a fixed example of the panel: the order and time each connector goes in were set by hand from the recording, and the panel is drawn from that. A clip with `labels` has a box for each opening on the frames where the row is in clear view, checked by eye; the page draws those on the frame the count read.",
+ "clips": [
+  {
+   "id": "radio_connections-20261112-141626",
+   "title": "Radio connections",
+   "recorded": "2026-11-12T14:16:26",
+   "station": "IP0040",
+   "stationName": "Center Duct/Main Duct, Radio Connection Install",
+   "stepNo": "14 of 17",
+   "stepLabel": "Make Radio connections and Witness mark.",
+   "zone": "EZ4",
+   "module": "Radio",
+   "script": "scripts/radio_connections-20261112-141626.json",
+   "labels": "labels/radio_connections-20261112-141626.json"
+  },
+  {
+   "id": "radio_connections_unseated-20261112-141804",
+   "title": "Radio connections, three left unseated",
+   "recorded": "2026-11-12T14:18:04",
+   "station": "IP0040",
+   "stationName": "Center Duct/Main Duct, Radio Connection Install",
+   "stepNo": "14 of 17",
+   "stepLabel": "Make Radio connections and Witness mark.",
+   "zone": "EZ4",
+   "module": "Radio",
+   "script": "scripts/radio_connections_unseated-20261112-141804.json",
+   "labels": "labels/radio_connections_unseated-20261112-141804.json"
+  },
+  {
+   "id": "gateway_connections-20261112-141339",
+   "title": "Gateway connections",
+   "recorded": "2026-11-12T14:13:39",
+   "station": "IP0050",
+   "stationName": "CGM Install",
+   "stepNo": "5 of 19",
+   "stepLabel": "Make Connections and make sure to Witness Mark",
+   "zone": "EZ5",
+   "module": "Gateway",
+   "script": "scripts/gateway_connections-20261112-141339.json"
+  },
+  {
+   "id": "gateway_connections_unseated-20261112-141546",
+   "title": "Gateway connections, one left unseated",
+   "recorded": "2026-11-12T14:15:46",
+   "station": "IP0050",
+   "stationName": "CGM Install",
+   "stepNo": "5 of 19",
+   "stepLabel": "Make Connections and make sure to Witness Mark",
+   "zone": "EZ5",
+   "module": "Gateway",
+   "script": "scripts/gateway_connections_unseated-20261112-141546.json"
+  },
+  {
+   "id": "driver_side_a_pillar_2_wrong_rosebud-20261112-163937",
+   "title": "Driver side A-pillar, wrong rosebud at 2",
+   "recorded": "2026-11-12T16:39:37",
+   "station": "IP0030",
+   "stationName": "Wire Harness Install",
+   "stepNo": "4 of 7",
+   "stepLabel": "Secure 24 rosebuds",
+   "pending": "Rosebuds are read by the clip-tag route, which the replay tool does not drive yet."
+  },
+  {
+   "id": "passenger_side_a_pillar_6_not_clipped-20261112-163854",
+   "title": "Passenger side A-pillar, 6 not clipped",
+   "recorded": "2026-11-12T16:38:54",
+   "station": "IP0030",
+   "stationName": "Wire Harness Install",
+   "stepNo": "4 of 7",
+   "stepLabel": "Secure 24 rosebuds",
+   "pending": "Rosebuds are read by the clip-tag route, which the replay tool does not drive yet."
+  },
+  {
+   "id": "lh_picking_wrong_caliper-20261112-152652",
+   "title": "Left hand, wrong caliper picked",
+   "recorded": "2026-11-12T15:26:52",
+   "station": "Calipers",
+   "stationName": "Caliper and bolt pick",
+   "pending": "Runs on the calipers and bolts stack, which is not set up for replay yet."
+  },
+  {
+   "id": "rh_picking_wrong_caliper_02-20261112-152622",
+   "title": "Right hand, wrong caliper picked",
+   "recorded": "2026-11-12T15:26:22",
+   "station": "Calipers",
+   "stationName": "Caliper and bolt pick",
+   "pending": "Runs on the calipers and bolts stack, which is not set up for replay yet."
+  }
+ ]
+}

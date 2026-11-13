@@ -692,7 +692,7 @@
     function getSession() {
       try {
         const s = JSON.parse(localStorage.getItem('omnia.session') || 'null');
-        if (s && s.tenant === 'comer' && s.expiresAt > Date.now()) return s;
+        if (s && s.tenant === 'emotiv' && s.expiresAt > Date.now()) return s;
       } catch {}
       return null;
     }

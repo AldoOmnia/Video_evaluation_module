@@ -1,0 +1,1568 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Station replay · Emotiv</title>
+  <link rel="icon" href="/lab/assets/daedalus-mark.svg?v=1" type="image/svg+xml" />
+  <link rel="stylesheet" href="/lab/assets/platform.css?v=2" />
+  <link rel="stylesheet" href="/lab/assets/emotiv-portal.css?v=2" />
+  <script src="/lab/assets/platform.js?v=2"></script>
+  <script src="/lab/assets/emotiv-hud.js?v=7"></script>
+  <!-- The connector models are drawn with three.js, loaded the way the Comer
+       twin page loads it. -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+      }
+    }
+  </script>
+  <style>
+    /* Station replay: a glasses recording with the panel the wearer would have
+       seen drawn over it, and what the models said beside it. One quadrant and
+       a left rail, after the Comer digital twin page. */
+    .rp {
+      /* The picture is 3:4 and takes the full height, so its column is as wide
+         as that height allows and the readouts get the rest. */
+      --pov-h: calc(100vh - 44px - 28px - 46px);
+      --pov-w: clamp(300px, calc(var(--pov-h) * 0.75), 48vw);
+      flex: 1; min-height: 0;
+      display: grid;
+      grid-template-columns: 256px var(--pov-w) minmax(0, 1fr);
+      font-family: var(--sans);
+    }
+    .rp-col { min-height: 0; min-width: 0; display: flex; flex-direction: column; border-right: 1px solid var(--line); }
+    .rp-col:last-child { border-right: 0; }
+    .rp-head {
+      display: flex; align-items: center; gap: 8px;
+      height: 28px; padding: 0 10px; flex-shrink: 0;
+      border-bottom: 1px solid var(--line); background: var(--bg-2);
+      font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--ink-3);
+      white-space: nowrap; overflow: hidden;
+    }
+    .rp-head .pi { color: var(--primary); font-size: 10px; }
+    .rp-head .ttl { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .rp-head .rtag {
+      margin-left: auto; flex-shrink: 0; font-size: 9.5px; color: var(--ink-3);
+      border: 1px solid var(--line-2); border-radius: 3px; padding: 1px 6px;
+    }
+    .rp-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+    .rp-scroll::-webkit-scrollbar { width: 8px; }
+    .rp-scroll::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 4px; }
+
+    /* ── Left rail ─────────────────────────── */
+    .rp-cap {
+      padding: 7px 12px 3px; font-family: var(--mono); font-size: 9px;
+      letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+    }
+    .rp-clip {
+      display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; align-items: center;
+      width: 100%; text-align: left; background: transparent; color: inherit;
+      border: 0; border-left: 2px solid transparent; padding: 2px 10px 2px 8px; cursor: pointer;
+    }
+    .rp-clip > div { min-width: 0; }
+    .rp-clip:hover { background: var(--bg-2); }
+    .rp-clip.on { border-left-color: var(--primary); background: var(--bg-2); }
+    .rp-clip img { width: 18px; height: 24px; object-fit: cover; border-radius: 3px; border: 1px solid var(--line-2); display: block; }
+    .rp-clip .t { font-size: 11.5px; color: var(--ink-1); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* Station and step show on the open recording only; the rest are in its title. */
+    .rp-clip .s { display: none; margin-top: 1px; font-family: var(--mono); font-size: 9px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rp-clip.on .s { display: block; }
+    .rp-clip .s b { font-weight: 500; color: var(--ink-2); }
+    .rp-clip.pending .t { color: var(--ink-2); }
+    .rp-layers { display: flex; flex-wrap: wrap; gap: 2px 16px; padding: 1px 12px; }
+    .rp-layer {
+      display: flex; align-items: center; gap: 6px; cursor: pointer;
+      font-family: var(--mono); font-size: 10.5px; color: var(--ink-2);
+    }
+    .rp-layer input { margin: 0; accent-color: var(--primary); flex-shrink: 0; }
+    .rp-kv { padding: 1px 12px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; font-family: var(--mono); font-size: 10.5px; }
+    .rp-kv .row { display: flex; justify-content: space-between; gap: 10px; }
+    .rp-kv .k { color: var(--ink-3); flex-shrink: 0; }
+    .rp-kv .v { color: var(--ink-1); text-align: right; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rp-step { padding: 3px 12px 0; font-size: 11px; color: var(--ink-3); display: flex; gap: 8px; line-height: 1.3; }
+    .rp-step .n { font-family: var(--mono); font-size: 10px; width: 18px; flex-shrink: 0; text-align: right; padding-top: 1px; }
+    .rp-step.on { color: var(--ink-1); }
+    .rp-step.on .n { color: var(--primary); }
+    .rp-model { padding: 1px 12px; display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: 8px; align-items: center; }
+    .rp-model .lamp { width: 6px; height: 6px; border-radius: 50%; background: var(--line-2); }
+    .rp-model.on .lamp { background: var(--primary); box-shadow: 0 0 6px var(--primary-glow); }
+    .rp-model .role { font-size: 11px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rp-model.on .role { color: var(--ink-1); }
+    .rp-note { margin: 5px 12px 8px; font-size: 10.5px; color: var(--ink-3); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .rp-note b { color: var(--ink-2); font-weight: 500; }
+
+    /* ── The picture ───────────────────────── */
+    .rp-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: #000; }
+    .rp-pov { position: relative; height: 100%; max-width: 100%; aspect-ratio: 3 / 4; container-type: size; overflow: hidden; }
+    .rp-pov video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; background: #000; }
+    .rp-aim { position: absolute; inset: 0; pointer-events: none; }
+    .rp-aim i { position: absolute; left: 40%; width: 20%; border: 1px dashed rgba(255, 255, 255, 0.7); }
+    .rp-aim .sq { top: 50%; aspect-ratio: 1; transform: translateY(-50%); border-style: solid; }
+    .rp-aim .tall { top: 50%; aspect-ratio: 1 / 2; transform: translateY(-50%); }
+
+    /* The glasses panel. Its own palette and type, from EmotivTheme.kt: this is
+       a picture of another device's screen, not portal chrome. One dp of the
+       320 dp panel is 1/320 of the picture's width. */
+    .hud {
+      --dp: calc(100cqw / 320);
+      --hud-accent: #4DA3FF; --hud-ok: #3DDC97; --hud-bad: #EF5350; --hud-warn: #F5A524;
+      --hud-white: #fff; --hud-sec: #9AA7B4; --hud-dim: #6B7784;
+      /* Black is see-through on the waveguide. Here it is thinned so the
+         picture shows through it the same way. */
+      --hud-surface: rgba(0, 0, 0, 0.5);
+      position: absolute; inset: 0; pointer-events: none;
+      display: flex; flex-direction: column;
+      font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+      font-size: calc(var(--dp) * 10); line-height: 1.3; color: var(--hud-white);
+    }
+    .hud[hidden] { display: none; }
+    .hud-top { padding: calc(var(--dp) * 10) calc(var(--dp) * 12); display: flex; flex-direction: column; align-items: center; gap: calc(var(--dp) * 6); }
+    .hud-mid { flex: 1; min-height: 0; padding: 0 calc(var(--dp) * 12); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .hud-surface {
+      max-width: calc(var(--dp) * 296); border-radius: calc(var(--dp) * 6);
+      background: var(--hud-surface); padding: calc(var(--dp) * 5) calc(var(--dp) * 10);
+      text-align: center;
+    }
+    .hud-trust { display: flex; align-items: center; gap: calc(var(--dp) * 6); }
+    .hud-trust .dot { width: calc(var(--dp) * 7); height: calc(var(--dp) * 7); border-radius: 50%; background: var(--hud-accent); }
+    .hud-trust b { font-weight: 500; }
+    .hud-trust .st { color: var(--hud-accent); }
+    .hud-trust .cam { color: var(--hud-dim); }
+    .hud-trust .cam.stale { color: var(--hud-warn); }
+    .hud-amb {
+      max-width: calc(var(--dp) * 296); border-radius: calc(var(--dp) * 6);
+      background: rgba(0, 0, 0, 0.55); padding: calc(var(--dp) * 3) calc(var(--dp) * 8);
+      color: var(--hud-sec); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      display: flex; align-items: center; gap: calc(var(--dp) * 5);
+    }
+    .hud-amb[hidden], .hud-warn[hidden], .hud-step[hidden], .hud-mod[hidden] { display: none; }
+    .hud-amb.alarm { color: var(--hud-warn); }
+    /* The amber marker is drawn. The quiet one is a geometric glyph. */
+    .hud-amb .mk-alarm {
+      width: 0; height: 0; flex-shrink: 0;
+      border-left: calc(var(--dp) * 4) solid transparent; border-right: calc(var(--dp) * 4) solid transparent;
+      border-bottom: calc(var(--dp) * 7) solid var(--hud-warn);
+    }
+    .hud-warn {
+      width: 100%; max-width: calc(var(--dp) * 296); margin-bottom: calc(var(--dp) * 4);
+      border-radius: calc(var(--dp) * 4); background: rgba(0, 0, 0, 0.72);
+      display: flex; align-items: stretch; overflow: hidden; --sev: var(--hud-dim);
+      font-size: calc(var(--dp) * 14);
+    }
+    .hud-warn[data-sev="warn"] { --sev: var(--hud-bad); }
+    .hud-warn[data-sev="advise"] { --sev: var(--hud-warn); }
+    .hud-warn[data-sev="info"] { --sev: var(--hud-accent); }
+    .hud-warn .stripe { width: calc(var(--dp) * 6); background: var(--sev); flex-shrink: 0; }
+    .hud-warn .body { padding: calc(var(--dp) * 4) calc(var(--dp) * 8); display: flex; flex-direction: column; gap: calc(var(--dp) * 2); min-width: 0; }
+    .hud-warn .kick { color: var(--sev); font-weight: 700; }
+    .hud-warn .det { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .hud-step { display: flex; flex-direction: column; gap: calc(var(--dp) * 2); }
+    .hud-step .pos { color: var(--hud-accent); font-weight: 700; }
+    .hud-step .lab { font-size: calc(var(--dp) * 14); font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .hud-step .desc { color: var(--hud-sec); }
+    .hud-mod { margin-top: calc(var(--dp) * 4); display: flex; flex-direction: column; gap: calc(var(--dp) * 2); box-shadow: inset 0 0 0 100vmax rgba(107, 119, 132, 0.10); }
+    .hud-mod .lab { font-size: calc(var(--dp) * 14); font-weight: 700; color: var(--hud-sec); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hud-mod .det { color: var(--hud-dim); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+    /* ── Transport ─────────────────────────── */
+    .rp-bar {
+      height: 46px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 0 12px;
+      border-top: 1px solid var(--line); background: var(--bg-2);
+      font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+    }
+    .rp-play {
+      width: 28px; height: 28px; flex-shrink: 0; border-radius: 6px; cursor: pointer;
+      border: 1px solid var(--line-2); background: var(--bg-3);
+      display: grid; place-items: center; padding: 0;
+    }
+    .rp-play:hover { border-color: var(--primary-dim); }
+    .rp-play::before { content: ''; display: block; }
+    .rp-play[data-state="paused"]::before {
+      border-left: 9px solid var(--ink-1); border-top: 6px solid transparent; border-bottom: 6px solid transparent; margin-left: 2px;
+    }
+    .rp-play[data-state="playing"]::before {
+      width: 3px; height: 11px; border-left: 3px solid var(--ink-1); border-right: 3px solid var(--ink-1);
+    }
+    .rp-time { flex-shrink: 0; font-variant-numeric: tabular-nums; color: var(--ink-1); }
+    .rp-time span { color: var(--ink-3); }
+    .rp-scrub { position: relative; flex: 1; min-width: 60px; height: 28px; cursor: pointer; touch-action: none; }
+    .rp-scrub .track { position: absolute; left: 0; right: 0; top: 13px; height: 3px; background: var(--line-2); border-radius: 2px; }
+    .rp-scrub .fill { position: absolute; left: 0; top: 13px; height: 3px; background: var(--primary); border-radius: 2px; }
+    .rp-scrub .knob { position: absolute; top: 9px; width: 11px; height: 11px; margin-left: -5px; border-radius: 50%; background: var(--ink-1); }
+    .rp-scrub .tick { position: absolute; top: 4px; width: 2px; height: 7px; margin-left: -1px; border-radius: 1px; background: var(--primary); }
+    .rp-scrub .tick.adv { background: var(--ok); height: 21px; }
+    .rp-scrub .tick.warn { background: var(--err); top: 18px; }
+    .rp-scrub .tick.home { background: var(--ok); top: 18px; }
+    .rp-speed {
+      flex-shrink: 0; background: var(--bg-3); color: var(--ink-2); border: 1px solid var(--line-2);
+      border-radius: 6px; font-family: var(--mono); font-size: 10.5px; padding: 4px 6px;
+    }
+
+    /* ── Right: what the models said ─────────
+       One view, nothing to scroll: the count and every connector across the
+       top, the part and the frame the count read side by side, each model's
+       answer along the bottom. A short window scrolls rather than crush it. */
+    .rp-side {
+      height: 100%; min-height: 540px; padding: 10px; display: grid; gap: 10px;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr) auto;
+    }
+    .rp-card { background: var(--bg-2); border: 1px solid var(--line-2); border-radius: 10px; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+    .rp-card[hidden] { display: none; }
+    .rp-card > header {
+      display: flex; align-items: baseline; gap: 8px; padding: 8px 10px 0; flex-shrink: 0; white-space: nowrap;
+      font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+    }
+    .rp-card > header span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .rp-card > header .r { margin-left: auto; flex-shrink: 0; letter-spacing: 0.06em; }
+    .rp-card > header .r.ok { color: var(--ok); }
+    .rp-card > header .r.warn { color: var(--warn); }
+    .rp-card .pad { padding: 6px 10px 10px; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    #cardCount, #cardOut { grid-column: 1 / -1; }
+    /* Tall enough for a full poll, so the cards above do not move as the answers change. */
+    #cardOut { min-height: 206px; }
+    .rp-count { display: flex; align-items: center; gap: 10px; }
+    .rp-count .n { font-size: 40px; font-weight: 500; letter-spacing: -0.03em; line-height: 1; color: var(--ink-1); font-variant-numeric: tabular-nums; }
+    .rp-count .n.held { color: var(--ink-2); }
+    .rp-count .of { flex-shrink: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+    .rp-why {
+      flex: 1; min-width: 0; font-size: 11.5px; color: var(--ink-2); line-height: 1.35;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    /* Every connector on the step, as its CAD model, in the order they go
+       in. One lights as it goes in. */
+    .rp-tiles { margin-top: 8px; display: grid; gap: 5px; grid-template-columns: repeat(var(--n, 9), minmax(0, 104px)); }
+    .rp-tile {
+      display: block; text-align: left; background: var(--bg-3); color: inherit; cursor: pointer; padding: 0;
+      border: 1px solid var(--line-2); border-top: 3px solid var(--line-2); border-radius: 7px; overflow: hidden; min-width: 0;
+      container-type: inline-size;
+    }
+    .rp-tile:hover { border-color: var(--primary-dim); }
+    .rp-tile.sel { border-color: var(--primary); }
+    .rp-tile.in, .rp-tile.filled, .rp-tile.proud { border-top-color: var(--c); }
+    /* The grey the render sheet uses, in both themes: a black housing has to read. */
+    .rp-tile .pic { position: relative; aspect-ratio: 4 / 3; background: #7d7d7d; }
+    .rp-tile .pic canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; opacity: 0.4; filter: saturate(0.4); transition: opacity 0.4s, filter 0.4s; }
+    .rp-tile.in .pic canvas, .rp-tile.filled .pic canvas, .rp-tile.proud .pic canvas, .rp-tile.sel .pic canvas { opacity: 1; filter: none; }
+    .rp-tile .pic .tag {
+      position: absolute; left: 3px; bottom: 3px; font-family: var(--mono); font-size: 7.5px; letter-spacing: 0.02em;
+      text-transform: uppercase; color: #111; background: rgba(255, 255, 255, 0.72); border-radius: 3px; padding: 0 3px;
+    }
+    .rp-tile .tx { padding: 3px 4px 4px; }
+    .rp-tile .id { font-family: var(--mono); font-size: 9.5px; color: var(--ink-1); white-space: nowrap; }
+    .rp-tile .nm { display: none; margin-top: 1px; font-size: 10.5px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rp-tile .st { margin-top: 1px; font-family: var(--mono); font-size: 8.5px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    @container (min-width: 82px) { .rp-tile .nm { display: block; } }
+    .rp-tile.in .st { color: var(--ok); }
+    .rp-tile.filled .st { color: var(--ink-1); }
+    .rp-tile.proud .st { color: var(--warn); }
+    .rp-tile.just { animation: rp-just 1.6s ease-out; }
+    @keyframes rp-just { from { box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 60%, transparent); } to { box-shadow: 0 0 0 3px transparent; } }
+    .rp-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px; flex-shrink: 0; }
+    .rp-chips button {
+      font-family: var(--mono); font-size: 10px; color: var(--ink-2); background: transparent; cursor: pointer;
+      border: 1px solid var(--line-2); border-left: 3px solid var(--c, var(--line-2)); border-radius: 4px; padding: 2px 7px;
+    }
+    .rp-chips button.on { color: var(--ink-1); background: var(--bg-3); }
+    .rp-foot { font-size: 11px; color: var(--ink-3); line-height: 1.45; }
+
+    /* The part: the model takes whatever height is left over. */
+    .rp-part { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+    .rp-part .big { flex: 1; min-height: 64px; position: relative; border-radius: 8px; border: 1px solid var(--line-2); background: #7d7d7d; display: grid; place-items: center; overflow: hidden; }
+    .rp-part .big img, .rp-part .big canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .rp-part .big img { object-fit: contain; }
+    .rp-part .big canvas { cursor: grab; touch-action: none; }
+    .rp-part .big canvas:active { cursor: grabbing; }
+    .rp-part .big .none { padding: 10px; font-size: 11px; line-height: 1.4; color: #111; text-align: center; }
+    .rp-part .meta { flex-shrink: 0; min-width: 0; }
+    .rp-part .pid { font-family: var(--mono); font-size: 12.5px; color: var(--ink-1); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .rp-part .pid i { width: 9px; height: 9px; border-radius: 2px; background: var(--c); flex-shrink: 0; }
+    .rp-part .pid span { font-family: var(--sans); font-size: 12px; color: var(--ink-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .rp-part .plb, .rp-part .pmeta div, .rp-part .pbasis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rp-part .plb { margin-top: 3px; font-size: 11px; color: var(--ink-2); }
+    .rp-part .pmeta { margin-top: 2px; font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); line-height: 1.45; }
+    .rp-part .pbasis { margin-top: 3px; padding-left: 6px; border-left: 2px solid var(--warn); font-size: 10.5px; color: var(--ink-2); }
+    .rp-views { flex-shrink: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+    .rp-views button { padding: 0; border: 1px solid var(--line-2); border-radius: 4px; background: #7d7d7d; cursor: pointer; overflow: hidden; }
+    .rp-views button.on { border-color: var(--primary); }
+    .rp-views img, .rp-views canvas { width: 100%; aspect-ratio: 1; object-fit: contain; display: block; }
+    .rp-views span { display: block; font-family: var(--mono); font-size: 7px; text-transform: uppercase; letter-spacing: 0; color: var(--ink-3); background: var(--bg-2); padding: 1px 0; text-align: center; overflow: hidden; }
+
+    /* The frame, zoomed on the row. It takes whatever height is left over. */
+    .rp-read { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+    .rp-read .frame { flex: 1; min-height: 90px; position: relative; border-radius: 6px; border: 1px solid var(--line-2); background: #000; overflow: hidden; }
+    .rp-read canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .rp-read .txt {
+      flex-shrink: 0; font-size: 11.5px; color: var(--ink-2); line-height: 1.4;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .rp-read .txt b { color: var(--ink-1); font-weight: 500; }
+    .rp-key { flex-shrink: 0; display: flex; flex-wrap: wrap; gap: 3px 12px; font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); }
+    .rp-key i { display: inline-block; width: 11px; height: 9px; margin-right: 5px; vertical-align: -1px; border: 1.5px solid var(--ok); background: color-mix(in srgb, var(--ok) 22%, transparent); }
+    .rp-key i.e { border: 1.5px dashed var(--ink-2); background: none; }
+    .rp-key i.p { border-color: var(--err); background: color-mix(in srgb, var(--err) 22%, transparent); }
+
+    /* Each model's answer, two across, one line each. The whole of a cut line is in its title. */
+    .rp-out { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 16px; }
+    .rp-out .o { min-width: 0; padding: 4px 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 8px; }
+    .rp-out .o:nth-child(-n+2) { border-top: 0; padding-top: 0; }
+    .rp-out .o.wide { grid-column: 1 / -1; }
+    .rp-out .o > div { min-width: 0; }
+    .rp-out .k { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); padding-top: 1px; }
+    .rp-out .v { font-size: 11.5px; color: var(--ink-1); line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rp-out .o.wide .v { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .rp-out .v.quiet { color: var(--ink-3); }
+    .rp-out .m { font-family: var(--mono); font-size: 9px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .rp-empty { grid-column: 1 / -1; padding: 22px 16px; border: 1px solid var(--line-2); border-left: 3px solid var(--warn); border-radius: 8px; background: var(--bg-2); }
+    .rp-empty h3 { margin: 0 0 6px; font-size: 14px; font-weight: 500; }
+    .rp-empty p { margin: 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.5; max-width: 60ch; }
+
+    .rp-cap:has(+ #modelList:empty) { display: none; }
+
+    /* Narrow: the three columns stack and the page scrolls as one. */
+    @media (max-width: 1100px) {
+      html, body { height: auto; min-height: 100vh; overflow: auto; }
+      .rp { display: block; flex: none; }
+      .rp-col { display: block; border-right: 0; border-bottom: 1px solid var(--line); }
+      .rp-scroll { overflow: visible; }
+      .rp-stage { height: min(78vh, 128vw); flex: none; }
+      .rp-side { height: auto; min-height: 0; grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+      #cardCount, #cardOut { grid-column: auto; }
+      #cardOut { min-height: 0; }
+      .rp-tiles { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+      .rp-part .big { flex: none; height: 220px; }
+      .rp-read .frame { flex: none; height: 320px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="mark" href="/home/"><img class="brand" src="/lab/assets/emotiv-logo.png?v=2" alt="Emotiv" /></a>
+    <span class="topbar-title">Station replay · Dakkota</span>
+    <div class="topbar-right">
+      <span class="topbar-title" id="srcTag"></span>
+      <a class="nav-link" href="/home/">Home</a>
+      <button class="theme-toggle" type="button"></button>
+    </div>
+  </header>
+
+  <div class="rp">
+    <!-- Left rail: recordings, layers, the procedure, the models on this step -->
+    <aside class="rp-col" aria-label="Recordings and models">
+      <div class="rp-head"><span class="pi">▣</span><span class="ttl">Recordings</span><span class="rtag" id="clipCount"></span></div>
+      <div class="rp-scroll">
+        <div id="clipList"></div>
+
+        <div class="rp-cap">Layers</div>
+        <div class="rp-layers">
+          <label class="rp-layer" title="What the wearer is shown, from these answers. Black is see-through on the glasses."><input type="checkbox" id="layHud" checked /><span>Glasses panel</span></label>
+          <label class="rp-layer" title="The square sent to the connector model, and the taller one for the seat."><input type="checkbox" id="layAim" /><span>Aim crop</span></label>
+        </div>
+
+        <div class="rp-cap">Procedure</div>
+        <div class="rp-kv" id="procKv"></div>
+        <div id="procSteps"></div>
+
+        <div class="rp-cap">Models on this step</div>
+        <div id="modelList"></div>
+
+        <div class="rp-cap">This replay</div>
+        <div class="rp-kv" id="runKv"></div>
+        <div class="rp-note" id="runNote"></div>
+      </div>
+    </aside>
+
+    <!-- The one quadrant: the recording with the glasses panel over it -->
+    <section class="rp-col" aria-label="Glasses recording">
+      <div class="rp-head"><span class="pi">●</span><span class="ttl" id="povTitle">Glasses POV</span><span class="rtag">720×960</span></div>
+      <div class="rp-stage">
+        <div class="rp-pov" id="pov">
+          <video id="video" muted playsinline preload="auto"></video>
+          <div class="rp-aim" id="aim" hidden><i class="tall"></i><i class="sq"></i></div>
+          <div class="hud" id="hud" hidden>
+            <div class="hud-top">
+              <div class="hud-surface hud-trust">
+                <i class="dot"></i><b id="hudStation"></b><span class="st">REPLAY</span><span class="cam" id="hudCam"></span>
+              </div>
+              <div class="hud-amb" id="hudAmb" hidden><span class="mk" id="hudMk"></span><span id="hudAmbText"></span></div>
+            </div>
+            <div class="hud-mid">
+              <div class="hud-warn" id="hudWarn" hidden>
+                <i class="stripe"></i>
+                <div class="body"><div class="kick" id="hudKick"></div><div class="det" id="hudWarnDet"></div></div>
+              </div>
+              <div class="hud-surface hud-step" id="hudStep" hidden>
+                <div class="pos" id="hudPos"></div><div class="lab" id="hudLab"></div><div class="desc" id="hudDesc"></div>
+              </div>
+              <div class="hud-surface hud-mod" id="hudMod" hidden>
+                <div class="lab" id="hudModLab"></div><div class="det" id="hudModDet"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="rp-bar">
+        <button class="rp-play" id="play" type="button" data-state="paused" title="Play / pause" aria-label="Play / pause"></button>
+        <div class="rp-time"><b id="tNow">0.0</b> <span id="tEnd">/ 0.0 s</span></div>
+        <div class="rp-scrub" id="scrub" role="slider" aria-label="Position in the recording" tabindex="0">
+          <div class="track"></div><div class="fill" id="scrubFill"></div><div id="scrubTicks"></div><div class="knob" id="scrubKnob"></div>
+        </div>
+        <select class="rp-speed" id="speed" aria-label="Playback speed">
+          <option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Right: the count, the part, the frame the count was read from, each model -->
+    <section class="rp-col" aria-label="Model outputs">
+      <div class="rp-head"><span class="pi">◈</span><span class="ttl" id="sideTitle">Model outputs</span><span class="rtag" id="pollTag">no poll</span></div>
+      <div class="rp-scroll">
+        <div class="rp-side" id="side">
+          <div class="rp-card" id="cardCount">
+            <header><span>Connectors on this step</span><span class="r" id="countState"></span></header>
+            <div class="pad">
+              <div class="rp-count"><span class="n" id="countN">—</span><span class="of" id="countOf"></span><span class="rp-why" id="countWhy"></span></div>
+              <div class="rp-tiles" id="idRows"></div>
+            </div>
+          </div>
+
+          <div class="rp-card" id="cardPart">
+            <header><span>Connector</span><span class="r" id="partMode"></span></header>
+            <div class="pad" id="partBody"></div>
+          </div>
+
+          <div class="rp-card" id="cardRead">
+            <header><span>Frame the count read</span><span class="r" id="readTag"></span></header>
+            <div class="pad">
+              <div class="rp-read">
+                <div class="frame"><canvas id="readCanvas"></canvas></div>
+                <div class="txt" id="readTxt"></div>
+                <div class="rp-key"><span><i></i>fitted</span><span><i class="e"></i>open</span><span><i class="p"></i>not home</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="rp-card" id="cardOut">
+            <header><span>Each model on this poll</span></header>
+            <div class="pad"><div class="rp-out" id="outRows"></div></div>
+          </div>
+
+          <div class="rp-empty" id="pending" hidden><h3>No replay for this recording yet</h3><p id="pendingWhy"></p></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <video id="grab" muted playsinline preload="auto" hidden></video>
+
+  <script>
+    try {
+      const s = JSON.parse(localStorage.getItem('omnia.session') || 'null');
+      if (!s || s.tenant !== 'emotiv' || s.expiresAt <= Date.now()) location.replace('/login');
+    } catch { location.replace('/login'); }
+
+    const ASSETS = '/lab/assets/emotiv';
+    const $ = (id) => document.getElementById(id);
+    const el = (tag, cls, text) => {
+      const n = document.createElement(tag);
+      if (cls) n.className = cls;
+      if (text != null) n.textContent = text;
+      return n;
+    };
+    const secs = (t) => `${Number(t).toFixed(1)} s`;
+    /** One colour per connector, shared by the list, the part card and the boxes. */
+    const PALETTE = ['#4DA3FF', '#F5A524', '#3DDC97', '#EC4899', '#A78BFA', '#22D3EE', '#FB923C', '#E5E7EB', '#F87171', '#84CC16', '#FACC15', '#94A3B8'];
+
+    const video = $('video');
+    const grab = $('grab');
+    const S = {
+      clips: [], clip: null, trace: null, timeline: null, parts: {},
+      ids: [], colour: {}, names: {}, events: [], named: [],
+      pinned: null, view: '3d', lastFrame: -1, lastPoll: -2, lastNamed: -2, lastShown: null, lastIn: '',
+    };
+
+    // ── Loading ───────────────────────────────────────────────────────────
+    async function getJson(url) {
+      const r = await fetch(url, { cache: 'no-store' });
+      if (!r.ok) throw new Error(`${r.status}`);
+      return r.json();
+    }
+
+    async function boot() {
+      const [clips, parts] = await Promise.all([
+        getJson(`${ASSETS}/clips.json`),
+        getJson(`${ASSETS}/connectors/connectors.json`).catch(() => ({ connectors: {} })),
+      ]);
+      S.clips = clips.clips || [];
+      S.parts = parts.connectors || {};
+      $('clipCount').textContent = String(S.clips.length);
+      const wanted = new URLSearchParams(location.search).get('clip');
+      renderClipList();
+      await openClip(S.clips.find((c) => c.id === wanted) || S.clips[0]);
+    }
+
+    function renderClipList() {
+      const list = $('clipList');
+      list.textContent = '';
+      for (const c of S.clips) {
+        const b = el('button', `rp-clip${c.pending ? ' pending' : ''}`);
+        b.type = 'button';
+        b.dataset.id = c.id;
+        const img = el('img');
+        img.src = `${ASSETS}/clips/${c.id}.jpg`;
+        img.alt = '';
+        const txt = el('div');
+        txt.append(el('div', 't', c.title));
+        const s = el('div', 's');
+        const b1 = el('b', null, c.station);
+        s.append(b1, document.createTextNode(c.stepNo ? ` · step ${c.stepNo}` : ''), document.createTextNode(c.pending ? ' · no replay yet' : ''));
+        txt.append(s);
+        b.append(img, txt);
+        b.title = [c.title, c.station, c.stepNo ? `step ${c.stepNo}` : null, c.pending ? 'no replay yet' : null].filter(Boolean).join(' · ');
+        b.addEventListener('click', () => openClip(c));
+        list.append(b);
+      }
+    }
+
+    async function openClip(clip) {
+      if (!clip) return;
+      video.pause();
+      S.clip = clip;
+      S.trace = null;
+      S.timeline = null;
+      S.pinned = null;
+      S.view = '3d';
+      S.lastFrame = -1; S.lastPoll = -2; S.lastView = ''; S.lastNamed = -2; S.lastShown = null; S.lastIn = '';
+      for (const b of document.querySelectorAll('.rp-clip')) b.classList.toggle('on', b.dataset.id === clip.id);
+      history.replaceState(null, '', `?clip=${encodeURIComponent(clip.id)}`);
+      $('povTitle').textContent = `Glasses POV · ${clip.title}`;
+      const src = `${ASSETS}/clips/${clip.id}.mp4`;
+      video.poster = `${ASSETS}/clips/${clip.id}.jpg`;
+      video.src = src;
+      grab.src = src;
+      $('play').dataset.state = 'paused';
+
+      let trace = null;
+      let script = null;
+      let labels = null;
+      if (!clip.pending) {
+        [trace, script, labels] = await Promise.all([
+          getJson(`${ASSETS}/traces/${clip.id}.json`).catch(() => null),
+          clip.script ? getJson(`${ASSETS}/${clip.script}`).catch(() => null) : null,
+          clip.labels ? getJson(`${ASSETS}/${clip.labels}`).catch(() => null) : null,
+        ]);
+      }
+      if (S.clip !== clip) return;
+      S.script = script;
+      S.labels = labels?.frames?.length ? labels : null;
+      // A recording kept as a fixed example of the panel has its fitting set
+      // by hand. The panel follows that; the stack's reads stay beside it.
+      if (trace && script) {
+        trace = EmotivHud.applyScript(trace, script, { ...(trace.naming?.names || {}), ...(trace.connectorNames || {}) });
+      }
+      S.trace = trace;
+      const has = Boolean(trace);
+      for (const id of ['cardCount', 'cardPart', 'cardRead', 'cardOut']) $(id).hidden = !has;
+      $('pending').hidden = has;
+      $('hud').hidden = !has || !$('layHud').checked;
+      if (!has) {
+        $('pendingWhy').textContent = clip.pending
+          || 'The replay file for this recording is missing. Run tools/emotiv-replay/replay-clip.mjs for it.';
+        $('pollTag').textContent = 'no replay';
+        $('srcTag').textContent = '';
+        renderProcedure(clip, null);
+        $('modelList').textContent = '';
+        $('runKv').textContent = '';
+        $('runNote').textContent = 'The recording plays, with nothing drawn over it: no model has been run on it here.';
+        $('scrubTicks').textContent = '';
+        render(0);
+        return;
+      }
+      prepare(trace);
+      render(0);
+    }
+
+    /** Everything about a trace that does not change as it plays. */
+    function prepare(trace) {
+      S.timeline = EmotivHud.buildTimeline(trace);
+      const mod = (trace.polls.find((p) => p.answer?.module) || {}).answer?.module || null;
+      S.module = mod;
+      const row = mod?.rowIds || [];
+      const all = mod?.connectorIds || [];
+      // Set by hand: the step's connectors, in the order they go in.
+      S.ids = trace.scripted ? trace.scripted.order.slice() : [...row, ...all.filter((id) => !row.includes(id))];
+      S.offRow = new Set(!trace.scripted && row.length ? (mod?.offRowIds || []) : []);
+      S.colour = Object.fromEntries(S.ids.map((id, i) => [id, PALETTE[i % PALETTE.length]]));
+      S.names = { ...(trace.naming?.names || {}), ...(trace.connectorNames || {}) };
+      S.named = trace.polls.filter((p) => p.named);
+      // When each connector went in. The stack's own line carries the time
+      // where there is one; a module with no fitting line takes the first
+      // read that saw the opening filled.
+      const events = [];
+      const told = trace.scripted ? trace.scripted.events : trace.naming?.events;
+      for (const e of told || []) {
+        for (const id of e.ids || []) events.push({ id, t: e.lineT, line: e.line, announced: true });
+      }
+      if (!told) {
+        const first = {};
+        for (const p of S.named) {
+          for (const [id, st] of Object.entries(p.named.state)) {
+            if (st === 'filled' && first[id] == null) first[id] = p.tBack;
+          }
+        }
+        for (const [id, t] of Object.entries(first)) events.push({ id, t, line: null, announced: false });
+      }
+      S.events = events.sort((a, b) => a.t - b.t);
+
+      $('hudStation').textContent = trace.station;
+      $('srcTag').textContent = `${trace.source.branch} · ${trace.source.commit}`;
+      $('tEnd').textContent = `/ ${secs(trace.durationS)}`;
+      renderProcedure(S.clip, trace);
+      renderModels(trace);
+      renderRun(trace);
+      renderTicks(trace);
+      renderRows();
+    }
+
+    function kv(host, rows) {
+      host.textContent = '';
+      for (const [k, v] of rows) {
+        if (v == null || v === '') continue;
+        const r = el('div', 'row');
+        r.append(el('span', 'k', k), el('span', 'v', String(v)));
+        r.title = `${k}: ${v}`;
+        host.append(r);
+      }
+    }
+
+    function renderProcedure(clip, trace) {
+      const p = trace?.procedure;
+      kv($('procKv'), [
+        ['station', p?.stationId || clip.station],
+        ['work', p?.stationName || clip.stationName],
+        ['step', p?.stepIndex ? `${p.stepIndex} of ${p.totalSteps}` : clip.stepNo],
+        ['module', S.trace ? (S.module ? `${S.module.name} · ${S.module.zoneId}` : null) : (clip.module ? `${clip.module} · ${clip.zone}` : null)],
+      ]);
+      const host = $('procSteps');
+      host.textContent = '';
+      const steps = p?.steps || [];
+      const at = steps.findIndex((s) => s.code === p?.stepCode);
+      if (at < 0) {
+        if (clip.stepLabel) {
+          const r = el('div', 'rp-step on');
+          r.append(el('span', 'n', (clip.stepNo || '').split(' ')[0]), el('span', null, clip.stepLabel));
+          host.append(r);
+        }
+        return;
+      }
+      const r = el('div', 'rp-step on');
+      r.append(el('span', 'n', String(steps[at].seq ?? at + 1)), el('span', null, steps[at].label));
+      host.append(r);
+    }
+
+    /** The models the stack routes for this module, in the order a poll uses them. */
+    function renderModels(trace) {
+      const zone = S.module?.zoneId;
+      const r = trace.routing || {};
+      const first = (list) => (list || [])[0]?.id || null;
+      const rows = [
+        { key: 'action', role: 'What the hands are doing', id: trace.cosmos?.enabled ? trace.cosmos.model : null },
+        { key: 'count', role: 'Which openings are fitted', id: first(r.portFill?.[zone]) },
+        { key: 'seat', role: 'Whether each one is pushed home', id: first(r.seating?.[zone]) },
+        { key: 'moduleSeat', role: 'Seat read on the whole module', id: first(r.moduleSeating?.[zone]) },
+        { key: 'row', role: 'Where the row is', id: first(r.rowLocate?.[zone]) },
+        { key: 'identity', role: 'Which connector is held up', id: (r.identity?.['*'] || []).map((m) => m.id).join(' then ') || null },
+        { key: 'scene', role: 'What is in view', id: trace.models?.vlm?.value || null },
+      ].filter((m) => m.id);
+      const host = $('modelList');
+      host.textContent = '';
+      for (const m of rows) {
+        const row = el('div', 'rp-model');
+        row.dataset.key = m.key;
+        row.title = `${m.role} · ${m.id}`;
+        row.append(el('i', 'lamp'), el('div', 'role', m.role));
+        host.append(row);
+      }
+    }
+
+    function renderRun(trace) {
+      const n = trace.naming;
+      const check = !n ? null
+        : n.error ? 'failed'
+          : !n.linesMatched ? 'a fitting line could not be tied to part numbers'
+            : n.agrees ? 'every fitting line tied; tallies match the stack'
+              : `every fitting line tied; ${n.replay.namedReads} faces registered here, ${n.server?.namedReads ?? '—'} on the stack`;
+      const sr = trace.seatReads;
+      kv($('runKv'), [
+        ['run', new Date(trace.generatedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })],
+        ['polls', `${trace.polls.length}, ${(trace.cadence.pollMs / 1000).toFixed(1)} s apart`],
+        ['seat reads', sr ? (sr.crop ? 'on' : 'off') : null],
+        ['panel count', trace.scripted ? `set by ${trace.scripted.setBy.split(',')[0]}` : 'the count model'],
+        ['step advance', trace.advances.length ? trace.advances.map((a) => secs(a.t)).join(', ') : 'not posted'],
+        ['part numbers', !n ? null : n.error ? 'failed' : n.linesMatched ? 'every line tied' : 'a line not tied'],
+      ]);
+      $('runKv').title = [`stack ${trace.source.branch} ${trace.source.commit}`, `whole view every ${(trace.cadence.uplinkMs / 1000).toFixed(0)} s`,
+        'no line feed; step set by hand', check ? `part numbers: ${check}` : null].filter(Boolean).join(' · ');
+      const note = $('runNote');
+      const whole = ['One pass of this recording through the stack at its own speed. The models are hosted and the timing is real, so a second pass can read a count a poll earlier or later.'];
+      note.textContent = 'One pass through the stack at its own speed.';
+      if (trace.scripted) {
+        const stackEnd = [...trace.polls].reverse().find((p) => p.answer?.module?.fillStack?.fitted != null)?.answer.module.fillStack;
+        const ended = stackEnd ? `${stackEnd.fitted} of ${stackEnd.total}` : 'no count';
+        const seats = trace.scripted.seats || [];
+        note.textContent = '';
+        note.append(el('b', null, 'A fixed example. '), document.createTextNode(
+          `${seats.length ? 'The count, the order and the ones not home' : 'The count and the order'} are set by hand. The count model ended at ${ended}.`));
+        whole.push(`This one is a fixed example. The count on the panel and the order the connectors go in were set by hand from the picture, so it runs to ${trace.scripted.total} of ${trace.scripted.total}. `
+          + `On the same pass the count model ended at ${ended}; each of its reads is still shown under Each model on this poll.`);
+        if (seats.length) {
+          const stackNamed = trace.polls.some((p) => (p.answer?.module?.fillStack?.unseatedPhrases || []).length);
+          const many = seats.length > 1;
+          const lastFit = Math.max(...trace.scripted.fits.map((f) => f.t));
+          const namedEarly = seats.some((u) => u.raisedT < lastFit);
+          const when = namedEarly
+            ? `The panel names ${many ? 'each' : 'it'} from the time set by hand, and drops ${many ? 'each' : 'it'} when it is pushed home.`
+            : `The panel holds that back until all ${trace.scripted.total} are in, then names ${many ? 'them' : 'it'}, and drops ${many ? 'each' : 'it'} when it is pushed home.`;
+          whole.push(`${seats.map((u) => u.id.replace(/^WH-/, '')).join(' and ')} ${many ? 'were' : 'was'} left not pushed home. `
+            + `${when} Which ${many ? 'ones' : 'one'} and when were set by hand as well. The seat model ${stackNamed ? 'named a connector on some polls of' : 'named none on'} this pass.`);
+        }
+      }
+      note.title = whole.join('\n\n');
+    }
+
+    function renderTicks(trace) {
+      const host = $('scrubTicks');
+      host.textContent = '';
+      const at = (t, cls, title) => {
+        const i = el('i', `tick${cls ? ` ${cls}` : ''}`);
+        i.style.left = `${Math.min(100, (t / trace.durationS) * 100)}%`;
+        i.title = title;
+        host.append(i);
+      };
+      for (const e of S.events) at(e.t, '', `${e.id} in · ${secs(e.t)}`);
+      for (const a of trace.advances || []) at(a.t, 'adv', `step advance posted · ${secs(a.t)}`);
+      let up = false;
+      for (const f of S.timeline.frames) {
+        const now = Boolean(f.banner && f.banner.source === 'connector');
+        if (now && !up) at(f.t, 'warn', `${f.banner.kicker} · ${secs(f.t)}`);
+        up = now;
+      }
+      for (const u of trace.scripted?.seats || []) {
+        at(u.raisedT, 'warn', `${u.id} not home · ${secs(u.raisedT)}`);
+        if (u.homeT != null) at(u.homeT, 'home', `${u.id} pushed home · ${secs(u.homeT)}`);
+      }
+    }
+
+    function renderRows() {
+      const host = $('idRows');
+      host.textContent = '';
+      host.style.setProperty('--n', String(Math.max(1, S.ids.length)));
+      for (const id of S.ids) {
+        const b = el('button', 'rp-tile');
+        b.type = 'button';
+        b.dataset.id = id;
+        b.style.setProperty('--c', S.colour[id]);
+        const model = S.parts[id]?.model;
+        const pic = el('div', 'pic');
+        if (model) {
+          const cv = el('canvas');
+          cv.width = 240;
+          cv.height = 180;
+          cv.dataset.model = id;
+          pic.append(cv);
+          if (model.standIn) pic.append(el('span', 'tag', 'stand-in'));
+        }
+        const tx = el('div', 'tx');
+        tx.append(el('div', 'id', id.replace(/^WH-/, '')), el('div', 'nm', S.names[id] || S.parts[id]?.label || ''), el('div', 'st', ''));
+        b.append(pic, tx);
+        b.dataset.what = [id, S.names[id], model ? `${model.head} head${model.standIn ? `, the shell of ${model.standIn}` : ''}` : 'no CAD model'].filter(Boolean).join(' · ');
+        b.title = b.dataset.what;
+        b.addEventListener('click', () => {
+          S.pinned = S.pinned === id ? null : id;
+          S.view = '3d';
+          S.lastShown = null;
+          render(video.currentTime);
+        });
+        host.append(b);
+      }
+      paintModels();
+    }
+
+    const modelUrl = (id) => `${ASSETS}/connectors/${id}/model.glb`;
+    /** Draw each waiting model picture once the viewer has loaded. */
+    function paintModels() {
+      if (!window.EmotivModels) return;
+      for (const cv of document.querySelectorAll('canvas[data-model]')) {
+        const id = cv.dataset.model;
+        if (cv.dataset.done === id) continue;
+        cv.dataset.done = id;
+        window.EmotivModels.thumb(modelUrl(id), cv).catch(() => { cv.dataset.done = ''; });
+      }
+    }
+    window.addEventListener('emotiv-models', () => {
+      paintModels();
+      if (S.trace) { S.lastShown = null; render(video.currentTime); }
+    });
+
+    // ── Drawing one moment ────────────────────────────────────────────────
+    const latest = (list, t, key = 'tBack') => {
+      let hit = -1;
+      for (let i = 0; i < list.length; i += 1) {
+        if (list[i][key] <= t) hit = i; else break;
+      }
+      return hit;
+    };
+
+    function render(t) {
+      const dur = S.trace?.durationS || video.duration || 0;
+      $('tNow').textContent = Number(t).toFixed(1);
+      if (!S.trace && dur) $('tEnd').textContent = `/ ${secs(dur)}`;
+      const pct = dur ? Math.min(100, (t / dur) * 100) : 0;
+      $('scrubFill').style.width = `${pct}%`;
+      $('scrubKnob').style.left = `${pct}%`;
+      if (!S.trace) return;
+
+      const fi = Math.min(S.timeline.frames.length - 1, Math.floor((t * 1000) / S.timeline.tickMs));
+      if (fi !== S.lastFrame) {
+        S.lastFrame = fi;
+        drawHud(S.timeline.frames[fi]);
+      }
+      const pi = latest(S.trace.polls, t);
+      const poll = pi >= 0 ? S.trace.polls[pi] : null;
+      const view = EmotivHud.scriptAt(S.trace.scripted, t);
+      const viewKey = view ? `${view.fitted}|${view.unseatedIds.join()}` : '';
+      const pollChanged = pi !== S.lastPoll;
+      if (pollChanged) {
+        S.lastPoll = pi;
+        drawRead(poll);
+        $('pollTag').textContent = poll ? `poll ${poll.i + 1} of ${S.trace.polls.length}` : 'before the first answer';
+      }
+      // A picture-clock count changes between polls, with the recording.
+      if (pollChanged || viewKey !== S.lastView) {
+        S.lastView = viewKey;
+        drawCount(poll, t);
+        drawOutputs(poll, t);
+      }
+      drawIds(t);
+    }
+
+    function drawHud(f) {
+      $('hudCam').textContent = `· ${EmotivHud.cameraLabel(f.cam.ageMs)}`;
+      $('hudCam').classList.toggle('stale', f.cam.stale);
+      const amb = $('hudAmb');
+      amb.hidden = !f.ambient;
+      if (f.ambient) {
+        amb.classList.toggle('alarm', f.ambient.alarm);
+        const mk = $('hudMk');
+        mk.className = f.ambient.alarm ? 'mk-alarm' : 'mk';
+        mk.textContent = f.ambient.alarm ? '' : '◉';
+        $('hudAmbText').textContent = f.ambient.text;
+      }
+      const warn = $('hudWarn');
+      warn.hidden = !f.banner;
+      if (f.banner) {
+        warn.dataset.sev = f.banner.severity;
+        $('hudKick').textContent = f.banner.kicker;
+        $('hudWarnDet').textContent = f.banner.detail;
+      }
+      const step = $('hudStep');
+      step.hidden = !f.step;
+      if (f.step) {
+        $('hudPos').textContent = f.step.position || '';
+        $('hudPos').hidden = !f.step.position;
+        $('hudLab').textContent = f.step.label;
+        $('hudDesc').textContent = f.step.desc || '';
+        $('hudDesc').hidden = !f.step.desc;
+      }
+      const mod = $('hudMod');
+      mod.hidden = !f.module;
+      if (f.module) {
+        $('hudModLab').textContent = f.module.label;
+        $('hudModDet').textContent = f.module.detail;
+        $('hudModDet').hidden = !f.module.detail;
+      }
+    }
+
+    function drawCount(poll, t) {
+      const picture = EmotivHud.scriptAt(S.trace.scripted, t);
+      const fill = picture
+        ? { ...picture, decidable: true, held: null, scripted: true }
+        : (poll?.answer?.module?.fill || null);
+      const n = $('countN');
+      const state = $('countState');
+      state.className = 'r';
+      if (!fill) {
+        n.textContent = '—';
+        n.classList.remove('held');
+        $('countOf').textContent = '';
+        $('countWhy').textContent = poll ? 'This answer carried no count.' : 'No answer yet.';
+        state.textContent = '';
+        return;
+      }
+      const live = fill.decidable && fill.fitted != null;
+      const shown = live ? fill.fitted : fill.held;
+      n.textContent = shown == null ? '—' : String(shown);
+      n.classList.toggle('held', !live);
+      $('countOf').textContent = fill.total ? `of ${fill.total} in` : '';
+      if (fill.scripted) {
+        // The number is the script's. Say what the count model made of the
+        // same frame, since that is the part a model produced.
+        const stack = poll?.answer?.module?.fillStack;
+        state.textContent = 'set from the recording';
+        state.classList.add('ok');
+        $('countWhy').textContent = !stack ? 'The count model gave no answer on this poll.'
+          : stack.decidable && stack.fitted != null ? `The count model on this poll: ${stack.reason || `${stack.fitted} of ${stack.total}`}.`
+            : `The count model did not read this frame${stack.reason ? `: ${stack.reason}` : ''}.`;
+        return;
+      }
+      state.textContent = live ? 'read on this frame' : shown != null ? 'held from an earlier frame' : 'not read';
+      state.classList.add(live ? 'ok' : 'warn');
+      const why = String(fill.reason || '');
+      $('countWhy').textContent = live ? why : why ? `Not read: ${why}.` : '';
+    }
+
+    /** Fill and seat for each part number, from the newest read that had them. */
+    function drawIds(t) {
+      const ni = latest(S.named, t);
+      const read = ni >= 0 ? S.named[ni].named : null;
+      const went = S.events.filter((e) => e.t <= t);
+      const inAt = Object.fromEntries(went.map((e) => [e.id, e]));
+      // Not home is the stack's word, as sent to the glasses on this poll.
+      const pi = latest(S.trace.polls, t);
+      const pfill = pi >= 0 ? S.trace.polls[pi].answer?.module?.fill : null;
+      const live = EmotivHud.scriptAt(S.trace.scripted, t);
+      const loose = new Set(live ? live.unseatedIds : (pfill?.unseatedIds || (pfill?.unseatedPhrases || []).map((ph) => EmotivHud.hudConnector(ph))
+        .map((nm) => S.ids.find((id) => S.names[id] === nm)).filter(Boolean)));
+      // Set by hand: the ones that were not home, and when each was pushed home.
+      const homed = Object.fromEntries((S.trace.scripted?.seats || [])
+        .filter((u) => u.homeT != null && u.homeT <= t).map((u) => [u.id, u.homeT]));
+      const stale = ni >= 0 && t - S.named[ni].tBack > 3;
+      const key = `${ni}|${went.length}|${S.pinned}|${[...loose].join()}|${Object.keys(homed).join()}|${stale}`;
+      if (key !== S.lastIn) {
+        S.lastIn = key;
+        let named = 0;
+        // A part number is only as fresh as the last face that could be
+        // registered, which can be well behind the count. Say when it was.
+        const readT = ni >= 0 ? S.named[ni].tBack : null;
+        const stamp = readT != null && t - readT > 3 ? ` · as of ${secs(readT)}` : '';
+        for (const row of $('idRows').children) {
+          const id = row.dataset.id;
+          const e = inAt[id];
+          const st = read?.state?.[id];
+          const proud = loose.has(id);
+          let cls = '';
+          let text = 'not read';
+          let long = 'not read';
+          if (S.offRow.has(id)) { text = 'off row'; long = 'off the row · not counted'; }
+          else if (proud) { cls = 'proud'; text = 'not home'; long = 'in · not pushed home'; }
+          else if (e && homed[id] != null) { cls = 'in'; text = 'home'; long = `in · pushed home at ${secs(homed[id])}`; }
+          else if (e && e.announced) { cls = 'in'; text = secs(e.t); long = `in at ${secs(e.t)}`; }
+          // Set by hand: the script is the whole story, and the stack's own
+          // registrations would only contradict it here.
+          else if (S.trace.scripted) { text = 'open'; long = 'open'; }
+          else if (st === 'filled') { cls = e ? 'in' : 'filled'; text = e ? secs(e.t) : 'fitted'; long = e ? `fitted at ${secs(e.t)}` : `fitted${stamp}`; }
+          else if (st === 'empty') { text = 'open'; long = e ? `open on the last read${stamp}` : `open${stamp}`; }
+          if (cls) named += 1;
+          const just = (e && t - e.t < 1.6) || (homed[id] != null && t - homed[id] < 1.6);
+          row.className = `rp-tile${cls ? ` ${cls}` : ''}${S.pinned === id ? ' sel' : ''}${just ? ' just' : ''}`;
+          row.querySelector('.st').textContent = text;
+          row.title = `${row.dataset.what} · ${long}`;
+        }
+        const counted = S.ids.filter((id) => !S.offRow.has(id)).length;
+        $('idRows').title = S.trace.scripted
+          ? `${named} of ${counted} in${loose.size ? `, ${loose.size} not pushed home` : ''}. Which one and when were set by hand from the recording, to about a second. Pick one to turn its model.`
+          : S.named.length
+            ? `${named} of ${counted} placed by part number so far. A count can run ahead of this: the count reads how many openings are fitted on any clean frame, and a part number needs a frame the face can be registered on. Pick one to turn its model.`
+            : 'No read on this recording could be tied to part numbers.';
+      }
+      // The newest one in. One line can announce several; the card opens on
+      // the last of them and lists the rest beside it.
+      const lastT = went.length ? went[went.length - 1].t : null;
+      const group = went.filter((e) => e.t === lastT).map((e) => e.id);
+      const follow = group[group.length - 1] || null;
+      const shown = S.pinned || follow;
+      const partKey = `${shown}|${group.join()}`;
+      if (partKey !== S.lastShown || $('partBody').dataset.view !== S.view) {
+        S.lastShown = partKey;
+        drawPart(shown, Boolean(S.pinned), group);
+      }
+    }
+
+    function drawPart(id, pinned, group = []) {
+      const body = $('partBody');
+      body.textContent = '';
+      body.dataset.view = S.view;
+      $('partMode').textContent = !id ? '' : pinned ? 'pinned' : group.length > 1 ? `${group.length} went in together` : 'last one in';
+      $('partMode').title = pinned ? 'Click its tile again to follow the last one in.' : '';
+      if (group.length > 1) {
+        const chips = el('div', 'rp-chips');
+        for (const g of group) {
+          const c = el('button', g === id ? 'on' : '', g.replace(/^WH-/, ''));
+          c.type = 'button';
+          c.title = `${g} · ${S.names[g] || ''}`;
+          c.style.setProperty('--c', S.colour[g]);
+          c.addEventListener('click', () => { S.pinned = g === S.pinned ? null : g; S.lastIn = null; render(video.currentTime); });
+          chips.append(c);
+        }
+        body.append(chips);
+      }
+      if (!id) {
+        body.append(el('div', 'rp-foot', 'Nothing has gone in yet. Pick a connector above to see its part.'));
+        return;
+      }
+      const part = S.parts[id] || { views: [] };
+      const model = part.model || null;
+      const canTurn = Boolean(model && window.EmotivModels);
+      const wrap = el('div', 'rp-part');
+      const big = el('div', 'big');
+      // The model unless a flat view was picked, or the viewer did not load.
+      const view = S.view !== '3d' && part.views.includes(S.view) ? S.view
+        : canTurn ? '3d' : part.views[0] || null;
+      if (view === '3d') {
+        // Put in below, once the card is laid out.
+      } else if (view) {
+        const img = el('img');
+        img.src = `${ASSETS}/connectors/${id}/${view}.jpg`;
+        img.alt = `${id}, ${view} view`;
+        big.append(img);
+      } else {
+        big.append(el('div', 'none', model ? 'The model viewer did not load' : 'No CAD solid placed for this ID'));
+      }
+      big.title = view === '3d' ? 'Drag to turn it.' : '';
+      const meta = el('div', 'meta');
+      const pid = el('div', 'pid');
+      const sw = el('i');
+      sw.style.setProperty('--c', S.colour[id] || 'var(--ink-3)');
+      pid.append(sw, document.createTextNode(id), el('span', null, S.names[id] || ''));
+      meta.append(pid);
+      // One line each; the whole of a cut line is in its title.
+      const line = (cls, text, host = meta) => { const d = el('div', cls, text); d.title = text; host.append(d); };
+      if (part.label) line('plb', part.label);
+      const pm = el('div', 'pmeta');
+      if (part.gmPart) line(null, [`GM ${part.gmPart} rev ${part.revision}`, part.supplier].filter(Boolean).join(' · '), pm);
+      if (model) line(null, `${model.sizeMm.map((x) => x.toFixed(1)).join(' × ')} mm · shown in ${model.head}`, pm);
+      if (!model && part.noSolid) line(null, part.noSolid, pm);
+      meta.append(pm);
+      if (model?.standIn) {
+        const d = el('div', 'pbasis', `Stand-in · the shell of ${model.standIn}, GM ${model.gmPart}`);
+        d.title = model.basis;
+        meta.append(d);
+      }
+      wrap.append(big, meta);
+      const tabs = [...(model ? ['3d'] : []), ...part.views];
+      if (tabs.length > 1) {
+        const strip = el('div', 'rp-views');
+        for (const v of tabs) {
+          const b = el('button', v === view ? 'on' : '');
+          b.type = 'button';
+          b.title = v === '3d' ? 'the model, cut from the harness CAD' : `${v} view, from the render sheet`;
+          let pic;
+          if (v === '3d') {
+            pic = el('canvas');
+            pic.width = 120;
+            pic.height = 120;
+            pic.dataset.model = id;
+          } else {
+            pic = el('img');
+            pic.src = `${ASSETS}/connectors/${id}/${v}.jpg`;
+            pic.alt = '';
+          }
+          b.append(pic, el('span', null, v));
+          b.addEventListener('click', () => { S.view = v; drawPart(id, pinned, group); });
+          strip.append(b);
+        }
+        wrap.append(strip);
+      }
+      body.append(wrap);
+      // The model goes in once the card has its size.
+      if (view === '3d') window.EmotivModels.show(big, modelUrl(id));
+      paintModels();
+    }
+
+    // The frame the count was read from, with a box on each opening. Drawn
+    // from a second player parked on that frame, so the boxes sit on the
+    // pixels they were read from whatever the main picture has moved on to.
+    const READ = { in: '#3DDC97', open: '#FFFFFF', proud: '#FF5A52' };
+    let readJob = 0;
+    let readWant = null;
+
+    /** What a hand-set recording says of one opening at a moment. */
+    function setState(id, t) {
+      const sc = S.trace.scripted;
+      const fit = sc.fits.find((f) => f.id === id);
+      if (!fit || fit.t > t) return 'open';
+      const loose = (S.script?.unseated || []).find((u) => u.id === id);
+      const allIn = Math.max(...sc.fits.map((f) => f.t));
+      const start = loose?.from ?? allIn;
+      return loose && t >= start && t < (loose.home ?? Infinity) ? 'proud' : 'in';
+    }
+
+    /** The frame to show for a poll, and a box for each opening on it. */
+    function readView(poll) {
+      const at = poll.frameT ?? poll.tSent;
+      if (S.labels && S.trace.scripted) {
+        // Checked boxes, on the newest frame up to this poll where the row
+        // was in clear view. The panel's count is set as of the same moment.
+        let f = null;
+        for (const x of S.labels.frames) { if (x.t <= poll.tSent) f = x; else break; }
+        if (f) {
+          return {
+            t: f.t, checked: true, byHand: f.by === 'hand', held: at - f.t > 2, fw: S.labels.image[0], fh: S.labels.image[1],
+            // Colours follow this poll, the same moment as the banner and the tiles.
+            // The picture is the last clear view of the row, which can be a little earlier.
+            items: Object.entries(f.boxes).map(([id, box]) => ({ id, box, state: setState(id, poll.tSent), faint: (f.placed || []).includes(id) })),
+          };
+        }
+      }
+      const cap = poll.capture || null;
+      const byBox = {};
+      for (const [id, b] of Object.entries(poll.named?.boxes || {})) byBox[b.join(',')] = id;
+      return {
+        t: poll.frameT, checked: false, held: false,
+        fw: cap?.imageW || S.trace.frame.width, fh: cap?.imageH || S.trace.frame.height,
+        items: (cap?.openings || []).map((o) => ({
+          id: /^WH-/.test(o.id) ? o.id : byBox[o.box.join(',')] || null,
+          box: o.box, state: o.seat === 'proud' ? 'proud' : o.cls === 'filled' ? 'in' : 'open', faint: false,
+        })),
+      };
+    }
+
+    function drawRead(poll) {
+      const cv = $('readCanvas');
+      const ctx = cv.getContext('2d');
+      const job = (readJob += 1);
+      const tag = $('readTag');
+      const txt = $('readTxt');
+      txt.textContent = '';
+      txt.title = '';
+      tag.textContent = '';
+      cv.title = '';
+      if (!poll) {
+        readWant = null;
+        ctx.clearRect(0, 0, cv.width, cv.height);
+        txt.textContent = 'No answer yet.';
+        return;
+      }
+      const view = readView(poll);
+      const { items } = view;
+      const n = { in: 0, open: 0, proud: 0 };
+      for (const it of items) n[it.state] += 1;
+      if (view.t != null) tag.textContent = `${secs(view.t)}${view.held ? ' · held' : ''}`;
+      if (items.length) {
+        const said = [`${n.in + n.proud} fitted`, n.open ? `${n.open} open` : null, n.proud ? `${n.proud} not home` : null].filter(Boolean).join(', ');
+        txt.append(el('b', null, said), document.createTextNode(
+          view.checked
+            ? view.held
+              ? `, at ${secs(view.t)}, the last clear view of the row.`
+              : '. Set from the recording, checked by eye.'
+            : poll.named
+              ? poll.named.by === 'decoder'
+                ? '. The count put the part numbers on itself.'
+                : '. Part numbers from registering the face.'
+              : '. Positions only: not tied to part numbers here.',
+        ));
+        txt.title = txt.textContent;
+        cv.title = view.checked
+          ? `A box on each radio opening. ${view.byHand
+            ? 'On this side-on view the boxes were drawn by hand.'
+            : 'The boxes are the count model’s, tied to part numbers and checked by eye on this frame; a faint box is an opening hidden on this frame, placed from the bracket’s layout.'} Fitted, open and not home are set from the recording. The count model’s own read of this poll is under Each model on this poll.`
+          : 'The count model’s boxes on the frame it read.';
+      } else {
+        const reason = poll.capture?.reason;
+        txt.append(el('b', null, 'No openings read.'), document.createTextNode(reason ? ` The count refused this frame: ${reason}.` : ''));
+      }
+      const paint = () => {
+        if (job !== readJob) return;
+        const dpr = Math.min(3, window.devicePixelRatio || 1);
+        const host = cv.getBoundingClientRect();
+        const W = Math.max(60, Math.round(host.width * dpr));
+        const H = Math.max(60, Math.round(host.height * dpr));
+        if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+        const { fw, fh } = view;
+        // Tight on the openings, in the card's own shape, with room for the
+        // part numbers beside them. No openings: the whole frame.
+        let k = Math.max(W / fw, H / fh);
+        let cx = fw / 2;
+        let cy = fh / 2;
+        if (items.length) {
+          const x0 = Math.min(...items.map((o) => o.box[0] - o.box[2] / 2));
+          const x1 = Math.max(...items.map((o) => o.box[0] + o.box[2] / 2));
+          const y0 = Math.min(...items.map((o) => o.box[1] - o.box[3] / 2));
+          const y1 = Math.max(...items.map((o) => o.box[1] + o.box[3] / 2));
+          const room = 30 * dpr;
+          const fit = Math.min((W - 2 * room) / Math.max(1, x1 - x0), (H - 2 * room) / Math.max(1, y1 - y0));
+          // Never closer than the picture can bear, never wider than the frame.
+          k = Math.max(k, Math.min(fit, (W / fw) * 7));
+          cx = (x0 + x1) / 2;
+          cy = (y0 + y1) / 2;
+        }
+        const cw = W / k;
+        const ch = H / k;
+        const left = Math.max(0, Math.min(fw - cw, cx - cw / 2));
+        const top = Math.max(0, Math.min(fh - ch, cy - ch / 2));
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(grab, left * (grab.videoWidth / fw), top * (grab.videoHeight / fh), cw * (grab.videoWidth / fw), ch * (grab.videoHeight / fh), 0, 0, W, H);
+        const rects = items.map((o) => ({
+          o, x: (o.box[0] - o.box[2] / 2 - left) * k, y: (o.box[1] - o.box[3] / 2 - top) * k, w: o.box[2] * k, h: o.box[3] * k,
+        }));
+        const order = { open: 0, in: 1, proud: 2 };
+        rects.sort((a, b) => (Number(b.o.faint) - Number(a.o.faint)) || (order[a.o.state] - order[b.o.state]));
+        for (const r of rects) {
+          const c = READ[r.o.state];
+          const dash = r.o.state === 'open' ? [4 * dpr, 3 * dpr] : [];
+          ctx.globalAlpha = r.o.faint ? 0.6 : 1;
+          if (r.o.state !== 'open' && !r.o.faint) {
+            ctx.fillStyle = `${c}2B`;
+            ctx.fillRect(r.x, r.y, r.w, r.h);
+          }
+          // A dark line under each, so it reads on a pale bracket too.
+          ctx.setLineDash([]);
+          ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+          ctx.lineWidth = (r.o.faint ? 2 : 3) * dpr;
+          ctx.strokeRect(r.x, r.y, r.w, r.h);
+          ctx.setLineDash(dash);
+          ctx.strokeStyle = c;
+          ctx.lineWidth = (r.o.faint ? 1 : r.o.state === 'open' ? 1.25 : 1.6) * dpr;
+          ctx.strokeRect(r.x, r.y, r.w, r.h);
+        }
+        ctx.globalAlpha = 1;
+        ctx.setLineDash([]);
+        // Part numbers go beside the row, not on the openings: across the
+        // line the row runs along, on whichever side is clear.
+        const named = rects.filter((r) => r.o.id);
+        if (named.length) {
+          const mx = rects.reduce((a, r) => a + r.x + r.w / 2, 0) / rects.length;
+          const my = rects.reduce((a, r) => a + r.y + r.h / 2, 0) / rects.length;
+          let sxx = 0; let sxy = 0; let syy = 0;
+          for (const r of rects) {
+            const dx = r.x + r.w / 2 - mx; const dy = r.y + r.h / 2 - my;
+            sxx += dx * dx; sxy += dx * dy; syy += dy * dy;
+          }
+          const ang = rects.length > 1 ? 0.5 * Math.atan2(2 * sxy, sxx - syy) : Math.PI / 2;
+          const nx = -Math.sin(ang);
+          const ny = Math.cos(ang);
+          // The side with the fewest openings off the row is the clear one.
+          const off = rects.map((r) => (r.x + r.w / 2 - mx) * nx + (r.y + r.h / 2 - my) * ny).sort((a, b) => a - b);
+          const mid = off[Math.floor(off.length / 2)];
+          const lean = off.reduce((a, d) => a + (d - mid) ** 3, 0);
+          const pref = lean > 0 ? -1 : 1;
+          ctx.font = `600 ${9.5 * dpr}px ui-monospace, 'SF Mono', Menlo, monospace`;
+          ctx.textBaseline = 'middle';
+          ctx.textAlign = 'center';
+          const lh = 13 * dpr;
+          const cover = (a, b) => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+          const put = [];
+          named.sort((a, b) => ((a.x + a.w / 2) * -ny + (a.y + a.h / 2) * nx) - ((b.x + b.w / 2) * -ny + (b.y + b.h / 2) * nx));
+          for (const r of named) {
+            const label = r.o.id.replace(/^WH-EZ\d+-/, '');
+            const lw = ctx.measureText(label).width + 7 * dpr;
+            const reach = (Math.abs(nx) * (r.w + lw) + Math.abs(ny) * (r.h + lh)) / 2 + 3 * dpr;
+            let best = null;
+            for (const side of [pref, -pref]) {
+              const c = { x: r.x + r.w / 2 + side * nx * reach - lw / 2, y: r.y + r.h / 2 + side * ny * reach - lh / 2, w: lw, h: lh };
+              let cost = side === pref ? 0 : 1;
+              for (const q of rects) if (q !== r) cost += cover(c, q);
+              for (const q of put) cost += 2 * cover(c, q);
+              cost += 4 * (lw * lh - cover(c, { x: 0, y: 0, w: W, h: H }));
+              if (!best || cost < best.cost) best = { c, cost };
+            }
+            const c = best.c;
+            c.x = Math.max(1, Math.min(W - lw - 1, c.x));
+            c.y = Math.max(1, Math.min(H - lh - 1, c.y));
+            put.push(c);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.72)';
+            ctx.beginPath();
+            ctx.roundRect(c.x, c.y, lw, lh, 3 * dpr);
+            ctx.fill();
+            ctx.globalAlpha = r.o.faint ? 0.7 : 1;
+            ctx.fillStyle = READ[r.o.state];
+            ctx.fillText(label, c.x + lw / 2, c.y + lh / 2 + 0.5 * dpr);
+            ctx.globalAlpha = 1;
+          }
+        }
+      };
+      if (view.t == null) { readWant = null; ctx.clearRect(0, 0, cv.width, cv.height); return; }
+      readWant = { at: view.t + 0.01, paint };
+      if (Math.abs(grab.currentTime - readWant.at) < 0.005 && grab.readyState >= 2) paint();
+      else grab.currentTime = readWant.at;
+    }
+    // One listener for the parked player: it paints only once it is on the
+    // frame that was asked for last.
+    for (const ev of ['seeked', 'loadeddata']) {
+      grab.addEventListener(ev, () => {
+        if (readWant && Math.abs(grab.currentTime - readWant.at) < 0.02 && grab.readyState >= 2) readWant.paint();
+      });
+    }
+
+    function drawOutputs(poll, t) {
+      const host = $('outRows');
+      host.textContent = '';
+      const lit = new Set();
+      const add = (k, v, m, quiet, wide) => {
+        const o = el('div', `o${wide ? ' wide' : ''}`);
+        const right = el('div');
+        right.append(el('div', `v${quiet ? ' quiet' : ''}`, v));
+        if (m) right.append(el('div', 'm', m));
+        o.title = [v, m].filter(Boolean).join(' · ');
+        o.append(el('div', 'k', k), right);
+        host.append(o);
+      };
+      const a = poll?.answer;
+      if (!a) {
+        add('poll', poll?.error ? `failed: ${poll.error}` : 'No answer yet.', null, true);
+      } else {
+        const act = a.action;
+        if (act?.className) {
+          lit.add('action');
+          add('action', act.className, `${S.trace.cosmos?.model || ''} · over ${act.frames} frames`);
+        } else add('action', 'no read yet', S.trace.cosmos?.model || '', true);
+
+        // The stack's own count, also when the panel's is set by hand.
+        const scripted = Boolean(a.module?.fill?.scripted);
+        const fill = scripted ? a.module.fillStack : a.module?.fill;
+        if (fill) {
+          if (fill.decidable) lit.add('count');
+          add('count', fill.reason || '—', fill.modelId || poll.capture?.modelId || '', !fill.decidable);
+        }
+        if (scripted) {
+          const now = EmotivHud.scriptAt(S.trace.scripted, t) || a.module.fill;
+          const out = now.unseatedPhrases || [];
+          add('panel', `${now.fitted} of ${now.total} in${out.length ? ` · not home: ${out.join(', ')}` : ''}`,
+            'set by hand from the recording · not a model read');
+        }
+        const seating = scripted ? a.module.seatingStack : a.module?.seating;
+        const cap = poll.capture || {};
+        const seats = (cap.openings || []).filter((o) => o.seat === 'proud' || o.seat === 'seated');
+        const said = (fill?.unseatedPhrases || []).map((ph) => EmotivHud.hudConnector(ph));
+        const early = fill && fill.fitted != null && fill.fitted < fill.total;
+        if (seats.length) {
+          lit.add('seat');
+          const proud = seats.filter((o) => o.seat === 'proud').length;
+          add('seat', `${proud} of ${seats.length} fitted openings read as not home`,
+            `${cap.seatModelId || S.trace.models?.seatRadio?.value || ''}${early ? ` · preview, held off the glasses until all ${fill.total} are in` : ' · preview'}`);
+        } else if (said.length) {
+          lit.add('moduleSeat');
+          add('seat', `not home: ${said.join(', ')}`, `${cap.seatModelId || ''} · preview`);
+        } else if (cap.proud > 0) {
+          lit.add('moduleSeat');
+          add('seat', 'one read as not home, side not named', `${cap.seatModelId || ''} · preview, not sent to the glasses`);
+        } else if (seating) {
+          add('seat', seating.reason || (seating.decidable ? 'read' : 'not read'), null, true);
+        }
+        const top = (a.candidates || [])[0];
+        if (top) {
+          const raw = top.rawConfidence ?? top.confidence;
+          const sure = raw >= EmotivHud.K.CONNECTOR_LINE_FLOOR;
+          if (sure) lit.add('identity');
+          add('identity', `${top.className} at ${Math.round(raw * 100)}%${sure ? '' : ' · below the 25% the panel needs to name it'}`, a.modelId || '', !sure);
+        }
+        const raised = a.warning && a.warning.severity !== 'info' ? a.warning : null;
+        const shelved = !raised && a.warningStack ? a.warningStack : null;
+        if (raised) add('warning', `${raised.summary}`, `${raised.id} · ${raised.severity}`);
+        else if (shelved) add('warning', `${shelved.summary}`, `${shelved.id} · the stack said this · left off the glasses`, true);
+        add('poll', `sent at ${secs(poll.tSent)}, answered in ${poll.ms} ms`, null, true);
+      }
+      const si = latest(S.trace.scenes || [], t);
+      const scene = si >= 0 ? S.trace.scenes[si] : null;
+      if (scene?.ok) {
+        lit.add('scene');
+        add('scene', [scene.summary, scene.hud?.context].filter(Boolean).join(' — '), `${scene.model || ''} · read at ${secs(scene.tSent)}`, false, true);
+      }
+      const adv = (S.trace.advances || []).filter((x) => x.t <= t);
+      if (adv.length) add('advance', `step advance posted at ${secs(adv[adv.length - 1].t)}`, 'caught locally; nothing was sent to the line', false, true);
+      for (const row of $('modelList').children) row.classList.toggle('on', lit.has(row.dataset.key));
+    }
+
+    // ── Transport ─────────────────────────────────────────────────────────
+    let raf = 0;
+    const loop = () => {
+      render(video.currentTime);
+      raf = video.paused ? 0 : requestAnimationFrame(loop);
+    };
+    video.addEventListener('play', () => { $('play').dataset.state = 'playing'; if (!raf) loop(); });
+    video.addEventListener('pause', () => { $('play').dataset.state = 'paused'; });
+    video.addEventListener('seeked', () => render(video.currentTime));
+    video.addEventListener('loadedmetadata', () => render(video.currentTime));
+    $('play').addEventListener('click', () => (video.paused ? video.play() : video.pause()));
+    $('speed').addEventListener('change', (e) => { video.playbackRate = Number(e.target.value); });
+    $('layHud').addEventListener('change', (e) => { $('hud').hidden = !e.target.checked || !S.trace; });
+    $('layAim').addEventListener('change', (e) => { $('aim').hidden = !e.target.checked; });
+
+    const scrub = $('scrub');
+    const seekTo = (clientX) => {
+      const r = scrub.getBoundingClientRect();
+      const dur = S.trace?.durationS || video.duration || 0;
+      const t = Math.max(0, Math.min(dur - 0.05, ((clientX - r.left) / r.width) * dur));
+      video.currentTime = t;
+      render(t);
+    };
+    scrub.addEventListener('pointerdown', (e) => {
+      scrub.setPointerCapture(e.pointerId);
+      seekTo(e.clientX);
+      const move = (m) => seekTo(m.clientX);
+      const up = () => { scrub.removeEventListener('pointermove', move); scrub.removeEventListener('pointerup', up); };
+      scrub.addEventListener('pointermove', move);
+      scrub.addEventListener('pointerup', up);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.target.closest('input, select, textarea')) return;
+      if (e.code === 'Space') { e.preventDefault(); $('play').click(); }
+      if (e.code === 'ArrowLeft') video.currentTime = Math.max(0, video.currentTime - 1);
+      if (e.code === 'ArrowRight') video.currentTime = Math.min((video.duration || 0) - 0.05, video.currentTime + 1);
+    });
+
+    // The part and the frame take the height that is left over, so both are
+    // drawn again when the window changes.
+    let resizeJob = 0;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeJob);
+      resizeJob = setTimeout(() => {
+        if (!S.trace) return;
+        S.lastShown = null;
+        S.lastPoll = -2;
+        render(video.currentTime);
+      }, 120);
+    });
+
+    boot().catch((err) => {
+      $('pending').hidden = false;
+      for (const id of ['cardCount', 'cardPart', 'cardRead', 'cardOut']) $(id).hidden = true;
+      $('pendingWhy').textContent = `The recordings list did not load (${err.message}).`;
+    });
+  </script>
+
+  <!-- The connector models. One renderer paints the still pictures, a second
+       is the one that turns. Each model file is one part in one colour. -->
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const loader = new GLTFLoader();
+    const loaded = new Map();
+    const FOV = 26;
+    const VIEW_FROM = new THREE.Vector3(0.78, 0.5, 1).normalize();
+
+    /** A part, centred, its longest side across, one unit long. */
+    function prepare(scene) {
+      const part = new THREE.Group();
+      scene.updateMatrixWorld(true);
+      scene.traverse((o) => {
+        if (!o.isMesh) return;
+        const geo = o.geometry.clone().applyMatrix4(o.matrixWorld);
+        const colour = o.material.color.clone();
+        part.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: colour, roughness: 0.62, metalness: 0, flatShading: true })));
+        // CAD has hard edges and one colour hides them. Draw them.
+        const dark = colour.getHSL({ h: 0, s: 0, l: 0 }).l < 0.3;
+        part.add(new THREE.LineSegments(
+          new THREE.EdgesGeometry(geo, 30),
+          new THREE.LineBasicMaterial({ color: dark ? 0x8a9099 : 0x3c3f44, transparent: true, opacity: dark ? 0.5 : 0.45 }),
+        ));
+      });
+      const size = new THREE.Box3().setFromObject(part).getSize(new THREE.Vector3());
+      if (size.z >= size.x && size.z >= size.y) part.rotation.y = Math.PI / 2;
+      else if (size.y >= size.x && size.y >= size.z) part.rotation.z = -Math.PI / 2;
+      const holder = new THREE.Group();
+      holder.add(part);
+      holder.scale.setScalar(1 / Math.max(size.x, size.y, size.z));
+      return holder;
+    }
+    function load(url) {
+      if (!loaded.has(url)) {
+        loaded.set(url, new Promise((resolve, reject) => {
+          loader.load(url, (g) => resolve(prepare(g.scene)), undefined, reject);
+        }));
+      }
+      return loaded.get(url);
+    }
+    function stage() {
+      const scene = new THREE.Scene();
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x50545a, 1.25));
+      const key = new THREE.DirectionalLight(0xffffff, 1.7);
+      key.position.set(2, 3, 4);
+      const back = new THREE.DirectionalLight(0xffffff, 0.6);
+      back.position.set(-3, -1, -2);
+      scene.add(key, back);
+      const camera = new THREE.PerspectiveCamera(FOV, 1, 0.05, 20);
+      return { scene, camera, held: null };
+    }
+    /** Put one part on a stage and stand the camera back far enough to see all of it. */
+    function place(st, part, aspect) {
+      if (st.held) st.scene.remove(st.held);
+      st.held = part;
+      st.scene.add(part);
+      const r = new THREE.Box3().setFromObject(part).getBoundingSphere(new THREE.Sphere()).radius;
+      const half = THREE.MathUtils.degToRad(FOV / 2);
+      const fit = Math.min(half, Math.atan(Math.tan(half) * aspect));
+      st.camera.aspect = aspect;
+      st.camera.position.copy(VIEW_FROM).multiplyScalar((r / Math.sin(fit)) * 1.04);
+      st.camera.lookAt(0, 0, 0);
+      st.camera.updateProjectionMatrix();
+    }
+
+    const still = { renderer: null, st: stage() };
+    /** One still picture of a model, painted into a 2D canvas. */
+    async function thumb(url, canvas) {
+      const proto = await load(url);
+      if (!still.renderer) still.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      const { renderer, st } = still;
+      renderer.setPixelRatio(1);
+      renderer.setSize(canvas.width, canvas.height, false);
+      place(st, proto.clone(), canvas.width / canvas.height);
+      renderer.render(st.scene, st.camera);
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(renderer.domElement, 0, 0);
+    }
+
+    const live = { renderer: null, st: stage(), controls: null, job: 0, raf: 0 };
+    /** The model that turns, in `host`. Showing another one moves it there. */
+    async function show(host, url) {
+      const job = (live.job += 1);
+      if (!live.renderer) {
+        live.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        live.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+        live.controls = new OrbitControls(live.st.camera, live.renderer.domElement);
+        live.controls.enablePan = false;
+        live.controls.enableZoom = false;
+        live.controls.enableDamping = true;
+        live.controls.autoRotateSpeed = 1.6;
+        // Once a hand has turned it, it stays where it was left.
+        live.controls.addEventListener('start', () => { live.controls.autoRotate = false; });
+      }
+      const canvas = live.renderer.domElement;
+      host.textContent = '';
+      host.append(canvas);
+      const proto = await load(url).catch(() => null);
+      if (job !== live.job) return;
+      if (!proto) { host.textContent = 'The model did not load'; return; }
+      const w = host.clientWidth || 176;
+      const h = host.clientHeight || 176;
+      live.renderer.setSize(w, h, false);
+      place(live.st, proto.clone(), w / h);
+      live.controls.target.set(0, 0, 0);
+      live.controls.autoRotate = true;
+      live.controls.update();
+      cancelAnimationFrame(live.raf);
+      const turn = () => {
+        if (job !== live.job || !canvas.isConnected) return;
+        live.controls.update();
+        live.renderer.render(live.st.scene, live.st.camera);
+        live.raf = requestAnimationFrame(turn);
+      };
+      turn();
+    }
+
+    window.EmotivModels = { thumb, show };
+    window.dispatchEvent(new Event('emotiv-models'));
+  </script>
+</body>
+</html>
