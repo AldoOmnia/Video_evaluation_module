@@ -1,0 +1,57 @@
+{
+ "clip": "radio_connections_unseated-20261112-141804",
+ "note": "When each connector goes in on this recording, which three were left not pushed home, and when each was pushed home, read off the picture by hand at half-second steps, with a close view of each opening and the count model's read of it side by side. The time is the first frame the connector is in its opening. The station page shows the glasses panel from these times. What the count and seat models read on each poll is kept in the trace and shown beside it. Times are to about half a second. The push-home times are where a finger presses each connector. EZ4-04 is the last of the three, and that time is the least certain.",
+ "setBy": "hand, from the recording",
+ "fits": [
+  {
+   "id": "WH-EZ4-08",
+   "t": 6.8
+  },
+  {
+   "id": "WH-EZ4-01",
+   "t": 10.5
+  },
+  {
+   "id": "WH-EZ4-09",
+   "t": 15.0
+  },
+  {
+   "id": "WH-EZ4-11",
+   "t": 20.5
+  },
+  {
+   "id": "WH-EZ4-06",
+   "t": 23.8
+  },
+  {
+   "id": "WH-EZ4-05",
+   "t": 28.5
+  },
+  {
+   "id": "WH-EZ4-07",
+   "t": 33.0
+  },
+  {
+   "id": "WH-EZ4-10",
+   "t": 37.0
+  },
+  {
+   "id": "WH-EZ4-04",
+   "t": 40.0
+  }
+ ],
+ "unseated": [
+  {
+   "id": "WH-EZ4-09",
+   "home": 49.0
+  },
+  {
+   "id": "WH-EZ4-11",
+   "home": 54.5
+  },
+  {
+   "id": "WH-EZ4-04",
+   "home": 60.5
+  }
+ ]
+}

@@ -1,0 +1,2994 @@
+{
+ "clip": "gateway_connections-20261112-141339.mp4",
+ "generatedAt": "2026-11-13T15:38:33.213Z",
+ "source": {
+  "repo": "AldoOmnia/comer-rokid-demo",
+  "branch": "Emotiv-Dakkota",
+  "commit": "42541df+worktree",
+  "profile": "emotiv"
+ },
+ "station": "IP0050",
+ "step": "IP0050-MAKE-CONNECTIONS-AND-MAKE-SURE",
+ "procedure": {
+  "stationId": "IP0050",
+  "stationName": "CGM Install",
+  "stepCode": "IP0050-MAKE-CONNECTIONS-AND-MAKE-SURE",
+  "stepIndex": 5,
+  "totalSteps": 19,
+  "stepLabel": "Make Connections and make sure to Witness Mark",
+  "stepDescription": "Make Connections and make sure to Witness Mark",
+  "steps": [
+   {
+    "code": "IP0050-REVIEW-STATION-BOARD",
+    "seq": 1,
+    "label": "Review Station board"
+   },
+   {
+    "code": "IP0050-SECURE-THE-FUSE-BOX-TO",
+    "seq": 2,
+    "label": "Secure the Fuse box to the beam, hand start 2 screws"
+   },
+   {
+    "code": "IP0050-INSTALL-GATEWAY-MODULE-TO-IP",
+    "seq": 3,
+    "label": "Install Gateway Module to IP to the 2 slotted openings on Driver Side..."
+   },
+   {
+    "code": "IP0050-INSTALL-1-GRAY-ROSEBUD-TO",
+    "seq": 4,
+    "label": "Install 1 Gray rosebud to Gateway bracket and 1 Gray rosebud to beam"
+   },
+   {
+    "code": "IP0050-MAKE-CONNECTIONS-AND-MAKE-SURE",
+    "seq": 5,
+    "label": "Make Connections and make sure to Witness Mark"
+   },
+   {
+    "code": "IP0050-OPTION-LOCK-BOX-CONNECT-2",
+    "seq": 6,
+    "label": "OPTION: Lock Box -connect 2 Rosebuds"
+   },
+   {
+    "code": "IP0050-SCAN-CGM-GATEWAY-MODULE",
+    "seq": 7,
+    "label": "Scan CGM (Gateway Module)"
+   },
+   {
+    "code": "IP0050-CHECK-CONNECTIONS-ON-HVAC-AND",
+    "seq": 8,
+    "label": "Check connections on HVAC and Radio"
+   },
+   {
+    "code": "IP0050-TORQUE-DOWN-2-SCREWS-TO",
+    "seq": 9,
+    "label": "Torque down (2) Screws to the Gateway Module"
+   },
+   {
+    "code": "IP0050-TORQUE-DOWN-2-SCREWS-TO-10",
+    "seq": 10,
+    "label": "Torque down (2) Screws to Fuse Box Module"
+   },
+   {
+    "code": "IP0050-ROTATE-IP-TO-CAR-POSITION",
+    "seq": 11,
+    "label": "Rotate IP to Car Position - Make (2) Rosebuds to Duct and Beam"
+   },
+   {
+    "code": "IP0050-OPTION-VERIFY-IONIZER-CONNECTION",
+    "seq": 12,
+    "label": "OPTION: Verify Ionizer Connection"
+   },
+   {
+    "code": "IP0050-OPTION-OBTAIN-AND-SCAN-AMBIENT",
+    "seq": 13,
+    "label": "OPTION: Obtain and Scan Ambient Air Quality Sensor. Torque with 1 screw."
+   },
+   {
+    "code": "IP0050-OPTION-MAKE-1-WIRE-CONNECTION",
+    "seq": 14,
+    "label": "OPTION: Make 1 wire connection and seat 1 rosebud to Ambient Air..."
+   },
+   {
+    "code": "IP0050-OBTAIN-AND-INSTALL-VCS-CENTER",
+    "seq": 15,
+    "label": "Obtain and Install VCS Center Bracket with (2) fasteners"
+   },
+   {
+    "code": "IP0050-OBTAIN-AND-INSTALL-VCS-DRIVER",
+    "seq": 16,
+    "label": "Obtain and Install VCS Driver Side Bracket with (3) fasteners"
+   },
+   {
+    "code": "IP0050-OPTION-NO-HUD-INSTALL-1",
+    "seq": 17,
+    "label": "OPTION [NO HUD]: Install (1) additional fastener to VCS Driver Side..."
+   },
+   {
+    "code": "IP0050-SECURE-ROSEBUD-CONNECTIONS-2-ROSEBUDS",
+    "seq": 18,
+    "label": "Secure Rosebud Connections: (2) Rosebuds to Center Vent (1) Rosebud to..."
+   },
+   {
+    "code": "IP0050-TOUCH-TO-RELEASE",
+    "seq": 19,
+    "label": "Touch to release"
+   }
+  ]
+ },
+ "durationS": 27.421,
+ "frame": {
+  "width": 960,
+  "height": 1280,
+  "cropFraction": 0.2,
+  "seatTaller": 2
+ },
+ "cadence": {
+  "uplinkMs": 1000,
+  "pollMs": 1200,
+  "sceneMs": 15000
+ },
+ "models": {
+  "cv": {
+   "value": "dakkota-connector-id-v2-crop/4",
+   "from": "env:EMOTIV_CV_MODEL_ID",
+   "floor": 0.05
+  },
+  "cvGlasses": {
+   "value": "dakkota-connector-id-glasses-v1/6",
+   "from": "env:EMOTIV_CV_GLASSES_MODEL_ID",
+   "floor": 0.22
+  },
+  "vlm": {
+   "value": "gemini-3.5-flash",
+   "from": "profile"
+  },
+  "vlmFallback": {
+   "value": "gemini-3.5-flash-lite",
+   "from": "profile"
+  },
+  "text": {
+   "value": "claude-sonnet-4-6",
+   "from": "profile"
+  },
+  "stt": {
+   "value": "gemini-3.5-flash",
+   "from": "profile"
+  },
+  "tts": {
+   "value": "gemini-2.5-flash-preview-tts",
+   "from": "profile"
+  },
+  "ttsStream": {
+   "value": "gemini-3.1-flash-tts-preview",
+   "from": "profile"
+  },
+  "seatRadio": {
+   "value": "dakkota-seat-ends-v7/10",
+   "from": "env:EMOTIV_SEAT_MODEL_ID",
+   "floor": 0.55
+  },
+  "seatGateway": {
+   "value": "dakkota-gateway-seat-v1/10",
+   "from": "profile"
+  },
+  "seatGatewayBay": {
+   "value": "dakkota-gateway-seat-v1/16",
+   "from": "profile"
+  },
+  "rowRadio": {
+   "value": "dakkota-radio-row-v1/1",
+   "from": "profile"
+  },
+  "fillRadio": {
+   "value": "omnia-cvi0f/dakkota-radio-port-fill-v1-13-rfdetr-medium-t1",
+   "from": "env:EMOTIV_FILL_MODEL_ID"
+  },
+  "fillGateway": {
+   "value": "dakkota-gateway-port-fill-v1/6",
+   "from": "env:EMOTIV_FILL_GATEWAY_MODEL_ID"
+  }
+ },
+ "routing": {
+  "identity": {
+   "*": [
+    {
+     "slot": "cvGlasses",
+     "id": "dakkota-connector-id-glasses-v1/6",
+     "floor": 0.22
+    },
+    {
+     "slot": "cv",
+     "id": "dakkota-connector-id-v2-crop/4",
+     "floor": 0.05
+    }
+   ]
+  },
+  "seating": {
+   "EZ4": [
+    {
+     "slot": "seatRadio",
+     "id": "dakkota-seat-ends-v7/10",
+     "floor": 0.55
+    }
+   ],
+   "EZ5": [
+    {
+     "slot": "seatGatewayBay",
+     "id": "dakkota-gateway-seat-v1/16"
+    }
+   ]
+  },
+  "moduleSeating": {
+   "EZ5": [
+    {
+     "slot": "seatGateway",
+     "id": "dakkota-gateway-seat-v1/10"
+    }
+   ]
+  },
+  "rowLocate": {
+   "EZ4": [
+    {
+     "slot": "rowRadio",
+     "id": "dakkota-radio-row-v1/1"
+    }
+   ]
+  },
+  "portFill": {
+   "EZ4": [
+    {
+     "slot": "fillRadio",
+     "id": "omnia-cvi0f/dakkota-radio-port-fill-v1-13-rfdetr-medium-t1"
+    }
+   ],
+   "EZ5": [
+    {
+     "slot": "fillGateway",
+     "id": "dakkota-gateway-port-fill-v1/6"
+    }
+   ]
+  }
+ },
+ "actionClip": {
+  "frames": 64,
+  "minFrames": 16,
+  "spanMs": 40000,
+  "intervalMs": 20000,
+  "scene": "unknown",
+  "ffmpeg": {
+   "ok": true,
+   "reason": null
+  },
+  "mayWarn": false,
+  "mayGate": false
+ },
+ "cosmos": {
+  "enabled": true,
+  "project": "dakkota-operator-actions-v1",
+  "model": "dakkota-operator-actions-v1/4",
+  "weights": "omnia-cvi0f/dakkota-operator-actions-v1-4-cosmos3-edge-t1",
+  "classes": [
+   "fitting-radio",
+   "fitting-gateway",
+   "inspecting"
+  ],
+  "fallback": null,
+  "mayWarn": false,
+  "mayGate": false,
+  "reason": null
+ },
+ "radioFit": {
+  "enabled": true,
+  "zone": "EZ4",
+  "holdMs": 10000,
+  "actionIntervalMs": 8000,
+  "actionFreshMs": 25000,
+  "mayWarn": false,
+  "mayGate": false,
+  "steps": []
+ },
+ "seatReads": {
+  "crop": true,
+  "row": true,
+  "module": true
+ },
+ "naming": null,
+ "connectorNames": {
+  "WH-EZ5-01-A": "light grey one",
+  "WH-EZ5-01-B": "round black one"
+ },
+ "lastRefusal": {
+  "reason": "partial",
+  "at": "2026-11-13T15:38:56.879Z",
+  "latencyMs": 165,
+  "zoneId": "EZ5",
+  "modelId": "dakkota-gateway-port-fill-v1/6",
+  "key": "IP0050|IP0050-MAKE-CONNECTIONS-AND-MAKE-SURE|EZ5",
+  "filled": 2,
+  "empty": 0,
+  "boxes": 5
+ },
+ "warm": [
+  {
+   "slot": "cv",
+   "id": "dakkota-connector-id-v2-crop/4",
+   "host": "classify",
+   "ok": true,
+   "status": 200,
+   "ms": 792,
+   "firstMs": 1375
+  },
+  {
+   "slot": "cvGlasses",
+   "id": "dakkota-connector-id-glasses-v1/6",
+   "host": "classify",
+   "ok": true,
+   "status": 200,
+   "ms": 1078,
+   "firstMs": 1716
+  },
+  {
+   "slot": "seatRadio",
+   "id": "dakkota-seat-ends-v7/10",
+   "host": "classify",
+   "ok": true,
+   "status": 200,
+   "ms": 1132,
+   "firstMs": 1256
+  },
+  {
+   "slot": "seatGateway",
+   "id": "dakkota-gateway-seat-v1/10",
+   "host": "classify",
+   "ok": true,
+   "status": 200,
+   "ms": 840,
+   "firstMs": 1718
+  },
+  {
+   "slot": "seatGatewayBay",
+   "id": "dakkota-gateway-seat-v1/16",
+   "host": "classify",
+   "ok": true,
+   "status": 200,
+   "ms": 1134,
+   "firstMs": 1255
+  },
+  {
+   "slot": "rowRadio",
+   "id": "dakkota-radio-row-v1/1",
+   "host": "detect",
+   "ok": true,
+   "status": 200,
+   "ms": 840,
+   "firstMs": 1256
+  },
+  {
+   "slot": "fillRadio",
+   "id": "omnia-cvi0f/dakkota-radio-port-fill-v1-13-rfdetr-medium-t1",
+   "host": "detect",
+   "ok": true,
+   "status": 200,
+   "ms": 1078,
+   "firstMs": 1707
+  },
+  {
+   "slot": "fillGateway",
+   "id": "dakkota-gateway-port-fill-v1/6",
+   "host": "detect",
+   "ok": true,
+   "status": 200,
+   "ms": 840,
+   "firstMs": 1256
+  },
+  {
+   "slot": "action",
+   "id": "dakkota-operator-actions-v1/4",
+   "host": "serverless",
+   "ok": true,
+   "status": 200,
+   "ms": 2120,
+   "firstMs": 2459
+  }
+ ],
+ "uplinks": {
+  "sent": 28,
+  "accepted": 28,
+  "at": [
+   0.008,
+   1.004,
+   2.007,
+   3.008,
+   4.009,
+   5.011,
+   6.013,
+   7.015,
+   8.015,
+   9.016,
+   10.017,
+   11.019,
+   12.021,
+   13.022,
+   14.022,
+   15.027,
+   16.021,
+   17.022,
+   18.021,
+   19.021,
+   20.021,
+   21.022,
+   22.021,
+   23.021,
+   24.02,
+   25.021,
+   26.02,
+   27.021
+  ]
+ },
+ "advances": [],
+ "scenes": [
+  {
+   "tSent": 2.002,
+   "tBack": 4.682,
+   "ok": true,
+   "reason": null,
+   "hud": {
+    "label": "HARNESS VIEW",
+    "detail": "Cross car beam carrier and modules",
+    "context": "Beam mounted on fixture; EZ5 Gateway module installed on left side at IP-050"
+   },
+   "summary": "Cross car beam carrier and modules",
+   "model": "gemini-3.5-flash"
+  },
+  {
+   "tSent": 16.997,
+   "tBack": 19.482,
+   "ok": true,
+   "reason": null,
+   "hud": {
+    "label": "HARNESS VIEW",
+    "detail": "Gateway Module (CGM) at IP-050",
+    "context": "CGM module mounted; hand holding connectors over EZ5 ports for Step 5"
+   },
+   "summary": "Gateway Module (CGM) at IP-050",
+   "model": "gemini-3.5-flash"
+  }
+ ],
+ "polls": [
+  {
+   "i": 0,
+   "tSent": 0.154,
+   "tBack": 1.881,
+   "ms": 1727,
+   "error": null,
+   "answer": {
+    "ok": true,
+    "modelId": "dakkota-connector-id-v2-crop/4",
+    "latencyMs": 696,
+    "scoped": true,
+    "vision": {
+     "source": "uploaded",
+     "ageMs": 0,
+     "station": "IP0050"
+    },
+    "hud": {
+     "label": "NOT SURE",
+     "detail": "nothing recognised at 3% — fill the square with the connector"
+    },
+    "spoken": "I can't make that out. Hold the connector in the middle of your view so it fills the square.",
+    "band": "unsure",
+    "module": {
+     "station": "IP-050",
+     "jesStep": "Step 5",
+     "zoneId": "EZ5",
+     "name": "Gateway Module (CGM)",
+     "connectorIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "retiredIds": [],
+     "total": 2,
+     "rowIds": [],
+     "offRowIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "seating": {
+      "decidable": false,
+      "reason": "not read on this frame"
+     },
+     "fill": {
+      "decidable": true,
+      "held": null,
+      "heldAgeMs": 0,
+      "fitted": 0,
+      "total": 2,
+      "reason": "0 of 2 fitted, 3 bays bare",
+      "preview": true,
+      "ageMs": 0,
+      "modelId": "dakkota-gateway-port-fill-v1/6",
+      "openPhrases": [],
+      "unseatedPhrases": [],
+      "unseatedAmbiguous": false
+     }
+    },
+    "fillGap": null,
+    "warnings": [
+     {
+      "id": "identity/uncertain",
+      "family": "identity",
+      "severity": "info",
+      "summary": "Not a confident read",
+      "hud": {
+       "label": "Not sure",
+       "detail": "Move closer or square up. · 696ms"
+      },
+      "vars": {},
+      "latencyMs": 696
+     }
+    ],
+    "scene": null,
+    "action": null,
+    "ambient": null,
+    "warning": {
+     "id": "identity/uncertain",
+     "family": "identity",
+     "severity": "info",
+     "summary": "Not a confident read",
+     "hud": {
+      "label": "Not sure",
+      "detail": "Move closer or square up. · 696ms"
+     },
+     "vars": {},
+     "latencyMs": 696
+    },
+    "seat": null,
+    "candidates": [
+     {
+      "className": "WH-EZ5-01-B",
+      "confidence": 0.594,
+      "rawConfidence": 0.029,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     },
+     {
+      "className": "WH-EZ5-01-A",
+      "confidence": 0.406,
+      "rawConfidence": 0.02,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     }
+    ]
+   },
+   "capture": {
+    "station": "IP-050",
+    "step": "IP0050-MAKE-CONNECTIONS-AND-MAKE-SURE",
+    "zone": "EZ5",
+    "frameSource": "scene",
+    "view": "zone",
+    "bays": 3,
+    "fitted": 0,
+    "steady": 0,
+    "total": 2,
+    "reason": null,
+    "tilt": null,
+    "boxes": 6,
+    "proud": null,
+    "imageW": 960,
+    "imageH": 1280,
+    "openings": null,
+    "naming": "id",
+    "action": null,
+    "ambient": null,
+    "modelId": "dakkota-gateway-port-fill-v1/6",
+    "seatModelId": "dakkota-gateway-seat-v1/10",
+    "seatNamesModelId": null,
+    "reasons": []
+   },
+   "frameT": 0
+  },
+  {
+   "i": 1,
+   "tSent": 3.081,
+   "tBack": 3.712,
+   "ms": 631,
+   "error": null,
+   "answer": {
+    "ok": true,
+    "modelId": "dakkota-connector-id-v2-crop/4",
+    "latencyMs": 176,
+    "scoped": true,
+    "vision": {
+     "source": "uploaded",
+     "ageMs": 0,
+     "station": "IP0050"
+    },
+    "hud": {
+     "label": "NOT SURE",
+     "detail": "nothing recognised at 2% — fill the square with the connector"
+    },
+    "spoken": "I can't make that out. Hold the connector in the middle of your view so it fills the square.",
+    "band": "unsure",
+    "module": {
+     "station": "IP-050",
+     "jesStep": "Step 5",
+     "zoneId": "EZ5",
+     "name": "Gateway Module (CGM)",
+     "connectorIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "retiredIds": [],
+     "total": 2,
+     "rowIds": [],
+     "offRowIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "seating": {
+      "decidable": false,
+      "reason": "not read on this frame"
+     },
+     "fill": {
+      "decidable": true,
+      "held": null,
+      "heldAgeMs": 0,
+      "fitted": 0,
+      "total": 2,
+      "reason": "0 of 2 fitted, 3 bays bare",
+      "preview": true,
+      "ageMs": 0,
+      "modelId": "dakkota-gateway-port-fill-v1/6",
+      "openPhrases": [],
+      "unseatedPhrases": [],
+      "unseatedAmbiguous": false
+     }
+    },
+    "fillGap": null,
+    "warnings": [
+     {
+      "id": "identity/uncertain",
+      "family": "identity",
+      "severity": "info",
+      "summary": "Not a confident read",
+      "hud": {
+       "label": "Not sure",
+       "detail": "Move closer or square up. · 176ms"
+      },
+      "vars": {},
+      "latencyMs": 176
+     }
+    ],
+    "scene": null,
+    "action": null,
+    "ambient": null,
+    "warning": {
+     "id": "identity/uncertain",
+     "family": "identity",
+     "severity": "info",
+     "summary": "Not a confident read",
+     "hud": {
+      "label": "Not sure",
+      "detail": "Move closer or square up. · 176ms"
+     },
+     "vars": {},
+     "latencyMs": 176
+    },
+    "seat": null,
+    "candidates": [
+     {
+      "className": "WH-EZ5-01-A",
+      "confidence": 0.524,
+      "rawConfidence": 0.024,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     },
+     {
+      "className": "WH-EZ5-01-B",
+      "confidence": 0.476,
+      "rawConfidence": 0.022,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     }
+    ]
+   },
+   "capture": {
+    "station": "IP-050",
+    "step": "IP0050-MAKE-CONNECTIONS-AND-MAKE-SURE",
+    "zone": "EZ5",
+    "frameSource": "scene",
+    "view": "zone",
+    "bays": 3,
+    "fitted": 0,
+    "steady": 0,
+    "total": 2,
+    "reason": null,
+    "tilt": null,
+    "boxes": 5,
+    "proud": null,
+    "imageW": 960,
+    "imageH": 1280,
+    "openings": null,
+    "naming": "id",
+    "action": null,
+    "ambient": null,
+    "modelId": "dakkota-gateway-port-fill-v1/6",
+    "seatModelId": "dakkota-gateway-seat-v1/10",
+    "seatNamesModelId": null,
+    "reasons": []
+   },
+   "frameT": 3
+  },
+  {
+   "i": 2,
+   "tSent": 4.913,
+   "tBack": 5.415,
+   "ms": 502,
+   "error": null,
+   "answer": {
+    "ok": true,
+    "modelId": "dakkota-connector-id-v2-crop/4",
+    "latencyMs": 101,
+    "scoped": true,
+    "vision": {
+     "source": "uploaded",
+     "ageMs": 0,
+     "station": "IP0050"
+    },
+    "hud": {
+     "label": "NOT SURE",
+     "detail": "nothing recognised at 5% — fill the square with the connector"
+    },
+    "spoken": "I can't make that out. Hold the connector in the middle of your view so it fills the square.",
+    "band": "unsure",
+    "module": {
+     "station": "IP-050",
+     "jesStep": "Step 5",
+     "zoneId": "EZ5",
+     "name": "Gateway Module (CGM)",
+     "connectorIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "retiredIds": [],
+     "total": 2,
+     "rowIds": [],
+     "offRowIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "seating": {
+      "decidable": false,
+      "reason": "not read on this frame"
+     },
+     "fill": {
+      "decidable": true,
+      "held": null,
+      "heldAgeMs": 0,
+      "fitted": 0,
+      "total": 2,
+      "reason": "0 of 2 fitted, 3 bays bare",
+      "preview": true,
+      "ageMs": 0,
+      "modelId": "dakkota-gateway-port-fill-v1/6",
+      "openPhrases": [],
+      "unseatedPhrases": [],
+      "unseatedAmbiguous": false
+     }
+    },
+    "fillGap": null,
+    "warnings": [
+     {
+      "id": "identity/uncertain",
+      "family": "identity",
+      "severity": "info",
+      "summary": "Not a confident read",
+      "hud": {
+       "label": "Not sure",
+       "detail": "Move closer or square up. · 101ms"
+      },
+      "vars": {},
+      "latencyMs": 101
+     }
+    ],
+    "scene": null,
+    "action": null,
+    "ambient": null,
+    "warning": {
+     "id": "identity/uncertain",
+     "family": "identity",
+     "severity": "info",
+     "summary": "Not a confident read",
+     "hud": {
+      "label": "Not sure",
+      "detail": "Move closer or square up. · 101ms"
+     },
+     "vars": {},
+     "latencyMs": 101
+    },
+    "seat": null,
+    "candidates": [
+     {
+      "className": "WH-EZ5-01-A",
+      "confidence": 1,
+      "rawConfidence": 0.048,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     }
+    ]
+   },
+   "capture": {
+    "station": "IP-050",
+    "step": "IP0050-MAKE-CONNECTIONS-AND-MAKE-SURE",
+    "zone": "EZ5",
+    "frameSource": "scene",
+    "view": "zone",
+    "bays": 3,
+    "fitted": 0,
+    "steady": 0,
+    "total": 2,
+    "reason": null,
+    "tilt": null,
+    "boxes": 12,
+    "proud": null,
+    "imageW": 960,
+    "imageH": 1280,
+    "openings": null,
+    "naming": "id",
+    "action": null,
+    "ambient": null,
+    "modelId": "dakkota-gateway-port-fill-v1/6",
+    "seatModelId": "dakkota-gateway-seat-v1/10",
+    "seatNamesModelId": null,
+    "reasons": []
+   },
+   "frameT": 4
+  },
+  {
+   "i": 3,
+   "tSent": 6.616,
+   "tBack": 7.388,
+   "ms": 772,
+   "error": null,
+   "answer": {
+    "ok": true,
+    "modelId": "dakkota-connector-id-v2-crop/4",
+    "latencyMs": 230,
+    "scoped": true,
+    "vision": {
+     "source": "uploaded",
+     "ageMs": 0,
+     "station": "IP0050"
+    },
+    "hud": {
+     "label": "NOT SURE",
+     "detail": "nothing recognised at 5% — fill the square with the connector"
+    },
+    "spoken": "I can't make that out. Hold the connector in the middle of your view so it fills the square.",
+    "band": "unsure",
+    "module": {
+     "station": "IP-050",
+     "jesStep": "Step 5",
+     "zoneId": "EZ5",
+     "name": "Gateway Module (CGM)",
+     "connectorIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "retiredIds": [],
+     "total": 2,
+     "rowIds": [],
+     "offRowIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "seating": {
+      "decidable": false,
+      "reason": "not read on this frame"
+     },
+     "fill": {
+      "decidable": true,
+      "held": null,
+      "heldAgeMs": 0,
+      "fitted": 0,
+      "total": 2,
+      "reason": "0 of 2 fitted, 3 bays bare",
+      "preview": true,
+      "ageMs": 0,
+      "modelId": "dakkota-gateway-port-fill-v1/6",
+      "openPhrases": [],
+      "unseatedPhrases": [],
+      "unseatedAmbiguous": false
+     }
+    },
+    "fillGap": null,
+    "warnings": [
+     {
+      "id": "identity/uncertain",
+      "family": "identity",
+      "severity": "info",
+      "summary": "Not a confident read",
+      "hud": {
+       "label": "Not sure",
+       "detail": "Move closer or square up. · 230ms"
+      },
+      "vars": {},
+      "latencyMs": 230
+     }
+    ],
+    "scene": null,
+    "action": null,
+    "ambient": null,
+    "warning": {
+     "id": "identity/uncertain",
+     "family": "identity",
+     "severity": "info",
+     "summary": "Not a confident read",
+     "hud": {
+      "label": "Not sure",
+      "detail": "Move closer or square up. · 230ms"
+     },
+     "vars": {},
+     "latencyMs": 230
+    },
+    "seat": null,
+    "candidates": [
+     {
+      "className": "WH-EZ5-01-A",
+      "confidence": 0.664,
+      "rawConfidence": 0.051,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     },
+     {
+      "className": "WH-EZ5-01-B",
+      "confidence": 0.336,
+      "rawConfidence": 0.026,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     }
+    ]
+   },
+   "capture": {
+    "station": "IP-050",
+    "step": "IP0050-MAKE-CONNECTIONS-AND-MAKE-SURE",
+    "zone": "EZ5",
+    "frameSource": "scene",
+    "view": "zone",
+    "bays": 3,
+    "fitted": 0,
+    "steady": 0,
+    "total": 2,
+    "reason": null,
+    "tilt": null,
+    "boxes": 15,
+    "proud": 1,
+    "imageW": 960,
+    "imageH": 1280,
+    "openings": null,
+    "naming": "id",
+    "action": null,
+    "ambient": null,
+    "modelId": "dakkota-gateway-port-fill-v1/6",
+    "seatModelId": "dakkota-gateway-seat-v1/10",
+    "seatNamesModelId": null,
+    "reasons": [
+     "seat_proud"
+    ]
+   },
+   "frameT": 6
+  },
+  {
+   "i": 4,
+   "tSent": 8.588,
+   "tBack": 8.844,
+   "ms": 256,
+   "error": null,
+   "answer": {
+    "ok": true,
+    "modelId": "dakkota-connector-id-v2-crop/4",
+    "latencyMs": 251,
+    "scoped": true,
+    "vision": {
+     "source": "uploaded",
+     "ageMs": 0,
+     "station": "IP0050"
+    },
+    "hud": {
+     "label": "NOT SURE",
+     "detail": "nothing recognised at 3% — fill the square with the connector"
+    },
+    "spoken": "I can't make that out. Hold the connector in the middle of your view so it fills the square.",
+    "band": "unsure",
+    "module": {
+     "station": "IP-050",
+     "jesStep": "Step 5",
+     "zoneId": "EZ5",
+     "name": "Gateway Module (CGM)",
+     "connectorIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "retiredIds": [],
+     "total": 2,
+     "rowIds": [],
+     "offRowIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "seating": {
+      "decidable": false,
+      "reason": "not read on this frame"
+     },
+     "fill": {
+      "decidable": false,
+      "fitted": null,
+      "held": 0,
+      "heldAgeMs": 1740,
+      "total": 2,
+      "reason": "part of the module is out of shot or behind a hand",
+      "preview": true,
+      "ageMs": 0,
+      "modelId": "dakkota-gateway-port-fill-v1/6",
+      "openPhrases": [],
+      "unseatedPhrases": []
+     }
+    },
+    "fillGap": {
+     "modelId": "dakkota-gateway-port-fill-v1/6",
+     "reason": "part of the module is out of shot or behind a hand",
+     "held": 0,
+     "heldAgeMs": 1740
+    },
+    "warnings": [
+     {
+      "id": "identity/uncertain",
+      "family": "identity",
+      "severity": "info",
+      "summary": "Not a confident read",
+      "hud": {
+       "label": "Not sure",
+       "detail": "Move closer or square up. · 251ms"
+      },
+      "vars": {},
+      "latencyMs": 251
+     }
+    ],
+    "scene": null,
+    "action": null,
+    "ambient": null,
+    "warning": {
+     "id": "identity/uncertain",
+     "family": "identity",
+     "severity": "info",
+     "summary": "Not a confident read",
+     "hud": {
+      "label": "Not sure",
+      "detail": "Move closer or square up. · 251ms"
+     },
+     "vars": {},
+     "latencyMs": 251
+    },
+    "seat": null,
+    "candidates": [
+     {
+      "className": "WH-EZ5-01-B",
+      "confidence": 0.531,
+      "rawConfidence": 0.029,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     },
+     {
+      "className": "WH-EZ5-01-A",
+      "confidence": 0.469,
+      "rawConfidence": 0.025,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     }
+    ]
+   },
+   "capture": {
+    "station": "IP-050",
+    "step": "IP0050-MAKE-CONNECTIONS-AND-MAKE-SURE",
+    "zone": "EZ5",
+    "frameSource": "scene",
+    "view": "zone",
+    "bays": 3,
+    "fitted": null,
+    "steady": null,
+    "total": null,
+    "reason": "partial",
+    "tilt": null,
+    "boxes": 1,
+    "proud": null,
+    "imageW": null,
+    "imageH": null,
+    "openings": null,
+    "naming": null,
+    "action": null,
+    "ambient": null,
+    "modelId": null,
+    "seatModelId": "dakkota-gateway-seat-v1/10",
+    "seatNamesModelId": null,
+    "reasons": [
+     "refused:partial"
+    ]
+   },
+   "frameT": 8
+  },
+  {
+   "i": 5,
+   "tSent": 10.045,
+   "tBack": 10.314,
+   "ms": 269,
+   "error": null,
+   "answer": {
+    "ok": true,
+    "modelId": "dakkota-connector-id-v2-crop/4",
+    "latencyMs": 86,
+    "scoped": true,
+    "vision": {
+     "source": "uploaded",
+     "ageMs": 0,
+     "station": "IP0050"
+    },
+    "hud": {
+     "label": "NOT SURE",
+     "detail": "nothing recognised at 5% — fill the square with the connector"
+    },
+    "spoken": "I can't make that out. Hold the connector in the middle of your view so it fills the square.",
+    "band": "unsure",
+    "module": {
+     "station": "IP-050",
+     "jesStep": "Step 5",
+     "zoneId": "EZ5",
+     "name": "Gateway Module (CGM)",
+     "connectorIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "retiredIds": [],
+     "total": 2,
+     "rowIds": [],
+     "offRowIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "seating": {
+      "decidable": false,
+      "reason": "not read on this frame"
+     },
+     "fill": {
+      "decidable": false,
+      "fitted": null,
+      "held": 0,
+      "heldAgeMs": 3210,
+      "total": 2,
+      "reason": "part of the module is out of shot or behind a hand",
+      "preview": true,
+      "ageMs": 0,
+      "modelId": "dakkota-gateway-port-fill-v1/6",
+      "openPhrases": [],
+      "unseatedPhrases": []
+     }
+    },
+    "fillGap": {
+     "modelId": "dakkota-gateway-port-fill-v1/6",
+     "reason": "part of the module is out of shot or behind a hand",
+     "held": 0,
+     "heldAgeMs": 3210
+    },
+    "warnings": [
+     {
+      "id": "identity/uncertain",
+      "family": "identity",
+      "severity": "info",
+      "summary": "Not a confident read",
+      "hud": {
+       "label": "Not sure",
+       "detail": "Move closer or square up. · 86ms"
+      },
+      "vars": {},
+      "latencyMs": 86
+     }
+    ],
+    "scene": null,
+    "action": null,
+    "ambient": null,
+    "warning": {
+     "id": "identity/uncertain",
+     "family": "identity",
+     "severity": "info",
+     "summary": "Not a confident read",
+     "hud": {
+      "label": "Not sure",
+      "detail": "Move closer or square up. · 86ms"
+     },
+     "vars": {},
+     "latencyMs": 86
+    },
+    "seat": null,
+    "candidates": [
+     {
+      "className": "WH-EZ5-01-B",
+      "confidence": 0.737,
+      "rawConfidence": 0.048,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     },
+     {
+      "className": "WH-EZ5-01-A",
+      "confidence": 0.263,
+      "rawConfidence": 0.017,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     }
+    ]
+   },
+   "capture": {
+    "station": "IP-050",
+    "step": "IP0050-MAKE-CONNECTIONS-AND-MAKE-SURE",
+    "zone": "EZ5",
+    "frameSource": "scene",
+    "view": "zone",
+    "bays": 3,
+    "fitted": null,
+    "steady": null,
+    "total": null,
+    "reason": "partial",
+    "tilt": null,
+    "boxes": 1,
+    "proud": null,
+    "imageW": null,
+    "imageH": null,
+    "openings": null,
+    "naming": null,
+    "action": null,
+    "ambient": null,
+    "modelId": null,
+    "seatModelId": "dakkota-gateway-seat-v1/10",
+    "seatNamesModelId": null,
+    "reasons": [
+     "refused:partial"
+    ]
+   },
+   "frameT": 10
+  },
+  {
+   "i": 6,
+   "tSent": 11.514,
+   "tBack": 11.771,
+   "ms": 257,
+   "error": null,
+   "answer": {
+    "ok": true,
+    "modelId": "dakkota-connector-id-v2-crop/4",
+    "latencyMs": 106,
+    "scoped": true,
+    "vision": {
+     "source": "uploaded",
+     "ageMs": 0,
+     "station": "IP0050"
+    },
+    "hud": {
+     "label": "NOT SURE",
+     "detail": "nothing recognised at 11% — fill the square with the connector"
+    },
+    "spoken": "I can't make that out. Hold the connector in the middle of your view so it fills the square.",
+    "band": "unsure",
+    "module": {
+     "station": "IP-050",
+     "jesStep": "Step 5",
+     "zoneId": "EZ5",
+     "name": "Gateway Module (CGM)",
+     "connectorIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "retiredIds": [],
+     "total": 2,
+     "rowIds": [],
+     "offRowIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "seating": {
+      "decidable": false,
+      "reason": "not read on this frame"
+     },
+     "fill": {
+      "decidable": true,
+      "held": null,
+      "heldAgeMs": 0,
+      "fitted": 0,
+      "total": 2,
+      "reason": "0 of 2 fitted, 3 bays bare",
+      "preview": true,
+      "ageMs": 0,
+      "modelId": "dakkota-gateway-port-fill-v1/6",
+      "openPhrases": [],
+      "unseatedPhrases": [],
+      "unseatedAmbiguous": false
+     }
+    },
+    "fillGap": null,
+    "warnings": [
+     {
+      "id": "identity/uncertain",
+      "family": "identity",
+      "severity": "info",
+      "summary": "Not a confident read",
+      "hud": {
+       "label": "Not sure",
+       "detail": "Move closer or square up. · 106ms"
+      },
+      "vars": {},
+      "latencyMs": 106
+     }
+    ],
+    "scene": null,
+    "action": null,
+    "ambient": null,
+    "warning": {
+     "id": "identity/uncertain",
+     "family": "identity",
+     "severity": "info",
+     "summary": "Not a confident read",
+     "hud": {
+      "label": "Not sure",
+      "detail": "Move closer or square up. · 106ms"
+     },
+     "vars": {},
+     "latencyMs": 106
+    },
+    "seat": null,
+    "candidates": [
+     {
+      "className": "WH-EZ5-01-A",
+      "confidence": 1,
+      "rawConfidence": 0.113,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     }
+    ]
+   },
+   "capture": {
+    "station": "IP-050",
+    "step": "IP0050-MAKE-CONNECTIONS-AND-MAKE-SURE",
+    "zone": "EZ5",
+    "frameSource": "scene",
+    "view": "zone",
+    "bays": 3,
+    "fitted": 0,
+    "steady": 0,
+    "total": 2,
+    "reason": null,
+    "tilt": null,
+    "boxes": 36,
+    "proud": 1,
+    "imageW": 960,
+    "imageH": 1280,
+    "openings": null,
+    "naming": "id",
+    "action": null,
+    "ambient": null,
+    "modelId": "dakkota-gateway-port-fill-v1/6",
+    "seatModelId": "dakkota-gateway-seat-v1/10",
+    "seatNamesModelId": null,
+    "reasons": [
+     "seat_proud"
+    ]
+   },
+   "frameT": 11
+  },
+  {
+   "i": 7,
+   "tSent": 12.972,
+   "tBack": 13.312,
+   "ms": 340,
+   "error": null,
+   "answer": {
+    "ok": true,
+    "modelId": "dakkota-connector-id-v2-crop/4",
+    "latencyMs": 137,
+    "scoped": true,
+    "vision": {
+     "source": "uploaded",
+     "ageMs": 0,
+     "station": "IP0050"
+    },
+    "hud": {
+     "label": "NOT SURE",
+     "detail": "nothing recognised at 6% — fill the square with the connector"
+    },
+    "spoken": "I can't make that out. Hold the connector in the middle of your view so it fills the square.",
+    "band": "unsure",
+    "module": {
+     "station": "IP-050",
+     "jesStep": "Step 5",
+     "zoneId": "EZ5",
+     "name": "Gateway Module (CGM)",
+     "connectorIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "retiredIds": [],
+     "total": 2,
+     "rowIds": [],
+     "offRowIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "seating": {
+      "decidable": false,
+      "reason": "not read on this frame"
+     },
+     "fill": {
+      "decidable": true,
+      "held": null,
+      "heldAgeMs": 0,
+      "fitted": 0,
+      "total": 2,
+      "reason": "0 of 2 fitted, 3 bays bare",
+      "preview": true,
+      "ageMs": 0,
+      "modelId": "dakkota-gateway-port-fill-v1/6",
+      "openPhrases": [],
+      "unseatedPhrases": [],
+      "unseatedAmbiguous": false
+     }
+    },
+    "fillGap": null,
+    "warnings": [
+     {
+      "id": "identity/uncertain",
+      "family": "identity",
+      "severity": "info",
+      "summary": "Not a confident read",
+      "hud": {
+       "label": "Not sure",
+       "detail": "Move closer or square up. · 137ms"
+      },
+      "vars": {},
+      "latencyMs": 137
+     }
+    ],
+    "scene": null,
+    "action": null,
+    "ambient": null,
+    "warning": {
+     "id": "identity/uncertain",
+     "family": "identity",
+     "severity": "info",
+     "summary": "Not a confident read",
+     "hud": {
+      "label": "Not sure",
+      "detail": "Move closer or square up. · 137ms"
+     },
+     "vars": {},
+     "latencyMs": 137
+    },
+    "seat": null,
+    "candidates": [
+     {
+      "className": "WH-EZ5-01-A",
+      "confidence": 0.604,
+      "rawConfidence": 0.063,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     },
+     {
+      "className": "WH-EZ5-01-B",
+      "confidence": 0.396,
+      "rawConfidence": 0.041,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     }
+    ]
+   },
+   "capture": {
+    "station": "IP-050",
+    "step": "IP0050-MAKE-CONNECTIONS-AND-MAKE-SURE",
+    "zone": "EZ5",
+    "frameSource": "scene",
+    "view": "zone",
+    "bays": 3,
+    "fitted": 1,
+    "steady": 0,
+    "total": 2,
+    "reason": null,
+    "tilt": null,
+    "boxes": 19,
+    "proud": 1,
+    "imageW": 960,
+    "imageH": 1280,
+    "openings": [
+     {
+      "id": "WH-EZ5-01-B",
+      "cls": "filled",
+      "conf": 0.51,
+      "box": [
+       521,
+       599,
+       65,
+       76
+      ],
+      "seat": null,
+      "seatConf": null,
+      "nameSeat": null,
+      "nameConf": null,
+      "named": false
+     }
+    ],
+    "naming": "id",
+    "action": null,
+    "ambient": null,
+    "modelId": "dakkota-gateway-port-fill-v1/6",
+    "seatModelId": "dakkota-gateway-seat-v1/10",
+    "seatNamesModelId": null,
+    "reasons": [
+     "seat_proud"
+    ]
+   },
+   "frameT": 12,
+   "named": {
+    "by": "decoder",
+    "state": {
+     "WH-EZ5-01-B": "filled"
+    },
+    "boxes": {
+     "WH-EZ5-01-B": [
+      521,
+      599,
+      65,
+      76
+     ]
+    }
+   }
+  },
+  {
+   "i": 8,
+   "tSent": 14.511,
+   "tBack": 14.886,
+   "ms": 375,
+   "error": null,
+   "answer": {
+    "ok": true,
+    "modelId": "dakkota-connector-id-v2-crop/4",
+    "latencyMs": 100,
+    "scoped": true,
+    "vision": {
+     "source": "uploaded",
+     "ageMs": 0,
+     "station": "IP0050"
+    },
+    "hud": {
+     "label": "NOT SURE",
+     "detail": "nothing recognised at 2% — fill the square with the connector"
+    },
+    "spoken": "I can't make that out. Hold the connector in the middle of your view so it fills the square.",
+    "band": "unsure",
+    "module": {
+     "station": "IP-050",
+     "jesStep": "Step 5",
+     "zoneId": "EZ5",
+     "name": "Gateway Module (CGM)",
+     "connectorIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "retiredIds": [],
+     "total": 2,
+     "rowIds": [],
+     "offRowIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "seating": {
+      "decidable": false,
+      "reason": "not read on this frame"
+     },
+     "fill": {
+      "decidable": true,
+      "held": null,
+      "heldAgeMs": 0,
+      "fitted": 1,
+      "total": 2,
+      "reason": "1 of 2 fitted, 2 bays bare",
+      "preview": true,
+      "ageMs": 0,
+      "modelId": "dakkota-gateway-port-fill-v1/6",
+      "openPhrases": [],
+      "unseatedPhrases": [],
+      "unseatedAmbiguous": false
+     }
+    },
+    "fillGap": null,
+    "warnings": [
+     {
+      "id": "identity/uncertain",
+      "family": "identity",
+      "severity": "info",
+      "summary": "Not a confident read",
+      "hud": {
+       "label": "Not sure",
+       "detail": "Move closer or square up. · 100ms"
+      },
+      "vars": {},
+      "latencyMs": 100
+     }
+    ],
+    "scene": null,
+    "action": null,
+    "ambient": null,
+    "warning": {
+     "id": "identity/uncertain",
+     "family": "identity",
+     "severity": "info",
+     "summary": "Not a confident read",
+     "hud": {
+      "label": "Not sure",
+      "detail": "Move closer or square up. · 100ms"
+     },
+     "vars": {},
+     "latencyMs": 100
+    },
+    "seat": null,
+    "candidates": [
+     {
+      "className": "WH-EZ5-01-A",
+      "confidence": 0.539,
+      "rawConfidence": 0.021,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     },
+     {
+      "className": "WH-EZ5-01-B",
+      "confidence": 0.461,
+      "rawConfidence": 0.018,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     }
+    ]
+   },
+   "capture": {
+    "station": "IP-050",
+    "step": "IP0050-MAKE-CONNECTIONS-AND-MAKE-SURE",
+    "zone": "EZ5",
+    "frameSource": "scene",
+    "view": "zone",
+    "bays": 3,
+    "fitted": 2,
+    "steady": 1,
+    "total": 2,
+    "reason": null,
+    "tilt": null,
+    "boxes": 19,
+    "proud": 1,
+    "imageW": 960,
+    "imageH": 1280,
+    "openings": [
+     {
+      "id": "WH-EZ5-01-A",
+      "cls": "filled",
+      "conf": 0.1,
+      "box": [
+       611,
+       521,
+       60,
+       48
+      ],
+      "seat": null,
+      "seatConf": null,
+      "nameSeat": null,
+      "nameConf": null,
+      "named": false
+     },
+     {
+      "id": "WH-EZ5-01-B",
+      "cls": "filled",
+      "conf": 0.49,
+      "box": [
+       541,
+       527,
+       75,
+       77
+      ],
+      "seat": null,
+      "seatConf": null,
+      "nameSeat": null,
+      "nameConf": null,
+      "named": false
+     }
+    ],
+    "naming": "id",
+    "action": null,
+    "ambient": null,
+    "modelId": "dakkota-gateway-port-fill-v1/6",
+    "seatModelId": "dakkota-gateway-seat-v1/10",
+    "seatNamesModelId": null,
+    "reasons": [
+     "seat_proud"
+    ]
+   },
+   "frameT": 14,
+   "named": {
+    "by": "decoder",
+    "state": {
+     "WH-EZ5-01-A": "filled",
+     "WH-EZ5-01-B": "filled"
+    },
+    "boxes": {
+     "WH-EZ5-01-A": [
+      611,
+      521,
+      60,
+      48
+     ],
+     "WH-EZ5-01-B": [
+      541,
+      527,
+      75,
+      77
+     ]
+    }
+   }
+  },
+  {
+   "i": 9,
+   "tSent": 16.085,
+   "tBack": 16.286,
+   "ms": 201,
+   "error": null,
+   "answer": {
+    "ok": true,
+    "modelId": "dakkota-connector-id-v2-crop/4",
+    "latencyMs": 117,
+    "scoped": true,
+    "vision": {
+     "source": "uploaded",
+     "ageMs": 0,
+     "station": "IP0050"
+    },
+    "hud": {
+     "label": "NOT SURE",
+     "detail": "nothing recognised at 4% — fill the square with the connector"
+    },
+    "spoken": "I can't make that out. Hold the connector in the middle of your view so it fills the square.",
+    "band": "unsure",
+    "module": {
+     "station": "IP-050",
+     "jesStep": "Step 5",
+     "zoneId": "EZ5",
+     "name": "Gateway Module (CGM)",
+     "connectorIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "retiredIds": [],
+     "total": 2,
+     "rowIds": [],
+     "offRowIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "seating": {
+      "decidable": false,
+      "reason": "not read on this frame"
+     },
+     "fill": {
+      "decidable": false,
+      "fitted": null,
+      "held": 1,
+      "heldAgeMs": 1401,
+      "total": 2,
+      "reason": "the module is at too steep an angle to read across",
+      "preview": true,
+      "ageMs": 0,
+      "modelId": "dakkota-gateway-port-fill-v1/6",
+      "openPhrases": [],
+      "unseatedPhrases": []
+     }
+    },
+    "fillGap": {
+     "modelId": "dakkota-gateway-port-fill-v1/6",
+     "reason": "the module is at too steep an angle to read across",
+     "held": 1,
+     "heldAgeMs": 1401
+    },
+    "warnings": [
+     {
+      "id": "identity/uncertain",
+      "family": "identity",
+      "severity": "info",
+      "summary": "Not a confident read",
+      "hud": {
+       "label": "Not sure",
+       "detail": "Move closer or square up. · 117ms"
+      },
+      "vars": {},
+      "latencyMs": 117
+     }
+    ],
+    "scene": null,
+    "action": null,
+    "ambient": null,
+    "warning": {
+     "id": "identity/uncertain",
+     "family": "identity",
+     "severity": "info",
+     "summary": "Not a confident read",
+     "hud": {
+      "label": "Not sure",
+      "detail": "Move closer or square up. · 117ms"
+     },
+     "vars": {},
+     "latencyMs": 117
+    },
+    "seat": null,
+    "candidates": [
+     {
+      "className": "WH-EZ5-01-A",
+      "confidence": 0.61,
+      "rawConfidence": 0.037,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     },
+     {
+      "className": "WH-EZ5-01-B",
+      "confidence": 0.39,
+      "rawConfidence": 0.023,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     }
+    ]
+   },
+   "capture": {
+    "station": "IP-050",
+    "step": "IP0050-MAKE-CONNECTIONS-AND-MAKE-SURE",
+    "zone": "EZ5",
+    "frameSource": "scene",
+    "view": "zone",
+    "bays": 3,
+    "fitted": null,
+    "steady": null,
+    "total": null,
+    "reason": "mixed-sizes",
+    "tilt": null,
+    "boxes": 6,
+    "proud": 1,
+    "imageW": null,
+    "imageH": null,
+    "openings": null,
+    "naming": null,
+    "action": null,
+    "ambient": null,
+    "modelId": null,
+    "seatModelId": "dakkota-gateway-seat-v1/10",
+    "seatNamesModelId": null,
+    "reasons": [
+     "refused:mixed-sizes",
+     "seat_proud"
+    ]
+   },
+   "frameT": 16
+  },
+  {
+   "i": 10,
+   "tSent": 17.485,
+   "tBack": 17.791,
+   "ms": 306,
+   "error": null,
+   "answer": {
+    "ok": true,
+    "modelId": "dakkota-connector-id-v2-crop/4",
+    "latencyMs": 163,
+    "scoped": true,
+    "vision": {
+     "source": "uploaded",
+     "ageMs": 0,
+     "station": "IP0050"
+    },
+    "hud": {
+     "label": "NOT SURE",
+     "detail": "nothing recognised at 4% — fill the square with the connector"
+    },
+    "spoken": "I can't make that out. Hold the connector in the middle of your view so it fills the square.",
+    "band": "unsure",
+    "module": {
+     "station": "IP-050",
+     "jesStep": "Step 5",
+     "zoneId": "EZ5",
+     "name": "Gateway Module (CGM)",
+     "connectorIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "retiredIds": [],
+     "total": 2,
+     "rowIds": [],
+     "offRowIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "seating": {
+      "decidable": false,
+      "reason": "not read on this frame"
+     },
+     "fill": {
+      "decidable": false,
+      "fitted": null,
+      "held": 1,
+      "heldAgeMs": 2906,
+      "total": 2,
+      "reason": "the module is at too steep an angle to read across",
+      "preview": true,
+      "ageMs": 0,
+      "modelId": "dakkota-gateway-port-fill-v1/6",
+      "openPhrases": [],
+      "unseatedPhrases": []
+     }
+    },
+    "fillGap": {
+     "modelId": "dakkota-gateway-port-fill-v1/6",
+     "reason": "the module is at too steep an angle to read across",
+     "held": 1,
+     "heldAgeMs": 2906
+    },
+    "warnings": [
+     {
+      "id": "identity/uncertain",
+      "family": "identity",
+      "severity": "info",
+      "summary": "Not a confident read",
+      "hud": {
+       "label": "Not sure",
+       "detail": "Move closer or square up. · 163ms"
+      },
+      "vars": {},
+      "latencyMs": 163
+     }
+    ],
+    "scene": null,
+    "action": null,
+    "ambient": null,
+    "warning": {
+     "id": "identity/uncertain",
+     "family": "identity",
+     "severity": "info",
+     "summary": "Not a confident read",
+     "hud": {
+      "label": "Not sure",
+      "detail": "Move closer or square up. · 163ms"
+     },
+     "vars": {},
+     "latencyMs": 163
+    },
+    "seat": null,
+    "candidates": [
+     {
+      "className": "WH-EZ5-01-A",
+      "confidence": 0.693,
+      "rawConfidence": 0.04,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     },
+     {
+      "className": "WH-EZ5-01-B",
+      "confidence": 0.307,
+      "rawConfidence": 0.018,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     }
+    ]
+   },
+   "capture": {
+    "station": "IP-050",
+    "step": "IP0050-MAKE-CONNECTIONS-AND-MAKE-SURE",
+    "zone": "EZ5",
+    "frameSource": "scene",
+    "view": "zone",
+    "bays": 3,
+    "fitted": null,
+    "steady": null,
+    "total": null,
+    "reason": "mixed-sizes",
+    "tilt": null,
+    "boxes": 8,
+    "proud": 1,
+    "imageW": null,
+    "imageH": null,
+    "openings": null,
+    "naming": null,
+    "action": null,
+    "ambient": null,
+    "modelId": null,
+    "seatModelId": "dakkota-gateway-seat-v1/10",
+    "seatNamesModelId": null,
+    "reasons": [
+     "refused:mixed-sizes",
+     "seat_proud"
+    ]
+   },
+   "frameT": 17
+  },
+  {
+   "i": 11,
+   "tSent": 18.991,
+   "tBack": 19.36,
+   "ms": 369,
+   "error": null,
+   "answer": {
+    "ok": true,
+    "modelId": "dakkota-connector-id-v2-crop/4",
+    "latencyMs": 144,
+    "scoped": true,
+    "vision": {
+     "source": "uploaded",
+     "ageMs": 0,
+     "station": "IP0050"
+    },
+    "hud": {
+     "label": "NOT SURE",
+     "detail": "nothing recognised at 3% — fill the square with the connector"
+    },
+    "spoken": "I can't make that out. Hold the connector in the middle of your view so it fills the square.",
+    "band": "unsure",
+    "module": {
+     "station": "IP-050",
+     "jesStep": "Step 5",
+     "zoneId": "EZ5",
+     "name": "Gateway Module (CGM)",
+     "connectorIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "retiredIds": [],
+     "total": 2,
+     "rowIds": [],
+     "offRowIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "seating": {
+      "decidable": false,
+      "reason": "not read on this frame"
+     },
+     "fill": {
+      "decidable": true,
+      "held": null,
+      "heldAgeMs": 0,
+      "fitted": 2,
+      "total": 2,
+      "reason": "2 of 2 fitted, 1 bay bare",
+      "preview": true,
+      "ageMs": 0,
+      "modelId": "dakkota-gateway-port-fill-v1/6",
+      "openPhrases": [],
+      "unseatedPhrases": [
+       "the gateway module connector, the round black one"
+      ],
+      "unseatedAmbiguous": false
+     }
+    },
+    "fillGap": null,
+    "warnings": [
+     {
+      "id": "identity/uncertain",
+      "family": "identity",
+      "severity": "info",
+      "summary": "Not a confident read",
+      "hud": {
+       "label": "Not sure",
+       "detail": "Move closer or square up. · 144ms"
+      },
+      "vars": {},
+      "latencyMs": 144
+     }
+    ],
+    "scene": null,
+    "action": null,
+    "ambient": null,
+    "warning": {
+     "id": "identity/uncertain",
+     "family": "identity",
+     "severity": "info",
+     "summary": "Not a confident read",
+     "hud": {
+      "label": "Not sure",
+      "detail": "Move closer or square up. · 144ms"
+     },
+     "vars": {},
+     "latencyMs": 144
+    },
+    "seat": null,
+    "candidates": [
+     {
+      "className": "WH-EZ5-01-A",
+      "confidence": 0.577,
+      "rawConfidence": 0.029,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     },
+     {
+      "className": "WH-EZ5-01-B",
+      "confidence": 0.423,
+      "rawConfidence": 0.021,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     }
+    ]
+   },
+   "capture": {
+    "station": "IP-050",
+    "step": "IP0050-MAKE-CONNECTIONS-AND-MAKE-SURE",
+    "zone": "EZ5",
+    "frameSource": "scene",
+    "view": "zone",
+    "bays": 3,
+    "fitted": 2,
+    "steady": 2,
+    "total": 2,
+    "reason": null,
+    "tilt": null,
+    "boxes": 8,
+    "proud": 1,
+    "imageW": 960,
+    "imageH": 1280,
+    "openings": [
+     {
+      "id": "WH-EZ5-01-A",
+      "cls": "filled",
+      "conf": 0.8,
+      "box": [
+       619,
+       515,
+       70,
+       87
+      ],
+      "seat": null,
+      "seatConf": null,
+      "nameSeat": null,
+      "nameConf": null,
+      "named": false
+     },
+     {
+      "id": "WH-EZ5-01-B",
+      "cls": "filled",
+      "conf": 0.79,
+      "box": [
+       548,
+       513,
+       78,
+       91
+      ],
+      "seat": null,
+      "seatConf": null,
+      "nameSeat": null,
+      "nameConf": null,
+      "named": true
+     }
+    ],
+    "naming": "id",
+    "action": null,
+    "ambient": null,
+    "modelId": "dakkota-gateway-port-fill-v1/6",
+    "seatModelId": "dakkota-gateway-seat-v1/10",
+    "seatNamesModelId": null,
+    "reasons": [
+     "seat_proud"
+    ]
+   },
+   "frameT": 18,
+   "named": {
+    "by": "decoder",
+    "state": {
+     "WH-EZ5-01-A": "filled",
+     "WH-EZ5-01-B": "filled"
+    },
+    "boxes": {
+     "WH-EZ5-01-A": [
+      619,
+      515,
+      70,
+      87
+     ],
+     "WH-EZ5-01-B": [
+      548,
+      513,
+      78,
+      91
+     ]
+    }
+   }
+  },
+  {
+   "i": 12,
+   "tSent": 20.559,
+   "tBack": 20.756,
+   "ms": 197,
+   "error": null,
+   "answer": {
+    "ok": true,
+    "modelId": "dakkota-connector-id-v2-crop/4",
+    "latencyMs": 86,
+    "scoped": true,
+    "vision": {
+     "source": "uploaded",
+     "ageMs": 0,
+     "station": "IP0050"
+    },
+    "hud": {
+     "label": "NOT SURE",
+     "detail": "nothing recognised at 4% — fill the square with the connector"
+    },
+    "spoken": "I can't make that out. Hold the connector in the middle of your view so it fills the square.",
+    "band": "unsure",
+    "module": {
+     "station": "IP-050",
+     "jesStep": "Step 5",
+     "zoneId": "EZ5",
+     "name": "Gateway Module (CGM)",
+     "connectorIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "retiredIds": [],
+     "total": 2,
+     "rowIds": [],
+     "offRowIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "seating": {
+      "decidable": false,
+      "reason": "not read on this frame"
+     },
+     "fill": {
+      "decidable": false,
+      "fitted": null,
+      "held": 2,
+      "heldAgeMs": 1494,
+      "total": 2,
+      "reason": "part of the module is out of shot or behind a hand",
+      "preview": true,
+      "ageMs": 0,
+      "modelId": "dakkota-gateway-port-fill-v1/6",
+      "openPhrases": [],
+      "unseatedPhrases": []
+     }
+    },
+    "fillGap": {
+     "modelId": "dakkota-gateway-port-fill-v1/6",
+     "reason": "part of the module is out of shot or behind a hand",
+     "held": 2,
+     "heldAgeMs": 1494
+    },
+    "warnings": [
+     {
+      "id": "identity/uncertain",
+      "family": "identity",
+      "severity": "info",
+      "summary": "Not a confident read",
+      "hud": {
+       "label": "Not sure",
+       "detail": "Move closer or square up. · 86ms"
+      },
+      "vars": {},
+      "latencyMs": 86
+     }
+    ],
+    "scene": null,
+    "action": null,
+    "ambient": null,
+    "warning": {
+     "id": "identity/uncertain",
+     "family": "identity",
+     "severity": "info",
+     "summary": "Not a confident read",
+     "hud": {
+      "label": "Not sure",
+      "detail": "Move closer or square up. · 86ms"
+     },
+     "vars": {},
+     "latencyMs": 86
+    },
+    "seat": null,
+    "candidates": [
+     {
+      "className": "WH-EZ5-01-A",
+      "confidence": 0.653,
+      "rawConfidence": 0.036,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     },
+     {
+      "className": "WH-EZ5-01-B",
+      "confidence": 0.347,
+      "rawConfidence": 0.019,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     }
+    ]
+   },
+   "capture": {
+    "station": "IP-050",
+    "step": "IP0050-MAKE-CONNECTIONS-AND-MAKE-SURE",
+    "zone": "EZ5",
+    "frameSource": "scene",
+    "view": "zone",
+    "bays": 3,
+    "fitted": null,
+    "steady": null,
+    "total": null,
+    "reason": "partial",
+    "tilt": null,
+    "boxes": 1,
+    "proud": null,
+    "imageW": null,
+    "imageH": null,
+    "openings": null,
+    "naming": null,
+    "action": null,
+    "ambient": null,
+    "modelId": null,
+    "seatModelId": "dakkota-gateway-seat-v1/10",
+    "seatNamesModelId": null,
+    "reasons": [
+     "refused:partial"
+    ]
+   },
+   "frameT": 20
+  },
+  {
+   "i": 13,
+   "tSent": 21.955,
+   "tBack": 22.3,
+   "ms": 345,
+   "error": null,
+   "answer": {
+    "ok": true,
+    "modelId": "dakkota-connector-id-v2-crop/4",
+    "latencyMs": 170,
+    "scoped": true,
+    "vision": {
+     "source": "uploaded",
+     "ageMs": 0,
+     "station": "IP0050"
+    },
+    "hud": {
+     "label": "NOT SURE",
+     "detail": "nothing recognised at 2% — fill the square with the connector"
+    },
+    "spoken": "I can't make that out. Hold the connector in the middle of your view so it fills the square.",
+    "band": "unsure",
+    "module": {
+     "station": "IP-050",
+     "jesStep": "Step 5",
+     "zoneId": "EZ5",
+     "name": "Gateway Module (CGM)",
+     "connectorIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "retiredIds": [],
+     "total": 2,
+     "rowIds": [],
+     "offRowIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "seating": {
+      "decidable": false,
+      "reason": "not read on this frame"
+     },
+     "fill": {
+      "decidable": true,
+      "held": null,
+      "heldAgeMs": 0,
+      "fitted": 2,
+      "total": 2,
+      "reason": "2 of 2 fitted, 1 bay bare",
+      "preview": true,
+      "ageMs": 0,
+      "modelId": "dakkota-gateway-port-fill-v1/6",
+      "openPhrases": [],
+      "unseatedPhrases": [
+       "the gateway module connector, the light grey one"
+      ],
+      "unseatedAmbiguous": false
+     }
+    },
+    "fillGap": null,
+    "warnings": [
+     {
+      "id": "identity/uncertain",
+      "family": "identity",
+      "severity": "info",
+      "summary": "Not a confident read",
+      "hud": {
+       "label": "Not sure",
+       "detail": "Move closer or square up. · 170ms"
+      },
+      "vars": {},
+      "latencyMs": 170
+     }
+    ],
+    "scene": null,
+    "action": null,
+    "ambient": null,
+    "warning": {
+     "id": "identity/uncertain",
+     "family": "identity",
+     "severity": "info",
+     "summary": "Not a confident read",
+     "hud": {
+      "label": "Not sure",
+      "detail": "Move closer or square up. · 170ms"
+     },
+     "vars": {},
+     "latencyMs": 170
+    },
+    "seat": null,
+    "candidates": [
+     {
+      "className": "WH-EZ5-01-B",
+      "confidence": 0.544,
+      "rawConfidence": 0.018,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     },
+     {
+      "className": "WH-EZ5-01-A",
+      "confidence": 0.456,
+      "rawConfidence": 0.015,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     }
+    ]
+   },
+   "capture": {
+    "station": "IP-050",
+    "step": "IP0050-MAKE-CONNECTIONS-AND-MAKE-SURE",
+    "zone": "EZ5",
+    "frameSource": "scene",
+    "view": "zone",
+    "bays": 3,
+    "fitted": 2,
+    "steady": 2,
+    "total": 2,
+    "reason": null,
+    "tilt": null,
+    "boxes": 11,
+    "proud": 1,
+    "imageW": 960,
+    "imageH": 1280,
+    "openings": [
+     {
+      "id": "WH-EZ5-01-A",
+      "cls": "filled",
+      "conf": 0.81,
+      "box": [
+       619,
+       566,
+       66,
+       85
+      ],
+      "seat": null,
+      "seatConf": null,
+      "nameSeat": null,
+      "nameConf": null,
+      "named": true
+     },
+     {
+      "id": "WH-EZ5-01-B",
+      "cls": "filled",
+      "conf": 0.81,
+      "box": [
+       551,
+       566,
+       75,
+       90
+      ],
+      "seat": null,
+      "seatConf": null,
+      "nameSeat": null,
+      "nameConf": null,
+      "named": false
+     }
+    ],
+    "naming": "id",
+    "action": null,
+    "ambient": null,
+    "modelId": "dakkota-gateway-port-fill-v1/6",
+    "seatModelId": "dakkota-gateway-seat-v1/10",
+    "seatNamesModelId": null,
+    "reasons": [
+     "seat_proud"
+    ]
+   },
+   "frameT": 21,
+   "named": {
+    "by": "decoder",
+    "state": {
+     "WH-EZ5-01-A": "filled",
+     "WH-EZ5-01-B": "filled"
+    },
+    "boxes": {
+     "WH-EZ5-01-A": [
+      619,
+      566,
+      66,
+      85
+     ],
+     "WH-EZ5-01-B": [
+      551,
+      566,
+      75,
+      90
+     ]
+    }
+   }
+  },
+  {
+   "i": 14,
+   "tSent": 23.499,
+   "tBack": 23.674,
+   "ms": 175,
+   "error": null,
+   "answer": {
+    "ok": true,
+    "modelId": "dakkota-connector-id-v2-crop/4",
+    "latencyMs": 93,
+    "scoped": true,
+    "vision": {
+     "source": "uploaded",
+     "ageMs": 0,
+     "station": "IP0050"
+    },
+    "hud": {
+     "label": "NOT SURE",
+     "detail": "nothing recognised at 3% — fill the square with the connector"
+    },
+    "spoken": "I can't make that out. Hold the connector in the middle of your view so it fills the square.",
+    "band": "unsure",
+    "module": {
+     "station": "IP-050",
+     "jesStep": "Step 5",
+     "zoneId": "EZ5",
+     "name": "Gateway Module (CGM)",
+     "connectorIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "retiredIds": [],
+     "total": 2,
+     "rowIds": [],
+     "offRowIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "seating": {
+      "decidable": false,
+      "reason": "not read on this frame"
+     },
+     "fill": {
+      "decidable": false,
+      "fitted": null,
+      "held": 2,
+      "heldAgeMs": 1516,
+      "total": 2,
+      "reason": "part of the module is out of shot or behind a hand",
+      "preview": true,
+      "ageMs": 0,
+      "modelId": "dakkota-gateway-port-fill-v1/6",
+      "openPhrases": [],
+      "unseatedPhrases": []
+     }
+    },
+    "fillGap": {
+     "modelId": "dakkota-gateway-port-fill-v1/6",
+     "reason": "part of the module is out of shot or behind a hand",
+     "held": 2,
+     "heldAgeMs": 1516
+    },
+    "warnings": [
+     {
+      "id": "identity/uncertain",
+      "family": "identity",
+      "severity": "info",
+      "summary": "Not a confident read",
+      "hud": {
+       "label": "Not sure",
+       "detail": "Move closer or square up. · 93ms"
+      },
+      "vars": {},
+      "latencyMs": 93
+     }
+    ],
+    "scene": null,
+    "action": null,
+    "ambient": null,
+    "warning": {
+     "id": "identity/uncertain",
+     "family": "identity",
+     "severity": "info",
+     "summary": "Not a confident read",
+     "hud": {
+      "label": "Not sure",
+      "detail": "Move closer or square up. · 93ms"
+     },
+     "vars": {},
+     "latencyMs": 93
+    },
+    "seat": null,
+    "candidates": [
+     {
+      "className": "WH-EZ5-01-B",
+      "confidence": 0.63,
+      "rawConfidence": 0.035,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     },
+     {
+      "className": "WH-EZ5-01-A",
+      "confidence": 0.37,
+      "rawConfidence": 0.02,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     }
+    ]
+   },
+   "capture": {
+    "station": "IP-050",
+    "step": "IP0050-MAKE-CONNECTIONS-AND-MAKE-SURE",
+    "zone": "EZ5",
+    "frameSource": "scene",
+    "view": "zone",
+    "bays": 3,
+    "fitted": null,
+    "steady": null,
+    "total": null,
+    "reason": "partial",
+    "tilt": null,
+    "boxes": 5,
+    "proud": 1,
+    "imageW": null,
+    "imageH": null,
+    "openings": null,
+    "naming": null,
+    "action": null,
+    "ambient": null,
+    "modelId": null,
+    "seatModelId": "dakkota-gateway-seat-v1/10",
+    "seatNamesModelId": null,
+    "reasons": [
+     "refused:partial",
+     "seat_proud"
+    ]
+   },
+   "frameT": 23
+  },
+  {
+   "i": 15,
+   "tSent": 24.874,
+   "tBack": 25.373,
+   "ms": 499,
+   "error": null,
+   "answer": {
+    "ok": true,
+    "modelId": "dakkota-connector-id-v2-crop/4",
+    "latencyMs": 90,
+    "scoped": true,
+    "vision": {
+     "source": "uploaded",
+     "ageMs": 0,
+     "station": "IP0050"
+    },
+    "hud": {
+     "label": "NOT SURE",
+     "detail": "nothing recognised at 4% — fill the square with the connector"
+    },
+    "spoken": "I can't make that out. Hold the connector in the middle of your view so it fills the square.",
+    "band": "unsure",
+    "module": {
+     "station": "IP-050",
+     "jesStep": "Step 5",
+     "zoneId": "EZ5",
+     "name": "Gateway Module (CGM)",
+     "connectorIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "retiredIds": [],
+     "total": 2,
+     "rowIds": [],
+     "offRowIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "seating": {
+      "decidable": false,
+      "reason": "not read on this frame"
+     },
+     "fill": {
+      "decidable": true,
+      "held": null,
+      "heldAgeMs": 0,
+      "fitted": 2,
+      "total": 2,
+      "reason": "2 of 2 fitted, 1 bay bare",
+      "preview": true,
+      "ageMs": 0,
+      "modelId": "dakkota-gateway-port-fill-v1/6",
+      "openPhrases": [],
+      "unseatedPhrases": [],
+      "unseatedAmbiguous": false
+     }
+    },
+    "fillGap": null,
+    "warnings": [
+     {
+      "id": "identity/uncertain",
+      "family": "identity",
+      "severity": "info",
+      "summary": "Not a confident read",
+      "hud": {
+       "label": "Not sure",
+       "detail": "Move closer or square up. · 90ms"
+      },
+      "vars": {},
+      "latencyMs": 90
+     }
+    ],
+    "scene": null,
+    "action": null,
+    "ambient": null,
+    "warning": {
+     "id": "identity/uncertain",
+     "family": "identity",
+     "severity": "info",
+     "summary": "Not a confident read",
+     "hud": {
+      "label": "Not sure",
+      "detail": "Move closer or square up. · 90ms"
+     },
+     "vars": {},
+     "latencyMs": 90
+    },
+    "seat": null,
+    "candidates": [
+     {
+      "className": "WH-EZ5-01-A",
+      "confidence": 0.676,
+      "rawConfidence": 0.036,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     },
+     {
+      "className": "WH-EZ5-01-B",
+      "confidence": 0.324,
+      "rawConfidence": 0.017,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     }
+    ]
+   },
+   "capture": {
+    "station": "IP-050",
+    "step": "IP0050-MAKE-CONNECTIONS-AND-MAKE-SURE",
+    "zone": "EZ5",
+    "frameSource": "scene",
+    "view": "zone",
+    "bays": 3,
+    "fitted": 1,
+    "steady": 2,
+    "total": 2,
+    "reason": null,
+    "tilt": null,
+    "boxes": 7,
+    "proud": 1,
+    "imageW": 960,
+    "imageH": 1280,
+    "openings": [
+     {
+      "id": "WH-EZ5-01-B",
+      "cls": "filled",
+      "conf": 0.39,
+      "box": [
+       513,
+       551,
+       81,
+       84
+      ],
+      "seat": null,
+      "seatConf": null,
+      "nameSeat": null,
+      "nameConf": null,
+      "named": false
+     }
+    ],
+    "naming": "id",
+    "action": null,
+    "ambient": null,
+    "modelId": "dakkota-gateway-port-fill-v1/6",
+    "seatModelId": "dakkota-gateway-seat-v1/10",
+    "seatNamesModelId": null,
+    "reasons": [
+     "seat_proud"
+    ]
+   },
+   "frameT": 24,
+   "named": {
+    "by": "decoder",
+    "state": {
+     "WH-EZ5-01-B": "filled"
+    },
+    "boxes": {
+     "WH-EZ5-01-B": [
+      513,
+      551,
+      81,
+      84
+     ]
+    }
+   }
+  },
+  {
+   "i": 16,
+   "tSent": 26.574,
+   "tBack": 26.8,
+   "ms": 226,
+   "error": null,
+   "answer": {
+    "ok": true,
+    "modelId": "dakkota-connector-id-v2-crop/4",
+    "latencyMs": 152,
+    "scoped": true,
+    "vision": {
+     "source": "uploaded",
+     "ageMs": 0,
+     "station": "IP0050"
+    },
+    "hud": {
+     "label": "NOT SURE",
+     "detail": "nothing recognised at 13% — fill the square with the connector"
+    },
+    "spoken": "I can't make that out. Hold the connector in the middle of your view so it fills the square.",
+    "band": "unsure",
+    "module": {
+     "station": "IP-050",
+     "jesStep": "Step 5",
+     "zoneId": "EZ5",
+     "name": "Gateway Module (CGM)",
+     "connectorIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "retiredIds": [],
+     "total": 2,
+     "rowIds": [],
+     "offRowIds": [
+      "WH-EZ5-01-A",
+      "WH-EZ5-01-B"
+     ],
+     "seating": {
+      "decidable": false,
+      "reason": "not read on this frame"
+     },
+     "fill": {
+      "decidable": true,
+      "held": null,
+      "heldAgeMs": 0,
+      "fitted": 2,
+      "total": 2,
+      "reason": "2 of 2 fitted, 1 bay bare",
+      "preview": true,
+      "ageMs": 0,
+      "modelId": "dakkota-gateway-port-fill-v1/6",
+      "openPhrases": [],
+      "unseatedPhrases": [],
+      "unseatedAmbiguous": false
+     }
+    },
+    "fillGap": null,
+    "warnings": [
+     {
+      "id": "identity/uncertain",
+      "family": "identity",
+      "severity": "info",
+      "summary": "Not a confident read",
+      "hud": {
+       "label": "Not sure",
+       "detail": "Move closer or square up. · 152ms"
+      },
+      "vars": {},
+      "latencyMs": 152
+     }
+    ],
+    "scene": null,
+    "action": null,
+    "ambient": null,
+    "warning": {
+     "id": "identity/uncertain",
+     "family": "identity",
+     "severity": "info",
+     "summary": "Not a confident read",
+     "hud": {
+      "label": "Not sure",
+      "detail": "Move closer or square up. · 152ms"
+     },
+     "vars": {},
+     "latencyMs": 152
+    },
+    "seat": null,
+    "candidates": [
+     {
+      "className": "WH-EZ5-01-A",
+      "confidence": 0.738,
+      "rawConfidence": 0.129,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     },
+     {
+      "className": "WH-EZ5-01-B",
+      "confidence": 0.262,
+      "rawConfidence": 0.046,
+      "describe": "Gateway Module (CGM) — IP-050 Step 5"
+     }
+    ]
+   },
+   "capture": {
+    "station": "IP-050",
+    "step": "IP0050-MAKE-CONNECTIONS-AND-MAKE-SURE",
+    "zone": "EZ5",
+    "frameSource": "scene",
+    "view": "zone",
+    "bays": 3,
+    "fitted": 2,
+    "steady": 2,
+    "total": 2,
+    "reason": null,
+    "tilt": null,
+    "boxes": 11,
+    "proud": 1,
+    "imageW": 960,
+    "imageH": 1280,
+    "openings": [
+     {
+      "id": "WH-EZ5-01-A",
+      "cls": "filled",
+      "conf": 0.48,
+      "box": [
+       556,
+       560,
+       68,
+       75
+      ],
+      "seat": null,
+      "seatConf": null,
+      "nameSeat": null,
+      "nameConf": null,
+      "named": false
+     },
+     {
+      "id": "WH-EZ5-01-B",
+      "cls": "filled",
+      "conf": 0.38,
+      "box": [
+       489,
+       560,
+       68,
+       76
+      ],
+      "seat": null,
+      "seatConf": null,
+      "nameSeat": null,
+      "nameConf": null,
+      "named": false
+     }
+    ],
+    "naming": "id",
+    "action": null,
+    "ambient": null,
+    "modelId": "dakkota-gateway-port-fill-v1/6",
+    "seatModelId": "dakkota-gateway-seat-v1/10",
+    "seatNamesModelId": null,
+    "reasons": [
+     "seat_proud"
+    ]
+   },
+   "frameT": 26,
+   "named": {
+    "by": "decoder",
+    "state": {
+     "WH-EZ5-01-A": "filled",
+     "WH-EZ5-01-B": "filled"
+    },
+    "boxes": {
+     "WH-EZ5-01-A": [
+      556,
+      560,
+      68,
+      75
+     ],
+     "WH-EZ5-01-B": [
+      489,
+      560,
+      68,
+      76
+     ]
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,281 @@
+{
+ "source": "A2LL_connector_views.xlsx",
+ "note": "Flat views cut from the render machine's connector sheet, 200 px each. Models cut from the harness CAD, one colour each: the head colour on the bench.",
+ "views": [
+  "front",
+  "back",
+  "left",
+  "right",
+  "top",
+  "bottom"
+ ],
+ "connectors": {
+  "WH-EZ4-01": {
+   "label": "Radio Bracket (VCU=Radio) - Grey, 2-connector group",
+   "gmPart": "13534974",
+   "revision": "001",
+   "supplier": "MOLEX - 160014-0014 - CONNECTOR ASM-UNSEALED",
+   "views": [
+    "front",
+    "back",
+    "left",
+    "right",
+    "top",
+    "bottom"
+   ],
+   "model": {
+    "file": "model.glb",
+    "head": "light grey",
+    "colour": "#B4B8BD",
+    "sizeMm": [
+     19.0,
+     30.6,
+     27.4
+    ],
+    "triangles": 14000
+   }
+  },
+  "WH-EZ4-05": {
+   "label": "Radio Bracket (VCU=Radio) - Black, stepped-block body",
+   "gmPart": "13551156",
+   "revision": "001",
+   "supplier": "MOLEX - 111146-7103 - CONNECTOR ASM-HIGH SPD DATA",
+   "views": [
+    "front",
+    "back",
+    "left",
+    "right",
+    "top",
+    "bottom"
+   ],
+   "model": {
+    "file": "model.glb",
+    "head": "black",
+    "colour": "#2B2D31",
+    "sizeMm": [
+     16.2,
+     18.1,
+     40.5
+    ],
+    "triangles": 9821
+   }
+  },
+  "WH-EZ4-07": {
+   "label": "Radio Bracket (VCU=Radio) - Grey/White, stepped-block body",
+   "gmPart": "13551197",
+   "revision": "001",
+   "supplier": "MOLEX - 100337-1023 - CONNECTOR ASM-HIGH SPD DATA",
+   "views": [
+    "front",
+    "back",
+    "left",
+    "right",
+    "top",
+    "bottom"
+   ],
+   "model": {
+    "file": "model.glb",
+    "head": "pale grey",
+    "colour": "#C6C9CD",
+    "sizeMm": [
+     14.9,
+     15.7,
+     37.8
+    ],
+    "triangles": 5834
+   }
+  },
+  "WH-EZ4-08": {
+   "label": "Radio Bracket (VCU=Radio) - Black 4-cavity, 2nd unit",
+   "gmPart": "13563021",
+   "revision": "001",
+   "supplier": "ROSENBERGER-AMZW25-001B-CONNECTOR ASM-COAX CBL",
+   "views": [
+    "front",
+    "back",
+    "left",
+    "right",
+    "top",
+    "bottom"
+   ],
+   "model": {
+    "file": "model.glb",
+    "head": "black",
+    "colour": "#2B2D31",
+    "sizeMm": [
+     10.7,
+     14.4,
+     22.4
+    ],
+    "triangles": 14000
+   }
+  },
+  "WH-EZ4-09": {
+   "label": "Radio Bracket (VCU=Radio) - Black, 2-connector group",
+   "gmPart": "13534971",
+   "revision": "001",
+   "supplier": "MOLEX - 160014-0011 - CONNECTOR ASM-UNSEALED",
+   "views": [
+    "front",
+    "back",
+    "left",
+    "right",
+    "top",
+    "bottom"
+   ],
+   "model": {
+    "file": "model.glb",
+    "head": "black",
+    "colour": "#2B2D31",
+    "sizeMm": [
+     19.0,
+     30.6,
+     27.4
+    ],
+    "triangles": 13999
+   }
+  },
+  "WH-EZ4-11": {
+   "label": "Radio Bracket (VCU=Radio) - Black, single red CPA tab, 3 wires populated",
+   "gmPart": "13546790",
+   "revision": "001",
+   "supplier": "APTIV - 35552567 - CONNECTOR ASM - HIGH SPEED DATA",
+   "views": [
+    "front",
+    "back",
+    "left",
+    "right",
+    "top",
+    "bottom"
+   ],
+   "model": {
+    "file": "model.glb",
+    "head": "black",
+    "colour": "#2B2D31",
+    "sizeMm": [
+     22.8,
+     27.0,
+     27.2
+    ],
+    "triangles": 7091
+   }
+  },
+  "WH-EZ5-01-A": {
+   "label": "Gateway Module (CGM)",
+   "gmPart": "13528149",
+   "revision": "001",
+   "supplier": "TYCO-2300772-1-CONN ASM-UNSEALED",
+   "views": [
+    "front",
+    "back",
+    "left",
+    "right",
+    "top",
+    "bottom"
+   ],
+   "model": {
+    "file": "model.glb",
+    "head": "light grey",
+    "colour": "#B4B8BD",
+    "sizeMm": [
+     28.2,
+     21.8,
+     24.8
+    ],
+    "triangles": 5090
+   }
+  },
+  "WH-EZ5-01-B": {
+   "label": "Gateway Module (CGM)",
+   "gmPart": "13528149",
+   "revision": "001",
+   "supplier": "TYCO-2300772-1-CONN ASM-UNSEALED",
+   "views": [
+    "front",
+    "back",
+    "left",
+    "right",
+    "top",
+    "bottom"
+   ],
+   "model": {
+    "file": "model.glb",
+    "head": "black",
+    "colour": "#2B2D31",
+    "sizeMm": [
+     28.2,
+     21.8,
+     24.8
+    ],
+    "triangles": 5090
+   }
+  },
+  "WH-EZ4-04": {
+   "label": "Radio Bracket -- 2x2 square grid",
+   "views": [],
+   "noSolid": "White housing, purple lock, red latch, four round cavities in a 2x2. The four-position solids on this harness are a single row.",
+   "model": {
+    "file": "model.glb",
+    "head": "cream",
+    "colour": "#E6DEC8",
+    "sizeMm": [
+     10.7,
+     14.4,
+     22.4
+    ],
+    "triangles": 14000,
+    "standIn": "WH-EZ4-08",
+    "basis": "No solid of its own in the harness CAD, and no GM part in the workbook. It is drawn with the shell of WH-EZ4-08, the black four-cavity coax shell beside it on the radio, in cream.",
+    "gmPart": "13563021",
+    "supplier": "ROSENBERGER-AMZW25-001B-CONNECTOR ASM-COAX CBL"
+   }
+  },
+  "WH-EZ4-06": {
+   "label": "Radio Bracket -- Tan/Brown, stepped-block body",
+   "views": [],
+   "noSolid": "Tan head, red lock, black boot. Same shell as the black WH-EZ4-05 and the grey WH-EZ4-07. This harness only has those two Molex high-speed shells.",
+   "model": {
+    "file": "model.glb",
+    "head": "tan",
+    "colour": "#B58E63",
+    "sizeMm": [
+     16.2,
+     18.1,
+     40.5
+    ],
+    "triangles": 9821,
+    "standIn": "WH-EZ4-05",
+    "basis": "No solid of its own in the harness CAD. The connector log has this one confirmed on the bench and unresolved against CAD, with no GM part. It is drawn with the shell of WH-EZ4-05, the black Molex of the same family, in tan.",
+    "gmPart": "13551156",
+    "supplier": "MOLEX - 111146-7103 - CONNECTOR ASM-HIGH SPD DATA"
+   }
+  },
+  "WH-EZ4-10": {
+   "label": "Radio bracket, single cavity. Black housing, purple side insert, red latch.",
+   "views": [
+    "front",
+    "back",
+    "left",
+    "right",
+    "top",
+    "bottom"
+   ],
+   "gmPart": "13544788",
+   "revision": "001",
+   "supplier": "ROSENBERGER - AMZW170-00A - CONNECTOR ASM-COAX CBL",
+   "model": {
+    "file": "model.glb",
+    "head": "black",
+    "colour": "#2B2D31",
+    "sizeMm": [
+     8.0,
+     10.3,
+     22.3
+    ],
+    "triangles": 12465
+   }
+  }
+ },
+ "sheet": "connector_view_sheet.png",
+ "geometry": "A2LL.usdc"
+}
