@@ -36,7 +36,8 @@
    "stepNo": "5 of 19",
    "stepLabel": "Make Connections and make sure to Witness Mark",
    "zone": "EZ5",
-   "module": "Gateway"
+   "module": "Gateway",
+   "script": "scripts/gateway_connections-20261112-141339.json"
   },
   {
    "id": "gateway_connections_unseated-20261112-141546",
@@ -47,7 +48,8 @@
    "stepNo": "5 of 19",
    "stepLabel": "Make Connections and make sure to Witness Mark",
    "zone": "EZ5",
-   "module": "Gateway"
+   "module": "Gateway",
+   "script": "scripts/gateway_connections_unseated-20261112-141546.json"
   },
   {
    "id": "driver_side_a_pillar_2_wrong_rosebud-20261112-163937",

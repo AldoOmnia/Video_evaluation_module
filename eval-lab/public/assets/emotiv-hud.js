@@ -111,7 +111,12 @@
     const fill = module.fill || {};
     const fitted = fill.fitted;
     if (!fill.decidable || fitted == null || !(fill.total > 0)) return seatWarning(module);
-    if (fitted >= fill.total) {
+    // A hand-set recording can name a connector before the count is full.
+    if (fill.scripted) {
+      const named = unseatedLine(fill.unseatedPhrases);
+      if (named) return named;
+      if (fitted >= fill.total) return null;
+    } else if (fitted >= fill.total) {
       if (fill.unseatedAmbiguous) return 'one loose';
       return unseatedLine(fill.unseatedPhrases) || seatWarning(module);
     }
@@ -372,7 +377,10 @@
     let module = null;
     let shown = null;
     const endMs = Math.ceil((trace.durationS || 0) * 1000);
-    for (let now = 0; now <= endMs; now += K.TICK_MS) {
+    // A hand-set clip on the picture clock is sampled finely enough that a
+    // fit at 9.8s is on the panel at 9.8s. Other clips stay on the half-second tick.
+    const tickStep = trace.scripted?.clock === 'video' ? 100 : K.TICK_MS;
+    for (let now = 0; now <= endMs; now += tickStep) {
       while (pi + 1 < polls.length && polls[pi + 1].tBack * 1000 <= now) {
         pi += 1;
         const p = polls[pi];
@@ -391,6 +399,30 @@
           }
           accusation = nextAccusation(accusation, a, at);
         }
+      }
+      // Picture clock: the count follows the recording, not the poll that carried it.
+      const atPicture = trace.scripted?.clock === 'video' ? scriptAt(trace.scripted, now / 1000) : null;
+      if (atPicture && pi >= 0 && polls[pi].answer?.module) {
+        const base = polls[pi].answer.module;
+        module = moduleLine({
+          ...base,
+          total: atPicture.total,
+          offRowIds: [],
+          seating: { decidable: false, reason: '' },
+          fill: {
+            decidable: true,
+            held: null,
+            fitted: atPicture.fitted,
+            total: atPicture.total,
+            reason: `${atPicture.fitted} of ${atPicture.total} fitted`,
+            ageMs: 0,
+            openPhrases: [],
+            unseatedPhrases: atPicture.unseatedPhrases,
+            unseatedIds: atPicture.unseatedIds,
+            unseatedAmbiguous: false,
+            scripted: true,
+          },
+        }, (trace.scripted.order || []).slice(0, atPicture.fitted));
       }
       while (si + 1 < scenes.length && scenes[si + 1].tBack * 1000 <= now) {
         si += 1;
@@ -417,6 +449,8 @@
       const cameraStale = camAge == null || camAge >= K.CAMERA_STALE_MS;
 
       shown = nextAmbient(shown, ambientCandidate(steady, scene, cameraStale, accusation), now);
+      // The fitting line is part of the picture clock, so it starts with the fit.
+      if (atPicture?.ambient) shown = { text: atPicture.ambient, alarm: false, kind: 'Action', sinceMs: now };
       const banner = warningBanner(accusation, module?.warning);
       frames.push({
         t: now / 1000,
@@ -431,7 +465,7 @@
         moduleHidden: Boolean(module && banner),
       });
     }
-    return { tickMs: K.TICK_MS, frames };
+    return { tickMs: tickStep, frames };
   }
 
   // ── A recording whose fitting was set by hand ───────────────────────────
@@ -454,13 +488,20 @@
    * dropped from the panel; the stack's list is kept as `connectorIdsStack`.
    *
    * `unseated` lists connectors that went in without being pushed home, and
-   * when each was (`home`, or none if it never was). They are named the way
-   * the stack names them: only once every connector is in, as
-   * `unseatedPhrases`, which `moduleWarning` turns into the push-home banner.
+   * when each was (`home`, or none if it never was). Without `from`, they are
+   * named only once every connector is in. `from` names one at that time on
+   * the picture, even while others are still out. `moduleWarning` turns the
+   * names into the push-home banner.
+   *
+   * `clock: "video"` counts a connector in at its own time on the recording,
+   * so the panel matches the picture instead of the poll that reported it.
+   * `dropWarnings` lists warning ids to take off the glasses. The stack's
+   * own warning is kept as `warningStack`.
    *
    * @param {object} trace a replay trace
    * @param {{fits: {id: string, t: number}[],
-   *   unseated?: {id: string, home?: number}[]}} script
+   *   unseated?: {id: string, from?: number, home?: number}[],
+   *   clock?: string, dropWarnings?: string[]}} script
    * @param {Record<string, string>} names panel name by connector ID
    * @returns {object} a trace; `scripted.events` lists what was announced
    */
@@ -469,31 +510,66 @@
     if (!fits.length) return trace;
     const total = fits.length;
     const order = fits.map((f) => f.id);
+    const clock = script.clock === 'video' ? 'video' : 'poll';
+    const drop = new Set(script.dropWarnings || []);
     const events = [];
-    const loose = (script.unseated || []).map((u) => ({ id: u.id, home: u.home ?? Infinity }));
+    const loose = (script.unseated || []).map((u) => ({ id: u.id, from: u.from ?? null, home: u.home ?? Infinity }));
+    const nameOf = (id) => String(names[id] || '').trim();
+    const lineFor = (ids, moduleName) => {
+      const name = ids.length === 1 ? nameOf(ids[0]) : '';
+      const named = name ? `fitting · ${name} in` : '';
+      return named && named.length <= FIT_LINE_CHARS
+        ? named
+        : (ids.length > 1 ? `fitting · ${ids.length} more in` : `fitting the ${String(moduleName || '').toLowerCase()}`);
+    };
     const seats = {};
+    if (clock === 'video') {
+      fits.forEach((f, i) => {
+        events.push({ ids: [f.id], n: i + 1, line: lineFor([f.id], ''), linePoll: null, lineT: f.t, fitT: f.t });
+      });
+      const allIn = fits[fits.length - 1].t;
+      for (const u of loose) {
+        seats[u.id] = {
+          id: u.id,
+          raisedT: u.from != null ? u.from : allIn,
+          homeT: Number.isFinite(u.home) ? u.home : null,
+          pushedT: Number.isFinite(u.home) ? u.home : null,
+        };
+      }
+    }
     let shown = 0;
     let recent = null;
     const polls = (trace.polls || []).map((p) => {
-      const a = p.answer;
+      let a = p.answer;
       if (!a?.module || p.error) return p;
-      const seen = p.tSent;
+      if (drop.size) {
+        const gone = (w) => Boolean(w && drop.has(w.id));
+        if (gone(a.warning) || (a.warnings || []).some(gone)) {
+          a = {
+            ...a,
+            warning: gone(a.warning) ? null : a.warning,
+            warnings: (a.warnings || []).filter((w) => !gone(w)),
+            warningStack: gone(a.warning) ? a.warning : (a.warningStack || null),
+          };
+        }
+      }
+      const seen = clock === 'video' ? p.tBack : p.tSent;
       const inNow = fits.filter((f) => f.t <= seen);
       if (inNow.length > shown) {
         const fresh = inNow.slice(shown);
         const ids = fresh.map((f) => f.id);
-        const name = ids.length === 1 ? String(names[ids[0]] || '').trim() : '';
-        const named = name ? `fitting · ${name} in` : '';
-        const line = named && named.length <= FIT_LINE_CHARS
-          ? named
-          : (ids.length > 1 ? `fitting · ${ids.length} more in` : `fitting the ${String(a.module.name || '').toLowerCase()}`);
+        const name = ids.length === 1 ? nameOf(ids[0]) : '';
+        const line = lineFor(ids, a.module.name);
         shown = inNow.length;
-        recent = { line, connector: line === named ? 'named' : (ids.length > 1 ? 'tally' : null), atMs: p.tBack * 1000 };
-        events.push({ ids, n: shown, line, linePoll: p.i, lineT: p.tBack, fitT: fresh[fresh.length - 1].t });
+        const atS = clock === 'video' ? fresh[fresh.length - 1].t : p.tBack;
+        recent = { line, connector: line === `fitting · ${name} in` ? 'named' : (ids.length > 1 ? 'tally' : null), atMs: atS * 1000 };
+        if (clock !== 'video') events.push({ ids, n: shown, line, linePoll: p.i, lineT: p.tBack, fitT: fresh[fresh.length - 1].t });
       }
-      // Not home is held back until every connector is in, as on the stack.
-      const notHome = shown >= total ? loose.filter((u) => seen < u.home).map((u) => u.id) : [];
-      for (const u of loose) {
+      // Without a start time, not home is held back until every connector is in.
+      const notHome = clock === 'video'
+        ? looseIds(loose, fits, shown, total, seen)
+        : (shown >= total ? loose.filter((u) => seen < u.home).map((u) => u.id) : []);
+      if (clock !== 'video') for (const u of loose) {
         const up = notHome.includes(u.id);
         if (up && !seats[u.id]) seats[u.id] = { id: u.id, raisedT: p.tBack, homeT: null, pushedT: Number.isFinite(u.home) ? u.home : null };
         else if (!up && seats[u.id] && seats[u.id].homeT == null) seats[u.id].homeT = p.tBack;
@@ -547,7 +623,54 @@
     return {
       ...trace,
       polls,
-      scripted: { setBy: script.setBy || 'hand', note: script.note || '', fits, order, events, total, seats: Object.values(seats) },
+      scripted: {
+        setBy: script.setBy || 'hand',
+        note: script.note || '',
+        fits,
+        order,
+        events,
+        total,
+        seats: Object.values(seats),
+        clock,
+        loose,
+        names: Object.fromEntries(order.map((id) => [id, nameOf(id) || id])),
+      },
+    };
+  }
+
+  /**
+   * Connectors the script says are in and not pushed home at time t.
+   * `from` starts that connector's warning. Without it, the warning waits
+   * until every connector is in.
+   */
+  function looseIds(loose, fits, shown, total, t) {
+    const allIn = fits.length ? fits[fits.length - 1].t : Infinity;
+    const fitAt = Object.fromEntries(fits.map((f) => [f.id, f.t]));
+    return loose.filter((u) => {
+      if (fitAt[u.id] != null && t < fitAt[u.id]) return false;
+      const start = u.from != null ? u.from : (shown >= total ? allIn : Infinity);
+      return t >= start && t < u.home;
+    }).map((u) => u.id);
+  }
+
+  /** The hand-set count at a moment on the recording. Null unless the script is on the picture clock. */
+  function scriptAt(sc, t) {
+    if (!sc || sc.clock !== 'video') return null;
+    const shown = (sc.fits || []).filter((f) => f.t <= t).length;
+    const ids = looseIds(sc.loose || [], sc.fits || [], shown, sc.total, t);
+    const nm = sc.names || {};
+    let ambient = null;
+    const evs = sc.events || [];
+    for (let i = evs.length - 1; i >= 0; i--) {
+      const e = evs[i];
+      if (e.fitT <= t && (t - e.fitT) * 1000 <= FIT_NAME_HOLD_MS) { ambient = e.line; break; }
+    }
+    return {
+      fitted: shown,
+      total: sc.total,
+      unseatedIds: ids,
+      unseatedPhrases: ids.map((id) => nm[id] || id),
+      ambient,
     };
   }
 
@@ -558,7 +681,7 @@
     return `cam ${Math.floor(tenths / 10)}.${tenths % 10}s`;
   }
 
-  const api = { K, buildTimeline, applyScript, cameraLabel, hudConnector, moduleLine, warningBanner, fitLine, wrapLines };
+  const api = { K, buildTimeline, applyScript, scriptAt, cameraLabel, hudConnector, moduleLine, warningBanner, fitLine, wrapLines };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.EmotivHud = api;
 }(typeof window !== 'undefined' ? window : globalThis));

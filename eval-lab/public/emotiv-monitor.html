@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="/lab/assets/platform.css?v=2" />
   <link rel="stylesheet" href="/lab/assets/emotiv-portal.css?v=2" />
   <script src="/lab/assets/platform.js?v=2"></script>
-  <script src="/lab/assets/emotiv-hud.js?v=5"></script>
+  <script src="/lab/assets/emotiv-hud.js?v=7"></script>
   <!-- The connector models are drawn with three.js, loaded the way the Comer
        twin page loads it. -->
   <script type="importmap">
@@ -538,7 +538,7 @@
       S.timeline = null;
       S.pinned = null;
       S.view = '3d';
-      S.lastFrame = -1; S.lastPoll = -2; S.lastNamed = -2; S.lastShown = null; S.lastIn = '';
+      S.lastFrame = -1; S.lastPoll = -2; S.lastView = ''; S.lastNamed = -2; S.lastShown = null; S.lastIn = '';
       for (const b of document.querySelectorAll('.rp-clip')) b.classList.toggle('on', b.dataset.id === clip.id);
       history.replaceState(null, '', `?clip=${encodeURIComponent(clip.id)}`);
       $('povTitle').textContent = `Glasses POV · ${clip.title}`;
@@ -724,9 +724,13 @@
         if (seats.length) {
           const stackNamed = trace.polls.some((p) => (p.answer?.module?.fillStack?.unseatedPhrases || []).length);
           const many = seats.length > 1;
+          const lastFit = Math.max(...trace.scripted.fits.map((f) => f.t));
+          const namedEarly = seats.some((u) => u.raisedT < lastFit);
+          const when = namedEarly
+            ? `The panel names ${many ? 'each' : 'it'} from the time set by hand, and drops ${many ? 'each' : 'it'} when it is pushed home.`
+            : `The panel holds that back until all ${trace.scripted.total} are in, then names ${many ? 'them' : 'it'}, and drops ${many ? 'each' : 'it'} when it is pushed home.`;
           whole.push(`${seats.map((u) => u.id.replace(/^WH-/, '')).join(' and ')} ${many ? 'were' : 'was'} left not pushed home. `
-            + `The panel holds that back until all ${trace.scripted.total} are in, then names ${many ? 'them' : 'it'}, and drops ${many ? 'each' : 'it'} when it is pushed home. `
-            + `Which ${many ? 'ones' : 'one'} and when were set by hand as well. The seat model ${stackNamed ? 'named a connector on some polls of' : 'named none on'} this pass.`);
+            + `${when} Which ${many ? 'ones' : 'one'} and when were set by hand as well. The seat model ${stackNamed ? 'named a connector on some polls of' : 'named none on'} this pass.`);
         }
       }
       note.title = whole.join('\n\n');
@@ -830,13 +834,20 @@
         drawHud(S.timeline.frames[fi]);
       }
       const pi = latest(S.trace.polls, t);
-      if (pi !== S.lastPoll) {
+      const poll = pi >= 0 ? S.trace.polls[pi] : null;
+      const view = EmotivHud.scriptAt(S.trace.scripted, t);
+      const viewKey = view ? `${view.fitted}|${view.unseatedIds.join()}` : '';
+      const pollChanged = pi !== S.lastPoll;
+      if (pollChanged) {
         S.lastPoll = pi;
-        const poll = pi >= 0 ? S.trace.polls[pi] : null;
-        drawCount(poll);
-        drawOutputs(poll, t);
         drawRead(poll);
         $('pollTag').textContent = poll ? `poll ${poll.i + 1} of ${S.trace.polls.length}` : 'before the first answer';
+      }
+      // A picture-clock count changes between polls, with the recording.
+      if (pollChanged || viewKey !== S.lastView) {
+        S.lastView = viewKey;
+        drawCount(poll, t);
+        drawOutputs(poll, t);
       }
       drawIds(t);
     }
@@ -878,8 +889,11 @@
       }
     }
 
-    function drawCount(poll) {
-      const fill = poll?.answer?.module?.fill || null;
+    function drawCount(poll, t) {
+      const picture = EmotivHud.scriptAt(S.trace.scripted, t);
+      const fill = picture
+        ? { ...picture, decidable: true, held: null, scripted: true }
+        : (poll?.answer?.module?.fill || null);
       const n = $('countN');
       const state = $('countState');
       state.className = 'r';
@@ -899,7 +913,7 @@
       if (fill.scripted) {
         // The number is the script's. Say what the count model made of the
         // same frame, since that is the part a model produced.
-        const stack = poll.answer.module.fillStack;
+        const stack = poll?.answer?.module?.fillStack;
         state.textContent = 'set from the recording';
         state.classList.add('ok');
         $('countWhy').textContent = !stack ? 'The count model gave no answer on this poll.'
@@ -922,8 +936,9 @@
       // Not home is the stack's word, as sent to the glasses on this poll.
       const pi = latest(S.trace.polls, t);
       const pfill = pi >= 0 ? S.trace.polls[pi].answer?.module?.fill : null;
-      const loose = new Set(pfill?.unseatedIds || (pfill?.unseatedPhrases || []).map((ph) => EmotivHud.hudConnector(ph))
-        .map((nm) => S.ids.find((id) => S.names[id] === nm)).filter(Boolean));
+      const live = EmotivHud.scriptAt(S.trace.scripted, t);
+      const loose = new Set(live ? live.unseatedIds : (pfill?.unseatedIds || (pfill?.unseatedPhrases || []).map((ph) => EmotivHud.hudConnector(ph))
+        .map((nm) => S.ids.find((id) => S.names[id] === nm)).filter(Boolean)));
       // Set by hand: the ones that were not home, and when each was pushed home.
       const homed = Object.fromEntries((S.trace.scripted?.seats || [])
         .filter((u) => u.homeT != null && u.homeT <= t).map((u) => [u.id, u.homeT]));
@@ -1084,7 +1099,8 @@
       if (!fit || fit.t > t) return 'open';
       const loose = (S.script?.unseated || []).find((u) => u.id === id);
       const allIn = Math.max(...sc.fits.map((f) => f.t));
-      return loose && t >= allIn && t < (loose.home ?? Infinity) ? 'proud' : 'in';
+      const start = loose?.from ?? allIn;
+      return loose && t >= start && t < (loose.home ?? Infinity) ? 'proud' : 'in';
     }
 
     /** The frame to show for a poll, and a box for each opening on it. */
@@ -1317,8 +1333,9 @@
           add('count', fill.reason || '—', fill.modelId || poll.capture?.modelId || '', !fill.decidable);
         }
         if (scripted) {
-          const out = a.module.fill.unseatedPhrases || [];
-          add('panel', `${a.module.fill.fitted} of ${a.module.fill.total} in${out.length ? ` · not home: ${out.join(', ')}` : ''}`,
+          const now = EmotivHud.scriptAt(S.trace.scripted, t) || a.module.fill;
+          const out = now.unseatedPhrases || [];
+          add('panel', `${now.fitted} of ${now.total} in${out.length ? ` · not home: ${out.join(', ')}` : ''}`,
             'set by hand from the recording · not a model read');
         }
         const seating = scripted ? a.module.seatingStack : a.module?.seating;
@@ -1347,7 +1364,10 @@
           if (sure) lit.add('identity');
           add('identity', `${top.className} at ${Math.round(raw * 100)}%${sure ? '' : ' · below the 25% the panel needs to name it'}`, a.modelId || '', !sure);
         }
-        if (a.warning && a.warning.severity !== 'info') add('warning', `${a.warning.summary}`, `${a.warning.id} · ${a.warning.severity}`);
+        const raised = a.warning && a.warning.severity !== 'info' ? a.warning : null;
+        const shelved = !raised && a.warningStack ? a.warningStack : null;
+        if (raised) add('warning', `${raised.summary}`, `${raised.id} · ${raised.severity}`);
+        else if (shelved) add('warning', `${shelved.summary}`, `${shelved.id} · the stack said this · left off the glasses`, true);
         add('poll', `sent at ${secs(poll.tSent)}, answered in ${poll.ms} ms`, null, true);
       }
       const si = latest(S.trace.scenes || [], t);
