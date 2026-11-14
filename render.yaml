@@ -42,3 +42,11 @@ services:
         sync: false
       - key: AUTH_TOKEN_SECRET
         sync: false
+      # Sign-in. The hash is scrypt$N$r$p$salt$hash. With either unset, login
+      # stays closed and the portal refuses every page.
+      - key: EMOTIV_AUTH_EMAIL
+        sync: false
+      - key: EMOTIV_AUTH_NAME
+        sync: false
+      - key: EMOTIV_AUTH_PASSWORD_HASH
+        sync: false

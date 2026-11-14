@@ -706,7 +706,9 @@
     function signOut() {
       localStorage.removeItem('omnia.session');
       localStorage.removeItem('omnia.introSeen');
-      window.location.replace('/login');
+      fetch('/api/auth/logout', { method: 'POST', keepalive: true }).finally(() => {
+        window.location.replace('/login');
+      });
     }
     document.getElementById('nav-signout').addEventListener('click', signOut);
 

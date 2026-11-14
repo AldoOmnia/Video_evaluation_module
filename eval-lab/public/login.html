@@ -311,27 +311,6 @@
       50%      { opacity: 0.7; }
     }
 
-    /* ── Hint / dev creds (visible because this is a placeholder build) ── */
-    .creds-hint {
-      margin-top: 18px;
-      padding: 10px 12px;
-      border: 1px dashed var(--line-2);
-      border-radius: 6px;
-      background: color-mix(in srgb, var(--primary) 3%, transparent);
-      font-family: var(--mono); font-size: 10.5px;
-      color: var(--ink-2);
-      line-height: 1.55;
-    }
-    .creds-hint .k {
-      color: var(--ink-3); letter-spacing: 0.08em; text-transform: uppercase;
-      font-size: 9px; display: block; margin-bottom: 4px;
-    }
-    .creds-hint code {
-      color: var(--primary);
-      background: color-mix(in srgb, var(--primary) 6%, transparent);
-      padding: 1px 5px; border-radius: 3px;
-    }
-
     /* ── Powered-by footer ───────────────────────────────────────────── */
     .powered {
       align-self: center;
@@ -388,7 +367,7 @@
           <input
             id="username" name="username" type="email"
             autocomplete="username" inputmode="email"
-            placeholder="you@emotiv.com" required
+            placeholder="Email" required
           />
         </div>
 
@@ -404,12 +383,6 @@
         <div class="error-msg" id="error-msg" role="alert" aria-live="polite"></div>
 
         <button class="btn-login" id="btn-login" type="submit">Sign in</button>
-
-        <div class="creds-hint">
-          <span class="k">Demo credentials — placeholder build</span>
-          username <code>admin@emotiv.com</code><br />
-          password <code>emotiv123</code>
-        </div>
       </form>
 
     </div>

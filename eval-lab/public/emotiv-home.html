@@ -62,7 +62,7 @@
 
     document.getElementById('signout').onclick = () => {
       localStorage.removeItem('omnia.session');
-      location.replace('/login');
+      fetch('/api/auth/logout', { method: 'POST', keepalive: true }).finally(() => location.replace('/login'));
     };
 
     function scoreClass(tone) {

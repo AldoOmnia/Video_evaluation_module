@@ -9,7 +9,7 @@ import { brainChatRouter } from "./routes/brainChat.js";
 import { evalRouter } from "./routes/eval.js";
 import { specRouter } from "./routes/spec.js";
 import { queryRouter } from "./routes/query.js";
-import { authRouter } from "./routes/auth.js";
+import { authRouter, readSession } from "./routes/auth.js";
 import { kbRouter } from "./routes/kb.js";
 import { assistRouter } from "./routes/assist.js";
 import { povRouter } from "./routes/pov.js";
@@ -86,6 +86,55 @@ app.get("/health", (_req, res) => {
     cors: wildcard ? "wildcard" : allow,
     nodeEnv: process.env.NODE_ENV ?? "development",
   });
+});
+
+/* Everything except health, the sign-in form, and the files that form needs
+ * requires the session cookie (or a Bearer token). HTML navigations bounce
+ * to the form; scripts, recordings, and API calls get a refusal. */
+const PUBLIC_GET = new Set([
+  "/",
+  "/login",
+  "/login/",
+  "/favicon.ico",
+  "/apple-touch-icon.png",
+  "/apple-touch-icon-precomposed.png",
+  "/site.webmanifest",
+  "/lab/assets/platform.css",
+  "/lab/assets/platform.js",
+  "/lab/assets/daedalus-mark.svg",
+  "/lab/assets/daedalus-horizontal.svg",
+  "/lab/assets/daedalus-horizontal-ink.svg",
+  "/lab/assets/favicon-32.png",
+  "/lab/assets/favicon-192.png",
+  "/lab/assets/favicon-512.png",
+  "/lab/assets/apple-touch-icon.png",
+  "/lab/assets/emotiv-logo.png",
+]);
+
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    next();
+    return;
+  }
+  const path = req.path;
+  if (req.method === "POST" && (path === "/api/auth/login" || path === "/api/auth/logout")) {
+    next();
+    return;
+  }
+  if ((req.method === "GET" || req.method === "HEAD") && PUBLIC_GET.has(path)) {
+    next();
+    return;
+  }
+  if (readSession(req)) {
+    next();
+    return;
+  }
+  const accept = req.headers.accept ?? "";
+  if ((req.method === "GET" || req.method === "HEAD") && accept.includes("text/html")) {
+    res.redirect(302, "/login");
+    return;
+  }
+  res.status(401).json({ ok: false, error: "Sign in required" });
 });
 
 app.use("/api/spec", specRouter);
@@ -399,9 +448,8 @@ app.use("/lab", express.static(EVAL_LAB_PUBLIC));
 // KB artifacts link straight to the source material.
 app.use("/shared-data", express.static(join(SHARED_DIR, "data")));
 
-// Root + /login both serve the tenant-specific login page. Auth is
-// completed client-side against /api/auth/login; on success the SPA
-// stores a session blob in localStorage and forwards to /welcome/ then /lab/.
+// Root + /login both serve the sign-in page. A successful login sets the
+// session cookie and the page stores a session blob, then goes to /home/.
 app.get(["/", "/login", "/login/"], (_req, res) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
   res.sendFile(LOGIN_HTML);
