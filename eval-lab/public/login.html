@@ -528,9 +528,7 @@
               expiresAt: Date.now() + (data.ttlSec ?? 60 * 60 * 8) * 1000,
             }),
           );
-          // Fresh sign-in always shows the welcome tour (reset one-time skip flag).
-          localStorage.removeItem('omnia.introSeen');
-          window.location.replace('/welcome/');
+          window.location.replace('/home/');
         } catch (err) {
           errEl.textContent = err.message || 'Sign-in failed';
           setLoading(false);
