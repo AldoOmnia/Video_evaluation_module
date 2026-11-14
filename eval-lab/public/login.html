@@ -453,15 +453,6 @@
         window.location.replace('/home/');
       }
 
-      // If a previous session is still valid, skip the login screen.
-      try {
-        const session = JSON.parse(localStorage.getItem('omnia.session') || 'null');
-        if (session && session.tenant === 'emotiv' && session.expiresAt > Date.now()) {
-          resumeSessionRedirect();
-          return;
-        }
-      } catch {}
-
       const originalLabel = btn.textContent;
       const setLoading = (on) => {
         btn.disabled = on;
@@ -507,6 +498,30 @@
           setLoading(false);
         }
       });
+
+      // The cookie is the session. A localStorage blob whose cookie is
+      // missing or no longer verifies (cookie-auth rollout, secret rotation,
+      // a dev restart) must not send the browser to /home/, or the gate
+      // bounces it straight back here and the form never stays up.
+      try {
+        const session = JSON.parse(localStorage.getItem('omnia.session') || 'null');
+        if (session && session.tenant === 'emotiv' && session.expiresAt > Date.now()) {
+          fetch('/home/', {
+            cache: 'no-store',
+            redirect: 'manual',
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+          }).then((probe) => {
+            if (probe.ok) {
+              resumeSessionRedirect();
+              return;
+            }
+            if (probe.status === 401 || probe.type === 'opaqueredirect') {
+              localStorage.removeItem('omnia.session');
+            }
+          }).catch(() => {});
+        }
+      } catch {}
     })();
   </script>
 </body>
