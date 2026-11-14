@@ -502,9 +502,13 @@
       // The cookie is the session. A localStorage blob whose cookie is
       // missing or no longer verifies (cookie-auth rollout, secret rotation,
       // a dev restart) must not send the browser to /home/, or the gate
-      // bounces it straight back here and the form never stays up.
+      // bounces it straight back here and the form never stays up. Sign-in
+      // can store a new blob while this probe is still in flight; a 401
+      // from the old request must not clear that replacement, or /home/
+      // reads an empty key and bounces back here with a valid cookie.
       try {
-        const session = JSON.parse(localStorage.getItem('omnia.session') || 'null');
+        const sessionRaw = localStorage.getItem('omnia.session');
+        const session = JSON.parse(sessionRaw || 'null');
         if (session && session.tenant === 'emotiv' && session.expiresAt > Date.now()) {
           fetch('/home/', {
             cache: 'no-store',
@@ -512,6 +516,7 @@
             credentials: 'same-origin',
             headers: { Accept: 'application/json' },
           }).then((probe) => {
+            if (localStorage.getItem('omnia.session') !== sessionRaw) return;
             if (probe.ok) {
               resumeSessionRedirect();
               return;
