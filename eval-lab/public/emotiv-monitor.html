@@ -794,7 +794,7 @@
       paintModels();
     }
 
-    const modelUrl = (id) => `${ASSETS}/connectors/${id}/model.glb`;
+    const modelUrl = (id) => `${ASSETS}/connectors/${id}/model.glb?v=4`;
     /** Draw each waiting model picture once the viewer has loaded. */
     function paintModels() {
       if (!window.EmotivModels) return;
@@ -1440,30 +1440,70 @@
   </script>
 
   <!-- The connector models. One renderer paints the still pictures, a second
-       is the one that turns. Each model file is one part in one colour. -->
+       is the one that turns. Each model file is one part. Its head is the
+       colour of that connector's head, and a latch, lock, contact or boot of
+       another colour carries it on its own corners. The lights are set so
+       the part reads as those colours from every side. -->
   <script type="module">
     import * as THREE from 'three';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+    import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
 
     const loader = new GLTFLoader();
     const loaded = new Map();
     const FOV = 26;
     const VIEW_FROM = new THREE.Vector3(0.78, 0.5, 1).normalize();
+    // A corner sharper than this is a corner. Anything gentler shades as a curve.
+    const CREASE_DEG = 30;
+    // Where the two lamps stand, as seen from the camera: the key up and to
+    // the left, the fill low on the right. Their strengths and the room's are
+    // set so the middle of a part's lit faces comes out at its own colour.
+    const KEY_FROM = new THREE.Vector3(-4.5, 3.2, 2.6).normalize();
+    const FILL_FROM = new THREE.Vector3(3.5, -0.5, 3.6).normalize();
+    const KEY = 1.8;
+    const FILL = 0.35;
+    const ROOM = 0.65;
+    const LAMP_AWAY = 6;
 
+    /** The colour most corners of a painted part have. */
+    function mostOf(painted) {
+      const tally = new Map();
+      for (let i = 0; i < painted.count; i += 1) {
+        const key = `${painted.getX(i)},${painted.getY(i)},${painted.getZ(i)}`;
+        tally.set(key, (tally.get(key) || 0) + 1);
+      }
+      const [key] = [...tally].sort((a, b) => b[1] - a[1])[0];
+      return new THREE.Color(...key.split(',').map(Number));
+    }
     /** A part, centred, its longest side across, one unit long. */
     function prepare(scene) {
       const part = new THREE.Group();
       scene.updateMatrixWorld(true);
       scene.traverse((o) => {
         if (!o.isMesh) return;
-        const geo = o.geometry.clone().applyMatrix4(o.matrixWorld);
-        const colour = o.material.color.clone();
-        part.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: colour, roughness: 0.62, metalness: 0, flatShading: true })));
+        const cad = o.geometry.clone().applyMatrix4(o.matrixWorld);
+        // A part of one colour has it on its material. A part of several has
+        // one on every corner, and the colour here is what most of it is.
+        const painted = cad.getAttribute('color');
+        const colour = painted ? mostOf(painted) : o.material.color.clone();
+        // Moulded plastic: no metal, a soft sheen. The surface sits a hair
+        // behind its own edge lines so they draw clean.
+        const body = new THREE.Mesh(
+          toCreasedNormals(cad, THREE.MathUtils.degToRad(CREASE_DEG)),
+          new THREE.MeshStandardMaterial({
+            color: painted ? 0xffffff : colour, vertexColors: !!painted, roughness: 0.5, metalness: 0,
+            polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
+          }),
+        );
+        body.castShadow = true;
+        body.receiveShadow = true;
+        part.add(body);
         // CAD has hard edges and one colour hides them. Draw them.
-        const dark = colour.getHSL({ h: 0, s: 0, l: 0 }).l < 0.3;
+        const dark = colour.getHSL({ h: 0, s: 0, l: 0 }, THREE.SRGBColorSpace).l < 0.3;
         part.add(new THREE.LineSegments(
-          new THREE.EdgesGeometry(geo, 30),
+          new THREE.EdgesGeometry(cad, CREASE_DEG),
           new THREE.LineBasicMaterial({ color: dark ? 0x8a9099 : 0x3c3f44, transparent: true, opacity: dark ? 0.5 : 0.45 }),
         ));
       });
@@ -1483,16 +1523,44 @@
       }
       return loaded.get(url);
     }
+    /** A camera with its lamps, and the scene they light. The lamps ride with
+     *  the camera, so the side in view is lit the same wherever it is turned to. */
     function stage() {
       const scene = new THREE.Scene();
-      scene.add(new THREE.HemisphereLight(0xffffff, 0x50545a, 1.25));
-      const key = new THREE.DirectionalLight(0xffffff, 1.7);
-      key.position.set(2, 3, 4);
-      const back = new THREE.DirectionalLight(0xffffff, 0.6);
-      back.position.set(-3, -1, -2);
-      scene.add(key, back);
       const camera = new THREE.PerspectiveCamera(FOV, 1, 0.05, 20);
-      return { scene, camera, held: null };
+      const key = new THREE.DirectionalLight(0xffffff, KEY);
+      // The key throws the part's own shadow into its openings. A part is one
+      // unit long, so the shadow only has to cover that.
+      key.castShadow = true;
+      key.shadow.mapSize.set(1024, 1024);
+      key.shadow.bias = -0.0004;
+      key.shadow.normalBias = 0.012;
+      Object.assign(key.shadow.camera, { left: -0.9, right: 0.9, top: 0.9, bottom: -0.9, near: 1, far: LAMP_AWAY * 2 });
+      key.shadow.camera.updateProjectionMatrix();
+      const fill = new THREE.DirectionalLight(0xffffff, FILL);
+      camera.add(key, fill);
+      scene.add(camera);
+      return { scene, camera, key, fill, held: null };
+    }
+    /** A renderer for a stage, and the soft room that stage reflects. */
+    function renderer(st) {
+      const r = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      // Keeps a part's own colour where a plain clamp would grey it with glare.
+      r.toneMapping = THREE.NeutralToneMapping;
+      r.shadowMap.enabled = true;
+      r.shadowMap.type = THREE.PCFSoftShadowMap;
+      const pmrem = new THREE.PMREMGenerator(r);
+      const room = new RoomEnvironment();
+      st.scene.environment = pmrem.fromScene(room, 0.04).texture;
+      st.scene.environmentIntensity = ROOM;
+      room.dispose();
+      pmrem.dispose();
+      return r;
+    }
+    /** Draw a stage. The room turns with the camera, as the lamps do. */
+    function draw(r, st) {
+      st.scene.environmentRotation.y = Math.atan2(st.camera.position.x, st.camera.position.z);
+      r.render(st.scene, st.camera);
     }
     /** Put one part on a stage and stand the camera back far enough to see all of it. */
     function place(st, part, aspect) {
@@ -1502,25 +1570,29 @@
       const r = new THREE.Box3().setFromObject(part).getBoundingSphere(new THREE.Sphere()).radius;
       const half = THREE.MathUtils.degToRad(FOV / 2);
       const fit = Math.min(half, Math.atan(Math.tan(half) * aspect));
+      const away = (r / Math.sin(fit)) * 1.04;
       st.camera.aspect = aspect;
-      st.camera.position.copy(VIEW_FROM).multiplyScalar((r / Math.sin(fit)) * 1.04);
+      st.camera.position.copy(VIEW_FROM).multiplyScalar(away);
       st.camera.lookAt(0, 0, 0);
       st.camera.updateProjectionMatrix();
+      // The lamps aim at the part, which is `away` in front of the camera.
+      st.key.position.copy(KEY_FROM).multiplyScalar(LAMP_AWAY).setZ(KEY_FROM.z * LAMP_AWAY - away);
+      st.fill.position.copy(FILL_FROM).multiplyScalar(LAMP_AWAY).setZ(FILL_FROM.z * LAMP_AWAY - away);
     }
 
     const still = { renderer: null, st: stage() };
     /** One still picture of a model, painted into a 2D canvas. */
     async function thumb(url, canvas) {
       const proto = await load(url);
-      if (!still.renderer) still.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      const { renderer, st } = still;
-      renderer.setPixelRatio(1);
-      renderer.setSize(canvas.width, canvas.height, false);
+      if (!still.renderer) still.renderer = renderer(still.st);
+      const { st } = still;
+      still.renderer.setPixelRatio(1);
+      still.renderer.setSize(canvas.width, canvas.height, false);
       place(st, proto.clone(), canvas.width / canvas.height);
-      renderer.render(st.scene, st.camera);
+      draw(still.renderer, st);
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(renderer.domElement, 0, 0);
+      ctx.drawImage(still.renderer.domElement, 0, 0);
     }
 
     const live = { renderer: null, st: stage(), controls: null, job: 0, raf: 0 };
@@ -1528,7 +1600,7 @@
     async function show(host, url) {
       const job = (live.job += 1);
       if (!live.renderer) {
-        live.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        live.renderer = renderer(live.st);
         live.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
         live.controls = new OrbitControls(live.st.camera, live.renderer.domElement);
         live.controls.enablePan = false;
@@ -1555,7 +1627,7 @@
       const turn = () => {
         if (job !== live.job || !canvas.isConnected) return;
         live.controls.update();
-        live.renderer.render(live.st.scene, live.st.camera);
+        draw(live.renderer, live.st);
         live.raf = requestAnimationFrame(turn);
       };
       turn();

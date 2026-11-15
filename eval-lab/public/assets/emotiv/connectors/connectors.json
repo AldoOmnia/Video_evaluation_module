@@ -1,6 +1,6 @@
 {
  "source": "A2LL_connector_views.xlsx",
- "note": "Flat views cut from the render machine's connector sheet, 200 px each. Models cut from the harness CAD, one colour each: the head colour on the bench.",
+ "note": "Flat views cut from the render machine's connector sheet, 200 px each. Models cut from the harness CAD. The head is its colour on the bench. Latches, locks, contacts and boots are the colours that sheet shows them in. A piece under setByHand is not on the sheet: its colour is from the bench photos and its place on the model was set by hand.",
  "views": [
   "front",
   "back",
@@ -57,7 +57,10 @@
      18.1,
      40.5
     ],
-    "triangles": 9821
+    "triangles": 9794,
+    "accents": {
+     "red": "#E06F69"
+    }
    }
   },
   "WH-EZ4-07": {
@@ -82,7 +85,11 @@
      15.7,
      37.8
     ],
-    "triangles": 5834
+    "triangles": 5823,
+    "accents": {
+     "red": "#E06F69",
+     "black boot": "#2B2D31"
+    }
    }
   },
   "WH-EZ4-08": {
@@ -107,7 +114,11 @@
      14.4,
      22.4
     ],
-    "triangles": 14000
+    "triangles": 14000,
+    "accents": {
+     "red": "#E06F69",
+     "gold": "#C4B16C"
+    }
    }
   },
   "WH-EZ4-09": {
@@ -157,7 +168,13 @@
      27.0,
      27.2
     ],
-    "triangles": 7091
+    "triangles": 7091,
+    "accents": {
+     "red": "#E06F69"
+    },
+    "setByHand": [
+     "red"
+    ]
    }
   },
   "WH-EZ5-01-A": {
@@ -182,7 +199,7 @@
      21.8,
      24.8
     ],
-    "triangles": 5090
+    "triangles": 5089
    }
   },
   "WH-EZ5-01-B": {
@@ -207,7 +224,7 @@
      21.8,
      24.8
     ],
-    "triangles": 5090
+    "triangles": 5089
    }
   },
   "WH-EZ4-04": {
@@ -224,6 +241,10 @@
      22.4
     ],
     "triangles": 14000,
+    "accents": {
+     "red": "#E06F69",
+     "gold": "#C4B16C"
+    },
     "standIn": "WH-EZ4-08",
     "basis": "No solid of its own in the harness CAD, and no GM part in the workbook. It is drawn with the shell of WH-EZ4-08, the black four-cavity coax shell beside it on the radio, in cream.",
     "gmPart": "13563021",
@@ -243,7 +264,10 @@
      18.1,
      40.5
     ],
-    "triangles": 9821,
+    "triangles": 9794,
+    "accents": {
+     "red": "#E06F69"
+    },
     "standIn": "WH-EZ4-05",
     "basis": "No solid of its own in the harness CAD. The connector log has this one confirmed on the bench and unresolved against CAD, with no GM part. It is drawn with the shell of WH-EZ4-05, the black Molex of the same family, in tan.",
     "gmPart": "13551156",
@@ -272,7 +296,11 @@
      10.3,
      22.3
     ],
-    "triangles": 12465
+    "triangles": 12392,
+    "accents": {
+     "red": "#E06F69",
+     "purple": "#B567C9"
+    }
    }
   }
  },
