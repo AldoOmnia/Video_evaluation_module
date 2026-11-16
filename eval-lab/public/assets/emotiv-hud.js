@@ -215,7 +215,7 @@
   function nextAccusation(held, a, nowMs) {
     // A rosebud the recording shows clipped in. The passenger latch holds
     // while the tags are covered; this poll is that clear.
-    if (a?.rosebud?.home) return null;
+    if (a?.rosebud?.home || a?.bolt?.home) return null;
     const raised = actionableWarning(a);
     if (raised) {
       const same = held && held.warning.id === raised.id && held.warning.hud?.label === raised.hud?.label;
@@ -382,7 +382,8 @@
     const endMs = Math.ceil((trace.durationS || 0) * 1000);
     // A hand-set clip on the picture clock is sampled finely enough that a
     // fit at 9.8s is on the panel at 9.8s. Other clips stay on the half-second tick.
-    const tickStep = trace.scripted?.clock === 'video' ? 100 : K.TICK_MS;
+    // A hand-set bolt window is on the picture clock, so 12.8s is the 12.8s frame.
+    const tickStep = (trace.scripted?.clock === 'video' || trace.held?.until != null) ? 100 : K.TICK_MS;
     for (let now = 0; now <= endMs; now += tickStep) {
       while (pi + 1 < polls.length && polls[pi + 1].tBack * 1000 <= now) {
         pi += 1;
@@ -438,6 +439,14 @@
       if (connector.type === 'Answer' && now - connector.at >= K.CONNECTOR_ANSWER_TTL_MS) connector = { type: 'Idle' };
       if (scene.type === 'Answer' && now - scene.at >= K.SCENE_ANSWER_TTL_MS) scene = { type: 'Idle' };
       if (accusation && now - accusation.lastSeenAtMs >= K.ACCUSATION_ABSENCE_MS) accusation = null;
+      // A bolt window set by hand follows the picture, not the poll that carried the read.
+      if (trace.held?.until != null) {
+        const sec = now / 1000;
+        const w = trace.held.warning;
+        accusation = (w && sec + 1e-9 >= trace.held.t && sec < trace.held.until - 1e-9)
+          ? { warning: w, label: '', raisedAtMs: trace.held.t * 1000, lastSeenAtMs: now }
+          : null;
+      }
       // A poll that failed keeps the last answer on the line for a while.
       const steady = connector.type === 'Unavailable' && heldConnector
         && now - heldConnector.at < K.AMBIENT_CONNECTOR_HOLD_MS ? heldConnector : connector;

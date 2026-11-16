@@ -630,7 +630,7 @@
       S.timeline = null;
       S.pinned = null;
       S.view = '3d';
-      S.lastFrame = -1; S.lastPoll = -2; S.lastView = ''; S.lastNamed = -2; S.lastShown = null; S.lastIn = '';
+      S.lastFrame = -1; S.lastPoll = -2; S.lastHand = null; S.lastView = ''; S.lastNamed = -2; S.lastShown = null; S.lastIn = '';
       for (const b of document.querySelectorAll('.rp-clip')) b.classList.toggle('on', b.dataset.id === clip.id);
       history.replaceState(null, '', `?clip=${encodeURIComponent(clip.id)}`);
       $('povTitle').textContent = `Glasses POV · ${clip.title}`;
@@ -826,6 +826,8 @@
         note.textContent = `The card is set by hand from the recording: the rosebuds rest on the beam, so the reader stays quiet. It says ${trace.raised.detail}, and drops at ${secs(trace.cleared.t)} once they are clipped in.`;
       } else if (trace.cleared?.setBy === 'hand') {
         note.textContent = `The card drops at ${secs(trace.cleared.t)}, set by hand from the recording: the rosebud is clipped in.`;
+      } else if (trace.held?.until != null) {
+        note.textContent = `The card is up from ${secs(trace.held.t)} to ${secs(trace.held.until)}, set by hand from the recording.`;
       } else if (trace.held?.setBy === 'hand') {
         note.textContent = `The reader raises the card at ${secs(trace.held.t)}. From there it is held to the end, set by hand from the recording: the correct bolt is never picked.`;
       }
@@ -871,6 +873,7 @@
         up = now;
       }
       if (trace.cleared) at(trace.cleared.t, 'home', `clipped in · set by hand · ${secs(trace.cleared.t)}`);
+      if (trace.held?.until != null) at(trace.held.until, 'home', `card down · set by hand · ${secs(trace.held.until)}`);
       for (const u of trace.scripted?.seats || []) {
         at(u.raisedT, 'warn', `${u.id} not home · ${secs(u.raisedT)}`);
         if (u.homeT != null) at(u.homeT, 'home', `${u.id} pushed home · ${secs(u.homeT)}`);
@@ -956,13 +959,17 @@
       const view = EmotivHud.scriptAt(S.trace.scripted, t);
       const viewKey = view ? `${view.fitted}|${view.unseatedIds.join()}` : '';
       const pollChanged = pi !== S.lastPoll;
-      if (pollChanged) {
+      const handOn = S.trace.held?.until != null && t >= S.trace.held.t && t < S.trace.held.until;
+      const handChanged = handOn !== S.lastHand;
+      if (pollChanged || handChanged) {
         S.lastPoll = pi;
-        drawRead(poll);
+        S.lastHand = handOn;
+        drawRead(poll, t);
         $('pollTag').textContent = poll ? `poll ${poll.i + 1} of ${S.trace.polls.length}` : 'before the first answer';
       }
       // A picture-clock count changes between polls, with the recording.
-      if (pollChanged || viewKey !== S.lastView) {
+      // The bolt card also changes between polls, at the times set by hand.
+      if (pollChanged || viewKey !== S.lastView || handChanged) {
         S.lastView = viewKey;
         drawCount(poll, t);
         drawOutputs(poll, t);
@@ -1358,7 +1365,7 @@
       };
     }
 
-    function drawRead(poll) {
+    function drawRead(poll, t) {
       const cv = $('readCanvas');
       const ctx = cv.getContext('2d');
       const job = (readJob += 1);
@@ -1553,11 +1560,17 @@
         } else if (S.trace.lane === 'bolt' && a.bolt) {
           lit.add('bolt');
           const b = a.bolt;
-          const cardLine = b.confirmed ? 'the card is up'
-            : b.held ? 'the card is held up, set by hand from the recording' : 'the card stays down';
+          const windowed = S.trace.held?.until != null;
+          const on = windowed && t >= S.trace.held.t && t < S.trace.held.until;
+          const cardLine = windowed
+            ? (on
+              ? (b.confirmed && !b.held ? 'the card is up' : 'the card is held up, set by hand from the recording')
+              : (b.held || b.suppressed || b.confirmed ? 'the card is held down, set by hand from the recording' : 'the card stays down'))
+            : (b.confirmed ? 'the card is up'
+              : b.held ? 'the card is held up, set by hand from the recording' : 'the card stays down');
           add('bolt', b.confirmed ? 'wrong bolt in the hand' : (b.verdict || b.why || 'no read'),
             [b.className, b.hand ? `hand ${b.hand}` : null, cardLine].filter(Boolean).join(' · '),
-            !b.confirmed);
+            !b.confirmed && !on);
           if (a.ambient?.line) {
             lit.add('boltStage');
             add('action', a.ambient.line, 'the pick action model · ambient line');
@@ -1614,7 +1627,11 @@
           if (sure) lit.add('identity');
           add('identity', `${top.className} at ${Math.round(raw * 100)}%${sure ? '' : ' · below the 25% the panel needs to name it'}`, a.modelId || '', !sure);
         }
-        const raised = a.warning && a.warning.severity !== 'info' ? a.warning : null;
+        const windowed = S.trace.held?.until != null;
+        const on = windowed && t >= S.trace.held.t && t < S.trace.held.until;
+        const raised = windowed
+          ? (on ? S.trace.held.warning : null)
+          : (a.warning && a.warning.severity !== 'info' ? a.warning : null);
         const shelved = !raised && a.warningStack ? a.warningStack : null;
         if (raised) add('warning', `${raised.summary}`, `${raised.id} · ${raised.severity}`);
         else if (shelved) add('warning', `${shelved.summary}`, `${shelved.id} · the stack said this · left off the glasses`, true);
@@ -1905,7 +1922,7 @@
     function harnessReady(onNote) {
       if (harness.ready) return harness.ready;
       const model = new Promise((resolve, reject) => new GLTFLoader().load(
-        `${HARNESS}/harness.glb?v=4`, resolve,
+        `${HARNESS}/harness.glb?v=5`, resolve,
         (e) => {
           const mb = (e.loaded / 1048576).toFixed(1);
           onNote(e.lengthComputable && e.total

@@ -485,46 +485,72 @@ function applyHandShow(job, polls) {
 // In each bolt take the wrong bolt is picked and started, and the correct one
 // is never picked. The reader raises the card and then loses the bolt once it
 // is in the hole. From its first raise the card stays up to the end of the
-// take. The hold is set by hand from the recording.
+// take. Case 03 is the exception: the card is up from 12.8s to 30.4s, both
+// times set by hand from the recording.
 const HAND_HOLD = {
   "bolt_case_01_wrong_pick-20261112-124904": true,
   "bolt_case_02_wrong_pick-20261112-125131": true,
-  "bolt_case_03_wrong_pick-20261112-125233": true,
+  "bolt_case_03_wrong_pick-20261112-125233": { from: 12.8, until: 30.4 },
 };
 
 function applyHandHold(job, polls) {
-  if (!HAND_HOLD[job.id]) return null;
-  const first = polls.find((p) => p.answer.bolt?.confirmed && p.answer.warning);
-  if (!first) return null;
-  let card = first.answer.warning;
-  let held = 0;
+  const spec = HAND_HOLD[job.id];
+  if (!spec) return null;
+  const cardPoll = polls.find((p) => p.answer.warning?.id === "state/wrong-bolt" && !p.handEdge)
+    || polls.find((p) => p.answer.bolt?.confirmed && p.answer.warning);
+  if (!cardPoll) return null;
+  const card = cardPoll.answer.warning;
+  for (let i = polls.length - 1; i >= 0; i -= 1) if (polls[i].handEdge) polls.splice(i, 1);
+  const first = polls.find((p) => p.answer.bolt?.confirmed);
+  const from = spec === true ? first?.tSent : spec.from;
+  const until = spec === true ? Infinity : spec.until;
+  if (from == null) return null;
   for (const p of polls) {
-    if (p.tSent < first.tSent) continue;
     const bolt = p.answer.bolt || (p.answer.bolt = {});
-    if (bolt.confirmed && p.answer.warning) {
-      card = p.answer.warning;
+    const on = p.tSent + 1e-9 >= from && p.tSent < until - 1e-9;
+    delete bolt.home;
+    if (on) {
+      p.answer.warning = card;
+      p.answer.warnings = [card];
+      if (bolt.confirmed) delete bolt.held;
+      else bolt.held = "hand";
+      delete bolt.suppressed;
+    } else {
+      const readerRaised = Boolean(bolt.confirmed);
+      p.answer.warning = null;
+      p.answer.warnings = [];
       delete bolt.held;
-      continue;
+      if (readerRaised) bolt.suppressed = "hand";
+      else delete bolt.suppressed;
     }
-    p.answer.warning = card;
-    p.answer.warnings = [card];
-    bolt.held = "hand";
-    held += 1;
+  }
+  if (Number.isFinite(until)) {
+    return {
+      t: from,
+      until,
+      setBy: "hand",
+      warning: card,
+      reason: "The card is up between these times, set by hand from the recording.",
+    };
   }
   return {
-    t: first.tSent,
+    t: from,
     setBy: "hand",
-    reads: held,
+    reads: polls.filter((p) => p.answer.bolt?.held === "hand").length,
     reason: "The correct bolt is never picked in this take, so the card stays up to the end.",
   };
 }
 
 function boltNote(polls, held) {
-  const read = polls.filter((p) => p.answer.bolt?.confirmed).length;
+  const real = polls.filter((p) => !p.handEdge);
+  const read = real.filter((p) => p.answer.bolt?.confirmed).length;
   if (!held) {
-    return read ? `The card is up on ${read} of ${polls.length} reads.` : `None of the ${polls.length} reads raised the card.`;
+    return read ? `The card is up on ${read} of ${real.length} reads.` : `None of the ${real.length} reads raised the card.`;
   }
-  return `The reader raises the card on ${read} of ${polls.length} reads. From ${held.t}s it is held to the end, set by hand from the recording: the correct bolt is never picked.`;
+  if (held.until != null) {
+    return `The card is up from ${held.t}s to ${held.until}s, set by hand from the recording. The reader raises it on ${read} of ${real.length} reads.`;
+  }
+  return `The reader raises the card on ${read} of ${real.length} reads. From ${held.t}s it is held to the end, set by hand from the recording: the correct bolt is never picked.`;
 }
 
 function applyHandClear(job, polls) {

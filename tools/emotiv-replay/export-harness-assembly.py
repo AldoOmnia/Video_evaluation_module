@@ -264,18 +264,8 @@ def weld(p, t):
 
 
 def budget(kind, n, extent):
-    """Faces one solid may keep."""
-    if kind == "connector":
-        return min(n, max(2500, int(n * 0.4)))
-    if kind == "clip":
-        return min(n, 900)
-    if kind == "wire":
-        return min(n, max(160, int(n * 0.07)))
-    if kind == "beam":
-        return min(n, max(300, int(n * 0.16)))
-    if extent < 0.07:  # a housing nobody has named yet
-        return min(n, max(1200, int(n * 0.3)))
-    return min(n, max(400, int(n * 0.14)))
+    """Faces one solid may keep. The beam and the harness stay at the CAD tessellation."""
+    return n
 
 
 def reduce_solid(p, t, keep):
