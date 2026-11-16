@@ -2,10 +2,13 @@
 /**
  * Replay the caliper, bolt and rosebud recordings through the glasses readers.
  *
- *   node tools/emotiv-replay/replay-corners.mjs [--only id,id] [--ambient]
+ *   node tools/emotiv-replay/replay-corners.mjs [--only id,id] [--ambient] [--hold]
  *
  * `--ambient` reads the bolt traces already on disk and fills the glasses
  * one-liner from the pick action model. It does not call the bolt detector.
+ *
+ * `--hold` reads the bolt traces already on disk and holds the card from the
+ * reader's first raise to the end of the take. It calls no model.
  *
  * Calipers and bolts call the same detectors the glasses poll. Rosebuds are
  * decoded here (tag36h11) and then read by the same placement functions the
@@ -479,6 +482,51 @@ function applyHandShow(job, polls) {
   return show;
 }
 
+// In each bolt take the wrong bolt is picked and started, and the correct one
+// is never picked. The reader raises the card and then loses the bolt once it
+// is in the hole. From its first raise the card stays up to the end of the
+// take. The hold is set by hand from the recording.
+const HAND_HOLD = {
+  "bolt_case_01_wrong_pick-20261112-124904": true,
+  "bolt_case_02_wrong_pick-20261112-125131": true,
+  "bolt_case_03_wrong_pick-20261112-125233": true,
+};
+
+function applyHandHold(job, polls) {
+  if (!HAND_HOLD[job.id]) return null;
+  const first = polls.find((p) => p.answer.bolt?.confirmed && p.answer.warning);
+  if (!first) return null;
+  let card = first.answer.warning;
+  let held = 0;
+  for (const p of polls) {
+    if (p.tSent < first.tSent) continue;
+    const bolt = p.answer.bolt || (p.answer.bolt = {});
+    if (bolt.confirmed && p.answer.warning) {
+      card = p.answer.warning;
+      delete bolt.held;
+      continue;
+    }
+    p.answer.warning = card;
+    p.answer.warnings = [card];
+    bolt.held = "hand";
+    held += 1;
+  }
+  return {
+    t: first.tSent,
+    setBy: "hand",
+    reads: held,
+    reason: "The correct bolt is never picked in this take, so the card stays up to the end.",
+  };
+}
+
+function boltNote(polls, held) {
+  const read = polls.filter((p) => p.answer.bolt?.confirmed).length;
+  if (!held) {
+    return read ? `The card is up on ${read} of ${polls.length} reads.` : `None of the ${polls.length} reads raised the card.`;
+  }
+  return `The reader raises the card on ${read} of ${polls.length} reads. From ${held.t}s it is held to the end, set by hand from the recording: the correct bolt is never picked.`;
+}
+
 function applyHandClear(job, polls) {
   const clear = HAND_CLEAR[job.id];
   if (!clear) return null;
@@ -493,6 +541,20 @@ function applyHandClear(job, polls) {
     }
   }
   return clear;
+}
+
+if (process.argv.includes("--hold")) {
+  for (const job of JOBS) {
+    if (job.lane !== "bolt") continue;
+    if (ONLY.size && !ONLY.has(job.id)) continue;
+    const out = join(TRACES, `${job.id}.json`);
+    const trace = JSON.parse(readFileSync(out, "utf8"));
+    trace.held = applyHandHold(job, trace.polls);
+    trace.note = boltNote(trace.polls, trace.held);
+    writeFileSync(out, JSON.stringify(trace));
+    console.log(`${job.id}\n  ${trace.note}`);
+  }
+  process.exit(0);
 }
 
 if (process.argv.includes("--ambient")) {
@@ -525,6 +587,7 @@ for (const job of JOBS) {
   const cleared = shown
     ? { t: shown.t, setBy: "hand", reason: "Pillars 2, 3 and 4 are clipped in." }
     : applyHandClear(job, ran.polls);
+  const held = job.lane === "bolt" ? applyHandHold(job, ran.polls) : null;
   const raised = ran.polls.filter((p) => p.answer.warning).length;
   const trace = {
     clip: `${job.id}.mp4`,
@@ -541,11 +604,14 @@ for (const job of JOBS) {
     routed: routedFor(job, ran.modelId),
     note: shown
       ? `The card is up on ${raised} of ${ran.polls.length} reads, set by hand from the recording. It drops at ${shown.t}s, once they are clipped in.`
-      : raised
-        ? `The card is up on ${raised} of ${ran.polls.length} reads.`
-        : `None of the ${ran.polls.length} reads raised the card.`,
+      : held
+        ? boltNote(ran.polls, held)
+        : raised
+          ? `The card is up on ${raised} of ${ran.polls.length} reads.`
+          : `None of the ${ran.polls.length} reads raised the card.`,
     raised: shown ? { setBy: "hand", detail: shown.detail, reason: shown.reason } : null,
     cleared,
+    held,
     polls: ran.polls,
   };
   if (job.lane === "bolt") await stampBoltAmbient(job, trace.polls);

@@ -298,6 +298,20 @@
     .rp-part .plb { margin-top: 3px; font-size: 11px; color: var(--ink-2); }
     .rp-part .pmeta { margin-top: 2px; font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); line-height: 1.45; }
     .rp-part .pbasis { margin-top: 3px; padding-left: 6px; border-left: 2px solid var(--warn); font-size: 10.5px; color: var(--ink-2); }
+    .rp-part .hnote {
+      margin-top: 4px; font-size: 11px; color: var(--ink-2); line-height: 1.4;
+      display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .rp-hbar { flex-shrink: 0; display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
+    .rp-hbar button { font: 500 10.5px var(--sans); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line-2); background: var(--bg-2); color: var(--ink-1); cursor: pointer; white-space: nowrap; }
+    .rp-hbar button:hover, .rp-hbar button.on, .rp-hbar button.go { border-color: var(--primary); }
+    .rp-hbar button.on, .rp-hbar button.go { color: var(--primary); }
+    .rp-hbar .grp { display: flex; align-items: center; gap: 2px; }
+    .rp-hbar .lbl { font-family: var(--mono); font-size: 9px; text-transform: uppercase; color: var(--ink-3); margin-right: 3px; }
+    .rp-hbar label { display: flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+    .rp-hbar label input { accent-color: var(--primary); margin: 0; }
+    /* The whole harness needs the width the count and the frame give up. */
+    #cardPart.span { grid-column: 1 / -1; grid-row: 1 / 3; min-height: 0; }
     .rp-views { flex-shrink: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
     .rp-views button { padding: 0; border: 1px solid var(--line-2); border-radius: 4px; background: #7d7d7d; cursor: pointer; overflow: hidden; }
     .rp-views button.on { border-color: var(--primary); }
@@ -345,7 +359,8 @@
       .rp-scroll { overflow: visible; }
       .rp-stage { height: min(78vh, 128vw); flex: none; }
       .rp-side { height: auto; min-height: 0; grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
-      #cardCount, #cardOut { grid-column: auto; }
+      #cardCount, #cardOut, #cardPart.span { grid-column: auto; grid-row: auto; }
+      #cardPart.span .rp-part .big { height: 360px; }
       #cardOut { min-height: 0; }
       .rp-tiles { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
       .rp-part .big { flex: none; height: 220px; }
@@ -446,7 +461,7 @@
           </div>
 
           <div class="rp-card" id="cardPart">
-            <header><span>Connector</span><span class="r" id="partMode"></span></header>
+            <header><span id="partTitle">Connector</span><span class="r" id="partMode"></span></header>
             <div class="pad" id="partBody"></div>
           </div>
 
@@ -646,8 +661,10 @@
       S.trace = trace;
       const has = Boolean(trace);
       const corner = Boolean(trace?.lane);
+      const rose = trace?.lane === 'rosebud';
       $('cardCount').hidden = !has || corner;
-      $('cardPart').hidden = !has || corner;
+      $('cardPart').hidden = !has || (corner && !rose);
+      $('cardPart').classList.toggle('span', rose);
       $('cardRead').hidden = !has || corner;
       $('cardOut').hidden = !has;
       $('pending').hidden = has;
@@ -809,6 +826,8 @@
         note.textContent = `The card is set by hand from the recording: the rosebuds rest on the beam, so the reader stays quiet. It says ${trace.raised.detail}, and drops at ${secs(trace.cleared.t)} once they are clipped in.`;
       } else if (trace.cleared?.setBy === 'hand') {
         note.textContent = `The card drops at ${secs(trace.cleared.t)}, set by hand from the recording: the rosebud is clipped in.`;
+      } else if (trace.held?.setBy === 'hand') {
+        note.textContent = `The reader raises the card at ${secs(trace.held.t)}. From there it is held to the end, set by hand from the recording: the correct bolt is never picked.`;
       }
       if (!trace.lane && trace.scripted) {
         const stackEnd = [...trace.polls].reverse().find((p) => p.answer?.module?.fillStack?.fitted != null)?.answer.module.fillStack;
@@ -1028,6 +1047,10 @@
 
     /** Fill and seat for each part number, from the newest read that had them. */
     function drawIds(t) {
+      if (S.trace.lane === 'rosebud') {
+        if ($('partBody').dataset.harness !== S.clip.id) drawHarness();
+        return;
+      }
       const ni = latest(S.named, t);
       const read = ni >= 0 ? S.named[ni].named : null;
       const went = S.events.filter((e) => e.t <= t);
@@ -1093,10 +1116,113 @@
       }
     }
 
+    /** The rosebud the wearer is at in this recording: its zone and pillars, from the warning. */
+    function povRosebud() {
+      for (const poll of S.trace?.polls || []) {
+        const v = poll.answer?.warning?.vars;
+        if (v?.zoneId && v.lo != null) return { zone: v.zoneId, lo: Number(v.lo), hi: Number(v.hi ?? v.lo) };
+      }
+      return null;
+    }
+
+    /** The Spark harness, on the rosebud steps: connectors in bench colours, tag cards on the clips. */
+    function drawHarness() {
+      const body = $('partBody');
+      body.textContent = '';
+      body.dataset.view = 'harness';
+      body.dataset.harness = S.clip.id;
+      $('partTitle').textContent = 'Wire harness';
+      $('partMode').textContent = 'drag to turn · scroll to come closer';
+      $('partMode').title = '';
+      const wrap = el('div', 'rp-part');
+      const bar = el('div', 'rp-hbar');
+      const big = el('div', 'big');
+      big.title = 'Drag to turn. Scroll to come closer. Right-drag to slide.';
+      const meta = el('div', 'meta');
+      const note = el('div', 'hnote', 'The harness is loading.');
+      meta.append(note);
+      wrap.append(bar, big, meta);
+      body.append(wrap);
+
+      const say = (text) => { note.textContent = text; note.title = text; };
+      const btn = (text, title, cls) => {
+        const b = el('button', cls || '', text);
+        b.type = 'button';
+        b.title = title;
+        bar.append(b);
+        return b;
+      };
+      const pov = povRosebud();
+      const run = (fn) => { if (window.EmotivHarness) { const text = fn(window.EmotivHarness); if (text) say(text); } };
+      const go = btn('Go to the rosebud in the POV', 'Turn the model to the rosebud this recording is about.', 'go');
+      go.hidden = !pov;
+      go.addEventListener('click', () => run((h) => h.focus(pov)));
+      btn('Whole harness', 'Back out to the whole assembly.').addEventListener('click', () => run((h) => h.view('whole')));
+      const sides = el('div', 'grp');
+      bar.append(sides);
+      for (const [key, text, title] of [
+        ['cabin', 'Cabin', 'From the seats, looking forward.'],
+        ['engine', 'Engine', 'From the engine side, looking back.'],
+        ['driver', 'Driver', 'From the driver end, along the beam.'],
+        ['passenger', 'Passenger', 'From the passenger end, along the beam.'],
+        ['top', 'Top', 'From above.'],
+        ['under', 'Under', 'From below.'],
+      ]) {
+        const b = el('button', '', text);
+        b.type = 'button';
+        b.title = title;
+        b.addEventListener('click', () => run((h) => h.view(key)));
+        sides.append(b);
+      }
+      const beam = el('label');
+      const beamBox = el('input');
+      beamBox.type = 'checkbox';
+      beamBox.checked = true;
+      beam.append(beamBox, document.createTextNode('Cross car beam'));
+      beam.title = 'Show the cross car beam the harness is dressed onto, or the harness alone.';
+      beamBox.addEventListener('change', () => run((h) => h.beam(beamBox.checked)));
+      bar.append(beam);
+      const tags = el('div', 'grp');
+      tags.append(el('span', 'lbl', 'Tags'));
+      const tagBtns = {};
+      for (const [key, text, title] of [
+        ['printed', 'Printed', 'Every clip carries a tag. The printed ones sit on the clips they were matched to.'],
+        ['spark', 'Spark order', 'The Spark sheet: a card on every clip, numbered along the beam.'],
+      ]) {
+        const b = el('button', '', text);
+        b.type = 'button';
+        b.title = title;
+        b.addEventListener('click', () => {
+          run((h) => h.tags(key));
+          for (const k of Object.keys(tagBtns)) tagBtns[k].classList.toggle('on', k === key);
+        });
+        tagBtns[key] = b;
+        tags.append(b);
+      }
+      bar.append(tags);
+
+      const clipId = S.clip.id;
+      const start = async () => {
+        const state = await window.EmotivHarness.show(big, say);
+        if (!state || S.clip?.id !== clipId) return;
+        beamBox.checked = state.beam;
+        for (const k of Object.keys(tagBtns)) tagBtns[k].classList.toggle('on', k === state.tags);
+        if (pov) {
+          const words = state.zones[pov.zone]?.words || pov.zone;
+          go.textContent = `Go to ${words.charAt(0).toLowerCase()}${words.slice(1)} ${pov.lo === pov.hi ? pov.lo : `${pov.lo} to ${pov.hi}`}`;
+          go.title = 'Turn the model to the rosebud this recording is about.';
+        }
+      };
+      if (window.EmotivHarness) start();
+      else window.addEventListener('emotiv-harness', start, { once: true });
+    }
+
     function drawPart(id, pinned, group = []) {
       const body = $('partBody');
       body.textContent = '';
       body.dataset.view = S.view;
+      body.dataset.harness = '';
+      $('partTitle').textContent = 'Connector';
       $('partMode').textContent = !id ? '' : pinned ? 'pinned' : group.length > 1 ? `${group.length} went in together` : 'last one in';
       $('partMode').title = pinned ? 'Click its tile again to follow the last one in.' : '';
       if (group.length > 1) {
@@ -1427,8 +1553,10 @@
         } else if (S.trace.lane === 'bolt' && a.bolt) {
           lit.add('bolt');
           const b = a.bolt;
+          const cardLine = b.confirmed ? 'the card is up'
+            : b.held ? 'the card is held up, set by hand from the recording' : 'the card stays down';
           add('bolt', b.confirmed ? 'wrong bolt in the hand' : (b.verdict || b.why || 'no read'),
-            [b.className, b.hand ? `hand ${b.hand}` : null, b.confirmed ? 'the card is up' : 'the card stays down'].filter(Boolean).join(' · '),
+            [b.className, b.hand ? `hand ${b.hand}` : null, cardLine].filter(Boolean).join(' · '),
             !b.confirmed);
           if (a.ambient?.line) {
             lit.add('boltStage');
@@ -1568,8 +1696,8 @@
        the part reads as those colours from every side. -->
   <script type="module">
     import * as THREE from 'three';
-    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
     import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
 
@@ -1755,6 +1883,404 @@
       turn();
     }
 
+    const HARNESS = '/lab/assets/emotiv/harness';
+    const harness = {
+      job: 0, raf: 0, host: null, dirty: true, fly: null,
+      renderer: null, scene: null, camera: null, controls: null, root: null, box: null,
+      ready: null, ro: null, manifest: null, layers: {}, cards: [], marks: null,
+      beam: true, tags: 'printed', focusNote: '',
+    };
+    // Where the camera stands for each view, as a direction from the middle of
+    // the assembly. Z is up, the driver end is -Y and the seats are +X.
+    const HARNESS_VIEWS = {
+      whole: [0.86, -0.34, 0.5],
+      cabin: [1, 0, 0.0001],
+      engine: [-1, 0, 0.0001],
+      driver: [0, -1, 0.0001],
+      passenger: [0, 1, 0.0001],
+      top: [0.0001, 0, 1],
+      under: [0.0001, 0, -1],
+    };
+
+    function harnessReady(onNote) {
+      if (harness.ready) return harness.ready;
+      const model = new Promise((resolve, reject) => new GLTFLoader().load(
+        `${HARNESS}/harness.glb?v=4`, resolve,
+        (e) => {
+          const mb = (e.loaded / 1048576).toFixed(1);
+          onNote(e.lengthComputable && e.total
+            ? `The harness is loading, ${Math.round((e.loaded / e.total) * 100)}%.`
+            : `The harness is loading, ${mb} MB so far.`);
+        },
+        reject,
+      ));
+      harness.ready = Promise.all([
+        model,
+        fetch(`${HARNESS}/harness.json`, { cache: 'no-store' }).then((r) => r.json()),
+        new Promise((resolve, reject) => new THREE.TextureLoader().load(`${HARNESS}/tags.png`, resolve, undefined, reject)),
+      ]).then(([gltf, manifest, atlas]) => {
+        for (const name of manifest.layers) {
+          const layer = gltf.scene.getObjectByName(name);
+          if (!layer) continue;
+          harness.layers[name] = layer;
+          layer.traverse((o) => {
+            if (!o.isMesh) return;
+            // Each solid was reduced on its own, so its faces are true to the
+            // CAD. Housings and the beam keep their edges. Wires are round.
+            if (name === 'wire') o.geometry.computeVertexNormals();
+            else o.material.flatShading = true;
+            o.material.needsUpdate = true;
+          });
+        }
+        const root = new THREE.Group();
+        root.add(gltf.scene);
+        // Cut each tag out of the sheet. A repeat on one texture was sampling
+        // the gap between cells, so the card came out blank.
+        const sheet = atlas.image;
+        const cell = sheet.width / 10;
+        const made = new Map();
+        harness.tagTex = (id) => {
+          if (made.has(id)) return made.get(id);
+          // The whole card on one texture: white, 20 by 13 mm, the 10 mm tag in the middle.
+          const c = document.createElement('canvas');
+          c.width = cell * 2;
+          c.height = Math.round(cell * 1.3);
+          const pen = c.getContext('2d');
+          pen.fillStyle = '#fff';
+          pen.fillRect(0, 0, c.width, c.height);
+          pen.imageSmoothingEnabled = false;
+          pen.drawImage(sheet, (id % 10) * cell, Math.floor(id / 10) * cell, cell, cell,
+            cell / 2, Math.round((c.height - cell) / 2), cell, cell);
+          const tex = new THREE.CanvasTexture(c);
+          tex.colorSpace = THREE.SRGBColorSpace;
+          tex.magFilter = THREE.NearestFilter;
+          made.set(id, tex);
+          return tex;
+        };
+        for (const tag of manifest.tags) {
+          // Each card is drawn twice. The first pass ignores depth and is
+          // faint, so a card behind the beam or a housing still shows. The
+          // second pass is solid wherever the camera has a clear line to it.
+          const plane = new THREE.PlaneGeometry(tag.size[0], tag.size[1]);
+          const through = new THREE.Mesh(plane, new THREE.MeshBasicMaterial({
+            toneMapped: false, transparent: true, opacity: 0.55, depthTest: false, depthWrite: false,
+          }));
+          through.renderOrder = 1;
+          const face = new THREE.Mesh(plane, new THREE.MeshBasicMaterial({ toneMapped: false, transparent: true }));
+          face.renderOrder = 2;
+          // The card turns to the camera, so its tag reads from every side.
+          const card = new THREE.Group();
+          card.userData.at = new THREE.Vector3(tag.at[0], tag.at[1], tag.at[2] + 0.004);
+          card.position.copy(card.userData.at);
+          card.add(through, face);
+          root.add(card);
+          harness.cards.push({ tag, faces: [through, face], card });
+        }
+        harness.manifest = manifest;
+        harness.root = root;
+        return manifest;
+      });
+      return harness.ready;
+    }
+
+    /**
+     * Turn every card to the camera and keep it wide enough to see. Flat on
+     * its clip, a card is edge-on from the side views and a speck from far out.
+     */
+    function harnessFace() {
+      const cam = harness.camera;
+      const h = harness.host?.clientHeight || 400;
+      const perPx = (2 * Math.tan(THREE.MathUtils.degToRad(cam.fov / 2))) / h;
+      const toCam = new THREE.Vector3();
+      for (const { card } of harness.cards) {
+        const at = card.userData.at;
+        const far = at.distanceTo(cam.position);
+        const scale = Math.max(1, (15 * perPx * far) / 0.02);
+        // Stand the card off its clip, toward the camera, so the housing
+        // beside it does not cut through the tag.
+        toCam.subVectors(cam.position, at).normalize();
+        card.position.copy(at).addScaledVector(toCam, Math.min(0.022 * scale, far * 0.3));
+        card.quaternion.copy(cam.quaternion);
+        card.scale.setScalar(scale);
+      }
+      if (harness.marks) for (const o of harness.marks.children) if (o.isMesh) o.quaternion.copy(cam.quaternion);
+    }
+
+    /** Which number each card shows: the printed tag where one was matched, or the Spark's beam order. */
+    function harnessTags(mode) {
+      harness.tags = mode;
+      for (const { tag, faces } of harness.cards) {
+        const map = harness.tagTex(mode === 'spark' ? tag.order : tag.shown);
+        for (const mesh of faces) { mesh.material.map = map; mesh.material.needsUpdate = true; }
+      }
+      harness.dirty = true;
+      return harnessNote();
+    }
+
+    function harnessNote() {
+      const m = harness.manifest;
+      return [harness.focusNote, m.tagNotes[harness.tags], harness.focusNote ? '' : m.note].filter(Boolean).join(' ');
+    }
+
+    /** How far back the camera stands to hold `box`, looking along -dir. */
+    function harnessFit(dir, box) {
+      const cam = harness.camera;
+      const centre = box.getCenter(new THREE.Vector3());
+      const up = new THREE.Vector3(0, 0, 1);
+      const right = new THREE.Vector3().crossVectors(up, dir);
+      if (right.lengthSq() < 1e-6) right.set(0, 1, 0);
+      right.normalize();
+      const top = new THREE.Vector3().crossVectors(dir, right).normalize();
+      const tv = Math.tan(THREE.MathUtils.degToRad(cam.fov / 2));
+      const th = tv * cam.aspect;
+      let d = 0;
+      const c = new THREE.Vector3();
+      for (let i = 0; i < 8; i += 1) {
+        c.set(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).sub(centre);
+        const depth = c.dot(dir);
+        d = Math.max(d, Math.abs(c.dot(right)) / th + depth, Math.abs(c.dot(top)) / tv + depth);
+      }
+      return { centre, distance: d * 1.06 };
+    }
+
+    function harnessFly(dirArr, box, floor = 0, tight = 1) {
+      const dir = new THREE.Vector3(...dirArr).normalize();
+      const { centre, distance } = harnessFit(dir, box);
+      // The corners of the box are empty on a three-quarter view, so it can stand closer.
+      const to = centre.clone().addScaledVector(dir, Math.max(distance * tight, floor));
+      harness.fly = {
+        t0: performance.now(), ms: 520,
+        fromPos: harness.camera.position.clone(), fromAim: harness.controls.target.clone(),
+        toPos: to, toAim: centre,
+      };
+    }
+
+    /** What is on show, so a view holds the harness alone once the beam is off. */
+    /** How many cards the camera has a clear line to. A check on the tags, read from the page. */
+    function harnessSeen() {
+      const cam = harness.camera;
+      const solids = Object.values(harness.layers).filter((layer) => layer.visible);
+      const ray = new THREE.Raycaster();
+      const at = new THREE.Vector3();
+      const ndc = new THREE.Vector3();
+      const out = { cards: harness.cards.length, inFrame: 0, clear: 0, behind: [] };
+      harness.scene.updateMatrixWorld(true);
+      for (const { tag, card } of harness.cards) {
+        card.getWorldPosition(at);
+        ndc.copy(at).project(cam);
+        if (Math.abs(ndc.x) > 1 || Math.abs(ndc.y) > 1 || ndc.z > 1) continue;
+        out.inFrame += 1;
+        ray.set(cam.position, at.clone().sub(cam.position).normalize());
+        ray.far = at.distanceTo(cam.position) - 0.001;
+        if (ray.intersectObjects(solids, true).length) out.behind.push(tag.shown);
+        else out.clear += 1;
+      }
+      return out;
+    }
+
+    function harnessBox() {
+      const box = new THREE.Box3();
+      for (const [name, layer] of Object.entries(harness.layers)) if (layer.visible) box.expandByObject(layer);
+      return box;
+    }
+
+    function harnessView(name) {
+      if (name === 'whole') { harnessClearMarks(); harness.focusNote = ''; }
+      harnessFly(HARNESS_VIEWS[name] || HARNESS_VIEWS.whole, harnessBox(), 0, name === 'whole' ? 0.8 : 1);
+      return harnessNote();
+    }
+
+    function harnessBeam(on) {
+      harness.beam = on;
+      if (harness.layers.beam) harness.layers.beam.visible = on;
+      harness.dirty = true;
+      return null;
+    }
+
+    function harnessClearMarks() {
+      if (!harness.marks) return;
+      harness.root.remove(harness.marks);
+      harness.marks.traverse((o) => { o.geometry?.dispose(); o.material?.map?.dispose(); o.material?.dispose(); });
+      harness.marks = null;
+      harness.dirty = true;
+    }
+
+    /** A pillar number that stays facing the camera, above its clip. */
+    function harnessLabel(text, hot) {
+      const c = document.createElement('canvas');
+      c.width = c.height = 96;
+      const g = c.getContext('2d');
+      g.beginPath();
+      g.arc(48, 48, 42, 0, Math.PI * 2);
+      g.fillStyle = hot ? '#00e5a0' : '#16181d';
+      g.fill();
+      g.lineWidth = 5;
+      g.strokeStyle = hot ? '#06231a' : '#f2f2f2';
+      g.stroke();
+      g.fillStyle = hot ? '#06231a' : '#f2f2f2';
+      g.font = '600 54px ui-monospace, Menlo, monospace';
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillText(text, 48, 51);
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, toneMapped: false }));
+      sprite.scale.setScalar(hot ? 0.03 : 0.024);
+      sprite.renderOrder = 4;
+      return sprite;
+    }
+
+    /**
+     * Turn to the rosebud a recording is about. Every pillar of its zone that
+     * has a clip matched gets its number; the ones asked for are ringed.
+     */
+    function harnessFocus({ zone, lo, hi }) {
+      const m = harness.manifest;
+      const words = m.zones[zone]?.words || zone;
+      const inZone = m.tags.filter((t) => t.zone === zone);
+      harnessClearMarks();
+      if (!inZone.length) {
+        harness.focusNote = `${words}: no clip in the CAD is matched to this zone yet.`;
+        return harnessNote();
+      }
+      const marks = new THREE.Group();
+      const zoneBox = new THREE.Box3();
+      const hitBox = new THREE.Box3();
+      const hit = [];
+      for (const t of inZone) {
+        const hot = t.pillar >= lo && t.pillar <= hi;
+        const at = new THREE.Vector3(...t.at);
+        zoneBox.expandByPoint(at);
+        if (hot) hitBox.expandByPoint(at);
+        const label = harnessLabel(String(t.pillar), hot);
+        label.position.copy(at).add(new THREE.Vector3(0, 0, 0.046));
+        marks.add(label);
+        if (!hot) continue;
+        hit.push(t);
+        const ring = new THREE.Mesh(
+          new THREE.TorusGeometry(0.019, 0.0022, 10, 40),
+          new THREE.MeshBasicMaterial({ color: 0x00e5a0, toneMapped: false, depthTest: false }),
+        );
+        ring.position.copy(at).add(new THREE.Vector3(0, 0, 0.008));
+        ring.renderOrder = 3;
+        marks.add(ring);
+      }
+      harness.root.add(marks);
+      harness.marks = marks;
+      // Stand on the rosebud asked for. The rest of its run keeps its numbers.
+      const box = hit.length ? hitBox.expandByScalar(0.1) : zoneBox.expandByScalar(0.07);
+      const side = Math.sign(box.getCenter(new THREE.Vector3()).y) || 1;
+      harnessFly([0.72, side * 0.3, 0.62], box, 0.42);
+      const want = [];
+      for (let n = lo; n <= hi; n += 1) want.push(n);
+      const missing = want.filter((n) => !hit.some((t) => t.pillar === n));
+      const list = (ns) => (ns.length > 1 ? `${ns.slice(0, -1).join(', ')} and ${ns[ns.length - 1]}` : String(ns[0]));
+      const marked = inZone.map((t) => t.pillar).sort((x, y) => x - y);
+      const parts = [];
+      if (hit.length) {
+        parts.push(`${words} ${list(hit.map((t) => t.pillar))} ${hit.length > 1 ? 'are' : 'is'} ringed, printed tag${hit.length > 1 ? 's' : ''} ${list(hit.map((t) => t.tag))}.`);
+      }
+      if (missing.length) {
+        parts.push(`${words} ${list(missing)} has no clip matched to it in the CAD yet. The view is on that run, with pillars ${list(marked)} numbered.`);
+      }
+      harness.focusNote = parts.join(' ');
+      return harnessNote();
+    }
+
+    /** The whole harness in `host`. Resolves with what the controls should show. */
+    async function showHarness(host, onNote) {
+      const job = (harness.job += 1);
+      const manifest = await harnessReady(onNote).catch(() => null);
+      if (job !== harness.job) return null;
+      if (!manifest) { onNote('The harness model did not load.'); return null; }
+      if (!harness.renderer) {
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(30, 1, 0.01, 30);
+        camera.up.set(0, 0, 1);
+        const key = new THREE.DirectionalLight(0xffffff, 1.1);
+        const fill = new THREE.DirectionalLight(0xffffff, 0.35);
+        key.position.set(1.4, 2.0, 2.6);
+        fill.position.set(-2.2, -1.2, 1.4);
+        camera.add(key, fill);
+        scene.add(camera, new THREE.AmbientLight(0xffffff, 0.15));
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
+        renderer.setClearColor(0x7d7d7d, 1);
+        renderer.toneMapping = THREE.NeutralToneMapping;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+        scene.environmentIntensity = 0.6;
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.12;
+        controls.zoomToCursor = true;
+        controls.addEventListener('change', () => { harness.dirty = true; });
+        controls.addEventListener('start', () => { harness.fly = null; });
+        harness.scene = scene;
+        harness.camera = camera;
+        harness.renderer = renderer;
+        harness.controls = controls;
+        scene.add(harness.root);
+        harness.box = new THREE.Box3();
+        for (const layer of Object.values(harness.layers)) harness.box.expandByObject(layer);
+        const size = harness.box.getSize(new THREE.Vector3()).length();
+        controls.minDistance = 0.06;
+        controls.maxDistance = size * 4;
+        harness.ro = new ResizeObserver(() => {
+          if (!harness.host?.isConnected) return;
+          const w = harness.host.clientWidth || 176;
+          const h = harness.host.clientHeight || 176;
+          harness.renderer.setSize(w, h, false);
+          harness.camera.aspect = w / h;
+          harness.camera.updateProjectionMatrix();
+          harness.dirty = true;
+        });
+      }
+      host.textContent = '';
+      host.append(harness.renderer.domElement);
+      harness.host = host;
+      harness.ro.observe(host);
+      const w = host.clientWidth || 176;
+      const h = host.clientHeight || 176;
+      harness.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      harness.renderer.setSize(w, h, false);
+      harness.camera.aspect = w / h;
+      harness.camera.updateProjectionMatrix();
+      // A new recording opens on the whole assembly.
+      harnessClearMarks();
+      harness.focusNote = '';
+      harnessFly(HARNESS_VIEWS.whole, harnessBox(), 0, 0.8);
+      harness.fly.ms = 1;
+      onNote(harnessTags(harness.tags));
+      cancelAnimationFrame(harness.raf);
+      const turn = (now) => {
+        if (job !== harness.job || !harness.renderer.domElement.isConnected) return;
+        const fly = harness.fly;
+        if (fly) {
+          const k = Math.min(1, (now - fly.t0) / fly.ms);
+          const ease = k < 0.5 ? 2 * k * k : 1 - ((-2 * k + 2) ** 2) / 2;
+          harness.camera.position.lerpVectors(fly.fromPos, fly.toPos, ease);
+          harness.controls.target.lerpVectors(fly.fromAim, fly.toAim, ease);
+          if (k >= 1) harness.fly = null;
+          harness.dirty = true;
+        }
+        harness.controls.update();
+        if (harness.dirty) {
+          harness.dirty = false;
+          harnessFace();
+          harness.renderer.render(harness.scene, harness.camera);
+        }
+        harness.raf = requestAnimationFrame(turn);
+      };
+      harness.raf = requestAnimationFrame(turn);
+      return { beam: harness.beam, tags: harness.tags, zones: manifest.zones };
+    }
+
+    window.EmotivHarness = {
+      show: showHarness, view: harnessView, beam: harnessBeam, tags: harnessTags, focus: harnessFocus,
+      pose: () => ({ at: harness.camera.position.toArray(), aim: harness.controls.target.toArray(), flying: Boolean(harness.fly) }),
+      seen: harnessSeen,
+    };
+    window.dispatchEvent(new Event('emotiv-harness'));
     window.EmotivModels = { thumb, show };
     window.dispatchEvent(new Event('emotiv-models'));
   </script>
