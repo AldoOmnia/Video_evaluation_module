@@ -1,0 +1,43 @@
+{
+ "clip": "radio_connections-20261112-141626",
+ "note": "When each connector goes in on this recording, read off the picture by hand at half-second steps, with a close view of each opening and the count model's read of it side by side. The time is the first frame the connector is in its opening. The station page shows the glasses panel from these times, so the panel runs to 9 of 9 as the recording does. What the count model read on each poll is kept in the trace and shown beside it. Times are to about half a second; 01 and 09 are the least certain, the hand covers them as they go in.",
+ "setBy": "hand, from the recording",
+ "fits": [
+  {
+   "id": "WH-EZ4-08",
+   "t": 5.3
+  },
+  {
+   "id": "WH-EZ4-01",
+   "t": 12.0
+  },
+  {
+   "id": "WH-EZ4-09",
+   "t": 17.5
+  },
+  {
+   "id": "WH-EZ4-11",
+   "t": 22.5
+  },
+  {
+   "id": "WH-EZ4-06",
+   "t": 27.3
+  },
+  {
+   "id": "WH-EZ4-05",
+   "t": 34.8
+  },
+  {
+   "id": "WH-EZ4-07",
+   "t": 39.3
+  },
+  {
+   "id": "WH-EZ4-10",
+   "t": 44.0
+  },
+  {
+   "id": "WH-EZ4-04",
+   "t": 48.5
+  }
+ ]
+}

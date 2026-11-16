@@ -1,23 +1,20 @@
-# Render Blueprint — Comer pilot platform
+# Render Blueprint — Emotiv portal
 #
-# One-click deploy:
+# This branch is the Emotiv tenant. It deploys as its own service, separate
+# from comer-platform. See DEPLOY.md §7.
+#
 #   1. Open https://dashboard.render.com/blueprints
-#   2. "New Blueprint Instance" → pick this repo + the `platform-comer` branch
-#   3. Render reads this file, provisions the service, prompts for the
-#      two `sync: false` secrets (ANTHROPIC_API_KEY + AUTH_TOKEN_SECRET),
-#      and runs the build.
-#   4. Once green, add `comer.daedalusiq.com` as a custom domain on the
-#      service and create the CNAME in DNS as instructed by Render.
-#
-# See DEPLOY.md for the full walkthrough.
+#   2. "New Blueprint Instance" → this repo + the `platform-emotiv` branch
+#   3. Render prompts for the `sync: false` secrets.
+#   4. Add `emotiv.daedalusiq.com` as a custom domain and create the CNAME.
 
 services:
   - type: web
-    name: comer-platform
+    name: emotiv-platform
     runtime: node
-    plan: starter         # $7/mo — keeps the service hot (no cold starts)
+    plan: starter
     region: oregon
-    branch: platform-comer
+    branch: platform-emotiv
     rootDir: .
     autoDeploy: true
 
@@ -28,15 +25,6 @@ services:
 
     healthCheckPath: /health
 
-    # Reshim runs arrive by POST from the daily workflow (the agent needs the
-    # plant network and a Python/ODBC toolchain this service does not have).
-    # They must outlive a deploy, and the checkout does not, so keep them on a
-    # disk mounted outside it — hence RESHIM_RUN_ROOT below.
-    disk:
-      name: reshim-runs
-      mountPath: /var/reshim
-      sizeGB: 1
-
     envVars:
       - key: NODE_ENV
         value: production
@@ -44,88 +32,21 @@ services:
         value: "20"
       - key: ANTHROPIC_MODEL
         value: claude-sonnet-4-6
-      # Host-visible origins for this tenant, comma-separated. The render.com
-      # hostname is always live; comer.daedalusiq.com is the public URL.
-      # comer.theomnia.ai stays listed until that domain is retired, so the
-      # cutover needs no coordination between the DNS change and this deploy.
+      # Same-origin pages do not need CORS. These are the hosts allowed to
+      # call the API if a page is ever served from elsewhere.
       - key: ALLOWED_ORIGINS
-        value: "https://comer.daedalusiq.com,https://comer.theomnia.ai,https://comer-platform.onrender.com"
-      # World Labs (Marble) World API — powers the synthetic-pov splat panel.
-      # Model is safe to commit; the key is a prompted secret.
-      - key: WORLDLABS_MODEL
-        value: marble-1.1
-      # Where ingested reshim runs live — on the mounted disk, not in the
-      # checkout, so a deploy does not wipe the history.
-      - key: RESHIM_RUN_ROOT
-        value: /var/reshim/runs
-      # Live line (MES) — declared here so switching the home card off demo
-      # data is only a matter of filling in the credentials below, with no
-      # code or blueprint change. They are deliberately unset today.
-      #
-      # This service runs in Oregon and the MES sits on Comer's private LAN
-      # (WARKFSQL002 / 10.240.32.32), so there is no route to it from here.
-      # Setting the credentials without first publishing a route would not
-      # produce live data — every read would time out and the card would show
-      # "line connection dropped · retrying" instead of the honest
-      # "demo data · bridge pending". See docs/live-line-qa.md § Reachability.
-      #
-      # Until then the demo runs on a laptop on the plant network, where direct
-      # SQL works. The non-secret values are fixed for this tenant; the rest
-      # are secrets below. Optional MES_* tuning vars are left to their code
-      # defaults (MES_PLANT_TZ America/Chicago, MES_MAX_ROWS 200, …).
-      - key: MES_MSSQL_PORT
-        value: "1433"
-      - key: MES_MSSQL_DATABASE
-        value: SSL04_FARGO
-      - key: MES_STATION_NUMBER
-        value: "100"
-      # Secrets — Render will prompt for these at blueprint-create time
-      # and store them outside this file.
+        value: "https://emotiv.daedalusiq.com,https://emotiv-platform.onrender.com"
       - key: ANTHROPIC_API_KEY
         sync: false
-      # Shared with the reshim-daily workflow's RESHIM_INGEST_TOKEN secret.
-      # Unset means the ingest endpoint stays closed.
-      - key: RESHIM_INGEST_TOKEN
+      - key: GEMINI_API_KEY
         sync: false
       - key: AUTH_TOKEN_SECRET
         sync: false
-      - key: WORLDLABS_API_KEY
+      # Sign-in. The hash is scrypt$N$r$p$salt$hash. With either unset, login
+      # stays closed and the portal refuses every page.
+      - key: EMOTIV_AUTH_EMAIL
         sync: false
-      # Graph app-only credentials, shared with the Python agent's own config.
-      # Without them the dashboard's "Also email" is disabled and says why; the
-      # daily workflow still emails from the runner, which has its own copy.
-      - key: MSAL_TENANT_ID
+      - key: EMOTIV_AUTH_NAME
         sync: false
-      - key: MSAL_CLIENT_ID
-        sync: false
-      - key: MSAL_CLIENT_SECRET
-        sync: false
-      - key: MAIL_FROM
-        sync: false
-      - key: MAIL_REPLY_TO
-        sync: false
-      # Comma-separated. This is who a sample send reaches, so it is the same
-      # standing list a real report goes to.
-      - key: MAIL_RECIPIENTS
-        sync: false
-      # Live line credentials. Empty is a supported state: mesConfigured()
-      # needs HOST + USER + PASSWORD together, so a partial fill still serves
-      # the demo snapshot rather than half-connecting.
-      #
-      # Ask Comer IT for a read-only login — the SQL guard enforces read-only
-      # regardless, but least privilege is the right posture on a production
-      # MES. HOST is the plant address today and would become the published
-      # hostname if the database is ever fronted by a tunnel.
-      - key: MES_MSSQL_HOST
-        sync: false
-      - key: MES_MSSQL_USER
-        sync: false
-      - key: MES_MSSQL_PASSWORD
-        sync: false
-      # Fallback path, only for a deployment with HTTP reach into the plant but
-      # not SQL reach. Direct SQL above wins when both are set. The key must
-      # equal the on-site connector's BACKEND_API_KEY.
-      - key: LINE_BRIDGE_URL
-        sync: false
-      - key: LINE_BRIDGE_API_KEY
+      - key: EMOTIV_AUTH_PASSWORD_HASH
         sync: false

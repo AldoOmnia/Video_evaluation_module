@@ -1,0 +1,14 @@
+{
+ "clip": "gateway_connections-20261112-141339",
+ "note": "The round black one is in at 9.8s. It is not pushed home from 12.5s until 20.7s. The light grey one is in at 16.5s and not pushed home from 18.2s until 24.1s. The panel names each for that span, and both lines are gone once the light grey one is home. The count model first said 1 of 2 at 14.9s and 2 of 2 at 19.4s; its own not-home lines stay under Each model on this poll.",
+ "setBy": "hand, from the recording",
+ "clock": "video",
+ "fits": [
+  { "id": "WH-EZ5-01-B", "t": 9.8 },
+  { "id": "WH-EZ5-01-A", "t": 16.5 }
+ ],
+ "unseated": [
+  { "id": "WH-EZ5-01-B", "from": 12.5, "home": 20.7 },
+  { "id": "WH-EZ5-01-A", "from": 18.2, "home": 24.1 }
+ ]
+}

@@ -1,0 +1,14 @@
+{
+ "clip": "gateway_connections_unseated-20261112-141546",
+ "note": "The round black one is in at 12.5s. The light grey one is in at 17.4s and not pushed home, so the push-home line starts then. It is pushed home at 25.0s and the line drops. The count model first said 1 of 2 at 14.3s and named the light grey one from 21.8s. An off-step warning for WH-EZ28-02 on this pass is left off the glasses; the stack's own wording stays under Each model on this poll.",
+ "setBy": "hand, from the recording",
+ "clock": "video",
+ "dropWarnings": ["identity/off-step-connector"],
+ "fits": [
+  { "id": "WH-EZ5-01-B", "t": 12.5 },
+  { "id": "WH-EZ5-01-A", "t": 17.4 }
+ ],
+ "unseated": [
+  { "id": "WH-EZ5-01-A", "home": 25.0 }
+ ]
+}

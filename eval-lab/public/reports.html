@@ -148,7 +148,7 @@
     /* ── Session gate ─────────────────────────── */
     try {
       const s = JSON.parse(localStorage.getItem('omnia.session') || 'null');
-      if (!s || s.tenant !== 'comer' || s.expiresAt <= Date.now()) window.location.replace('/login');
+      if (!s || s.tenant !== 'emotiv' || s.expiresAt <= Date.now()) window.location.replace('/login');
     } catch { window.location.replace('/login'); }
 
     // esc() comes from assets/platform.js.

@@ -1371,7 +1371,7 @@
     function hasSession() {
       try {
         const s = JSON.parse(localStorage.getItem('omnia.session') || 'null');
-        return s && s.tenant === 'comer' && s.expiresAt > Date.now();
+        return s && s.tenant === 'emotiv' && s.expiresAt > Date.now();
       } catch { return false; }
     }
     if (!hasSession()) window.location.replace('/login');

@@ -1,0 +1,127 @@
+{
+ "note": "Glasses recordings shown on the Emotiv station page. `file` is the web copy under clips/, `trace` the replay under traces/. A clip with `pending` has no replay yet and says why. A clip with `script` is kept as a fixed example of the panel: the order and time each connector goes in were set by hand from the recording, and the panel is drawn from that. A clip with `labels` has a box for each opening on the frames where the row is in clear view, checked by eye; the page draws those on the frame the count read.",
+ "clips": [
+  {
+   "id": "radio_connections-20261112-141626",
+   "title": "Radio connections",
+   "recorded": "2026-11-12T14:16:26",
+   "station": "IP0040",
+   "stationName": "Center Duct/Main Duct, Radio Connection Install",
+   "stepNo": "14 of 17",
+   "stepLabel": "Make Radio connections and Witness mark.",
+   "zone": "EZ4",
+   "module": "Radio",
+   "script": "scripts/radio_connections-20261112-141626.json",
+   "labels": "labels/radio_connections-20261112-141626.json"
+  },
+  {
+   "id": "radio_connections_unseated-20261112-141804",
+   "title": "Radio connections, three left unseated",
+   "recorded": "2026-11-12T14:18:04",
+   "station": "IP0040",
+   "stationName": "Center Duct/Main Duct, Radio Connection Install",
+   "stepNo": "14 of 17",
+   "stepLabel": "Make Radio connections and Witness mark.",
+   "zone": "EZ4",
+   "module": "Radio",
+   "script": "scripts/radio_connections_unseated-20261112-141804.json",
+   "labels": "labels/radio_connections_unseated-20261112-141804.json"
+  },
+  {
+   "id": "gateway_connections-20261112-141339",
+   "title": "Gateway connections",
+   "recorded": "2026-11-12T14:13:39",
+   "station": "IP0050",
+   "stationName": "CGM Install",
+   "stepNo": "5 of 19",
+   "stepLabel": "Make Connections and make sure to Witness Mark",
+   "zone": "EZ5",
+   "module": "Gateway",
+   "script": "scripts/gateway_connections-20261112-141339.json"
+  },
+  {
+   "id": "gateway_connections_unseated-20261112-141546",
+   "title": "Gateway connections, one left unseated",
+   "recorded": "2026-11-12T14:15:46",
+   "station": "IP0050",
+   "stationName": "CGM Install",
+   "stepNo": "5 of 19",
+   "stepLabel": "Make Connections and make sure to Witness Mark",
+   "zone": "EZ5",
+   "module": "Gateway",
+   "script": "scripts/gateway_connections_unseated-20261112-141546.json"
+  },
+  {
+   "id": "driver_side_a_pillar_2_wrong_rosebud-20261112-163937",
+   "title": "Driver side A-pillar, wrong rosebud at 2",
+   "recorded": "2026-11-12T16:39:37",
+   "station": "IP0030",
+   "stationName": "Wire Harness Install",
+   "stepNo": "3 of 6",
+   "stepLabel": "Secure 24 rosebuds"
+  },
+  {
+   "id": "passenger_side_a_pillar_6_not_clipped-20261112-163854",
+   "title": "Passenger side A-pillar, 6 not clipped",
+   "recorded": "2026-11-12T16:38:54",
+   "station": "IP0030",
+   "stationName": "Wire Harness Install",
+   "stepNo": "3 of 6",
+   "stepLabel": "Secure 24 rosebuds"
+  },
+  {
+   "id": "missed_passenger_side_a_pillar_rosebuds-20261112-163758",
+   "title": "Passenger A-pillar, pillars 2, 3 and 4 missed",
+   "recorded": "2026-11-12T16:37:58",
+   "station": "IP0030",
+   "stationName": "Wire Harness Install",
+   "stepNo": "3 of 6",
+   "stepLabel": "Secure 24 rosebuds"
+  },
+  {
+   "id": "lh_picking_wrong_caliper-20261112-152652",
+   "title": "Left hand, wrong caliper picked",
+   "recorded": "2026-11-12T15:26:52",
+   "station": "OP0080",
+   "stationName": "Front Caliper to Knuckle",
+   "stepNo": "5 of 10",
+   "stepLabel": "Install LH caliper"
+  },
+  {
+   "id": "rh_picking_wrong_caliper_02-20261112-152622",
+   "title": "Right hand, wrong caliper picked",
+   "recorded": "2026-11-12T15:26:22",
+   "station": "OP0080",
+   "stationName": "Front Caliper to Knuckle",
+   "stepNo": "6 of 10",
+   "stepLabel": "Repeat on RH side"
+  },
+  {
+   "id": "bolt_case_01_wrong_pick-20261112-124904",
+   "title": "Bolt case 01, the long one",
+   "recorded": "2026-11-12T12:49:04",
+   "station": "OP0085",
+   "stationName": "Rear Caliper to Knuckle",
+   "stepNo": "6 of 10",
+   "stepLabel": "Case 01 · heads · LH"
+  },
+  {
+   "id": "bolt_case_02_wrong_pick-20261112-125131",
+   "title": "Bolt case 02, the short one",
+   "recorded": "2026-11-12T12:51:31",
+   "station": "OP0085",
+   "stationName": "Rear Caliper to Knuckle",
+   "stepNo": "Case 02",
+   "stepLabel": "Case 02 · side · #2"
+  },
+  {
+   "id": "bolt_case_03_wrong_pick-20261112-125233",
+   "title": "Bolt case 03, the blue one",
+   "recorded": "2026-11-12T12:52:33",
+   "station": "OP0085",
+   "stationName": "Rear Caliper to Knuckle",
+   "stepNo": "Case 03",
+   "stepLabel": "Case 03 · heads · #3"
+  }
+ ]
+}

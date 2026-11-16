@@ -692,7 +692,7 @@
     function getSession() {
       try {
         const s = JSON.parse(localStorage.getItem('omnia.session') || 'null');
-        if (s && s.tenant === 'comer' && s.expiresAt > Date.now()) return s;
+        if (s && s.tenant === 'emotiv' && s.expiresAt > Date.now()) return s;
       } catch {}
       return null;
     }
@@ -706,7 +706,9 @@
     function signOut() {
       localStorage.removeItem('omnia.session');
       localStorage.removeItem('omnia.introSeen');
-      window.location.replace('/login');
+      fetch('/api/auth/logout', { method: 'POST', keepalive: true }).finally(() => {
+        window.location.replace('/login');
+      });
     }
     document.getElementById('nav-signout').addEventListener('click', signOut);
 

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="referrer" content="no-referrer" />
-  <title>Comer Industries · Sign in</title>
+  <title>Emotiv · Sign in</title>
   <link rel="icon" href="/lab/assets/daedalus-mark.svg?v=1" type="image/svg+xml" />
   <link rel="icon" href="/lab/assets/favicon-32.png?v=1" sizes="32x32" type="image/png" />
   <link rel="apple-touch-icon" href="/lab/assets/apple-touch-icon.png?v=1" />
@@ -126,12 +126,12 @@
       gap: 16px;
     }
     .client-logo {
-      width: 110px; height: 110px;
+      width: auto; height: auto;
       display: flex; align-items: center; justify-content: center;
       background: rgba(255,255,255,0.02);
       border: 1px solid var(--line-2);
       border-radius: 14px;
-      padding: 14px;
+      padding: 16px 22px;
       box-shadow: 0 8px 30px rgba(0,0,0,0.4);
     }
     .client-logo img {
@@ -139,6 +139,13 @@
       object-fit: contain;
       filter: drop-shadow(0 0 6px rgba(255,255,255,0.05));
     }
+    .client-logo img[alt="Emotiv"] {
+      width: 220px;
+      max-width: 70vw;
+      height: auto;
+    }
+    /* Wordmark is white ink; invert on the light canvas. */
+    html.light .client-logo img[alt="Emotiv"] { filter: invert(1); }
     .client-name {
       font-family: var(--mono);
       font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
@@ -304,27 +311,6 @@
       50%      { opacity: 0.7; }
     }
 
-    /* ── Hint / dev creds (visible because this is a placeholder build) ── */
-    .creds-hint {
-      margin-top: 18px;
-      padding: 10px 12px;
-      border: 1px dashed var(--line-2);
-      border-radius: 6px;
-      background: color-mix(in srgb, var(--primary) 3%, transparent);
-      font-family: var(--mono); font-size: 10.5px;
-      color: var(--ink-2);
-      line-height: 1.55;
-    }
-    .creds-hint .k {
-      color: var(--ink-3); letter-spacing: 0.08em; text-transform: uppercase;
-      font-size: 9px; display: block; margin-bottom: 4px;
-    }
-    .creds-hint code {
-      color: var(--primary);
-      background: color-mix(in srgb, var(--primary) 6%, transparent);
-      padding: 1px 5px; border-radius: 3px;
-    }
-
     /* ── Powered-by footer ───────────────────────────────────────────── */
     .powered {
       align-self: center;
@@ -367,21 +353,21 @@
 
       <div class="client-logo-wrap">
         <div class="client-logo">
-          <img src="/lab/assets/comer-logo.png" alt="Comer Industries" />
+          <img src="/lab/assets/emotiv-logo.png?v=2" alt="Emotiv" />
         </div>
-        <div class="client-name">CLIENT · <strong>COMER INDUSTRIES</strong></div>
+        <div class="client-name">CLIENT · <strong>EMOTIV</strong></div>
       </div>
 
       <form class="card" id="login-form" autocomplete="off" novalidate>
         <h1>Sign in</h1>
-        <div class="sub">Pinion Guide Assembly · Rockford Station</div>
+        <div class="sub">Agent · Monitoring</div>
 
         <div class="field">
           <label for="username">Email</label>
           <input
             id="username" name="username" type="email"
             autocomplete="username" inputmode="email"
-            placeholder="you@comer.com" required
+            placeholder="Email" required
           />
         </div>
 
@@ -397,12 +383,6 @@
         <div class="error-msg" id="error-msg" role="alert" aria-live="polite"></div>
 
         <button class="btn-login" id="btn-login" type="submit">Sign in</button>
-
-        <div class="creds-hint">
-          <span class="k">Demo credentials — placeholder build</span>
-          username <code>admin@comer.com</code><br />
-          password <code>rockford123</code>
-        </div>
       </form>
 
     </div>
@@ -410,7 +390,7 @@
     <footer class="powered">
       <div class="pb-k">Powered by</div>
       <span class="vendor-mark" role="img" aria-label="Daedalus"></span>
-      <div class="pb-meta">Comer · platform-comer · build v0.5</div>
+      <div class="pb-meta">Emotiv · platform-emotiv · build v0.5</div>
     </footer>
   </main>
 
@@ -470,21 +450,8 @@
       const btn = document.getElementById('btn-login');
 
       function resumeSessionRedirect() {
-        if (localStorage.getItem('omnia.introSeen') === '1') {
-          window.location.replace('/home/');
-        } else {
-          window.location.replace('/welcome/');
-        }
+        window.location.replace('/home/');
       }
-
-      // If a previous session is still valid, skip the login screen.
-      try {
-        const session = JSON.parse(localStorage.getItem('omnia.session') || 'null');
-        if (session && session.tenant === 'comer' && session.expiresAt > Date.now()) {
-          resumeSessionRedirect();
-          return;
-        }
-      } catch {}
 
       const originalLabel = btn.textContent;
       const setLoading = (on) => {
@@ -508,7 +475,7 @@
           const r = await fetch('/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tenant: 'comer', username, password }),
+            body: JSON.stringify({ tenant: 'emotiv', username, password }),
           });
           const data = await r.json().catch(() => ({}));
           if (!r.ok || !data.ok) {
@@ -519,20 +486,47 @@
           localStorage.setItem(
             'omnia.session',
             JSON.stringify({
-              tenant: 'comer',
+              tenant: 'emotiv',
               token: data.token,
               user: data.user,
               expiresAt: Date.now() + (data.ttlSec ?? 60 * 60 * 8) * 1000,
             }),
           );
-          // Fresh sign-in always shows the welcome tour (reset one-time skip flag).
-          localStorage.removeItem('omnia.introSeen');
-          window.location.replace('/welcome/');
+          window.location.replace('/home/');
         } catch (err) {
           errEl.textContent = err.message || 'Sign-in failed';
           setLoading(false);
         }
       });
+
+      // The cookie is the session. A localStorage blob whose cookie is
+      // missing or no longer verifies (cookie-auth rollout, secret rotation,
+      // a dev restart) must not send the browser to /home/, or the gate
+      // bounces it straight back here and the form never stays up. Sign-in
+      // can store a new blob while this probe is still in flight; a 401
+      // from the old request must not clear that replacement, or /home/
+      // reads an empty key and bounces back here with a valid cookie.
+      try {
+        const sessionRaw = localStorage.getItem('omnia.session');
+        const session = JSON.parse(sessionRaw || 'null');
+        if (session && session.tenant === 'emotiv' && session.expiresAt > Date.now()) {
+          fetch('/home/', {
+            cache: 'no-store',
+            redirect: 'manual',
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+          }).then((probe) => {
+            if (localStorage.getItem('omnia.session') !== sessionRaw) return;
+            if (probe.ok) {
+              resumeSessionRedirect();
+              return;
+            }
+            if (probe.status === 401 || probe.type === 'opaqueredirect') {
+              localStorage.removeItem('omnia.session');
+            }
+          }).catch(() => {});
+        }
+      } catch {}
     })();
   </script>
 </body>

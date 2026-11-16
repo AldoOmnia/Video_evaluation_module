@@ -751,7 +751,7 @@ curl -H "x-api-key: <span class="var">&lt;ROTATED_API_KEY&gt;</span>" https://<s
     let SESSION = null;
     try {
       SESSION = JSON.parse(localStorage.getItem('omnia.session') || 'null');
-      if (!SESSION || SESSION.tenant !== 'comer' || SESSION.expiresAt <= Date.now()) window.location.replace('/login');
+      if (!SESSION || SESSION.tenant !== 'emotiv' || SESSION.expiresAt <= Date.now()) window.location.replace('/login');
     } catch { window.location.replace('/login'); }
 
     // esc() comes from assets/platform.js.

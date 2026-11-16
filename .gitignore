@@ -47,6 +47,8 @@ Thumbs.db
 *.MP4
 # …but DO ship the small web POV clip (case-insensitive FS makes *.MP4 match it).
 !eval-lab/public/assets/phase8_pov.mp4
+# Station replay streams the web copies of the glasses recordings (720x960).
+!eval-lab/public/assets/emotiv/clips/*.mp4
 
 # 3DGS reconstruction working files + raw 360 captures (large, local-only).
 /reconstruction/
