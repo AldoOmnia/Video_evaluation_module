@@ -1,54 +1,29 @@
 /**
- * Tenant-scoped login for the white-labelled enterprise platform.
+ * Sign-in for the Comer portal.
  *
- * This branch is `platform-comer`, so the only tenant configured here is
- * `comer`. Other clients live on their own branches with their own
- * tenant config; the same shape is expected (id, label, users[]).
- *
- * Security note (placeholder build):
- *   - Credentials are bcrypt-less plain comparisons against a hardcoded
- *     map. ROTATE TO A REAL IDP (Auth0/Okta/Workforce) BEFORE PRODUCTION.
- *   - The token issued here is a simple HMAC over username+exp; it is
- *     stored in localStorage on the client and accepted by /api/auth/session.
- *   - There is no CSRF protection because we don't use cookies.
- *
- * The lab UI gates itself by checking localStorage.session.expiresAt; the
- * server can optionally verify the token via /api/auth/session if a route
- * ever moves to real session-based protection.
+ * The account is the same one the Emotiv portal uses, and it is not in
+ * source. Set EMOTIV_AUTH_EMAIL and EMOTIV_AUTH_PASSWORD_HASH
+ * (scrypt$N$r$p$salt$hash, base64url). With either missing, login stays
+ * closed. The token issued here is an HMAC over tenant+username+exp, stored
+ * in localStorage and accepted by /api/auth/session.
  */
 import { Router, type NextFunction, type Request, type Response } from "express";
 import { z } from "zod";
-import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 
 import { config } from "../config.js";
 
-interface TenantUser {
-  username: string;
-  password: string;
-  display: string;
-  role: "operator" | "supervisor" | "admin";
-}
-interface Tenant {
-  id: string;
-  label: string;
-  users: TenantUser[];
-}
+const SCRYPT_N = 16384;
+const SCRYPT_R = 8;
+const SCRYPT_P = 1;
+const KEYLEN = 32;
 
-/** Per-branch tenant config. `platform-comer` only ships Comer. */
-const TENANTS: Record<string, Tenant> = {
-  comer: {
-    id: "comer",
-    label: "Comer Industries",
-    users: [
-      {
-        username: "admin@comer.com",
-        password: "rockford123",
-        display: "Comer Admin",
-        role: "admin",
-      },
-    ],
-  },
-};
+interface Account {
+  username: string;
+  passwordHash: string;
+  display: string;
+  role: "admin";
+}
 
 /** Long-lived secret used to sign tokens. Falls back to a random per-boot
  *  secret so dev mode works without env config; production should set
@@ -63,30 +38,42 @@ const LoginBody = z.object({
   password: z.string().min(1).max(200),
 });
 
+/** One throwaway hash so a wrong email costs the same as a wrong password. */
+const DUMMY_HASH = hashPassword(randomBytes(16).toString("hex"));
+
 export const authRouter = Router();
 
 authRouter.post("/login", (req, res) => {
   const body = LoginBody.parse(req.body);
-  const tenant = TENANTS[body.tenant];
-  if (!tenant) return res.status(401).json({ ok: false, error: "Unknown tenant" });
-  const user = tenant.users.find(
-    (u) => u.username.toLowerCase() === body.username.toLowerCase(),
-  );
-  // Constant-time-ish compare on the password regardless of user-found to
-  // avoid a tiny username-enumeration timing oracle.
-  const ok = user ? safeEq(user.password, body.password) : safeEq("x".repeat(8), body.password);
+  if (body.tenant !== "comer") {
+    res.status(401).json({ ok: false, error: "Invalid email or password" });
+    return;
+  }
+  const account = comerAccount();
+  if (!account) {
+    res.status(503).json({ ok: false, error: "Sign-in is not configured" });
+    return;
+  }
+  const user = account.username === body.username.trim().toLowerCase() ? account : null;
+  let ok = false;
+  try {
+    ok = checkPassword(body.password, user ? user.passwordHash : DUMMY_HASH);
+  } catch {
+    ok = false;
+  }
   if (!user || !ok) {
-    return res.status(401).json({ ok: false, error: "Invalid email or password" });
+    res.status(401).json({ ok: false, error: "Invalid email or password" });
+    return;
   }
   const exp = Math.floor(Date.now() / 1000) + TOKEN_TTL_SEC;
-  const payload = `${tenant.id}|${user.username}|${exp}`;
+  const payload = `comer|${user.username}|${exp}`;
   const sig = sign(payload);
   res.json({
     ok: true,
     token: `${payload}.${sig}`,
     ttlSec: TOKEN_TTL_SEC,
     user: { username: user.username, display: user.display, role: user.role },
-    tenant: { id: tenant.id, label: tenant.label },
+    tenant: { id: "comer", label: "Comer Industries" },
   });
 });
 
@@ -145,15 +132,42 @@ function verify(
   return { tenant, username, exp };
 }
 
-function safeEq(a: string, b: string): boolean {
-  const ba = Buffer.from(a);
-  const bb = Buffer.from(b);
-  if (ba.length !== bb.length) {
-    // Still touch both buffers to keep timing roughly constant.
-    timingSafeEqual(ba, ba);
-    return false;
-  }
-  return timingSafeEqual(ba, bb);
+function comerAccount(): Account | null {
+  const username = (process.env.EMOTIV_AUTH_EMAIL || "").trim().toLowerCase();
+  const passwordHash = (process.env.EMOTIV_AUTH_PASSWORD_HASH || "").trim();
+  if (!username || !passwordHash || !hashLooksValid(passwordHash)) return null;
+  const display = (process.env.EMOTIV_AUTH_NAME || "").trim() || username;
+  return { username, passwordHash, display, role: "admin" };
+}
+
+function hashPassword(password: string): string {
+  const salt = randomBytes(16);
+  const hash = scryptSync(password, salt, KEYLEN, { N: SCRYPT_N, r: SCRYPT_R, p: SCRYPT_P });
+  return `scrypt$${SCRYPT_N}$${SCRYPT_R}$${SCRYPT_P}$${salt.toString("base64url")}$${hash.toString("base64url")}`;
+}
+
+function hashLooksValid(stored: string): boolean {
+  const parts = stored.split("$");
+  if (parts.length !== 6 || parts[0] !== "scrypt") return false;
+  const N = Number(parts[1]);
+  const r = Number(parts[2]);
+  const p = Number(parts[3]);
+  return Number.isInteger(N) && N > 1 && Number.isInteger(r) && r > 0 && Number.isInteger(p) && p > 0;
+}
+
+function checkPassword(password: string, stored: string): boolean {
+  if (!hashLooksValid(stored)) return false;
+  const parts = stored.split("$");
+  const salt = Buffer.from(parts[4], "base64url");
+  const expected = Buffer.from(parts[5], "base64url");
+  if (salt.length === 0 || expected.length === 0) return false;
+  const actual = scryptSync(password, salt, expected.length, {
+    N: Number(parts[1]),
+    r: Number(parts[2]),
+    p: Number(parts[3]),
+  });
+  if (actual.length !== expected.length) return false;
+  return timingSafeEqual(actual, expected);
 }
 
 // `config` is intentionally imported to keep this module wired to the

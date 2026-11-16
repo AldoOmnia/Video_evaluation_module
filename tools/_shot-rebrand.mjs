@@ -17,13 +17,19 @@ const browser = await puppeteer.launch({
 const page = await browser.newPage();
 await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
 
-// A real sign-in: the session gate wants a server-issued token, and the
-// placeholder build prints its own demo credentials on the login card.
+// A real sign-in. The password is not in this script.
 await page.goto(base + "/login", { waitUntil: "domcontentloaded" });
 await new Promise((r) => setTimeout(r, 1500));
 await page.screenshot({ path: join(root, "tools/_rebrand-login.png") });
-await page.type('input[type="email"]', "admin@comer.com");
-await page.type('input[type="password"]', "rockford123");
+const email = process.env.EMOTIV_AUTH_EMAIL || "";
+const password = process.env.COMER_SIGNIN_PASSWORD || "";
+if (!email || !password) {
+  console.error("Set EMOTIV_AUTH_EMAIL and COMER_SIGNIN_PASSWORD to shoot the signed-in pages.");
+  await browser.close();
+  process.exit(2);
+}
+await page.type('input[type="email"]', email);
+await page.type('input[type="password"]', password);
 await page.click('button[type="submit"]');
 await new Promise((r) => setTimeout(r, 3000));
 await page.evaluate(() => localStorage.setItem("omnia.introSeen", "1"));

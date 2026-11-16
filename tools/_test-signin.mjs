@@ -37,11 +37,18 @@ await page.goto(base + "/login", { waitUntil: "domcontentloaded" });
 await new Promise((r) => setTimeout(r, 1500));
 
 page.on("request", (r) => {
-  if (r.url().includes("/api/auth/login")) problems.push(`POST sent: ${r.postData()}`);
+  if (r.url().includes("/api/auth/login")) problems.push("POST sent: /api/auth/login");
 });
 
-await page.type("#username", "admin@comel.com".replace("comel", "comer"));
-await page.type("#password", "rockford123");
+const email = process.env.EMOTIV_AUTH_EMAIL || "";
+const password = process.env.COMER_SIGNIN_PASSWORD || "";
+if (!email || !password) {
+  console.error("Set EMOTIV_AUTH_EMAIL and COMER_SIGNIN_PASSWORD. The password is not stored in this script.");
+  await browser.close();
+  process.exit(2);
+}
+await page.type("#username", email);
+await page.type("#password", password);
 const filled = await page.evaluate(() => ({
   u: document.querySelector("#username")?.value,
   p: document.querySelector("#password")?.value ? "set" : "empty",

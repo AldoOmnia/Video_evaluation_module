@@ -85,9 +85,8 @@ Expected response:
 If `stubMode: true` you forgot to paste the Anthropic key — fix it in
 the Render service's Environment tab and redeploy.
 
-Open `https://comer-platform.onrender.com/login` and sign in with
-`admin@comer.com` / `rockford123` to confirm the full flow works
-before cutting DNS over.
+Open `https://comer-platform.onrender.com/login` and sign in with the
+same account as the Emotiv portal. The password is not printed on the page.
 
 ---
 
@@ -143,7 +142,7 @@ curl https://comer.daedalusiq.com/health
 Then in a browser:
 
 1. `https://comer.daedalusiq.com/login`
-2. Sign in with `admin@comer.com` / `rockford123`
+2. Sign in with the same account as the Emotiv portal
 3. Generate a simulated session in the eval lab
 4. Click **Run · LIVE LLM** and confirm a real Claude call comes back
 
@@ -152,17 +151,12 @@ verdict, you're done.
 
 ---
 
-## 6. Rotating credentials / disabling demo creds
+## 6. Sign-in account
 
-Before showing this to the actual client, do at least these two things:
-
-1. **Remove the demo credentials hint** from `eval-lab/public/login.html`
-   (the `.creds-hint` block). It's intentionally visible right now
-   because the build is a placeholder.
-2. **Replace the hardcoded credentials** in `backend/src/routes/auth.ts`.
-   For real customer use, plumb in an actual identity provider
-   (Auth0/Okta/Workforce) — there's a `TODO` block at the top of that
-   file calling this out.
+Comer uses the same account as the Emotiv portal. Set `EMOTIV_AUTH_EMAIL`,
+`EMOTIV_AUTH_NAME`, and `EMOTIV_AUTH_PASSWORD_HASH` on the service. The hash
+is `scrypt$N$r$p$salt$hash`. With either the email or the hash missing, login
+stays closed. The password is not in source and not on the sign-in page.
 
 ---
 
