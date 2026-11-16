@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="/lab/assets/platform.css?v=2" />
   <link rel="stylesheet" href="/lab/assets/emotiv-portal.css?v=2" />
   <script src="/lab/assets/platform.js?v=2"></script>
-  <script src="/lab/assets/emotiv-hud.js?v=7"></script>
+  <script src="/lab/assets/emotiv-hud.js?v=8"></script>
   <!-- The connector models are drawn with three.js, loaded the way the Comer
        twin page loads it. -->
   <script type="importmap">
@@ -25,14 +25,25 @@
        a left rail, after the Comer digital twin page. */
     .rp {
       /* The picture is 3:4 and takes the full height, so its column is as wide
-         as that height allows and the readouts get the rest. */
+         as that height allows and the readouts get the rest. Dragging a
+         splitter writes a pixel width over these, the way the Comer twin does. */
+      --rail-w: 256px;
       --pov-h: calc(100vh - 44px - 28px - 46px);
       --pov-w: clamp(300px, calc(var(--pov-h) * 0.75), 48vw);
+      position: relative;
       flex: 1; min-height: 0;
       display: grid;
-      grid-template-columns: 256px var(--pov-w) minmax(0, 1fr);
+      grid-template-columns: var(--rail-w) var(--pov-w) minmax(0, 1fr);
       font-family: var(--sans);
     }
+    .rp > .rsz {
+      position: absolute; z-index: 40; top: 0; bottom: 0; width: 8px; margin-left: -4px;
+      background: transparent; cursor: col-resize; touch-action: none;
+    }
+    .rp > .rsz[data-rsz="rail"] { left: var(--rail-w); }
+    .rp > .rsz[data-rsz="pov"] { left: calc(var(--rail-w) + var(--pov-w)); }
+    .rp > .rsz:hover, .rp > .rsz.active { background: color-mix(in srgb, var(--primary) 35%, transparent); }
+    .rp.sizing video, .rp.sizing canvas { pointer-events: none; }
     .rp-col { min-height: 0; min-width: 0; display: flex; flex-direction: column; border-right: 1px solid var(--line); }
     .rp-col:last-child { border-right: 0; }
     .rp-head {
@@ -87,10 +98,11 @@
     .rp-step .n { font-family: var(--mono); font-size: 10px; width: 18px; flex-shrink: 0; text-align: right; padding-top: 1px; }
     .rp-step.on { color: var(--ink-1); }
     .rp-step.on .n { color: var(--primary); }
-    .rp-model { padding: 1px 12px; display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: 8px; align-items: center; }
-    .rp-model .lamp { width: 6px; height: 6px; border-radius: 50%; background: var(--line-2); }
+    .rp-model { padding: 3px 12px; display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: 8px; align-items: start; }
+    .rp-model .lamp { width: 6px; height: 6px; border-radius: 50%; background: var(--line-2); margin-top: 4px; }
     .rp-model.on .lamp { background: var(--primary); box-shadow: 0 0 6px var(--primary-glow); }
     .rp-model .role { font-size: 11px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rp-model .mid { font-size: 10px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .rp-model.on .role { color: var(--ink-1); }
     .rp-note { margin: 5px 12px 8px; font-size: 10.5px; color: var(--ink-3); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
     .rp-note b { color: var(--ink-2); font-weight: 500; }
@@ -328,6 +340,7 @@
     @media (max-width: 1100px) {
       html, body { height: auto; min-height: 100vh; overflow: auto; }
       .rp { display: block; flex: none; }
+      .rp > .rsz { display: none; }
       .rp-col { display: block; border-right: 0; border-bottom: 1px solid var(--line); }
       .rp-scroll { overflow: visible; }
       .rp-stage { height: min(78vh, 128vw); flex: none; }
@@ -457,6 +470,9 @@
         </div>
       </div>
     </section>
+
+    <div class="rsz" data-rsz="rail" role="separator" aria-orientation="vertical" title="Drag to resize" aria-label="Resize recordings"></div>
+    <div class="rsz" data-rsz="pov" role="separator" aria-orientation="vertical" title="Drag to resize" aria-label="Resize the glasses picture"></div>
   </div>
 
   <video id="grab" muted playsinline preload="auto" hidden></video>
@@ -466,6 +482,67 @@
       const s = JSON.parse(localStorage.getItem('omnia.session') || 'null');
       if (!s || s.tenant !== 'emotiv' || s.expiresAt <= Date.now()) location.replace('/login');
     } catch { location.replace('/login'); }
+
+    // Drag the boundaries between the recordings, the picture, and the
+    // readouts. Sizes stay in this browser, same as the Comer twin.
+    (function setupColumns() {
+      const rp = document.querySelector('.rp');
+      if (!rp) return;
+      const LS = 'emotivReplay.layout';
+      let saved = {};
+      try { saved = JSON.parse(localStorage.getItem(LS) || '{}'); } catch {}
+      const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+      const px = (n) => Math.round(n) + 'px';
+      function fit() {
+        const w = rp.clientWidth;
+        if (!w) return;
+        if (saved.rail) {
+          rp.style.setProperty('--rail-w', px(clamp(parseFloat(saved.rail), 180, Math.min(420, w - 520))));
+        }
+        if (saved.pov) {
+          const rail = parseFloat(getComputedStyle(rp).getPropertyValue('--rail-w')) || 256;
+          rp.style.setProperty('--pov-w', px(clamp(parseFloat(saved.pov), 240, Math.max(240, w - rail - 220))));
+        }
+      }
+      fit();
+      window.addEventListener('resize', fit);
+
+      rp.querySelectorAll('.rsz').forEach((handle) => {
+        let active = false;
+        handle.addEventListener('pointerdown', (e) => {
+          active = true;
+          handle.classList.add('active');
+          rp.classList.add('sizing');
+          try { handle.setPointerCapture(e.pointerId); } catch {}
+          e.preventDefault();
+        });
+        const end = (e) => {
+          if (!active) return;
+          active = false;
+          handle.classList.remove('active');
+          rp.classList.remove('sizing');
+          try { handle.releasePointerCapture(e.pointerId); } catch {}
+          try { localStorage.setItem(LS, JSON.stringify(saved)); } catch {}
+          window.dispatchEvent(new Event('resize'));
+        };
+        handle.addEventListener('pointerup', end);
+        handle.addEventListener('pointercancel', end);
+        handle.addEventListener('pointermove', (e) => {
+          if (!active) return;
+          const box = rp.getBoundingClientRect();
+          const railNow = rp.children[0].getBoundingClientRect().width;
+          if (handle.dataset.rsz === 'rail') {
+            const next = clamp(e.clientX - box.left, 180, Math.min(420, box.width - 520));
+            saved.rail = px(next);
+            rp.style.setProperty('--rail-w', saved.rail);
+          } else {
+            const next = clamp(e.clientX - box.left - railNow, 240, Math.max(240, box.width - railNow - 220));
+            saved.pov = px(next);
+            rp.style.setProperty('--pov-w', saved.pov);
+          }
+        });
+      });
+    })();
 
     const ASSETS = '/lab/assets/emotiv';
     const $ = (id) => document.getElementById(id);
@@ -568,7 +645,11 @@
       }
       S.trace = trace;
       const has = Boolean(trace);
-      for (const id of ['cardCount', 'cardPart', 'cardRead', 'cardOut']) $(id).hidden = !has;
+      const corner = Boolean(trace?.lane);
+      $('cardCount').hidden = !has || corner;
+      $('cardPart').hidden = !has || corner;
+      $('cardRead').hidden = !has || corner;
+      $('cardOut').hidden = !has;
       $('pending').hidden = has;
       $('hud').hidden = !has || !$('layHud').checked;
       if (!has) {
@@ -671,7 +752,11 @@
       const zone = S.module?.zoneId;
       const r = trace.routing || {};
       const first = (list) => (list || [])[0]?.id || null;
-      const rows = [
+      const rows = (trace.routed?.length
+        ? trace.routed.map((m) => ({ key: m.key || m.slot, role: m.role, id: m.id, status: m.status }))
+        : trace.lane && trace.reader
+        ? [{ key: trace.lane, role: trace.reader.role, id: trace.reader.modelId }]
+        : [
         { key: 'action', role: 'What the hands are doing', id: trace.cosmos?.enabled ? trace.cosmos.model : null },
         { key: 'count', role: 'Which openings are fitted', id: first(r.portFill?.[zone]) },
         { key: 'seat', role: 'Whether each one is pushed home', id: first(r.seating?.[zone]) },
@@ -679,14 +764,16 @@
         { key: 'row', role: 'Where the row is', id: first(r.rowLocate?.[zone]) },
         { key: 'identity', role: 'Which connector is held up', id: (r.identity?.['*'] || []).map((m) => m.id).join(' then ') || null },
         { key: 'scene', role: 'What is in view', id: trace.models?.vlm?.value || null },
-      ].filter((m) => m.id);
+      ]).filter((m) => m.id);
       const host = $('modelList');
       host.textContent = '';
       for (const m of rows) {
         const row = el('div', 'rp-model');
         row.dataset.key = m.key;
-        row.title = `${m.role} · ${m.id}`;
-        row.append(el('i', 'lamp'), el('div', 'role', m.role));
+        row.title = [m.role, m.id, m.status].filter(Boolean).join(' · ');
+        const text = el('div');
+        text.append(el('div', 'role', m.role), el('div', 'mid', m.id));
+        row.append(el('i', 'lamp'), text);
         host.append(row);
       }
     }
@@ -703,16 +790,25 @@
         ['run', new Date(trace.generatedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })],
         ['polls', `${trace.polls.length}, ${(trace.cadence.pollMs / 1000).toFixed(1)} s apart`],
         ['seat reads', sr ? (sr.crop ? 'on' : 'off') : null],
-        ['panel count', trace.scripted ? `set by ${trace.scripted.setBy.split(',')[0]}` : 'the count model'],
-        ['step advance', trace.advances.length ? trace.advances.map((a) => secs(a.t)).join(', ') : 'not posted'],
+        ['panel count', trace.lane ? null : (trace.scripted ? `set by ${trace.scripted.setBy.split(',')[0]}` : 'the count model')],
+        ['card', trace.lane ? trace.note : null],
+        ['step advance', trace.lane ? null : (trace.advances.length ? trace.advances.map((a) => secs(a.t)).join(', ') : 'not posted')],
         ['part numbers', !n ? null : n.error ? 'failed' : n.linesMatched ? 'every line tied' : 'a line not tied'],
       ]);
       $('runKv').title = [`stack ${trace.source.branch} ${trace.source.commit}`, `whole view every ${(trace.cadence.uplinkMs / 1000).toFixed(0)} s`,
         'no line feed; step set by hand', check ? `part numbers: ${check}` : null].filter(Boolean).join(' · ');
       const note = $('runNote');
       const whole = ['One pass of this recording through the stack at its own speed. The models are hosted and the timing is real, so a second pass can read a count a poll earlier or later.'];
-      note.textContent = 'One pass through the stack at its own speed.';
-      if (trace.scripted) {
+      note.textContent = trace.lane
+        ? 'One pass of this recording through the reader the glasses use for this step.'
+        : 'One pass through the stack at its own speed.';
+      if (trace.lane) {
+        note.title = [`${trace.reader?.role || ''} · ${trace.reader?.modelId || ''}`, trace.note].filter(Boolean).join('\n');
+      }
+      if (trace.cleared?.setBy === 'hand') {
+        note.textContent = `The card drops at ${secs(trace.cleared.t)}, set by hand from the recording: the rosebud is clipped in.`;
+      }
+      if (!trace.lane && trace.scripted) {
         const stackEnd = [...trace.polls].reverse().find((p) => p.answer?.module?.fillStack?.fitted != null)?.answer.module.fillStack;
         const ended = stackEnd ? `${stackEnd.fitted} of ${stackEnd.total}` : 'no count';
         const seats = trace.scripted.seats || [];
@@ -733,7 +829,7 @@
             + `${when} Which ${many ? 'ones' : 'one'} and when were set by hand as well. The seat model ${stackNamed ? 'named a connector on some polls of' : 'named none on'} this pass.`);
         }
       }
-      note.title = whole.join('\n\n');
+      if (!trace.lane) note.title = whole.join('\n\n');
     }
 
     function renderTicks(trace) {
@@ -753,6 +849,7 @@
         if (now && !up) at(f.t, 'warn', `${f.banner.kicker} · ${secs(f.t)}`);
         up = now;
       }
+      if (trace.cleared) at(trace.cleared.t, 'home', `clipped in · set by hand · ${secs(trace.cleared.t)}`);
       for (const u of trace.scripted?.seats || []) {
         at(u.raisedT, 'warn', `${u.id} not home · ${secs(u.raisedT)}`);
         if (u.homeT != null) at(u.homeT, 'home', `${u.id} pushed home · ${secs(u.homeT)}`);
@@ -1143,10 +1240,10 @@
       txt.title = '';
       tag.textContent = '';
       cv.title = '';
-      if (!poll) {
+      if (!poll || S.trace?.lane) {
         readWant = null;
         ctx.clearRect(0, 0, cv.width, cv.height);
-        txt.textContent = 'No answer yet.';
+        txt.textContent = !poll ? 'No answer yet.' : '';
         return;
       }
       const view = readView(poll);
@@ -1320,10 +1417,27 @@
         add('poll', poll?.error ? `failed: ${poll.error}` : 'No answer yet.', null, true);
       } else {
         const act = a.action;
-        if (act?.className) {
+        if (S.trace.lane === 'caliper' && a.caliper) {
+          lit.add('caliper');
+          const c = a.caliper;
+          add('caliper', c.confirmed ? 'turned round' : (c.verdict || c.why || 'no read'),
+            c.confirmed ? 'the card is up' : 'the card stays down', !c.confirmed);
+        } else if (S.trace.lane === 'bolt' && a.bolt) {
+          lit.add('bolt');
+          const b = a.bolt;
+          add('bolt', b.confirmed ? 'wrong bolt in the hand' : (b.verdict || b.why || 'no read'),
+            [b.className, b.hand ? `hand ${b.hand}` : null, b.confirmed ? 'the card is up' : 'the card stays down'].filter(Boolean).join(' · '),
+            !b.confirmed);
+        } else if (S.trace.lane === 'rosebud' && a.rosebud) {
+          lit.add('rosebud');
+          const r = a.rosebud;
+          add('rosebud', r.home ? 'clipped in' : (r.detail || 'no rosebud warning'),
+            r.home ? 'set by hand from the recording' : (r.tags?.length ? `tags ${r.tags.join(', ')}` : 'no tag in this frame'),
+            !r.detail && !r.home);
+        } else if (act?.className) {
           lit.add('action');
           add('action', act.className, `${S.trace.cosmos?.model || ''} · over ${act.frames} frames`);
-        } else add('action', 'no read yet', S.trace.cosmos?.model || '', true);
+        } else if (!S.trace.lane) add('action', 'no read yet', S.trace.cosmos?.model || '', true);
 
         // The stack's own count, also when the panel's is set by hand.
         const scripted = Boolean(a.module?.fill?.scripted);

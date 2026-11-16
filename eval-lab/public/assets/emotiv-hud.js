@@ -213,6 +213,9 @@
   }
   const shownConfidence = (c) => (c?.rawConfidence ?? c?.confidence ?? 0);
   function nextAccusation(held, a, nowMs) {
+    // A rosebud the recording shows clipped in. The passenger latch holds
+    // while the tags are covered; this poll is that clear.
+    if (a?.rosebud?.home) return null;
     const raised = actionableWarning(a);
     if (raised) {
       const same = held && held.warning.id === raised.id && held.warning.hud?.label === raised.hud?.label;
