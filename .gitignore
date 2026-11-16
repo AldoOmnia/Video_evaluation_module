@@ -47,6 +47,9 @@ Thumbs.db
 *.MP4
 # …but DO ship the small web POV clip (case-insensitive FS makes *.MP4 match it).
 !eval-lab/public/assets/phase8_pov.mp4
+# …and the clip library of the glasses preview (built by
+# tools/build-glasses-library.mjs, about 3 MB a clip).
+!eval-lab/public/assets/glasses-clips/*.mp4
 
 # 3DGS reconstruction working files + raw 360 captures (large, local-only).
 /reconstruction/

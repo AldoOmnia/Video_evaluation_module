@@ -198,15 +198,26 @@ const SCOPE_MIN_REFS = 2;
  * contrast. On device this narrowing is the difference between deterministic
  * and coin-flip identification for the look-alike pairs.
  */
-export function referenceParts(opts: { scopeSku?: string; onePerSku?: boolean } = {}): GeminiPart[] {
+function scopedRefs(scopeSku?: string): RefEntry[] {
   const all = referenceLibrary();
-  const scope = opts.scopeSku?.trim().toUpperCase();
-  let refs = all;
+  const scope = scopeSku?.trim().toUpperCase();
   if (scope && SCOPE_WITHHOLD[scope]) {
     const drop = new Set(SCOPE_WITHHOLD[scope]);
     const narrowed = all.filter((r) => !drop.has(r.sku.toUpperCase()));
-    if (narrowed.length >= SCOPE_MIN_REFS && narrowed.length < all.length) refs = narrowed;
+    if (narrowed.length >= SCOPE_MIN_REFS && narrowed.length < all.length) return narrowed;
   }
+  return all;
+}
+
+/** The SKUs a call scoped this way can answer with. A part outside this set
+ *  cannot be named however clearly it is shown, so anything that lists what a
+ *  step can catch has to check against it. */
+export function vocabularySkus(scopeSku?: string): Set<string> {
+  return new Set(scopedRefs(scopeSku).map((r) => r.sku.toUpperCase()));
+}
+
+export function referenceParts(opts: { scopeSku?: string; onePerSku?: boolean } = {}): GeminiPart[] {
+  let refs = scopedRefs(opts.scopeSku);
   // One canonical pose per SKU, as the glasses' dedupeRefsBySku does: uploading
   // every angle is the single biggest driver of call latency. Worth it when the
   // question is only "which part is this" — the images list puts the

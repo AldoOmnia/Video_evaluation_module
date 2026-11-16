@@ -1,0 +1,368 @@
+{
+  "_source": {
+    "repo": "AldoOmnia/comer-rokid-demo",
+    "ref": "origin/vision-eval",
+    "commit": "da231227eedc173652d0e77c76bce04920134824",
+    "files": {
+      "procedure": {
+        "path": "backend/data/procedures/pinion-guide.json",
+        "lastChanged": "8b2ea1c75063a5fa4bbe79cb61120299dca3b200 2026-09-14"
+      },
+      "wrongPart": {
+        "path": "glasses-app/app/src/main/java/com/omnia/comer/memory/subscribers/WrongPartGuard.kt",
+        "lastChanged": "8b2ea1c75063a5fa4bbe79cb61120299dca3b200 2026-09-14"
+      },
+      "sequence": {
+        "path": "glasses-app/app/src/main/java/com/omnia/comer/memory/subscribers/SequenceGuard.kt",
+        "lastChanged": "649be865f15748dfabf90beb8a653a898cd461cd 2026-06-10"
+      },
+      "memory": {
+        "path": "glasses-app/app/src/main/java/com/omnia/comer/memory/MemoryLayerConfig.kt",
+        "lastChanged": "6ab54091396d94716c867c8bf2dd40c40f9a8865 2026-07-29"
+      },
+      "observe": {
+        "path": "backend/routes/vlmObserve.js",
+        "lastChanged": "8b2ea1c75063a5fa4bbe79cb61120299dca3b200 2026-09-14"
+      }
+    },
+    "copiedOn": "2026-11-15",
+    "by": "tools/sync-glasses-guards.mjs"
+  },
+  "procedure": {
+    "id": "pinion-guide",
+    "title": "Pinion cover procedure (ST.100)"
+  },
+  "steps": [
+    {
+      "n": 1,
+      "title": "4900.12001 P100 BEARING CUP ON COVER",
+      "detail": "INSERT PUNCH FIXTURE cod.3187.111.100.09. COLLECT BIG BEARING CUP cod.248114A1 AND FIX ON PUNCH FIXTURE. SET COVER ASSY ON LH PALLET. PRESS IT.",
+      "lookFor": "INSERT PUNCH FIXTURE cod.3187.111.100.09. COLLECT BIG BEARING CUP cod.248114A1 AND FIX ON PUNCH FIXTURE. SET COVER ASSY ON LH PALLET.…",
+      "parts": [
+        {
+          "sku": "248114A1",
+          "description": "BEARING, CUP, INBOARD BEVEL PINION (BIG BEARING CUP) — cod.248114A1"
+        }
+      ],
+      "decoys": [
+        {
+          "sku": "248114A1-FLIP",
+          "decoyFor": "248114A1",
+          "headline": "WRONG ORIENTATION",
+          "action": "Flip it — TIMKEN FACE UP / RACEWAY DOWN",
+          "description": "BEARING CUP 248114A1 — PLACED UPSIDE-DOWN / INVERTED (WRONG ORIENTATION)"
+        }
+      ],
+      "pickSequence": []
+    },
+    {
+      "n": 2,
+      "title": "4900.12001 P100 BEARING CUP ON COVER 2",
+      "detail": "COLLECT SMALL BEARING CUP Cod. 191440A1 AND FIX ON COVER. MAKE SURE THE DRAWER IS OUT. PRESS IT. MOVE APART THE COVER PINION.",
+      "lookFor": "COLLECT SMALL BEARING CUP Cod. 191440A1 AND FIX ON COVER. MAKE SURE THE DRAWER IS OUT. PRESS IT. MOVE APART THE COVER PINION.",
+      "parts": [
+        {
+          "sku": "191440A1",
+          "description": "BEARING, CUP, 140.0048 OD X 28.4734 W"
+        }
+      ],
+      "decoys": [
+        {
+          "sku": "191440A1-FLIP",
+          "decoyFor": "191440A1",
+          "headline": "WRONG ORIENTATION",
+          "action": "Flip it — TIMKEN FACE DOWN / RACEWAY UP",
+          "description": "SMALL BEARING CUP 191440A1 — PLACED UPSIDE-DOWN / INVERTED (WRONG ORIENTATION)"
+        }
+      ],
+      "pickSequence": []
+    },
+    {
+      "n": 3,
+      "title": "P100 FEELER GAUGE SNAP RING",
+      "detail": "CHECK WITH FEELER GAUGE UNDER THE SNAP RING IN THREE DIFFERENT POSITION 0/120/270 DEGREES,",
+      "lookFor": "CHECK WITH FEELER GAUGE UNDER THE SNAP RING IN THREE DIFFERENT POSITION 0/120/270 DEGREES,",
+      "parts": [],
+      "decoys": [],
+      "pickSequence": []
+    },
+    {
+      "n": 4,
+      "title": "4900.12001 P100 INF BEARING ON PINION",
+      "detail": "OBTAIN PINION SHAFT cod.90392542 WITH BIG BEARING CONE cod.248118A1 AND SET INTO THE PINION PRESS PALLET. COLLECT PUNCH cod.3187.111.100.07 FIXTURE AND PRESS IT.",
+      "lookFor": "OBTAIN PINION SHAFT cod.90392542 WITH BIG BEARING CONE cod.248118A1 AND SET INTO THE PINION PRESS PALLET. COLLECT PUNCH…",
+      "parts": [
+        {
+          "sku": "248118A1",
+          "description": "BEARING, CONE, INBOARD BEVEL PINION — cod.248118A1"
+        }
+      ],
+      "decoys": [
+        {
+          "sku": "248118A1-FLIP",
+          "decoyFor": "248118A1",
+          "headline": "WRONG ORIENTATION",
+          "action": "Flip it — TIMKEN FACE DOWN / ROLLERS UP",
+          "description": "BEARING CONE 248118A1 — INSTALLED UPSIDE-DOWN (WRONG ORIENTATION)"
+        }
+      ],
+      "pickSequence": []
+    },
+    {
+      "n": 5,
+      "title": "P100 FEELER GAUGE SNAP RING",
+      "detail": "CHECK WITH FEELER GAUGE UNDER THE SNAP RING IN THREE DIFFERENT POSITION 0/120/270 DEGREES,",
+      "lookFor": "CHECK WITH FEELER GAUGE UNDER THE SNAP RING IN THREE DIFFERENT POSITION 0/120/270 DEGREES,",
+      "parts": [],
+      "decoys": [],
+      "pickSequence": []
+    },
+    {
+      "n": 6,
+      "title": "4900.12001 P100 SUP BEARING ON PINION",
+      "detail": "PLACE COVER TO THE PINION SHAFT ON THE PRESS PALLET AND REMOVE HOIST SLING FROM THE COVER. PLACE BEARING CONE cod.67190R91 TO THE COVER AND PLACE DRIVER cod.3187.111.180.00 OVER. PRESS IT",
+      "lookFor": "PLACE COVER TO THE PINION SHAFT ON THE PRESS PALLET AND REMOVE HOIST SLING FROM THE COVER. PLACE BEARING CONE cod.67190R91 TO THE COVER…",
+      "parts": [
+        {
+          "sku": "67190R91",
+          "description": "BEARING, CONE, 82.5 X 36.0"
+        },
+        {
+          "sku": "3187.111.180.00",
+          "description": "DRIVER cod.3187.111.180.00"
+        }
+      ],
+      "decoys": [
+        {
+          "sku": "67190R91-FLIP",
+          "decoyFor": "67190R91",
+          "headline": "WRONG ORIENTATION",
+          "action": "Flip it — TIMKEN FACE UP / ROLLERS DOWN",
+          "description": "BEARING CONE 67190R91 — INSTALLED UPSIDE-DOWN (WRONG ORIENTATION)"
+        }
+      ],
+      "pickSequence": []
+    },
+    {
+      "n": 7,
+      "title": "4900.12001 P100 SHIM PACK",
+      "detail": "OBTAIN SPACER RETAINING THIN cod.191713A1 PLUS ONE SPACER RETAINER THICK cod.92203637 AND SNAP RING. ADD SHIMS BETWEEN THE SPACERS TO COMPLETE SHIMPACK. MEASURE ALL SHIM PACK (THIN, THICK + SHIMS) WITH MICROMETER. SET SHIM PACK OVER THE PINION SHAFT. USE THE FORK TOOL TO ASSEMBLE THE SHIM PACK",
+      "lookFor": "OBTAIN SPACER RETAINING THIN cod.191713A1 PLUS ONE SPACER RETAINER THICK cod.92203637 AND SNAP RING. ADD SHIMS BETWEEN THE SPACERS TO…",
+      "parts": [
+        {
+          "sku": "191713A1",
+          "description": "SPACER, RETAINER"
+        },
+        {
+          "sku": "92203637",
+          "description": "RING, RETAINER, THICK"
+        },
+        {
+          "sku": "191711A1",
+          "description": "SHIM, BEVEL PINION BEARING .101"
+        },
+        {
+          "sku": "191712A1",
+          "description": "SHIM, BEVEL PINION BEARING .130"
+        }
+      ],
+      "decoys": [],
+      "pickSequence": [
+        {
+          "label": "thick spacer retainer",
+          "skus": [
+            "92203637"
+          ]
+        },
+        {
+          "label": "shims",
+          "skus": [
+            "191711A1",
+            "191712A1"
+          ]
+        },
+        {
+          "label": "thin spacer retainer",
+          "skus": [
+            "191713A1"
+          ]
+        }
+      ]
+    },
+    {
+      "n": 8,
+      "title": "4900.12001 P100 RING RETAINER",
+      "detail": "ASSEMBLE RING RETAINER ONTO PINION SHAFT AND CHECK THE RIGHT ASSEMBLY. THEN PRESS IT WITH PUNCH FIXTURE 3187.111.100.27.",
+      "lookFor": "ASSEMBLE RING RETAINER ONTO PINION SHAFT AND CHECK THE RIGHT ASSEMBLY. THEN PRESS IT WITH PUNCH FIXTURE 3187.111.100.27.",
+      "parts": [
+        {
+          "sku": "92203637",
+          "description": "RING, RETAINER, THICK"
+        },
+        {
+          "sku": "3187.111.100.27",
+          "description": "PUNCH FIXTURE cod.3187.111.100.27"
+        }
+      ],
+      "decoys": [
+        {
+          "sku": "3187.111.100.28",
+          "decoyFor": null,
+          "headline": "WRONG DRIVER",
+          "action": "Put it back — step 8 uses the .27 punch",
+          "description": "DRIVER cod.3187.111.100.28 — shim-pack disassembly driver (Step 14)"
+        }
+      ],
+      "pickSequence": []
+    },
+    {
+      "n": 9,
+      "title": "4900.12001 P100 RING RETAINER CHECK",
+      "detail": "CHECK THE PRESENCE AND THE CORRECT ASSEMBLY OF RING RETAINER USING MITUTOYO MEASURING TOOL. IF THE DATA IS NOT CORRECT REMOVE SHIM FROM THE SHIM PACK",
+      "lookFor": "CHECK THE PRESENCE AND THE CORRECT ASSEMBLY OF RING RETAINER USING MITUTOYO MEASURING TOOL. IF THE DATA IS NOT CORRECT REMOVE SHIM FROM…",
+      "parts": [
+        {
+          "sku": "92203637",
+          "description": "RING, RETAINER, THICK"
+        }
+      ],
+      "decoys": [],
+      "pickSequence": []
+    },
+    {
+      "n": 10,
+      "title": "4900.12001 P100 1 FREE ROLLING",
+      "detail": "FREE ROLLING FOR 20s",
+      "lookFor": "FREE ROLLING FOR 20s",
+      "parts": [],
+      "decoys": [],
+      "pickSequence": []
+    },
+    {
+      "n": 11,
+      "title": "4900.12001 P100 SETTLE BEARING",
+      "detail": "TAKE THE DRAWER OUT. BACKPRESS TO SETTLE THE BEARING WITH PUNCH FIXTURE MOUNTED ON THE PRESS MACHINE.",
+      "lookFor": "TAKE THE DRAWER OUT. BACKPRESS TO SETTLE THE BEARING WITH PUNCH FIXTURE MOUNTED ON THE PRESS MACHINE.",
+      "parts": [],
+      "decoys": [],
+      "pickSequence": []
+    },
+    {
+      "n": 12,
+      "title": "P100 FEELER GAUGE SNAP RING",
+      "detail": "CHECK WITH FEELER GAUGE UNDER THE SNAP RING IN THREE DIFFERENT POSITION 0/120/270 DEGREES,",
+      "lookFor": "CHECK WITH FEELER GAUGE UNDER THE SNAP RING IN THREE DIFFERENT POSITION 0/120/270 DEGREES,",
+      "parts": [],
+      "decoys": [],
+      "pickSequence": []
+    },
+    {
+      "n": 13,
+      "title": "4900.12001 P100 2 FREE ROLLING",
+      "detail": "FREE ROLLING FOR 20s",
+      "lookFor": "FREE ROLLING FOR 20s",
+      "parts": [],
+      "decoys": [],
+      "pickSequence": []
+    },
+    {
+      "n": 14,
+      "title": "4900.12001 P100 ROLLING TORQUE",
+      "detail": "CHECK ROLLING TORQUE (5.6-20.3Nm) USING AUTMATIC TOOL. IF ROLLING TORQUE FAILS RE SHIM THE PINION SHAFT AND SOBSITUTE THE RING. TO DISASSEMBLE THE SHIM PACK PUT THE MACHINE ON MANUAL MODE, COLLECT DRIVER 3187.111.100.28. PRESS IT. THEN SWITH ON AUTOMATIC MODE.",
+      "lookFor": "CHECK ROLLING TORQUE (5.6-20.3Nm) USING AUTMATIC TOOL. IF ROLLING TORQUE FAILS RE SHIM THE PINION SHAFT AND SOBSITUTE THE RING. TO…",
+      "parts": [
+        {
+          "sku": "3187.111.100.28",
+          "description": "DRIVER cod.3187.111.100.28 (shim-pack disassembly, MANUAL mode)"
+        }
+      ],
+      "decoys": [
+        {
+          "sku": "3187.111.100.27",
+          "decoyFor": null,
+          "headline": "WRONG DRIVER",
+          "action": "Put it back — step 14 uses the .28 driver",
+          "description": "PUNCH FIXTURE / DRIVER cod.3187.111.100.27 — ring-retainer press (Step 8)"
+        }
+      ],
+      "pickSequence": []
+    },
+    {
+      "n": 15,
+      "title": "4900.12001 P100 LOCTITE 242",
+      "detail": "ADD LOCTITE 242 ON 2x SCREWS",
+      "lookFor": "ADD LOCTITE 242 ON 2x SCREWS",
+      "parts": [],
+      "decoys": [],
+      "pickSequence": []
+    },
+    {
+      "n": 16,
+      "title": "4900.11003 P100 SCREW 2 BOLTS",
+      "detail": "ASSEMBLE RING SNAP RETAINER Cod. 92203640. ASSEMBLE 2 SCREWS cod.14441231 ON RING, SNAP RETAINER AND TIGHTEN THEM USING AUTOMATIC SCREWDRIVER",
+      "lookFor": "ASSEMBLE RING SNAP RETAINER Cod. 92203640. ASSEMBLE 2 SCREWS cod.14441231 ON RING, SNAP RETAINER AND TIGHTEN THEM USING AUTOMATIC…",
+      "parts": [
+        {
+          "sku": "14441231",
+          "description": "SCREW, HEX SOC, M6x12 FULL 10.9 Z"
+        },
+        {
+          "sku": "92203640",
+          "description": "RING, SNAP RETAINER"
+        }
+      ],
+      "decoys": [],
+      "pickSequence": []
+    },
+    {
+      "n": 17,
+      "title": "4900.11001 P100 DOWEL PINS",
+      "detail": "ASSEMBLE 2x DOWEL PINS cod.837-12030 USING FIXTURE cod. 111.001.00",
+      "lookFor": "ASSEMBLE 2x DOWEL PINS cod.837-12030 USING FIXTURE cod. 111.001.00",
+      "parts": [
+        {
+          "sku": "837-12030",
+          "description": ""
+        }
+      ],
+      "decoys": [],
+      "pickSequence": []
+    }
+  ],
+  "wrongPartGuard": {
+    "builtInDecoys": [
+      "229515A2"
+    ],
+    "indistinguishable": [
+      "92203637",
+      "92203640"
+    ],
+    "WRONG_PART_CONSECUTIVE": 2,
+    "WRONG_PART_MIN_CONF": 0.7,
+    "INSTANT_DECOY_CONF": 0.92,
+    "INSTANT_DECOY_STRONG_CONF": 0.95,
+    "ORIENTATION_INSTANT_CONF": 0.92,
+    "ORIENTATION_OSCILLATION_MS": 2000,
+    "HANDS_EMPTY_MIN_CONF": 0.8,
+    "WRONG_PART_ABSENCE_MS": 4500,
+    "STICKY_DECOY_ABSENCE_MS": 8000,
+    "CORRECT_CLEAR_STRONG_CONF": 0.9,
+    "CORRECT_CLEAR_CONSECUTIVE": 2,
+    "HEARTBEAT_MS": 1000,
+    "MAX_DETAIL_CHARS": 30
+  },
+  "sequenceGuard": {
+    "SEQ_MIN_CONF": 0.75,
+    "SEQ_CONSECUTIVE": 2,
+    "SEQ_ABSENCE_MS": 8000
+  },
+  "memory": {
+    "recentObservationWindowMs": 30000
+  },
+  "observe": {
+    "model": "gemini-3.5-flash",
+    "fallbackModel": "gemini-2.5-flash",
+    "cadenceMs": 1678,
+    "cadenceSamples": 253
+  }
+}

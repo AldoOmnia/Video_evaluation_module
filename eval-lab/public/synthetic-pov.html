@@ -186,6 +186,7 @@
     html.embed-splat .rsz,
     html.embed-splat .quad:not([data-quad="splat"]),
     html.embed-splat .quad[data-quad="splat"] > .panel-head .grip,
+    html.embed-splat .q-close,
     html.embed-splat .dev-only { display: none !important; }
     html.embed-splat .app { grid-template-rows: 1fr; }
     html.embed-splat .main { grid-template-columns: 1fr; border-bottom: none; }
@@ -389,6 +390,23 @@
     /* Every other tag is a fixed short label. This one carries the current
        hotspot name, so it is the only one that can outgrow its head. */
     #splatZoneTag { min-width: 0; flex-shrink: 1; overflow: hidden; text-overflow: ellipsis; }
+    /* The remove button is pinned to the corner, so a narrow column clips the
+       title and the tag before it clips the button. The pad keeps the tag
+       against that corner, including when a tag is hidden. */
+    .quad > .panel-head { position: relative; padding-right: 30px; }
+    .q-pad { flex: 1 1 auto; min-width: 8px; }
+    .quad > .panel-head > .tag { margin-left: 6px; flex-shrink: 1; min-width: 0; }
+    .q-close {
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+      font-family: var(--mono); font-size: 14px; line-height: 1;
+      color: var(--ink-3); background: var(--bg-2);
+      border: 1px solid transparent; border-radius: 3px;
+      width: 18px; height: 18px; padding: 0; cursor: pointer;
+    }
+    .q-close:hover { color: var(--err); border-color: var(--line-2); }
+    .q-close:disabled { opacity: 0.35; cursor: default; }
+    .q-close:disabled:hover { color: var(--ink-3); border-color: transparent; }
+    html.embed-splat .quad > .panel-head { padding-right: 10px; }
 
     /* ── Left: blueprint tree ───────────────── */
     .tree { overflow-y: auto; padding: 6px 4px; }
@@ -907,6 +925,233 @@
     .clip-rail .clip-act.is-busy { color: var(--primary); border-color: var(--primary-dim); }
     html.embed-splat .clip-rail { display: none !important; }
 
+    /* ── Top-right quadrant: World Labs splat | glasses preview ────────────
+       One slot, two views. The switch sits in the head where the title was;
+       the view that is not showing is taken out of layout, which the splat
+       renderer already copes with (it sizes itself to 1px and idles). */
+    .q-switch {
+      display: inline-flex; flex-shrink: 0; margin-left: 2px;
+      border: 1px solid var(--line-2); border-radius: 4px; overflow: hidden;
+    }
+    .q-switch button {
+      font: inherit; letter-spacing: inherit; text-transform: inherit;
+      color: var(--ink-3); background: transparent; border: 0;
+      padding: 2px 8px; cursor: pointer; white-space: nowrap;
+    }
+    .q-switch button + button { border-left: 1px solid var(--line-2); }
+    .q-switch button:hover { color: var(--ink-1); }
+    .q-switch button.is-on {
+      color: var(--primary);
+      background: color-mix(in srgb, var(--primary) 10%, transparent);
+    }
+    .q-body[hidden] { display: none; }
+    html.embed-splat .q-switch button:not(.is-on),
+    html.embed-splat #gpBody { display: none !important; }
+
+    .q-body.gp-body { background: var(--bg); container-type: size; }
+    .gp {
+      position: absolute; inset: 0;
+      display: grid; min-height: 0;
+      grid-template-columns: minmax(0, 1fr) 224px;
+      grid-template-rows: minmax(0, 1fr) auto;
+      font-family: var(--mono); font-size: 10px; color: var(--ink-2);
+    }
+    .gp-stage { grid-column: 1; grid-row: 1; position: relative; min-height: 0; background: #000; overflow: hidden; }
+    .gp-stage video { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .gp-stage.is-drop { outline: 2px dashed var(--primary); outline-offset: -4px; }
+    .gp-bar { grid-column: 1; grid-row: 2; border-top: 1px solid var(--line); background: var(--bg-2); }
+    .gp-side {
+      grid-column: 2; grid-row: 1 / span 2; min-height: 0; overflow-y: auto;
+      border-left: 1px solid var(--line); background: var(--bg-2);
+    }
+    .gp-side::-webkit-scrollbar { width: 8px; }
+    .gp-side::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 4px; }
+    /* A narrow quadrant has no room for a side column: it goes under the clip. */
+    @container (max-width: 520px) {
+      .gp { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto minmax(0, 28%); }
+      .gp-side { grid-column: 1; grid-row: 3; border-left: 0; border-top: 1px solid var(--line); }
+    }
+
+    /* The glasses' own panel. Colours are ComerTheme's, sizes follow
+       ProcedureHud and PartWarningOverlay: this is a picture of that display,
+       so it stays the same in the light theme. */
+    .gp-stage { container-type: size; }
+    /* Everything in the panel is sized in em off one number that follows the
+       size of the clip, so the panel keeps its proportion to the picture, and
+       still fits a short one, whether the quadrant is a quarter of the page
+       or all of it. */
+    .gp-panel {
+      position: absolute; inset: 0; pointer-events: none;
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      /* The same reading size as the reasoner card in the quadrant beside
+         this one, growing a little when the clip is given more room. */
+      font-size: clamp(11px, 1.7cqw, 13.5px);
+    }
+    .gp-panel.is-off { display: none; }
+    .gp-hud {
+      position: absolute; top: 8px; left: 8px; width: min(440px, calc(100% - 16px));
+      background: #000000DD; border-radius: 6px; padding: 7px 10px;
+      line-height: 1.45;
+    }
+    .gp-hud > div { overflow-wrap: break-word; }
+    .gp-hud-proc { color: #00E5A0; font-size: 0.85em; font-weight: 700; }
+    .gp-hud-title { color: #fff; font-size: 1.05em; font-weight: 600; margin-top: 2px; line-height: 1.3; }
+    .gp-hud-scene { color: #00996B; font-size: 0.92em; margin-top: 4px; }
+    .gp-hud-detail { color: #d2d2d2; font-size: 0.92em; margin-top: 4px; }
+    .gp-hud-look { color: #00996B; font-size: 0.92em; margin-top: 4px; }
+    .gp-warn {
+      /* Along the bottom, so the procedure text above it can run to its full
+         length without the two covering each other. */
+      position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
+      width: max-content; max-width: min(30em, calc(100% - 16px));
+      display: flex; align-items: center; gap: 0.9em;
+      background: #140000E6; border: 1.5px solid #FF4040; border-radius: 0.7em;
+      padding: 0.6em 0.9em; line-height: 1.35;
+    }
+    .gp-warn[hidden], .gp-hud[hidden] { display: none; }
+    .gp-warn-badge {
+      flex-shrink: 0; width: 1.5em; height: 1.5em; border-radius: 50%;
+      background: #FF4040; color: #140000; font-weight: 700; font-size: 1.35em;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .gp-warn-head { color: #FF4040; font-weight: 700; font-size: 1.18em; }
+    .gp-warn-detail { color: #F2F2F2; font-size: 0.95em; }
+    .gp-warn-action { color: #00E5A0; font-weight: 700; font-size: 0.95em; }
+
+    .gp-empty {
+      position: absolute; inset: 0; z-index: 3;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+      padding: 16px 22px; text-align: center; background: var(--bg);
+      font-family: var(--sans); color: var(--ink-2); font-size: 12px; line-height: 1.5;
+    }
+    .gp-empty[hidden] { display: none; }
+    .gp-empty b { color: var(--ink-1); font-size: 13.5px; font-weight: 600; }
+    .gp-empty span { max-width: 380px; }
+    .gp-empty small { max-width: 380px; color: var(--ink-3); font-size: 10.5px; }
+    .gp-empty button {
+      margin-top: 4px; font-family: var(--mono); font-size: 11px; cursor: pointer;
+      color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, transparent);
+      border: 1px solid var(--primary-dim); border-radius: 5px; padding: 6px 14px;
+    }
+    .gp-empty button:hover { background: color-mix(in srgb, var(--primary) 18%, transparent); }
+    .gp-note {
+      position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 2;
+      background: rgba(4,6,6,0.86); border: 1px solid var(--line-2); border-radius: 5px;
+      padding: 5px 9px; color: #d8d8d8; font-size: 10px; line-height: 1.45;
+    }
+    .gp-note[hidden] { display: none; }
+    .gp-note.is-err { border-color: #ef4444; color: #fca5a5; }
+
+    /* Scrubber: where the clip was read, each read, and when the card was up. */
+    .gp-track {
+      position: relative; flex: 1 1 0; min-width: 40px; height: 22px; margin: 0 4px; cursor: pointer;
+      border-radius: 3px; background: var(--bg-3); outline: none; touch-action: none;
+    }
+    .gp-track:focus-visible { box-shadow: 0 0 0 1px var(--primary-dim); }
+    .gp-range, .gp-bands, .gp-ticks { position: absolute; inset: 0; pointer-events: none; }
+    .gp-range > i {
+      position: absolute; top: 0; bottom: 0;
+      background: color-mix(in srgb, var(--ink-3) 14%, transparent);
+    }
+    .gp-range > i.cut {
+      top: -2px; bottom: -2px; width: 0 !important; background: none;
+      border-left: 1px dashed var(--ink-2);
+    }
+    .gp-bands > i {
+      position: absolute; top: 0; height: 7px;
+      background: var(--err); border-radius: 2px;
+    }
+    .gp-ticks > i {
+      position: absolute; bottom: 3px; width: 3px; height: 9px; margin-left: -1.5px;
+      border-radius: 1px; background: var(--ink-3);
+    }
+    .gp-ticks > i.wrong { background: var(--err); }
+    .gp-ticks > i.correct { background: var(--primary); }
+    .gp-ticks > i.unclear { background: var(--amber); }
+    .gp-ticks > i.is-now { height: 13px; box-shadow: 0 0 0 1px var(--ink-1); }
+    .gp-playhead {
+      position: absolute; top: -2px; bottom: -2px; width: 1.5px; margin-left: -0.75px;
+      background: var(--ink-1); pointer-events: none;
+    }
+    .gp-ctl { display: flex; align-items: center; gap: 5px; padding: 6px 10px 0; min-width: 0; }
+    .gp-ctl.gp-src-row { padding-bottom: 7px; }
+    .gp-ctl button, .gp-ctl select {
+      flex-shrink: 0; height: 22px;
+      font-family: var(--mono); font-size: 10px; color: var(--ink-2);
+      background: var(--bg); border: 1px solid var(--line-2); border-radius: 4px;
+      padding: 0 7px; cursor: pointer; outline: none;
+    }
+    .gp-ctl button:hover:not([disabled]), .gp-ctl select:hover { color: var(--primary); border-color: var(--primary-dim); }
+    .gp-ctl button[disabled] { opacity: 0.5; cursor: default; }
+    .gp-ctl select { min-width: 0; flex: 1 1 0; text-overflow: ellipsis; }
+    .gp-ctl .gp-step.is-unset { color: var(--amber); border-color: var(--amber); }
+    .gp-ctl .gp-time { flex-shrink: 0; color: var(--ink-1); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .gp-ctl .gp-run {
+      color: var(--primary); border-color: var(--primary-dim);
+      background: color-mix(in srgb, var(--primary) 10%, transparent); white-space: nowrap;
+    }
+    .gp-ctl .gp-toggle.is-on { color: var(--primary); border-color: var(--primary-dim); }
+    /* Play and pause are drawn, not typed: the glyphs are emoji on some systems. */
+    .gp-play { width: 24px; padding: 0 !important; display: inline-flex; align-items: center; justify-content: center; }
+    .gp-play i {
+      display: block; width: 0; height: 0;
+      border-style: solid; border-width: 5px 0 5px 8px;
+      border-color: transparent transparent transparent currentColor;
+      margin-left: 2px;
+    }
+    .gp-play.is-playing i {
+      width: 8px; height: 10px; margin-left: 0;
+      border-width: 0 3px; border-color: currentColor;
+    }
+
+    .gp-side section { padding: 8px 10px 9px; border-bottom: 1px solid var(--line); }
+    .gp-side section:last-child { border-bottom: 0; }
+    .gp-side h4 {
+      margin: 0 0 6px; font-family: var(--mono); font-size: 9.5px; font-weight: 500;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3);
+    }
+    .gp-dim { color: var(--ink-3); line-height: 1.5; }
+    .gp-row { display: grid; grid-template-columns: 9px minmax(0, 1fr); gap: 2px 7px; align-items: start; padding: 3px 0; line-height: 1.4; }
+    .gp-row + .gp-row { border-top: 1px dashed var(--line); margin-top: 2px; padding-top: 5px; }
+    .gp-lamp {
+      width: 7px; height: 7px; border-radius: 50%; margin-top: 3px;
+      background: var(--line-2); box-shadow: inset 0 0 0 1px var(--ink-3);
+    }
+    .gp-lamp.fired { background: transparent; box-shadow: inset 0 0 0 1.5px var(--err); }
+    .gp-lamp.lit { background: var(--err); box-shadow: 0 0 0 2px color-mix(in srgb, var(--err) 30%, transparent); }
+    .gp-lamp.on { background: var(--primary); box-shadow: none; }
+    .gp-row b { color: var(--ink-1); font-weight: 500; }
+    .gp-row.is-lit b { color: var(--err); }
+    .gp-row.is-off { opacity: 0.55; }
+    .gp-row .what { color: var(--ink-2); overflow-wrap: anywhere; }
+    .gp-row .sub { color: var(--ink-3); font-size: 9.5px; overflow-wrap: anywhere; }
+    .gp-row .n { float: right; color: var(--err); font-variant-numeric: tabular-nums; margin-left: 6px; }
+    .gp-kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 9px; line-height: 1.5; }
+    .gp-kv dt { color: var(--ink-3); white-space: nowrap; }
+    .gp-kv dd { margin: 0; color: var(--ink-1); overflow-wrap: anywhere; }
+    .gp-read-top { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+    .gp-read-top .sku { color: var(--ink-1); font-size: 11.5px; font-weight: 500; overflow-wrap: anywhere; }
+    .gp-read-top .conf { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+    .gp-chip { font-size: 9px; border: 1px solid var(--line-2); border-radius: 3px; padding: 0 5px; color: var(--ink-2); white-space: nowrap; }
+    .gp-chip.wrong { color: var(--err); border-color: var(--err); }
+    .gp-chip.correct { color: var(--primary); border-color: var(--primary-dim); }
+    .gp-chip.unclear { color: var(--amber); border-color: var(--amber); }
+    .gp-why { margin-top: 4px; color: var(--ink-2); line-height: 1.45; overflow-wrap: anywhere; }
+    .gp-guard {
+      margin-top: 5px; padding: 4px 7px; border-radius: 4px; line-height: 1.45;
+      border: 1px solid var(--line-2); color: var(--ink-1); background: var(--bg);
+    }
+    .gp-guard.is-up { border-color: var(--err); }
+    .gp-guard small { display: block; color: var(--ink-3); font-size: 9px; margin-bottom: 1px; letter-spacing: 0.04em; text-transform: uppercase; }
+    .gp-log button {
+      display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 6px; width: 100%;
+      font: inherit; text-align: left; color: var(--ink-2); background: transparent;
+      border: 0; padding: 2px 0; cursor: pointer; line-height: 1.4;
+    }
+    .gp-log button:hover { color: var(--primary); }
+    .gp-log button time { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+    .gp-log button.raise b { color: var(--err); font-weight: 500; }
+
     /* Worker-POV source: report-frame still overlay + source picker */
     .pov-still { position: absolute; inset: 0; z-index: 3; background: #000; }
     .pov-still img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -1112,7 +1357,7 @@
           </label>
           <label class="t-row layer-row" data-layer="splat">
             <span class="ico points"></span>
-            <span class="layer-txt">World Labs · splat<small>reconstruction · worldlabs_splat · ext</small></span>
+            <span class="layer-txt"><span id="layerSplatName">World Labs · splat</span><small id="layerSplatSub">reconstruction · worldlabs_splat · ext</small></span>
             <input type="checkbox" checked />
           </label>
           <label class="t-row layer-row" data-layer="world">
@@ -1136,7 +1381,9 @@
           <div class="panel-head"><span class="grip">⠿</span><span class="pi" style="color:var(--violet)">●</span> <span data-i18n="tw.rgbPov">RGB · worker POV</span>
             <button type="button" class="ai-toggle" id="aiInterpBtn" data-i18n="tw.aiReasoner"
                     title="AI interpretation — Gemini vision over this walkthrough, grounded in the PG-04 procedure knowledge base">AI reasoner</button>
+            <span class="q-pad" aria-hidden="true"></span>
             <span class="tag">2400×1800</span>
+            <button type="button" class="q-close" draggable="false" title="Remove this quadrant" aria-label="Remove this quadrant">×</button>
           </div>
           <div class="q-body cam-body" id="camBody">
             <video id="povVideo" poster="/lab/assets/phase8_frame.jpg" muted loop playsinline></video>
@@ -1187,9 +1434,23 @@
           </div>
         </div>
 
-        <!-- Q2 top-right: World Labs splat (top view) -->
-        <div class="quad" data-quad="splat">
-          <div class="panel-head"><span class="grip">⠿</span><span class="pi" style="color:var(--primary)">●</span> World Labs · splat <span class="tag" id="splatZoneTag">hotspot tour</span></div>
+        <!-- Q2 top-right: one slot, two views. The World Labs splat, or the
+             glasses preview: a clip read step by step, with the panel the
+             glasses would have shown over it. Both live in this quad so the
+             layer toggle and drag-to-swap treat them as the one slot they are. -->
+        <div class="quad" data-quad="splat" data-pane="splat">
+          <div class="panel-head"><span class="grip">⠿</span><span class="pi" style="color:var(--primary)">●</span>
+            <span class="q-switch" id="paneSwitch" role="tablist" aria-label="What this quadrant shows">
+              <button type="button" role="tab" data-pane="splat" class="is-on" aria-selected="true">World Labs · splat</button>
+              <button type="button" role="tab" data-pane="glasses" aria-selected="false" data-i18n="tw.gpTab"
+                      data-i18n-title="tw.gpTabTitle"
+                      title="Play a clip filmed at the station and see what the glasses would have read and shown, on the warnings enabled for the step">Glasses · AI models</button>
+            </span>
+            <span class="q-pad" aria-hidden="true"></span>
+            <span class="tag" id="splatZoneTag">hotspot tour</span>
+            <span class="tag" id="gpTag" data-i18n="tw.gpTag" hidden>clip replay</span>
+            <button type="button" class="q-close" draggable="false" title="Remove this quadrant" aria-label="Remove this quadrant">×</button>
+          </div>
           <div class="q-body splat-body" id="splatBody">
             <div class="splat-main" id="splatMain">
             <div class="splat-ph" id="splatPh">
@@ -1341,11 +1602,97 @@
             </div>
             </div>
           </div>
+
+          <!-- Glasses preview. Everything inside .gp-panel is a picture of the
+               glasses' own display, so its colours and wording are theirs
+               (ComerTheme, ProcedureHud, PartWarningOverlay) and do not follow
+               the page theme or language. -->
+          <div class="q-body gp-body" id="gpBody" hidden>
+            <div class="gp">
+              <div class="gp-stage" id="gpStage">
+                <video id="gpVideo" muted playsinline preload="metadata"></video>
+                <div class="gp-panel" id="gpPanel">
+                  <div class="gp-hud" id="gpHud" hidden>
+                    <div class="gp-hud-proc" id="gpHudProc"></div>
+                    <div class="gp-hud-title" id="gpHudTitle"></div>
+                    <div class="gp-hud-scene" id="gpHudScene"></div>
+                    <div class="gp-hud-detail" id="gpHudDetail"></div>
+                    <div class="gp-hud-look" id="gpHudLook"></div>
+                  </div>
+                  <div class="gp-warn" id="gpWarn" hidden>
+                    <span class="gp-warn-badge">!</span>
+                    <div class="gp-warn-txt">
+                      <div class="gp-warn-head" id="gpWarnHead"></div>
+                      <div class="gp-warn-detail" id="gpWarnDetail"></div>
+                      <div class="gp-warn-action" id="gpWarnAction"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="gp-empty" id="gpEmpty">
+                  <b data-i18n="tw.gpEmptyTitle">See a clip as the glasses read it</b>
+                  <span data-i18n="tw.gpEmptyText">Add a clip filmed at the station, for example one of the bearing cone flip takes. It is read on the step you choose, and the panel the glasses would have shown plays over it.</span>
+                  <button type="button" id="gpEmptyAdd" data-i18n="tw.gpAddClips">Add clips</button>
+                  <small data-i18n="tw.gpEmptyHint">mp4, mov or webm. Clips stay in this browser tab; only the frames that are read are sent to the server.</small>
+                </div>
+                <div class="gp-note" id="gpNote" hidden></div>
+              </div>
+
+              <div class="gp-bar">
+                <div class="gp-ctl">
+                  <button type="button" class="gp-play" id="gpPlay" aria-label="Play"><i></i></button>
+                  <button type="button" id="gpPrev" data-i18n-title="tw.gpPrevRead" title="Previous read" aria-label="Previous read">‹</button>
+                  <button type="button" id="gpNext" data-i18n-title="tw.gpNextRead" title="Next read" aria-label="Next read">›</button>
+                  <div class="gp-track" id="gpTrack" tabindex="0" role="slider" aria-label="Clip position" aria-valuemin="0">
+                    <div class="gp-range" id="gpRange"></div>
+                    <div class="gp-bands" id="gpBands"></div>
+                    <div class="gp-ticks" id="gpTicks"></div>
+                    <div class="gp-playhead" id="gpPlayhead"></div>
+                  </div>
+                  <span class="gp-time" id="gpTime">0:00.0</span>
+                </div>
+                <div class="gp-ctl gp-src-row">
+                  <select id="gpClip" class="gp-clip" aria-label="Clip" title="Clip"></select>
+                  <button type="button" id="gpAdd" data-i18n-title="tw.gpAddClips" title="Add clips" aria-label="Add clips">+</button>
+                  <input type="file" id="gpAddInput" accept="video/*" multiple hidden />
+                  <select id="gpStep" class="gp-step" aria-label="Step the glasses are on" data-i18n-title="tw.gpStepTitle"
+                          title="The step the glasses are on. It sets which part is expected and which warnings can be raised."></select>
+                  <button type="button" class="gp-run" id="gpRun" disabled></button>
+                  <button type="button" class="gp-toggle is-on" id="gpPanelBtn" data-i18n="tw.gpPanel"
+                          data-i18n-title="tw.gpPanelTitle" title="Show or hide the glasses panel over the clip" aria-pressed="true">panel</button>
+                </div>
+              </div>
+
+              <aside class="gp-side" id="gpSide">
+                <section>
+                  <h4 data-i18n="tw.gpOnStep">Enabled on this step</h4>
+                  <div id="gpClasses"></div>
+                </section>
+                <section>
+                  <h4 data-i18n="tw.gpThisRead">This read</h4>
+                  <div id="gpRead"></div>
+                </section>
+                <section>
+                  <h4 data-i18n="tw.gpLog">Panel log</h4>
+                  <div class="gp-log" id="gpLog"></div>
+                </section>
+                <section>
+                  <h4 data-i18n="tw.gpModels">Models and guards</h4>
+                  <div id="gpModels"></div>
+                </section>
+                <section>
+                  <h4 data-i18n="tw.gpReplay">This replay</h4>
+                  <div id="gpFacts"></div>
+                </section>
+              </aside>
+            </div>
+          </div>
         </div>
 
         <!-- Q3 bottom-left: 3D world view — floating dots + moving glasses -->
         <div class="quad" data-quad="world">
-          <div class="panel-head"><span class="grip">⠿</span><span class="pi" style="color:var(--blue)">◇</span> World View <span class="tag">3D · floating points</span></div>
+          <div class="panel-head"><span class="grip">⠿</span><span class="pi" style="color:var(--blue)">◇</span> World View <span class="q-pad" aria-hidden="true"></span><span class="tag">3D · floating points</span>
+            <button type="button" class="q-close" draggable="false" title="Remove this quadrant" aria-label="Remove this quadrant">×</button>
+          </div>
           <div class="q-body viewport" id="viewport">
             <canvas id="scene"></canvas>
             <div class="vp-overlay">
@@ -1374,7 +1721,9 @@
 
         <!-- Q4 bottom-right: SLAM cameras + eye gaze -->
         <div class="quad" data-quad="slam">
-          <div class="panel-head"><span class="grip">⠿</span><span class="pi" style="color:var(--blue)">●</span> SLAM + eye <span class="tag">mono · et</span></div>
+          <div class="panel-head"><span class="grip">⠿</span><span class="pi" style="color:var(--blue)">●</span> SLAM + eye <span class="q-pad" aria-hidden="true"></span><span class="tag">mono · et</span>
+            <button type="button" class="q-close" draggable="false" title="Remove this quadrant" aria-label="Remove this quadrant">×</button>
+          </div>
           <div class="q-body slam-quad">
             <div class="slam-grid">
               <div class="slam-cell">
@@ -2421,6 +2770,10 @@
         summary: null,
       }];
       let active = "builtin";
+      /** Called whenever the clip list or a clip's state changes. The glasses
+       *  preview in the next quadrant plays the same added clips, so a clip
+       *  added in either place has to show up in both. */
+      const listeners = [];
 
       const clipByKey = (k) => clips.find((c) => c.key === k) || null;
 
@@ -2454,6 +2807,7 @@
         });
         renderPartSel();
         renderAnalyzeBtn();
+        listeners.forEach((fn) => { try { fn(); } catch (e) { console.warn("[synthetic-pov] clip listener failed:", e); } });
       }
 
       /** The part pin only applies to added clips — the walkthrough is a whole
@@ -2585,17 +2939,27 @@
       addInput?.addEventListener("change", () => {
         const files = [...(addInput.files || [])];
         addInput.value = "";
-        if (!files.length) return;
+        addFiles(files, { play: true });
+      });
+
+      /** Add clips for the session. `play` switches this quadrant to the first
+       *  of them, which is what adding from this rail means; the glasses
+       *  preview adds without taking over what is playing here. Returns the
+       *  new keys. */
+      function addFiles(files, { play = false } = {}) {
+        files = [...files].filter((f) => /^video\//.test(f.type) || /\.(mp4|mov|webm|m4v)$/i.test(f.name));
+        if (!files.length) return [];
         if (!clipGroup) {
           clipGroup = document.createElement("optgroup");
           clipGroup.label = T("tw.clipGroup", "Clips added · this session");
         }
-        let firstKey = null;
-        files.forEach((file, n) => {
+        const keys = [];
+        files.forEach((file) => {
           const key = `clip:${clips.length}`;
           clips.push({
             key,
             label: shortName(file.name),
+            name: file.name,
             src: URL.createObjectURL(file),
             kind: "clip",
             timeline: null,
@@ -2607,11 +2971,13 @@
           opt.value = key;
           opt.textContent = file.name;
           clipGroup.appendChild(opt);
-          if (n === 0) firstKey = key;
+          keys.push(key);
         });
         sel.appendChild(clipGroup);
-        if (firstKey) applySource(firstKey);
-      });
+        if (play) applySource(keys[0]);
+        else renderChips();
+        return keys;
+      }
 
       /** File names run long ("IMG_4127_cup_flipped_take2.mov"); the chip has
        *  ~150px, so drop the extension and keep the tail, which is where the
@@ -2649,6 +3015,16 @@
        *  stall on odd containers, so each one races a timeout rather than
        *  hanging the analyze run. */
       async function sampleFrames(src, onProgress) {
+        return framesAt(src, (dur) => {
+          const n = Math.max(1, Math.min(MAX_FRAMES, Math.round(dur / FRAME_EVERY_S)));
+          // Mid-interval samples: the first and last moments of a clip are
+          // usually the operator's hand moving into or out of frame.
+          return Array.from({ length: n }, (_, i) => Math.min(dur - 0.05, (dur * (i + 0.5)) / n));
+        }, onProgress);
+      }
+
+      /** JPEG frames of a clip at the times `pick(duration)` asks for. */
+      async function framesAt(src, pick, onProgress) {
         const v = document.createElement("video");
         v.muted = true;
         v.playsInline = true;
@@ -2662,7 +3038,8 @@
         const dur = isFinite(v.duration) && v.duration > 0 ? v.duration : 0;
         if (!dur) throw new Error("clip has no duration");
 
-        const n = Math.max(1, Math.min(MAX_FRAMES, Math.round(dur / FRAME_EVERY_S)));
+        const times = pick(dur);
+        const n = times.length;
         const canvas = document.createElement("canvas");
         const vw = v.videoWidth || 640;
         const vh = v.videoHeight || 360;
@@ -2673,9 +3050,7 @@
 
         const out = [];
         for (let i = 0; i < n; i++) {
-          // Mid-interval samples: the first and last moments of a clip are
-          // usually the operator's hand moving into or out of frame.
-          const t = Math.min(dur - 0.05, (dur * (i + 0.5)) / n);
+          const t = Math.max(0, Math.min(dur - 0.05, times[i]));
           await new Promise((resolve) => {
             let done = false;
             const finish = () => { if (!done) { done = true; resolve(); } };
@@ -2788,6 +3163,11 @@
         activeKey: () => active,
         timelineFor: (key) => clipByKey(key)?.timeline || null,
         setTimeline: (key, tl) => { const c = clipByKey(key); if (c) c.timeline = tl; },
+        /** Clips added this session, for the glasses preview. */
+        added: () => clips.filter((c) => c.kind === "clip"),
+        addFiles,
+        framesAt,
+        onChange: (fn) => { listeners.push(fn); },
       };
     })();
 
@@ -3627,6 +4007,1007 @@
     drawAllSeries();
     window.addEventListener("resize", drawAllSeries);
 
+    // ── Glasses preview (top-right quadrant, second view) ─────────────
+    // A clip added for the session, played with the panel the Comer glasses
+    // would have shown over it. Three things make that up, and the side
+    // column keeps them apart because they are not equally real:
+    //
+    //   reads    made here, on demand: frames taken from the clip at the
+    //            glasses' read cadence and judged by /api/pov/observe against
+    //            the glasses' reference images and rules, on the step chosen.
+    //            Not the glasses' own call and not a recording from a device.
+    //   guards   the glasses' logic and thresholds, replayed over those reads
+    //            by /api/pov/panel. They decide when the card goes up.
+    //   panel    drawn from the guards' output in the glasses' own colours
+    //            and wording.
+    //
+    // The steps and what each can warn about come from /api/pov/glasses, which
+    // is copied from the glasses repo, so nothing about them is set here.
+    (function setupGlassesPreview() {
+      const quad = document.querySelector('.quad[data-quad="splat"]');
+      const body = document.getElementById("gpBody");
+      const splatBody = document.getElementById("splatBody");
+      if (!quad || !body || !splatBody) return;
+      // The embedded splat view is the splat and nothing else.
+      if (document.documentElement.classList.contains("embed-splat")) return;
+
+      const T = (k, en) => (window.OmniaI18n ? window.OmniaI18n.t(k, en) : en);
+      /** T() with {name} placeholders filled in. */
+      const TF = (k, en, vars) => T(k, en).replace(/\{(\w+)\}/g, (m, n) => (vars[n] != null ? vars[n] : m));
+      const $ = (id) => document.getElementById(id);
+      const el = (tag, cls, text) => {
+        const n = document.createElement(tag);
+        if (cls) n.className = cls;
+        if (text != null) n.textContent = text;
+        return n;
+      };
+      const fmtT = (t) => {
+        const s = Math.max(0, t || 0);
+        const m = Math.floor(s / 60);
+        return m + ":" + (s - m * 60).toFixed(1).padStart(4, "0");
+      };
+      const conf2 = (c) => Number(c).toFixed(2);
+
+      const LS_PANE = "syntheticPov.topRight";
+      const LS_PANEL = "syntheticPov.glassesPanel";
+      /** Calls per run. A run reads at the glasses' cadence, so this bounds how
+       *  much of a long clip one press reads, not how finely. */
+      const MAX_CALLS = 4;
+
+      const video = $("gpVideo");
+      const stage = $("gpStage");
+      const track = $("gpTrack");
+      const clipSel = $("gpClip");
+      const stepSel = $("gpStep");
+      const runBtn = $("gpRun");
+      const playBtn = $("gpPlay");
+      const note = $("gpNote");
+
+      let spec = null;          // /api/pov/glasses
+      let specError = null;
+      let specPromise = null;
+      let activeKey = null;     // key of the clip showing here
+      const runs = new Map();   // clip key → what was read of it
+      let shown = { idx: -2, warn: "?" };
+      let videoError = false;
+
+      /* ── which view the quadrant shows ─────────────────────────────── */
+
+      const switchBtns = [...document.querySelectorAll("#paneSwitch button")];
+      /** The layer row names what its checkbox shows and hides. */
+      function nameLayer() {
+        const glasses = quad.dataset.pane === "glasses";
+        const name = $("layerSplatName");
+        const sub = $("layerSplatSub");
+        if (name) name.textContent = glasses ? T("tw.gpTab", "Glasses · AI models") : "World Labs · splat";
+        if (sub) sub.textContent = glasses ? T("tw.gpLayerSub", "clip replay · reads · guards · panel") : "reconstruction · worldlabs_splat · ext";
+      }
+
+      function setPane(next, save = true) {
+        const glasses = next === "glasses";
+        quad.dataset.pane = glasses ? "glasses" : "splat";
+        switchBtns.forEach((b) => {
+          const on = b.dataset.pane === quad.dataset.pane;
+          b.classList.toggle("is-on", on);
+          b.setAttribute("aria-selected", on ? "true" : "false");
+        });
+        splatBody.hidden = glasses;
+        body.hidden = !glasses;
+        $("splatZoneTag").hidden = glasses;
+        $("gpTag").hidden = !glasses;
+        nameLayer();
+        if (save) { try { localStorage.setItem(LS_PANE, quad.dataset.pane); } catch { /* ignore */ } }
+        if (glasses) {
+          ensureSpec();
+          syncClips();
+          renderAll();
+        } else {
+          video.pause();
+        }
+        // The splat sizes itself from its box, which has just changed.
+        window.dispatchEvent(new Event("resize"));
+      }
+      switchBtns.forEach((b) => b.addEventListener("click", () => setPane(b.dataset.pane)));
+
+      /* ── data ──────────────────────────────────────────────────────── */
+
+      function ensureSpec() {
+        if (spec || specPromise) return specPromise;
+        specError = null;
+        specPromise = fetch("/api/pov/glasses")
+          .then((r) => { if (!r.ok) throw new Error("server said " + r.status); return r.json(); })
+          .then((d) => {
+            spec = d;
+            libClips = ((d.library && d.library.clips) || []).map((c) => ({ key: "lib:" + c.id, src: c.url, lib: c }));
+            renderStepSel();
+            // Clips added before the steps arrived get their step now.
+            runs.forEach((r, key) => { if (r.step == null) inferStep(key); });
+            syncClips();
+            renderAll();
+          })
+          .catch((e) => { specError = e; specPromise = null; renderAll(); });
+        return specPromise;
+      }
+
+      /** Clips added in this tab, here or from the rail of the POV quadrant. */
+      const ownClips = () => (povSources.added ? povSources.added() : []);
+      /** The library: station clips that come with the page, reads included. */
+      let libClips = [];
+      const clips = () => [...libClips, ...ownClips()];
+      const clipOf = (key) => clips().find((c) => c.key === key) || null;
+      const isIt = () => Boolean(window.OmniaLang && window.OmniaLang.get() === "it");
+      /** A kept read carries its Italian wording beside the English. */
+      const worded = (x, field) => (isIt() && x.it && x.it[field] != null ? x.it[field] : x[field]);
+
+      /** What a library clip is of, going by how the corpus labels it. */
+      function showsText(lib) {
+        if (lib.shows === "wrong_then_correct") return T("tw.gpLibWrongThenCorrect", "wrong way up, then right way up");
+        if (lib.shows === "correct") return T("tw.gpLibCorrect", "right way up");
+        return T("tw.gpLibWrong", "wrong way up");
+      }
+      const clipName = (c) => (c.lib ? `S${c.lib.step} · ${c.lib.sku} · ${showsText(c.lib)}` : c.name || c.label);
+      const stepOf = (n) => (spec && n != null ? spec.steps.find((s) => s.n === n) || null : null);
+      function runOf(key) {
+        if (!runs.has(key)) {
+          runs.set(key, {
+            step: null, stepFromName: false,
+            reads: [], notes: [], events: [],
+            from: 0, to: 0, status: "idle", total: 0, grabbed: 0,
+            model: null, references: null, error: null, token: 0,
+            kept: null,   // the date the reads were made, when they came with the clip
+          });
+        }
+        return runs.get(key);
+      }
+      const cur = () => (activeKey ? runOf(activeKey) : null);
+
+      /** Which step a clip is of, read off its file name.
+       *
+       *  The capture clips are named after their subject
+       *  ("bearing_cone_67190r91_station_wrong.MOV"), and the procedure videos
+       *  after their phase ("Phase6_Video.MP4"). On the glasses the step is
+       *  always known; here the name is the only thing that can say, so it is
+       *  used when it does and the step is left for the reviewer when it does
+       *  not. A step is never guessed from the footage. */
+      function inferStep(key) {
+        const clip = clipOf(key);
+        const r = runOf(key);
+        if (!clip || !spec || r.step != null) return;
+        const name = clip.name || clip.label || "";
+        const hay = name.toUpperCase().replace(/[^A-Z0-9]/g, "");
+        const flat = (sku) => sku.toUpperCase().replace(/[^A-Z0-9]/g, "");
+        // A part number names its step only where one step owns the part.
+        const byPart = spec.steps.filter((s) => s.parts.some((p) => hay.includes(flat(p.sku))));
+        const pinned = byPart.filter((s) => s.pinned && hay.includes(flat(s.pinned)));
+        let n = pinned.length === 1 ? pinned[0].n : byPart.length === 1 ? byPart[0].n : null;
+        if (n == null) {
+          const m = name.match(/phase[\s_-]?(\d{1,2})(?!\d)/i);
+          if (m && stepOf(Number(m[1]))) n = Number(m[1]);
+        }
+        if (n != null) { r.step = n; r.stepFromName = true; }
+      }
+
+      /** A library clip comes with its step and with reads made of it when the
+       *  library was built. They are put back whenever the clip is on that
+       *  step with nothing read, and the guards are replayed over them now. */
+      function restoreKept(key) {
+        const clip = clipOf(key);
+        const r = runOf(key);
+        if (!clip || !clip.lib || !spec) return;
+        const lib = clip.lib;
+        if (r.step == null) r.step = lib.step;
+        if (r.step !== lib.step || r.reads.length || r.status === "reading") return;
+        const token = ++r.token;
+        Object.assign(r, {
+          reads: lib.reads, notes: [], events: [],
+          from: 0, to: Math.min(lib.duration, lib.reads.length * (spec.cadenceMs / 1000)),
+          status: "done", total: lib.reads.length, grabbed: lib.reads.length,
+          error: null, readStep: lib.step, whole: true,
+          model: lib.model, references: lib.references, kept: lib.readsMadeOn,
+        });
+        replay(r, lib.step, r.to)
+          .then(() => { if (r.token === token && key === activeKey) renderAll(); })
+          .catch((e) => {
+            if (r.token !== token) return;
+            console.warn("[synthetic-pov] glasses preview replay failed:", e);
+            Object.assign(r, { reads: [], notes: [], events: [], kept: null, status: "failed", error: e && e.message ? e.message : String(e) });
+            if (key === activeKey) renderAll();
+          });
+      }
+
+      /** Follow the clip list: the library, and the clips added in this tab
+       *  (the rail in the POV quadrant adds to those too). A clip is only
+       *  taken up here when nothing is showing: the newest of your own when
+       *  there is one, the first of the library when there is not. */
+      function syncClips() {
+        const list = clips();
+        const own = ownClips();
+        if (activeKey && !clipOf(activeKey)) activeKey = null;
+        if (!activeKey && list.length) selectClip(own.length ? own[own.length - 1].key : list[0].key);
+        else renderClipSel();
+      }
+      if (povSources.onChange) povSources.onChange(() => { if (!body.hidden) syncClips(); });
+
+      function selectClip(key) {
+        const clip = clipOf(key);
+        if (!clip) return;
+        activeKey = key;
+        if (clip.lib) restoreKept(key); else inferStep(key);
+        video.pause();
+        if (video.getAttribute("src") !== clip.src) video.src = clip.src;
+        shown = { idx: -2, warn: "?" };
+        renderClipSel();
+        renderAll();
+      }
+
+      function addFiles(files) {
+        if (!povSources.addFiles) return;
+        const keys = povSources.addFiles(files, { play: false });
+        if (keys.length) selectClip(keys[0]);
+      }
+
+      /* ── reading a clip ────────────────────────────────────────────── */
+
+      async function post(path, payload) {
+        const r = await fetch(path, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!r.ok) throw new Error("server said " + r.status);
+        return r.json();
+      }
+
+      /** Replay the guards over everything read so far. */
+      async function replay(r, step, endT) {
+        const d = await post("/api/pov/panel", {
+          step,
+          endT,
+          reads: r.reads.map((x) => ({
+            t: x.t, sku: x.sku, className: x.className,
+            confidence: x.confidence, pose: x.pose, scene: x.scene,
+          })),
+        });
+        r.notes = d.reads || [];
+        r.events = d.events || [];
+      }
+
+      async function run() {
+        const key = activeKey;
+        const clip = clipOf(key);
+        const r = cur();
+        const step = r && stepOf(r.step);
+        if (!clip || !spec || !step || !step.guarded || r.status === "reading") return;
+        const dur = video.duration;
+        if (!isFinite(dur) || dur <= 0) return;
+
+        const token = ++r.token;
+        const cadence = spec.cadenceMs / 1000;
+        const max = MAX_CALLS * spec.framesPerCall;
+        // A clip longer than one run can cover is read from the playhead, at
+        // the glasses' cadence, rather than end to end at a coarser one: the
+        // guards count consecutive reads and seconds between them, so spacing
+        // the reads out would replay a different device.
+        let from = 0;
+        if (dur / cadence > max) from = Math.max(0, Math.min(video.currentTime, dur - max * cadence));
+        const times = [];
+        for (let i = 0; i < max; i++) {
+          const t = from + i * cadence;
+          if (t > dur - 0.05) break;
+          times.push(Math.max(0.05, t));
+        }
+        Object.assign(r, {
+          reads: [], notes: [], events: [],
+          from, to: Math.min(dur, from + times.length * cadence),
+          status: "reading", total: times.length, grabbed: 0, kept: null,
+          error: null, readStep: step.n, whole: from === 0 && times.length * cadence >= dur - cadence,
+        });
+        video.pause();
+        renderAll();
+
+        try {
+          for (let c = 0; c < times.length; c += spec.framesPerCall) {
+            const chunk = times.slice(c, c + spec.framesPerCall);
+            const frames = await povSources.framesAt(clip.src, () => chunk, (i) => {
+              if (r.token === token) { r.grabbed = c + i; renderBar(); }
+            });
+            if (r.token !== token) return;
+            const d = await post("/api/pov/observe", {
+              clip: clip.label,
+              step: step.n,
+              frames,
+              lang: window.OmniaLang ? window.OmniaLang.get() : undefined,
+            });
+            if (r.token !== token) return;
+            if (d.stubbed) throw new Error(d.note || "vision is not configured on the server");
+            r.reads.push(...(d.reads || []));
+            r.model = d.model;
+            r.references = d.references;
+            const last = c + chunk.length >= times.length;
+            await replay(r, step.n, last ? r.to : r.reads[r.reads.length - 1].t + cadence);
+            if (r.token !== token) return;
+            if (key === activeKey) renderAll();
+          }
+          r.status = "done";
+        } catch (e) {
+          if (r.token !== token) return;
+          console.warn("[synthetic-pov] glasses preview read failed:", e);
+          r.status = "failed";
+          r.error = e && e.message ? e.message : String(e);
+        }
+        if (key === activeKey) {
+          renderAll();
+          // Start the replay where the first thing happened.
+          if (r.status === "done" && r.reads.length) video.currentTime = r.from;
+        }
+      }
+
+      /* ── where the playhead is ─────────────────────────────────────── */
+
+      /** The first frame is taken a moment after the start of the span, so
+       *  the start itself counts as that first read rather than as nothing. */
+      const fromFirst = (r, t) =>
+        r.reads.length && t >= r.from - 0.02 && t < r.reads[0].t && r.reads[0].t - r.from <= 0.06 ? r.reads[0].t : t;
+
+      /** Index of the read covering time t, or -1 before the first. */
+      function readAt(r, t) {
+        t = fromFirst(r, t);
+        let idx = -1;
+        for (let i = 0; i < r.reads.length; i++) {
+          if (r.reads[i].t <= t + 0.02) idx = i; else break;
+        }
+        // Past the end of what was read, nothing is being read any more.
+        return r.reads.length && t > r.to + 0.02 ? -1 : idx;
+      }
+      /** The card on the panel at time t, or null. */
+      function warningAt(r, t) {
+        t = fromFirst(r, t);
+        let w = null;
+        for (const e of r.events) {
+          if (e.t > t + 0.02) break;
+          w = e.kind === "raise" ? e.warning : null;
+        }
+        return r.reads.length && t > r.to + 0.02 ? null : w;
+      }
+
+      /* ── render: controls ──────────────────────────────────────────── */
+
+      function renderClipSel() {
+        const own = ownClips();
+        clipSel.innerHTML = "";
+        const group = (label, list) => {
+          const g = document.createElement("optgroup");
+          g.label = label;
+          list.forEach((c) => g.appendChild(new Option(clipName(c), c.key)));
+          clipSel.appendChild(g);
+          return g;
+        };
+        if (libClips.length) {
+          group(T("tw.gpLibGroup", "Library · station clips"), libClips);
+          const mine = group(T("tw.gpOwnGroup", "Your clips"), own);
+          if (!own.length) {
+            // Says where your own would be, and how they get there.
+            const none = new Option(T("tw.gpOwnNone", "none yet: add with +"), "");
+            none.disabled = true;
+            mine.appendChild(none);
+          }
+        } else {
+          own.forEach((c) => clipSel.appendChild(new Option(clipName(c), c.key)));
+        }
+        clipSel.hidden = !libClips.length && !own.length;
+        if (activeKey) clipSel.value = activeKey;
+        const active = activeKey && clipOf(activeKey);
+        clipSel.title = active ? clipName(active) : T("tw.gpClipTitle", "Clip");
+      }
+      clipSel.addEventListener("change", () => { if (clipSel.value) selectClip(clipSel.value); });
+
+      /** "4900.12001 P100 SUP BEARING ON PINION" → "Sup bearing on pinion":
+       *  the select has room for the name, not the document code. */
+      function shortTitle(title) {
+        const t = String(title).replace(/^\s*[\d.]+\s+/, "").replace(/^P100\s+/i, "").trim().toLowerCase();
+        return t.charAt(0).toUpperCase() + t.slice(1);
+      }
+
+      function renderStepSel() {
+        stepSel.innerHTML = "";
+        stepSel.appendChild(new Option(T("tw.gpStepChoose", "step…"), ""));
+        if (!spec) return;
+        spec.steps.forEach((s) => {
+          const o = new Option(
+            `${s.n} · ${shortTitle(s.title)}` + (s.guarded ? "" : " · " + T("tw.gpNoGuard", "no guard")),
+            String(s.n),
+          );
+          stepSel.appendChild(o);
+        });
+      }
+      stepSel.addEventListener("change", () => {
+        const r = cur();
+        if (!r) return;
+        const n = stepSel.value ? Number(stepSel.value) : null;
+        if (n === r.step) return;
+        r.step = n;
+        r.stepFromName = false;   // chosen deliberately now
+        // Reads are made on a step: it sets which part is expected and which
+        // references are attached. On another step they would be other reads.
+        r.token += 1;
+        Object.assign(r, { reads: [], notes: [], events: [], status: "idle", error: null, total: 0, grabbed: 0, kept: null });
+        shown = { idx: -2, warn: "?" };
+        restoreKept(activeKey);
+        renderAll();
+      });
+
+      function renderBar() {
+        const r = cur();
+        const step = r && stepOf(r.step);
+        const dur = isFinite(video.duration) ? video.duration : 0;
+        const has = Boolean(activeKey);
+        [playBtn, $("gpPrev"), $("gpNext")].forEach((b) => { b.disabled = !has || !dur; });
+        playBtn.classList.toggle("is-playing", !video.paused && !video.ended);
+        playBtn.setAttribute("aria-label", video.paused ? T("tw.gpPlay", "Play") : T("tw.gpPause", "Pause"));
+        stepSel.hidden = !has;
+        runBtn.hidden = !has;
+        if (has) {
+          stepSel.value = r.step != null ? String(r.step) : "";
+          stepSel.classList.toggle("is-unset", r.step == null);
+          stepSel.title = r.step == null
+            ? T("tw.gpStepUnset", "Choose the step this clip shows. The glasses always know their step; a clip does not say.")
+            : r.stepFromName
+              ? T("tw.gpStepFromName", "Step read off the file name. Change it if the clip shows another step.")
+              : T("tw.gpStepTitle", "The step the glasses are on. It sets which part is expected and which warnings can be raised.");
+          const reading = r.status === "reading";
+          const maxReads = spec ? MAX_CALLS * spec.framesPerCall : 0;
+          // Longer than one run covers: it is read from the playhead instead.
+          const long = Boolean(spec && dur && dur / (spec.cadenceMs / 1000) > maxReads);
+          runBtn.disabled = reading || !spec || !step || !step.guarded || !dur;
+          if (reading) {
+            // Two stages per batch: frames are taken in the browser, then read.
+            runBtn.textContent = r.grabbed > r.reads.length
+              ? TF("tw.gpFrames", "frames {i}/{n}", { i: r.grabbed, n: r.total })
+              : TF("tw.gpReading", "reading {i}/{n}", { i: r.reads.length, n: r.total });
+          } else if (r.status === "failed") {
+            runBtn.textContent = T("tw.gpRetry", "failed · read again");
+          } else if (long) {
+            runBtn.textContent = T("tw.gpReadHere", "read from here");
+          } else {
+            runBtn.textContent = r.reads.length ? T("tw.gpReadAgain", "read again") : T("tw.gpRead", "read clip");
+          }
+          runBtn.title = !step
+            ? T("tw.gpRunNoStep", "Choose a step first")
+            : !step.guarded
+              ? T("tw.gpRunNoGuard", "This step lists no parts, so neither guard runs on it and there is nothing to replay")
+              : long
+                ? TF("tw.gpRunLong", "Reads {s} s of the clip from the playhead, at the glasses' read cadence, and replays the glasses' guards over the reads", { s: Math.round(maxReads * spec.cadenceMs / 1000) })
+                : T("tw.gpRunTitle", "Take frames from the clip at the glasses' read cadence, read each one on this step, and replay the glasses' guards over the reads");
+        }
+        $("gpTime").textContent = dur ? `${fmtT(video.currentTime)} / ${fmtT(dur)}` : fmtT(0);
+      }
+
+      /* ── render: scrubber ──────────────────────────────────────────── */
+
+      function renderTrack() {
+        const r = cur();
+        const dur = isFinite(video.duration) ? video.duration : 0;
+        const range = $("gpRange"), bands = $("gpBands"), ticks = $("gpTicks");
+        range.innerHTML = bands.innerHTML = ticks.innerHTML = "";
+        if (!r || !dur) return;
+        const pct = (t) => Math.max(0, Math.min(100, (t / dur) * 100)) + "%";
+        const span = (parent, a, b) => {
+          const i = el("i");
+          i.style.left = pct(a);
+          i.style.width = Math.max(0.4, ((Math.min(b, dur) - a) / dur) * 100) + "%";
+          parent.appendChild(i);
+          return i;
+        };
+        if (r.reads.length || r.status === "reading") {
+          span(range, r.from, r.to).title = TF("tw.gpRangeTitle", "read from {a} to {b}", { a: fmtT(r.from), b: fmtT(r.to) });
+        }
+        // Where a library clip is two takes put end to end.
+        const clip = clipOf(activeKey);
+        if (clip && clip.lib) {
+          clip.lib.parts.forEach((p) => {
+            if (!(p.at > 0)) return;
+            const cut = el("i", "cut");
+            cut.style.left = pct(p.at);
+            range.appendChild(cut);
+          });
+        }
+        // The card: one band from each raise to whatever took it down.
+        let up = null;
+        r.events.forEach((e) => {
+          if (e.kind === "raise") {
+            if (up) span(bands, up.t, e.t);
+            up = e;
+          } else if (up) {
+            span(bands, up.t, e.t);
+            up = null;
+          }
+        });
+        if (up) span(bands, up.t, r.to);
+        r.reads.forEach((x, i) => {
+          const tick = el("i", x.pose || "");
+          tick.style.left = pct(x.t);
+          tick.dataset.i = String(i);
+          ticks.appendChild(tick);
+        });
+      }
+
+      function seekFrac(clientX) {
+        const dur = isFinite(video.duration) ? video.duration : 0;
+        if (!dur) return;
+        const box = track.getBoundingClientRect();
+        video.currentTime = Math.max(0, Math.min(dur - 0.01, ((clientX - box.left) / box.width) * dur));
+      }
+      let scrubbingGp = false;
+      track.addEventListener("pointerdown", (e) => {
+        scrubbingGp = true;
+        try { track.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+        seekFrac(e.clientX);
+      });
+      track.addEventListener("pointermove", (e) => { if (scrubbingGp) seekFrac(e.clientX); });
+      const endScrub = () => { scrubbingGp = false; };
+      track.addEventListener("pointerup", endScrub);
+      track.addEventListener("pointercancel", endScrub);
+
+      /** Step to the next or previous read; with nothing read, one second. */
+      function stepRead(dir) {
+        const r = cur();
+        if (!r || !isFinite(video.duration)) return;
+        video.pause();
+        if (!r.reads.length) {
+          video.currentTime = Math.max(0, Math.min(video.duration - 0.01, video.currentTime + dir));
+          return;
+        }
+        const idx = readAt(r, video.currentTime);
+        const at = idx >= 0 && Math.abs(r.reads[idx].t - video.currentTime) > 0.06 && dir < 0 ? idx : idx + dir;
+        const next = Math.max(0, Math.min(r.reads.length - 1, at));
+        video.currentTime = r.reads[next].t;
+      }
+      $("gpPrev").addEventListener("click", () => stepRead(-1));
+      $("gpNext").addEventListener("click", () => stepRead(1));
+      track.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowLeft") { stepRead(-1); e.preventDefault(); }
+        else if (e.key === "ArrowRight") { stepRead(1); e.preventDefault(); }
+        else if (e.key === " ") { togglePlay(); e.preventDefault(); }
+      });
+
+      function togglePlay() {
+        if (!activeKey) return;
+        if (video.paused || video.ended) {
+          if (video.ended || video.currentTime >= video.duration - 0.05) video.currentTime = 0;
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      }
+      playBtn.addEventListener("click", togglePlay);
+      video.addEventListener("click", togglePlay);
+
+      /* ── render: the glasses' panel ────────────────────────────────── */
+
+      function renderPanel(r, idx, warn) {
+        const step = r && stepOf(r.step);
+        const hud = $("gpHud");
+        hud.hidden = !step;
+        if (step) {
+          $("gpHudProc").textContent = `${spec.procedure.title}  ${step.n}/${spec.procedure.steps}`;
+          $("gpHudTitle").textContent = step.title;
+          // The glasses print the scene as the model worded it. Until a frame
+          // has been read there is nothing to say, so the line stays out
+          // rather than showing a placeholder.
+          const read = idx >= 0 ? r.reads[idx] : null;
+          const caption = read && read.caption ? worded(read, "caption") : "";
+          const scene = $("gpHudScene");
+          scene.hidden = !caption;
+          scene.textContent = caption ? "\u25C9 " + caption : "";
+          $("gpHudDetail").textContent = step.detail;
+          // The glasses' "look for" line is the instruction cut to fit their
+          // display: the same words as the detail, ended with an ellipsis.
+          // The detail above is the whole instruction, so the cut line would
+          // only repeat it.
+          const look = step.lookFor || "";
+          const cutShort = look.endsWith("\u2026") && step.detail.startsWith(look.slice(0, -1).trim());
+          const lookEl = $("gpHudLook");
+          lookEl.hidden = !look || cutShort || look === step.detail;
+          lookEl.textContent = lookEl.hidden ? "" : "\u25C7 " + look;
+        }
+        const card = $("gpWarn");
+        card.hidden = !warn;
+        if (warn) {
+          $("gpWarnHead").textContent = warn.headline;
+          $("gpWarnDetail").textContent = warn.detail;
+          $("gpWarnAction").textContent = warn.action;
+        }
+      }
+
+      /* ── render: side column ───────────────────────────────────────── */
+
+      function classWhat(c) {
+        if (c.kind === "orientation") return TF("tw.gpClsFlip", "{sku} the wrong way up", { sku: c.shownSku });
+        if (c.kind === "order") return (c.slots || []).map((g) => g.label).join(" \u2192 ");
+        if (c.kind === "foreign") return TF("tw.gpClsForeign", "a part that belongs to another step ({n} parts)", { n: c.skus.length });
+        return c.names && c.names[0] ? c.names[0] : c.skus[0];
+      }
+      function classFrom(c) {
+        if (c.kind === "builtin") return T("tw.gpFromBuiltin", "built into the guard");
+        if (c.kind === "foreign") return T("tw.gpFromForeign", "from the other steps' part lists");
+        if (c.kind === "order") return T("tw.gpFromOrder", "the step's pick order");
+        return T("tw.gpFromDecoy", "a decoy of this step");
+      }
+
+      function renderClasses(r, warn) {
+        const box = $("gpClasses");
+        box.innerHTML = "";
+        const step = r && stepOf(r.step);
+        if (!spec) {
+          box.appendChild(el("div", "gp-dim", specError
+            ? T("tw.gpSpecFailed", "The step list could not be loaded.")
+            : T("tw.gpLoading", "Loading the steps…")));
+          return;
+        }
+        if (!step) {
+          box.appendChild(el("div", "gp-dim", T("tw.gpPickStep", "Choose a step to see what the glasses can warn about on it.")));
+          return;
+        }
+        if (!step.classes.length) {
+          box.appendChild(el("div", "gp-dim", T("tw.gpNoClasses", "This step lists no parts. Neither guard runs on it, so the glasses raise nothing here.")));
+          return;
+        }
+        step.classes.forEach((c) => {
+          const fired = r.events.filter((e) => e.kind === "raise" && e.warning && e.warning.classId === c.id).length;
+          const lit = Boolean(warn && warn.classId === c.id);
+          const row = el("div", "gp-row" + (lit ? " is-lit" : "") + (c.readable.length ? "" : " is-off"));
+          row.appendChild(el("span", "gp-lamp" + (lit ? " lit" : fired ? " fired" : "")));
+          const txt = el("div");
+          const head = el("div");
+          if (fired) head.appendChild(el("span", "n", "\u00D7" + fired));
+          head.appendChild(el("b", "", c.headline));
+          txt.appendChild(head);
+          txt.appendChild(el("div", "what", classWhat(c)));
+          let sub = classFrom(c);
+          if (!c.readable.length) {
+            sub += " · " + T("tw.gpNotReadable", "its part is left out of this step's reference images, so it cannot be read here");
+          } else if (c.readable.length < c.skus.length) {
+            sub += " · " + TF("tw.gpPartReadable", "{r} of {n} can be read on this step", { r: c.readable.length, n: c.skus.length });
+          }
+          txt.appendChild(el("div", "sub", sub));
+          if (c.kind === "foreign") row.title = c.skus.join(", ");
+          else if (c.action) row.title = c.action;
+          row.appendChild(txt);
+          box.appendChild(row);
+        });
+      }
+
+      /** What the wrong-part guard did with a read, in words. */
+      function guardText(nt, read) {
+        const G = spec.guard.wrongPart;
+        const v = {
+          n: nt.n, of: nt.of,
+          conf: read ? conf2(read.confidence) : "",
+          min: conf2(G.WRONG_PART_MIN_CONF),
+          instant: conf2(G.ORIENTATION_INSTANT_CONF),
+          strong: conf2(G.CORRECT_CLEAR_STRONG_CONF),
+          osc: (G.ORIENTATION_OSCILLATION_MS / 1000).toFixed(0),
+        };
+        switch (nt.code) {
+          case "expected": return T("tw.gpG.expected", "The step's part is in view. Nothing to warn about.");
+          case "expected_strong": return TF("tw.gpG.expectedStrong", "Correct read {n} of {of} at {strong} or more. The card stays until the run is complete.", v);
+          case "expected_weak": return TF("tw.gpG.expectedWeak", "Correct read, but under {strong}: not enough to take the card down.", v);
+          case "expected_hold": return T("tw.gpG.expectedHold", "The step's part is in view. The card stays until the wrong part is out of view.");
+          case "cleared_corrected": return TF("tw.gpG.clearedCorrected", "Correct read {n} of {of} at {strong} or more: card cleared.", v);
+          case "cleared_correct": return T("tw.gpG.clearedCorrect", "The right part is in view: card cleared.");
+          case "cleared_swapped": return T("tw.gpG.clearedSwapped", "The right part is in hand: card cleared.");
+          case "decoy_wait": return TF("tw.gpG.decoyWait", "Wrong read {n} of {of}. Waiting for the next one.", v) +
+            (nt.correctNearby ? " " + TF("tw.gpG.oscillation", "A correct read within {osc} s holds a single strong read back, as a pose that flickers.", v) : "");
+          case "raised_instant": return TF("tw.gpG.raisedInstant", "Raised on this one read: {conf} is at or over the single-read bar.", v);
+          case "raised_consecutive": return TF("tw.gpG.raisedConsecutive", "Raised: {of} wrong reads in a row.", v);
+          case "already_up": return T("tw.gpG.alreadyUp", "Still wrong. The card stays up.");
+          case "foreign_wait": return TF("tw.gpG.foreignWait", "A part of another step, read {n} of {of}. Never raised on one read.", v);
+          case "raised_foreign": return TF("tw.gpG.raisedForeign", "Raised: a part of another step, {of} reads in a row.", v);
+          case "other_part": return T("tw.gpG.otherPart", "A part no warning covers on this step. Ignored.");
+          case "hands_empty": return T("tw.gpG.handsEmpty", "Empty hands.");
+          case "hands_keep": return T("tw.gpG.handsKeep", "Read as empty hands, but the part is still listed in the frame. The card stays.");
+          case "hands_noscene": return T("tw.gpG.handsNoScene", "Read as empty hands with nothing else listed. Left to the time-out.");
+          case "cleared_hands": return T("tw.gpG.clearedHands", "Empty hands: card cleared.");
+          case "cleared_hands_left": return T("tw.gpG.clearedHandsLeft", "Empty hands and the part is no longer in the frame: card cleared.");
+          default: return TF("tw.gpG.ambiguous", "No read of a part at {min} or more. It counts for nothing.", v);
+        }
+      }
+      function orderText(o) {
+        const v = { slot: o.slot, n: o.n, of: o.of };
+        switch (o.code) {
+          case "slot_wait": return TF("tw.gpO.slotWait", "Pick order: slot {slot} in turn, read {n} of {of}.", v);
+          case "slot_done": return TF("tw.gpO.slotDone", "Pick order: slot {slot} done.", v);
+          case "order_wait": return TF("tw.gpO.orderWait", "Pick order: slot {slot} before its turn, read {n} of {of}.", v);
+          case "raised_order": return TF("tw.gpO.raised", "Pick order: slot {slot} before its turn. Card raised.", v);
+          case "order_deferred": return TF("tw.gpO.deferred", "Pick order: slot {slot} before its turn, held back while a wrong-part card is up.", v);
+          case "seq_complete": return T("tw.gpO.complete", "Pick order: the pack is complete.");
+          default: return TF("tw.gpO.seen", "Pick order: slot {slot} seen again.", v);
+        }
+      }
+      /** Why the card went up or came down, for the log. */
+      function eventText(e) {
+        if (e.kind === "raise") {
+          if (e.code === "raised_instant") return T("tw.gpE.instant", "on one read");
+          if (e.code === "raised_order") return T("tw.gpE.order", "picked before its turn");
+          return TF("tw.gpE.consecutive", "{n} reads in a row", { n: spec.guard.wrongPart.WRONG_PART_CONSECUTIVE });
+        }
+        switch (e.code) {
+          case "absent": return T("tw.gpE.absent", "cleared: not seen for the time-out");
+          case "cleared_corrected": return T("tw.gpE.corrected", "cleared: turned the right way");
+          case "cleared_correct":
+          case "cleared_swapped": return T("tw.gpE.swapped", "cleared: right part in view");
+          case "cleared_hands":
+          case "cleared_hands_left": return T("tw.gpE.hands", "cleared: hands empty");
+          case "slot_done": return T("tw.gpE.slot", "cleared: the part due was picked");
+          default: return T("tw.gpE.cleared", "cleared");
+        }
+      }
+
+      function renderRead(r, idx, warn) {
+        const box = $("gpRead");
+        box.innerHTML = "";
+        if (!r) return;
+        if (!r.reads.length) {
+          box.appendChild(el("div", "gp-dim",
+            r.status === "reading" ? T("tw.gpReadingNow", "Reading the clip…")
+              : r.status === "failed" ? T("tw.gpReadFailed", "The clip could not be read.")
+                : T("tw.gpNoReads", "Nothing read yet. Choose the step, then read the clip.")));
+          return;
+        }
+        if (idx < 0) {
+          box.appendChild(el("div", "gp-dim", T("tw.gpOutside", "The playhead is outside the part of the clip that was read.")));
+          return;
+        }
+        const x = r.reads[idx];
+        const nt = r.notes[idx];
+        box.appendChild(el("div", "gp-dim", `${fmtT(x.t)} · ` + TF("tw.gpReadN", "read {i} of {n}", { i: idx + 1, n: r.reads.length })));
+        const top = el("div", "gp-read-top");
+        top.appendChild(el("span", "sku", x.hands ? "hands_only" : x.sku || x.className || T("tw.gpNoPart", "no part")));
+        if (x.answered) top.appendChild(el("span", "conf", conf2(x.confidence)));
+        if (x.pose) {
+          top.appendChild(el("span", "gp-chip " + x.pose,
+            x.pose === "wrong" ? T("tw.gpPoseWrong", "wrong way up")
+              : x.pose === "correct" ? T("tw.gpPoseOk", "right way up")
+                : T("tw.gpPoseUnclear", "pose not judged")));
+        }
+        box.appendChild(top);
+        if (!x.answered) {
+          box.appendChild(el("div", "gp-why", T("tw.gpNoAnswer", "The model returned nothing for this frame.")));
+        } else {
+          if (x.name) box.appendChild(el("div", "gp-dim", x.name));
+          if (x.reasoning) box.appendChild(el("div", "gp-why", worded(x, "reasoning")));
+          const scene = worded(x, "scene");
+          if (scene && scene.length) {
+            box.appendChild(el("div", "gp-dim", T("tw.gpScene", "also in the frame:") + " " + scene.join(", ")));
+          }
+        }
+        if (nt) {
+          const g = el("div", "gp-guard" + (warn ? " is-up" : ""));
+          g.appendChild(el("small", "", T("tw.gpGuardDid", "what the guard did")));
+          g.appendChild(document.createTextNode(guardText(nt, x)));
+          if (nt.order) {
+            g.appendChild(el("br"));
+            g.appendChild(document.createTextNode(orderText(nt.order)));
+          }
+          box.appendChild(g);
+        }
+      }
+
+      function renderLog(r) {
+        const box = $("gpLog");
+        box.innerHTML = "";
+        if (!r || !r.reads.length) {
+          box.appendChild(el("div", "gp-dim", T("tw.gpLogEmpty", "When the card goes up and comes down, once a clip is read.")));
+          return;
+        }
+        if (!r.events.length) {
+          box.appendChild(el("div", "gp-dim", r.status === "reading"
+            ? T("tw.gpLogNoneYet", "No card so far.")
+            : T("tw.gpLogNone", "The glasses would have shown no warning over this part of the clip.")));
+          return;
+        }
+        r.events.forEach((e) => {
+          const b = el("button", e.kind);
+          b.type = "button";
+          const tm = el("time", "", fmtT(e.t));
+          const txt = el("span");
+          if (e.kind === "raise") {
+            txt.appendChild(el("b", "", e.warning.headline));
+            txt.appendChild(document.createTextNode(" · " + eventText(e)));
+          } else {
+            txt.textContent = eventText(e);
+          }
+          b.appendChild(tm);
+          b.appendChild(txt);
+          b.addEventListener("click", () => { video.pause(); video.currentTime = Math.min(e.t, video.duration - 0.01); });
+          box.appendChild(b);
+        });
+      }
+
+      function renderModels(r, warn) {
+        const box = $("gpModels");
+        box.innerHTML = "";
+        if (!spec) return;
+        const step = r && stepOf(r.step);
+        const G = spec.guard.wrongPart, S = spec.guard.sequence;
+        const row = (lamp, name, lines, off) => {
+          const d = el("div", "gp-row" + (off ? " is-off" : ""));
+          d.appendChild(el("span", "gp-lamp" + (lamp ? " " + lamp : "")));
+          const t = el("div");
+          t.appendChild(el("b", "", name));
+          lines.forEach((l) => t.appendChild(el("div", "sub", l)));
+          d.appendChild(t);
+          box.appendChild(d);
+        };
+        const same = spec.reader.here.model === spec.reader.glasses.model;
+        row(r && r.reads.length ? "on" : "", T("tw.gpMRead", "Part and pose read"), [
+          TF("tw.gpMReadHere", "here: {m}", { m: (r && r.model) || spec.reader.here.model }) +
+            (r && r.references != null
+              ? " · " + TF("tw.gpMRefs", "{n} of {all} reference images on this step", { n: r.references, all: spec.reader.references })
+              : " · " + TF("tw.gpMRefsAll", "{all} reference images", { all: spec.reader.references })),
+          TF("tw.gpMReadGlasses", "on the glasses: {m}, falling back to {f}", { m: spec.reader.glasses.model, f: spec.reader.glasses.fallback }) +
+            (same ? "" : " · " + T("tw.gpMDiffers", "not the model used here")),
+        ]);
+        row(warn && warn.source === "wrong_part" ? "lit" : "", T("tw.gpMWrong", "Wrong part guard"), [
+          TF("tw.gpMWrongRule", "rules, on the glasses · raises on {n} reads in a row at {min} or more, or on one at {instant}", {
+            n: G.WRONG_PART_CONSECUTIVE, min: conf2(G.WRONG_PART_MIN_CONF), instant: conf2(G.ORIENTATION_INSTANT_CONF),
+          }),
+        ], step && !step.guarded);
+        const hasOrder = Boolean(step && step.classes.some((c) => c.kind === "order"));
+        row(warn && warn.source === "sequence" ? "lit" : "", T("tw.gpMOrder", "Pick order guard"), [
+          hasOrder
+            ? TF("tw.gpMOrderRule", "rules, on the glasses · {n} reads in a row at {min} or more fill a slot", { n: S.SEQ_CONSECUTIVE, min: conf2(S.SEQ_MIN_CONF) })
+            : T("tw.gpMOrderNone", "this step has no pick order"),
+        ], !hasOrder);
+      }
+
+      function renderFacts(r) {
+        const box = $("gpFacts");
+        box.innerHTML = "";
+        if (!spec) return;
+        const cadence = spec.cadenceMs / 1000;
+        const dl = el("dl", "gp-kv");
+        const kv = (k, v) => { dl.appendChild(el("dt", "", k)); dl.appendChild(el("dd", "", v)); };
+        if (r && r.reads.length) {
+          const raises = r.events.filter((e) => e.kind === "raise");
+          kv(T("tw.gpFReads", "reads"), String(r.reads.length) + (r.status === "reading" ? ` / ${r.total}` : ""));
+          kv(T("tw.gpFSpan", "read"), `${fmtT(r.from)} \u2013 ${fmtT(r.to)}` + (r.whole ? "" : " · " + T("tw.gpFPartial", "part of the clip")));
+          kv(T("tw.gpFEvery", "one read every"), `${cadence.toFixed(2)} s`);
+          kv(T("tw.gpFWarnings", "warnings"), raises.length ? `${raises.length} · ${T("tw.gpFFirst", "first at")} ${fmtT(raises[0].t)}` : T("tw.gpFNone", "none"));
+        } else {
+          kv(T("tw.gpFEvery", "one read every"), `${cadence.toFixed(2)} s`);
+        }
+        box.appendChild(dl);
+      }
+
+      function renderNote(r) {
+        let text = "", err = false;
+        if (specError) { text = T("tw.gpSpecFailed", "The step list could not be loaded.") + " " + specError.message; err = true; }
+        else if (spec && !spec.ready) { text = T("tw.gpNoVision", "Vision is not configured on this server, so clips cannot be read here."); err = true; }
+        else if (r && r.status === "failed") { text = T("tw.gpReadFailed", "The clip could not be read.") + " " + (r.error || ""); err = true; }
+        else if (r && activeKey && r.step == null && spec) text = T("tw.gpStepUnset", "Choose the step this clip shows. The glasses always know their step; a clip does not say.");
+        else if (r && videoError) { text = T("tw.gpDecode", "This browser cannot play the clip. An mp4 (H.264) copy will work."); err = true; }
+        note.hidden = !text || !activeKey && !err;
+        note.textContent = text;
+        note.classList.toggle("is-err", err);
+      }
+
+      /* ── render: everything, and the per-frame part of it ──────────── */
+
+      function renderAll() {
+        if (body.hidden) return;
+        const r = cur();
+        $("gpEmpty").hidden = Boolean(activeKey);
+        renderBar();
+        renderTrack();
+        renderLog(r);
+        renderFacts(r);
+        renderNote(r);
+        shown = { idx: -2, warn: "?" };
+        tick();
+      }
+
+      /** Runs every frame while playing: only what the playhead changes. */
+      function tick() {
+        const r = cur();
+        const dur = isFinite(video.duration) ? video.duration : 0;
+        const t = video.currentTime || 0;
+        $("gpPlayhead").style.left = dur ? Math.min(100, (t / dur) * 100) + "%" : "0%";
+        $("gpTime").textContent = dur ? `${fmtT(t)} / ${fmtT(dur)}` : fmtT(0);
+        track.setAttribute("aria-valuemax", dur.toFixed(1));
+        track.setAttribute("aria-valuenow", t.toFixed(1));
+        const idx = r ? readAt(r, t) : -1;
+        const warn = r ? warningAt(r, t) : null;
+        const warnKey = warn ? warn.classId + "|" + warn.detail : "";
+        if (idx === shown.idx && warnKey === shown.warn) return;
+        shown = { idx, warn: warnKey };
+        renderPanel(r, idx, warn);
+        renderClasses(r, warn);
+        renderRead(r, idx, warn);
+        renderModels(r, warn);
+        $("gpTicks").querySelectorAll("i").forEach((i) => i.classList.toggle("is-now", Number(i.dataset.i) === idx));
+      }
+
+      let raf = 0;
+      function loopGp() {
+        tick();
+        raf = video.paused || video.ended ? 0 : requestAnimationFrame(loopGp);
+      }
+      video.addEventListener("play", () => { renderBar(); if (!raf) raf = requestAnimationFrame(loopGp); });
+      video.addEventListener("pause", () => { renderBar(); tick(); });
+      video.addEventListener("ended", () => { renderBar(); tick(); });
+      video.addEventListener("seeked", tick);
+      video.addEventListener("timeupdate", () => { if (video.paused) tick(); });
+      video.addEventListener("loadedmetadata", () => { videoError = false; renderAll(); });
+      video.addEventListener("error", () => { if (video.getAttribute("src")) { videoError = true; renderAll(); } });
+
+      /* ── adding clips ──────────────────────────────────────────────── */
+
+      const addInput = $("gpAddInput");
+      $("gpAdd").addEventListener("click", () => addInput.click());
+      $("gpEmptyAdd").addEventListener("click", () => addInput.click());
+      addInput.addEventListener("change", () => {
+        const files = [...(addInput.files || [])];
+        addInput.value = "";
+        addFiles(files);
+      });
+      // Files can be dropped on the clip. Dragging a quadrant by its head is a
+      // different drag (no files in it) and is left to the layout code.
+      const hasFiles = (e) => e.dataTransfer && [...e.dataTransfer.types].includes("Files");
+      stage.addEventListener("dragover", (e) => {
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = "copy";
+        stage.classList.add("is-drop");
+      });
+      stage.addEventListener("dragleave", () => stage.classList.remove("is-drop"));
+      stage.addEventListener("drop", (e) => {
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        stage.classList.remove("is-drop");
+        addFiles(e.dataTransfer.files);
+      });
+
+      runBtn.addEventListener("click", run);
+
+      /* ── panel on or off ───────────────────────────────────────────── */
+
+      const panelBtn = $("gpPanelBtn");
+      function setPanel(on) {
+        $("gpPanel").classList.toggle("is-off", !on);
+        panelBtn.classList.toggle("is-on", on);
+        panelBtn.setAttribute("aria-pressed", on ? "true" : "false");
+        try { localStorage.setItem(LS_PANEL, on ? "1" : "0"); } catch { /* ignore */ }
+      }
+      panelBtn.addEventListener("click", () => setPanel($("gpPanel").classList.contains("is-off")));
+      try { if (localStorage.getItem(LS_PANEL) === "0") setPanel(false); } catch { /* ignore */ }
+
+      /* ── start ─────────────────────────────────────────────────────── */
+
+      renderStepSel();
+      // ?pane=glasses opens the preview directly, so the view can be linked.
+      let start = "splat";
+      try { start = localStorage.getItem(LS_PANE) || "splat"; } catch { /* ignore */ }
+      const asked = params.get("pane");
+      if (asked === "glasses" || asked === "splat") start = asked;
+      if (start === "glasses") setPane("glasses", false);
+      // The string table loads after this script, so anything drawn before it
+      // arrived is in English: draw it again once the page has finished loading.
+      window.addEventListener("load", () => {
+        nameLayer();
+        $("gpPrev").setAttribute("aria-label", T("tw.gpPrevRead", "Previous read"));
+        $("gpNext").setAttribute("aria-label", T("tw.gpNextRead", "Next read"));
+        $("gpAdd").setAttribute("aria-label", T("tw.gpAddClips", "Add clips"));
+        track.setAttribute("aria-label", T("tw.gpClipPos", "Clip position"));
+        clipSel.setAttribute("aria-label", T("tw.gpClipTitle", "Clip"));
+        renderClipSel();
+        renderStepSel();
+        if (quad.dataset.pane === "glasses") renderAll();
+      }, { once: true });
+    })();
+
     // ── Movable + resizable quadrants (Rerun-style docking) ───────────
     (function setupLayout() {
       const root = document.documentElement;
@@ -3717,6 +5098,7 @@
         if (!head) return;
         head.setAttribute("draggable", "true");
         head.addEventListener("dragstart", (e) => {
+          if (e.target.closest && e.target.closest(".q-close")) { e.preventDefault(); return; }
           dragSrc = q; quads.classList.add("dragging");
           e.dataTransfer.effectAllowed = "move";
           try { e.dataTransfer.setData("text/plain", q.dataset.quad); } catch {}
@@ -3784,9 +5166,36 @@
         quads.querySelectorAll("[data-rsz=qcol],[data-rsz=qrow]").forEach((r) => {
           r.style.display = n >= 4 ? "" : "none";
         });
+        const T = (k, en) => (window.OmniaI18n ? window.OmniaI18n.t(k, en) : en);
+        all.forEach((q) => {
+          const btn = q.querySelector(".q-close");
+          if (!btn) return;
+          const last = n <= 1 && q.style.display !== "none";
+          btn.disabled = last;
+          const row = rows.find((r) => r.dataset.layer === q.dataset.quad);
+          const name = row?.querySelector(".layer-txt > span")?.textContent?.trim() || "";
+          const label = last
+            ? T("tw.quadCloseLast", "At least one quadrant stays open")
+            : name ? `${T("tw.quadClose", "Remove this quadrant")} · ${name}` : T("tw.quadClose", "Remove this quadrant");
+          btn.title = label;
+          btn.setAttribute("aria-label", label);
+        });
         try { localStorage.setItem(LSL, JSON.stringify(layers)); } catch {}
         window.dispatchEvent(new Event("resize"));
       }
+      quads.querySelectorAll(".quad").forEach((q) => {
+        const btn = q.querySelector(".q-close");
+        if (!btn) return;
+        // The head is draggable. A press on the X removes the quadrant and
+        // must not start a drag.
+        btn.addEventListener("pointerdown", (e) => e.stopPropagation());
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (Object.values(layers).filter(Boolean).length <= 1) return;
+          layers[q.dataset.quad] = false;
+          apply();
+        });
+      });
       rows.forEach((row) => {
         const cb = row.querySelector("input");
         cb?.addEventListener("change", () => {
@@ -7847,7 +9256,7 @@
          async by default and `defer` is ignored on them, so the previous
          ordering here was not actually guaranteed — it only happened to work
          because nothing was read at parse time. */
-      for (const src of ['platform.js?v=2', 'i18n.js?v=13', 'brain-dock.js?v=14']) {
+      for (const src of ['platform.js?v=2', 'i18n.js?v=16', 'brain-dock.js?v=14']) {
         const el = document.createElement('script');
         el.src = '/lab/assets/' + src;
         el.async = false;

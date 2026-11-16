@@ -19,18 +19,30 @@
  * keeps its part identification consistent across it — the same reason the
  * offline script's neighbour smoothing exists.
  */
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { Router } from "express";
 import { z } from "zod";
+import { EVAL_LAB_PUBLIC, SHARED_DIR } from "../paths.js";
 
 import { geminiVisionCall, geminiConfigured, VISION_MODEL, type GeminiPart } from "../services/gemini.js";
 import {
   referenceLibrary,
   referenceParts,
+  vocabularySkus,
   rawBase64,
   parseJsonish,
   resolveFlipSku,
   ORIENTATION_RULES,
 } from "../services/componentVision.js";
+import {
+  glassesSpec,
+  guardClasses,
+  replayGuards,
+  baseSku,
+  type GuardStep,
+  type Observation,
+} from "../services/glassesGuard.js";
 import { GLASSES_COMPONENTS, findGlassesComponent } from "./kb.js";
 
 export const povRouter = Router();
@@ -414,6 +426,81 @@ function deviceRaise(frames: ReasonedFrame[]): GuardOutcome {
   return { raised: false, via: null, suppressed: sawWrong ? suppressed ?? "unconfirmed" : null, atT: null };
 }
 
+type ClipFrame = { t: number; dataBase64: string; mimeType?: string };
+
+/**
+ * One vision call over a batch of frames: the reasoner's prompt, the reference
+ * images, then the frames. Shared by the clip reasoner and the glasses
+ * preview, which ask the same question of the same evidence and differ only
+ * in what they do with the answer.
+ *
+ * `expectSku` narrows the references to the part's family, dropping the
+ * look-alike it would otherwise be free to answer with — the lever that
+ * actually moved the numbers on device, where prompt wording alone did not.
+ * `addendum` goes after the prompt, for a caller that needs more per frame.
+ */
+async function judgeFrames(
+  frames: ClipFrame[],
+  opts: { lang?: "en" | "it"; expectSku?: string | null; addendum?: string; extraTokensPerFrame?: number },
+) {
+  const refParts = referenceParts({ scopeSku: opts.expectSku ?? undefined });
+  const parts: GeminiPart[] = [
+    { text: buildPrompt(opts.lang, opts.expectSku ?? undefined) + (opts.addendum ?? "") },
+    ...refParts,
+  ];
+  frames.forEach((f, i) => {
+    parts.push({ text: `FRAME i=${i} at t=${f.t.toFixed(1)}s of the clip:` });
+    parts.push({
+      inline_data: { mime_type: f.mimeType || "image/jpeg", data: rawBase64(f.dataBase64) },
+    });
+  });
+
+  const out = await geminiVisionCall(parts, {
+    route: "pov-reason",
+    // ~110 tokens of JSON per frame, plus headroom for Italian.
+    maxOutputTokens: 260 + frames.length * (170 + (opts.extraTokensPerFrame ?? 0)),
+    // A dozen frames on top of the reference library is a much bigger
+    // request than a single-photo identification.
+    timeoutMs: 60_000,
+  });
+
+  const parsed = parseJsonish<{ frames: Array<RawFrame & { scene?: unknown }> }>(out.text);
+  const rawFrames = Array.isArray(parsed.frames) ? parsed.frames : [];
+  const byIndex = new Map<number, RawFrame & { scene?: unknown }>();
+  rawFrames.forEach((f, pos) => {
+    const i = Number.isInteger(f?.i) ? Number(f.i) : pos;
+    if (i >= 0 && i < frames.length) byIndex.set(i, f);
+  });
+
+  /** One entry per frame sent, in order. A frame the model skipped comes back
+   *  as an empty, unclear read rather than shifting the ones after it. */
+  const raw = frames.map((_, i) => {
+    const r = byIndex.get(i);
+    return {
+      i,
+      answered: Boolean(r),
+      caption: String(r?.caption ?? ""),
+      sku: (r?.sku ?? null) as string | null,
+      className: String(r?.className ?? ""),
+      orientation: (r?.orientation === "correct" || r?.orientation === "wrong"
+        ? r.orientation
+        : "unclear") as RawFrame["orientation"],
+      confidence: Number(r?.confidence ?? 0),
+      reasoning: String(r?.reasoning ?? ""),
+      scene: Array.isArray(r?.scene) ? (r!.scene as unknown[]).map((s) => String(s)).slice(0, 6) : [],
+    };
+  });
+
+  return {
+    out,
+    // One text part + one image part per reference, so the attached count is
+    // half the parts — worth reporting accurately, since the whole point of
+    // scoping is that this number goes down.
+    attachedRefs: refParts.length / 2,
+    raw,
+  };
+}
+
 povRouter.post("/reason", async (req, res, next) => {
   try {
     const body = BodySchema.parse(req.body);
@@ -438,58 +525,12 @@ povRouter.post("/reason", async (req, res, next) => {
     const identity = pinned ? null : await identifyClip(body.frames, body.lang);
     const inferred = identity && identity.confidence >= 0.6 ? identity.sku : null;
     const expectSku = pinned ?? inferred;
-    // Narrowed to the part's family, dropping the look-alike it would otherwise
-    // be free to answer with — the lever that actually moved the numbers on
-    // device, where prompt wording alone did not.
-    const refParts = referenceParts({ scopeSku: expectSku ?? undefined });
-    const parts: GeminiPart[] = [
-      { text: buildPrompt(body.lang, expectSku ?? undefined) },
-      ...refParts,
-    ];
-    // One text part + one image part per reference, so the attached count is
-    // half the parts — worth reporting accurately, since the whole point of
-    // scoping is that this number goes down.
-    const attachedRefs = refParts.length / 2;
-    body.frames.forEach((f, i) => {
-      parts.push({ text: `FRAME i=${i} at t=${f.t.toFixed(1)}s of the clip:` });
-      parts.push({
-        inline_data: { mime_type: f.mimeType || "image/jpeg", data: rawBase64(f.dataBase64) },
-      });
+    const { out, attachedRefs, raw } = await judgeFrames(body.frames, {
+      lang: body.lang,
+      expectSku,
     });
 
-    const out = await geminiVisionCall(parts, {
-      route: "pov-reason",
-      // ~110 tokens of JSON per frame, plus headroom for Italian.
-      maxOutputTokens: 260 + body.frames.length * 170,
-      // A dozen frames on top of the reference library is a much bigger
-      // request than a single-photo identification.
-      timeoutMs: 60_000,
-    });
-
-    const parsed = parseJsonish<{ frames: RawFrame[] }>(out.text);
-    const rawFrames = Array.isArray(parsed.frames) ? parsed.frames : [];
-    const byIndex = new Map<number, RawFrame>();
-    rawFrames.forEach((f, pos) => {
-      const i = Number.isInteger(f?.i) ? Number(f.i) : pos;
-      if (i >= 0 && i < body.frames.length) byIndex.set(i, f);
-    });
-
-    const frames: ReasonedFrame[] = body.frames.map((f, i) => {
-      const r = byIndex.get(i);
-      return ground(
-        {
-          i,
-          caption: String(r?.caption ?? ""),
-          sku: (r?.sku ?? null) as string | null,
-          className: String(r?.className ?? ""),
-          orientation:
-            r?.orientation === "correct" || r?.orientation === "wrong" ? r.orientation : "unclear",
-          confidence: Number(r?.confidence ?? 0),
-          reasoning: String(r?.reasoning ?? ""),
-        },
-        f.t,
-      );
-    });
+    const frames: ReasonedFrame[] = body.frames.map((f, i) => ground(raw[i], f.t));
 
     // Clip-level roll-up: what a reviewer wants to read before scrubbing.
     const wrong = frames.filter((f) => f.verdict === "wrong");
@@ -555,6 +596,400 @@ povRouter.post("/reason", async (req, res, next) => {
         },
       },
     });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/* ── Glasses preview ────────────────────────────────────────────────────────
+ *
+ * The reasoner above answers "is this part the right way up" for a whole
+ * clip. The preview answers a different question about the same clip: what
+ * would the operator have seen on the glasses, and when. That takes three
+ * things the reasoner does not need:
+ *
+ *   GET  /glasses  the steps, what each one can warn about, and the clip
+ *                  library with the reads kept for each clip
+ *   POST /observe  frames read the way the glasses read a frame, one per call,
+ *                  on a step, one answer per frame
+ *   POST /panel    the two guards replayed over those reads, which is what
+ *                  turns reads into a card going up and coming down
+ *
+ * Reads are made here, by this server, from the uploaded clip: the same
+ * reference images and orientation rules as the glasses, but not the glasses'
+ * own observe call and not a recording from a device. The guards are the
+ * device's logic and thresholds (services/glassesGuard.ts). Every response
+ * says which is which so the page never has to guess.
+ */
+
+const SKU_KEYS = new Map(Object.keys(GLASSES_COMPONENTS).map((k) => [k.toUpperCase(), k]));
+
+/** Every `-FLIP` identity any step declares: the only parts with a pose class. */
+function flipIdentities(): Set<string> {
+  const out = new Set<string>();
+  for (const s of glassesSpec().steps) {
+    for (const d of s.decoys) if (d.decoyFor) out.add(d.sku.toUpperCase());
+  }
+  return out;
+}
+
+/**
+ * The part a step's reads are pinned to, as the glasses pin theirs.
+ *
+ * A step whose decoy is the same part upside down is a step about that one
+ * part, so identity is settled by the procedure and vision rules only on
+ * pose. Any other step leaves the vocabulary open: at the shim pack the
+ * question is which of several parts is in hand.
+ */
+function pinnedPart(step: GuardStep): string | null {
+  const poses = step.decoys.filter((d) => d.decoyFor);
+  return poses.length === 1 ? poses[0].decoyFor : null;
+}
+
+function partName(sku: string): string | null {
+  const key = SKU_KEYS.get(baseSku(sku));
+  return key ? GLASSES_COMPONENTS[key].name : null;
+}
+
+/* The clip library: station clips that come with the page, each with the reads
+   made of it when the library was built (tools/build-glasses-library.mjs).
+   Only the reads are kept. The guards are replayed by /panel when a clip is
+   opened, so what they do with the reads is always today's thresholds. */
+
+interface LibraryFile {
+  _source: { repo: string; ref: string; commit: string; builtOn: string };
+  cadenceMs: number;
+  clips: Array<{
+    id: string;
+    file: string;
+    sha: string;
+    duration: number;
+    step: number;
+    sku: string;
+    shows: "wrong" | "correct" | "wrong_then_correct";
+    parts: unknown[];
+    readsMadeOn: string;
+    model: string;
+    references: number;
+    reads: unknown[];
+  }>;
+}
+
+const LIBRARY_JSON = join(SHARED_DIR, "data", "glasses-library.json");
+const LIBRARY_CLIPS_DIR = join(EVAL_LAB_PUBLIC, "assets", "glasses-clips");
+let libraryCache: { mtimeMs: number; data: LibraryFile } | null = null;
+
+/** The library as the page takes it, or null when there is none. A clip whose
+ *  file is not on this server is left out rather than listed and broken, and
+ *  so is the whole library if it was read at another cadence than the guards
+ *  are replayed at now. */
+function glassesLibrary(cadenceMs: number) {
+  let mtimeMs: number;
+  try {
+    mtimeMs = statSync(LIBRARY_JSON).mtimeMs;
+  } catch {
+    return null;
+  }
+  if (!libraryCache || libraryCache.mtimeMs !== mtimeMs) {
+    libraryCache = { mtimeMs, data: JSON.parse(readFileSync(LIBRARY_JSON, "utf8")) as LibraryFile };
+  }
+  const { data } = libraryCache;
+  if (data.cadenceMs !== cadenceMs) return null;
+  return {
+    builtOn: data._source.builtOn,
+    clips: data.clips
+      .filter((c) => existsSync(join(LIBRARY_CLIPS_DIR, c.file)))
+      .map((c) => ({
+        id: c.id,
+        // Video is cached for a week as immutable, so the address carries the
+        // file's hash: a rebuilt clip is a new address.
+        url: `/lab/assets/glasses-clips/${c.file}?v=${c.sha}`,
+        duration: c.duration,
+        step: c.step,
+        sku: c.sku,
+        shows: c.shows,
+        parts: c.parts,
+        readsMadeOn: c.readsMadeOn,
+        model: c.model,
+        references: c.references,
+        reads: c.reads,
+      })),
+  };
+}
+
+povRouter.get("/glasses", (_req, res, next) => {
+  try {
+    const spec = glassesSpec();
+    const steps = spec.steps.map((s) => {
+      const pinned = pinnedPart(s);
+      const vocabulary = vocabularySkus(pinned ?? undefined);
+      return {
+        n: s.n,
+        title: s.title,
+        detail: s.detail,
+        lookFor: s.lookFor,
+        guarded: s.parts.length > 0,
+        pinned,
+        parts: s.parts.map((p) => {
+          const key = SKU_KEYS.get(p.sku.toUpperCase());
+          return {
+            sku: p.sku,
+            name: key ? GLASSES_COMPONENTS[key].name : p.description || p.sku,
+            image: key && GLASSES_COMPONENTS[key].images[0]
+              ? `/lab/assets/pinion-components/${GLASSES_COMPONENTS[key].images[0]}`
+              : null,
+          };
+        }),
+        classes: guardClasses(s.n).map((c) => ({
+          ...c,
+          names: c.skus.map((sku) => partName(sku) ?? sku),
+          // A class is only ever raised by a read naming one of its parts, and
+          // a read can only name what is in the reference set sent for the
+          // step. Where none of a class's parts is, the class is enabled on
+          // the glasses but this page cannot show it firing.
+          readable: c.skus.filter((sku) => vocabulary.has(baseSku(sku))),
+        })),
+      };
+    });
+    res.json({
+      source: {
+        repo: spec._source.repo,
+        ref: spec._source.ref,
+        commit: spec._source.commit.slice(0, 8),
+        copiedOn: spec._source.copiedOn,
+      },
+      procedure: { ...spec.procedure, steps: spec.steps.length },
+      ready: geminiConfigured(),
+      // Seconds between reads on the glasses. Not a setting there: the median
+      // measured on the line, which their thresholds were tuned against.
+      cadenceMs: spec.observe.cadenceMs,
+      cadenceSamples: spec.observe.cadenceSamples,
+      framesPerCall: MAX_FRAMES,
+      reader: {
+        glasses: { model: spec.observe.model, fallback: spec.observe.fallbackModel },
+        here: { model: VISION_MODEL },
+        references: referenceLibrary().length,
+      },
+      guard: { wrongPart: spec.wrongPartGuard, sequence: spec.sequenceGuard },
+      steps,
+      library: glassesLibrary(spec.observe.cadenceMs),
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+const ObserveSchema = z.object({
+  clip: z.string().max(200).default("clip"),
+  step: z.number().int().min(1).max(99),
+  frames: z.array(FrameSchema).min(1).max(MAX_FRAMES),
+  lang: z.enum(["en", "it"]).optional(),
+});
+
+/** What the reasoner is told about a step that is not about one part. */
+function stepClause(step: GuardStep, total: number): string {
+  const parts = step.parts.map((p) => `${p.sku}${partName(p.sku) ? ` (${partName(p.sku)})` : ""}`).join(", ");
+  return (
+    `\n\nACTIVE STEP — the glasses are on step ${step.n} of ${total}: ${step.title}. ` +
+    (parts ? `This step's parts: ${parts}. ` : "This step lists no parts. ") +
+    "Name the part that is the subject of each frame from the references, " +
+    "whichever it is. An operator may pick up a part that belongs to another " +
+    "step, and that is exactly what has to be reported, so do not steer a frame " +
+    "towards this step's parts. `orientation` is 'correct' for a part with no " +
+    "flipped reference, and `confidence` is for the identification.\n"
+  );
+}
+
+/** The two fields a read on the glasses carries that the reasoner's own
+ *  output does not. Appended, so the reasoner's prompt stays word for word. */
+const READ_ADDENDUM =
+  "\n\nGLASSES READ — this batch is replayed the way the smart glasses read a " +
+  "frame, so each frame entry needs one more field and a stricter className:\n" +
+  '  - className: a short noun phrase for the part ("bearing cone", "spacer ' +
+  'retainer"), or exactly "hands_only" when no reference part is the clear ' +
+  "subject of the frame: empty hands, a hand passing through, or only the " +
+  'bench, the fixture, tools or background. With "hands_only" set sku to null ' +
+  "and confidence to how sure you are that nothing is held. Write " +
+  '"hands_only" exactly like that in any language.\n' +
+  "  - scene: up to 4 short noun phrases for other things visible in the " +
+  "frame. A part that is visible but is not the held subject (lying on the " +
+  "bench, half hidden by the glove) goes here, under the same noun phrase you " +
+  "would use for its className.\n" +
+  'The JSON for this batch is {"frames": [{"i": number, "caption": string, ' +
+  '"sku": string|null, "className": string, "orientation": ' +
+  '"correct"|"wrong"|"unclear", "confidence": number, "reasoning": string, ' +
+  '"scene": string[]}]}, one entry per frame, in order.';
+
+/** Observe calls in flight at once for one request: all of its frames. */
+const OBSERVE_PARALLEL = MAX_FRAMES;
+
+interface GlassesRead {
+  t: number;
+  /** As the glasses would carry it: the part number, or its `-FLIP` identity. */
+  sku: string | null;
+  /** The real part number, which is what an operator is shown. */
+  shownSku: string | null;
+  name: string | null;
+  className: string;
+  confidence: number;
+  /** Null for a part that has no pose class, and for empty hands. */
+  pose: "correct" | "wrong" | "unclear" | null;
+  hands: boolean;
+  scene: string[];
+  caption: string;
+  reasoning: string;
+  /** False when the model returned nothing for this frame. */
+  answered: boolean;
+}
+
+povRouter.post("/observe", async (req, res, next) => {
+  try {
+    const body = ObserveSchema.parse(req.body);
+    const spec = glassesSpec();
+    const step = spec.steps.find((s) => s.n === body.step);
+    if (!step) return res.status(404).json({ error: `no step ${body.step} in ${spec.procedure.id}` });
+
+    if (!geminiConfigured()) {
+      return res.json({
+        clip: body.clip,
+        step: step.n,
+        stubbed: true,
+        note: `Vision is not configured on this server: set GEMINI_API_KEY to read clips with ${VISION_MODEL}.`,
+        reads: [],
+      });
+    }
+
+    const pinned = pinnedPart(step);
+    // One frame per call, as on the glasses, where every observe call carries
+    // a single camera frame. Measured on the flipped-cone station clip: the
+    // same eleven frames sent as one batch came back as anything from two to
+    // eight wrong-way-up reads from run to run, and sent one at a time came
+    // back as nine or ten on every run. In a batch the frames are judged
+    // against each other; the guards count reads, so that noise is not
+    // something a replay can carry.
+    const started = Date.now();
+    const single = (f: ClipFrame) =>
+      judgeFrames([f], {
+        lang: body.lang,
+        expectSku: pinned,
+        addendum: (pinned ? "" : stepClause(step, spec.steps.length)) + READ_ADDENDUM,
+        extraTokensPerFrame: 50,
+      });
+    type Judged = Awaited<ReturnType<typeof single>>;
+    const judged: Array<Judged | null> = new Array(body.frames.length).fill(null);
+    let failure: unknown = null;
+    let nextFrame = 0;
+    await Promise.all(
+      Array.from({ length: Math.min(OBSERVE_PARALLEL, body.frames.length) }, async () => {
+        while (nextFrame < body.frames.length) {
+          const i = nextFrame++;
+          try {
+            judged[i] = await single(body.frames[i]);
+          } catch (e) {
+            failure = e;
+          }
+        }
+      }),
+    );
+    const first = judged.find((j): j is Judged => j !== null);
+    // Nothing came back at all: that is an outage, not a clip with no reads.
+    if (!first) throw failure ?? new Error("vision returned nothing");
+    const out = { model: first.out.model, latencyMs: Date.now() - started };
+    const attachedRefs = first.attachedRefs;
+    const raw = judged.map((j, i) =>
+      j
+        ? { ...j.raw[0], i }
+        : {
+            i, answered: false, caption: "", sku: null as string | null, className: "",
+            orientation: "unclear" as RawFrame["orientation"], confidence: 0, reasoning: "", scene: [] as string[],
+          },
+    );
+
+    const flips = flipIdentities();
+    const reads: GlassesRead[] = body.frames.map((f, i) => {
+      const r = raw[i];
+      const { sku: named, flipDecoy } = resolveFlipSku(r.sku);
+      const key = named ? SKU_KEYS.get(named.toUpperCase()) : undefined;
+      const className = r.className.trim().slice(0, 80);
+      const hands = /^hands[_ ]only$/i.test(className);
+      const base = {
+        t: f.t,
+        confidence: Math.max(0, Math.min(1, r.confidence)),
+        // Read alone, a frame often comes back with identifiers ("gloved_hands").
+        scene: r.scene.map((s) => s.replace(/_/g, " ").trim().slice(0, 60)).filter(Boolean).slice(0, 4),
+        caption: r.caption.slice(0, 240),
+        reasoning: r.reasoning.slice(0, 240),
+        answered: r.answered,
+      };
+      // Only a part the reference library knows is a part number here. Anything
+      // else the model names is an object in the frame, not a catalogue read.
+      if (hands || !key) {
+        return { ...base, sku: null, shownSku: null, name: null, className: hands ? "hands_only" : className, pose: null, hands };
+      }
+      const hasPose = flips.has(`${key.toUpperCase()}-FLIP`);
+      const wrong = flipDecoy || r.orientation === "wrong";
+      const pose = !hasPose ? null : wrong ? "wrong" : r.orientation === "correct" ? "correct" : "unclear";
+      return {
+        ...base,
+        sku: pose === "wrong" ? `${key}-FLIP` : key,
+        shownSku: key,
+        name: GLASSES_COMPONENTS[key].name,
+        className: className || "part",
+        pose,
+        hands: false,
+      };
+    });
+
+    res.json({
+      clip: body.clip,
+      step: step.n,
+      stubbed: false,
+      model: out.model,
+      latencyMs: out.latencyMs,
+      references: attachedRefs,
+      pinned,
+      reads,
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+const PanelSchema = z.object({
+  step: z.number().int().min(1).max(99),
+  /** Where the replay stops, in clip seconds: time-outs run up to here. */
+  endT: z.number().min(0).max(36_000),
+  reads: z
+    .array(
+      z.object({
+        t: z.number().min(0).max(36_000),
+        sku: z.string().max(40).nullable(),
+        className: z.string().max(80),
+        confidence: z.number().min(0).max(1),
+        pose: z.enum(["correct", "wrong", "unclear"]).nullable().optional(),
+        scene: z.array(z.string().max(60)).max(6).default([]),
+      }),
+    )
+    .max(600),
+});
+
+povRouter.post("/panel", (req, res, next) => {
+  try {
+    const body = PanelSchema.parse(req.body);
+    const observations: Observation[] = body.reads.map((r) => ({
+      t: r.t,
+      // A pose the reasoner would not rule on is no read of the part at all.
+      // The glasses' model has no such answer: it must name a class, and on a
+      // doubtful frame it is told to name the correct one, which resets the
+      // count towards a warning. Passing the frame through as undecided does
+      // the same to the count without also claiming a correct read was seen.
+      sku: r.pose === "unclear" ? null : r.sku,
+      className: r.className,
+      confidence: r.confidence,
+      scene: r.scene,
+    }));
+    const replay = replayGuards(body.step, observations, body.endT);
+    res.json({ step: body.step, endT: body.endT, ...replay });
   } catch (e) {
     next(e);
   }
