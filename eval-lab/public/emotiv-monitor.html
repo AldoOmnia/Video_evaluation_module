@@ -805,7 +805,9 @@
       if (trace.lane) {
         note.title = [`${trace.reader?.role || ''} · ${trace.reader?.modelId || ''}`, trace.note].filter(Boolean).join('\n');
       }
-      if (trace.cleared?.setBy === 'hand') {
+      if (trace.raised?.setBy === 'hand') {
+        note.textContent = `The card is set by hand from the recording: the rosebuds rest on the beam, so the reader stays quiet. It says ${trace.raised.detail}, and drops at ${secs(trace.cleared.t)} once they are clipped in.`;
+      } else if (trace.cleared?.setBy === 'hand') {
         note.textContent = `The card drops at ${secs(trace.cleared.t)}, set by hand from the recording: the rosebud is clipped in.`;
       }
       if (!trace.lane && trace.scripted) {
@@ -1428,11 +1430,17 @@
           add('bolt', b.confirmed ? 'wrong bolt in the hand' : (b.verdict || b.why || 'no read'),
             [b.className, b.hand ? `hand ${b.hand}` : null, b.confirmed ? 'the card is up' : 'the card stays down'].filter(Boolean).join(' · '),
             !b.confirmed);
+          if (a.ambient?.line) {
+            lit.add('boltStage');
+            add('action', a.ambient.line, 'the pick action model · ambient line');
+          } else add('action', 'no stage read', 'the pick action model', true);
         } else if (S.trace.lane === 'rosebud' && a.rosebud) {
           lit.add('rosebud');
           const r = a.rosebud;
           add('rosebud', r.home ? 'clipped in' : (r.detail || 'no rosebud warning'),
-            r.home ? 'set by hand from the recording' : (r.tags?.length ? `tags ${r.tags.join(', ')}` : 'no tag in this frame'),
+            r.setBy === 'hand' || r.home
+              ? `set by hand from the recording${r.home || !r.tags?.length ? '' : ` · tags ${r.tags.join(', ')}`}`
+              : (r.tags?.length ? `tags ${r.tags.join(', ')}` : 'no tag in this frame'),
             !r.detail && !r.home);
         } else if (act?.className) {
           lit.add('action');

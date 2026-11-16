@@ -2,7 +2,10 @@
 /**
  * Replay the caliper, bolt and rosebud recordings through the glasses readers.
  *
- *   node tools/emotiv-replay/replay-corners.mjs [--only id,id]
+ *   node tools/emotiv-replay/replay-corners.mjs [--only id,id] [--ambient]
+ *
+ * `--ambient` reads the bolt traces already on disk and fills the glasses
+ * one-liner from the pick action model. It does not call the bolt detector.
  *
  * Calipers and bolts call the same detectors the glasses poll. Rosebuds are
  * decoded here (tag36h11) and then read by the same placement functions the
@@ -161,6 +164,10 @@ const {
 const { withholdOnLooseRuler } = await import(join(STACK, "backend/lib/emotiv/rosebudPlace.js"));
 const { rosebudsReadOut, noteRosebudCases } = await import(join(STACK, "backend/lib/emotiv/fillAdvance.js"));
 const { readZonePitch } = await import(join(STACK, "backend/lib/emotiv/rosebudPitch.js"));
+const {
+  armBoltStage, noteBoltStageFrame, boltAmbient, describeBoltStage,
+  _boltStageInFlightForTests, _resetBoltStageForTests,
+} = await import(join(STACK, "backend/lib/emotiv/boltStage.js"));
 
 const cal = caliperModel("CAL-LH");
 const heads = boltModel("BOLT-01");
@@ -364,6 +371,114 @@ const HAND_CLEAR = {
   },
 };
 
+// Pillars 2, 3 and 4 rest on the beam in the station take, so the pitch stays
+// above the floor and the reader never raises. The card is the glasses' own
+// line, held until the hand has pushed them in. Both times are from the picture.
+const HAND_SHOW = {
+  "missed_passenger_side_a_pillar_rosebuds-20261112-163758": {
+    t: 32,
+    setBy: "hand",
+    detail: "Clip passenger pillars 2, 3 and 4 in",
+    reason: "The rosebuds rest on the beam, so the pitch stays above the floor. The card stays up until they are clipped in.",
+  },
+};
+
+const HAND_WARNING = {
+  id: "placement/rosebud-not-clipped",
+  family: "placement",
+  severity: "advise",
+  summary: "One of two named rosebuds is not clipped in",
+  hud: { label: "Rosebud not clipped in", detail: "" },
+  vars: { zoneId: "AZ6", lo: 2, hi: 4, panel: "" },
+};
+
+function cutClipFrames(video) {
+  const dir = mkdtempSync(join(tmpdir(), "emotiv-boltclip-"));
+  execFileSync("ffmpeg", [
+    "-v", "error", "-y", "-i", video,
+    "-vf", "fps=8,scale='if(gt(iw,ih),640,-2)':'if(gt(iw,ih),-2,640)'",
+    "-q:v", "4", join(dir, "f-%05d.jpg"),
+  ], { stdio: ["ignore", "ignore", "inherit"] });
+  const files = readdirSync(dir).filter((f) => f.startsWith("f-")).sort();
+  return { dir, files };
+}
+
+// The glasses' fast lane: eight frames a second, long edge 640, and the
+// pick action model names choosing, picking or inserting. The line is what
+// boltAmbient writes onto a bolt poll.
+async function stampBoltAmbient(job, polls) {
+  _resetBoltStageForTests();
+  const { dir, files } = cutClipFrames(job.video);
+  const pass = `${job.station}|bolt-${job.caseId}`;
+  const events = [
+    ...files.map((file, i) => ({ kind: "frame", t: i / 8, file })),
+    ...polls.map((poll, i) => ({ kind: "poll", t: poll.tSent, i })),
+  ].sort((a, b) => a.t - b.t || (a.kind === "frame" ? -1 : 1));
+  let lined = 0;
+  try {
+    for (const ev of events) {
+      const now = Math.round(ev.t * 1000);
+      if (ev.kind === "frame") {
+        armBoltStage(job.station, pass, now);
+        const b64 = readFileSync(join(dir, ev.file)).toString("base64");
+        noteBoltStageFrame(job.station, b64, { lane: "clip", now });
+        const flight = _boltStageInFlightForTests(job.station);
+        if (flight) await flight;
+        continue;
+      }
+      const poll = polls[ev.i];
+      const verdict = poll.answer.bolt?.verdict;
+      const amb = boltAmbient(job.station, {
+        verdict: verdict === "correct" || verdict === "wrong" ? verdict : null,
+      }, now);
+      poll.answer.ambient = amb.line
+        ? {
+          line: amb.line,
+          source: "boltStage",
+          stage: amb.stage,
+          verdict: amb.verdict,
+          ageMs: amb.ageMs,
+        }
+        : null;
+      if (amb.line) lined += 1;
+      console.log(`  ${ev.t.toFixed(1)}s ${amb.line || "—"}`);
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  const health = describeBoltStage();
+  console.log(`stage calls ${health.calls} failed ${health.failures} · line on ${lined}/${polls.length}`);
+  if (health.lastFailure) console.log(`last stage failure: ${health.lastFailure.reason}`);
+}
+
+function applyHandShow(job, polls) {
+  const show = HAND_SHOW[job.id];
+  if (!show) return null;
+  const warning = {
+    ...HAND_WARNING,
+    hud: { ...HAND_WARNING.hud, detail: show.detail },
+    vars: { ...HAND_WARNING.vars, panel: show.detail },
+  };
+  for (const p of polls) {
+    const rose = p.answer.rosebud || (p.answer.rosebud = {});
+    rose.setBy = "hand";
+    if (p.tSent + 1e-6 < show.t) {
+      p.answer.warning = warning;
+      p.answer.warnings = [warning];
+      rose.detail = show.detail;
+      rose.id = warning.id;
+      delete rose.home;
+    } else {
+      p.answer.warning = null;
+      p.answer.warnings = [];
+      rose.detail = null;
+      rose.id = null;
+      rose.home = true;
+    }
+  }
+  return show;
+}
+
 function applyHandClear(job, polls) {
   const clear = HAND_CLEAR[job.id];
   if (!clear) return null;
@@ -380,6 +495,20 @@ function applyHandClear(job, polls) {
   return clear;
 }
 
+if (process.argv.includes("--ambient")) {
+  for (const job of JOBS) {
+    if (job.lane !== "bolt") continue;
+    if (ONLY.size && !ONLY.has(job.id)) continue;
+    const out = join(TRACES, `${job.id}.json`);
+    const trace = JSON.parse(readFileSync(out, "utf8"));
+    console.log(`\n${job.id}`);
+    await stampBoltAmbient(job, trace.polls);
+    writeFileSync(out, JSON.stringify(trace));
+    console.log(`wrote ${out}`);
+  }
+  process.exit(0);
+}
+
 for (const job of JOBS) {
   if (ONLY.size && !ONLY.has(job.id)) continue;
   console.log(`\n${job.id}`);
@@ -392,7 +521,10 @@ for (const job of JOBS) {
       () => (job.lane === "caliper" ? caliperTurnedWarning(job.side) : boltWrongWarning(job.caseId)),
       job.lane === "caliper" ? _resetCaliperForTests : _resetBoltForTests,
     );
-  const cleared = applyHandClear(job, ran.polls);
+  const shown = applyHandShow(job, ran.polls);
+  const cleared = shown
+    ? { t: shown.t, setBy: "hand", reason: "Pillars 2, 3 and 4 are clipped in." }
+    : applyHandClear(job, ran.polls);
   const raised = ran.polls.filter((p) => p.answer.warning).length;
   const trace = {
     clip: `${job.id}.mp4`,
@@ -407,12 +539,16 @@ for (const job of JOBS) {
     advances: [],
     reader: { role: roles[job.lane], modelId: ran.modelId },
     routed: routedFor(job, ran.modelId),
-    note: raised
-      ? `The card is up on ${raised} of ${ran.polls.length} reads.`
-      : `None of the ${ran.polls.length} reads raised the card.`,
+    note: shown
+      ? `The card is up on ${raised} of ${ran.polls.length} reads, set by hand from the recording. It drops at ${shown.t}s, once they are clipped in.`
+      : raised
+        ? `The card is up on ${raised} of ${ran.polls.length} reads.`
+        : `None of the ${ran.polls.length} reads raised the card.`,
+    raised: shown ? { setBy: "hand", detail: shown.detail, reason: shown.reason } : null,
     cleared,
     polls: ran.polls,
   };
+  if (job.lane === "bolt") await stampBoltAmbient(job, trace.polls);
   const out = join(TRACES, `${job.id}.json`);
   writeFileSync(out, JSON.stringify(trace));
   console.log(`wrote ${out} · card on ${raised}/${ran.polls.length}`);
