@@ -195,35 +195,60 @@
       fetch('/api/auth/logout', { method: 'POST', keepalive: true }).finally(() => location.replace('/login'));
     };
 
-    // The three services. `everyMs` is the least time between two frames
-    // sent. The radio read is eleven model calls a frame, so it runs slower.
+    // The three services. `gapMs` is the least time between two frames sent
+    // while something is in view. The next frame goes when the answer to the
+    // last one is back, so a read that takes longer than this sets the pace.
+    // The radio read is ten model calls a frame once the row is found, so
+    // its gap is the longer one.
     const SERVICES = {
       'radio-seat': {
         title: 'Radio connectors',
-        everyMs: 2500,
-        note: 'Hold the radio module so all nine connectors face the camera. Each one is marked pushed home or not. This read is a preview: it has not been measured through this camera, and a housing with nothing in it is still marked one way or the other.',
+        gapMs: 300,
+        note: 'Hold the module level, with the row of connectors across the picture and facing the camera side on, so each lever and the rail under it show. Not end on down the row and not from above. Each connector is marked pushed home or not, and one that is pulled turns red after about a second. This read is a preview: it has not been measured through this camera, and a housing with nothing in it is still marked one way or the other.',
       },
       'bolt-02': {
         title: 'Bolt case 02',
-        everyMs: 1000,
-        note: 'Hold one bolt side on, with the thread toward the camera. The wrong bolt for this pass is the short one with the wide pink band. The correct one has a washer.',
+        gapMs: 250,
+        note: 'Hold the bolt side on, so the thread and the head both show. The wrong bolt for this step is the short one with the wide pink band. The correct one has a washer. Two can be held up side by side and each is marked. The boxes follow the bolts at once; which bolt is which comes from a slower read and follows about a second and a half behind.',
       },
       'bolt-03': {
         title: 'Bolt case 03',
-        everyMs: 1000,
-        note: 'Hold one bolt side on, with the thread toward the camera. The wrong bolt for this pass is the short blue one. The long one is correct.',
+        gapMs: 250,
+        note: 'Hold the bolt side on, so the thread and the head both show. The wrong bolt for this step is the short blue one. The correct one is the long one with the pink band. Two can be held up side by side and each is marked. The boxes follow the bolts at once; which bolt is which comes from a slower read and follows about a second and a half behind.',
       },
     };
-    const wanted = new URLSearchParams(location.search).get('service');
-    const service = SERVICES[wanted] ? wanted : 'radio-seat';
-    const svc = SERVICES[service];
 
-    // The longest edge of the frame that is sent. The bolt read checks the
-    // colour of the shank, so this is not cut further.
+    // The longest edge of the frame that is sent. Which bolt is which is read
+    // off the colour and the washer, so this is not cut further.
     const MAX_EDGE = 1280;
     const JPEG_QUALITY = 0.85;
     // A read older than this is not left on the picture.
     const STALE_MS = 6000;
+    // With nothing in view for this long the page asks less often, and goes
+    // back to the service's gap on the first frame that shows something.
+    const IDLE_AFTER_MS = 8000;
+    const IDLE_GAP_MS = 1200;
+    // A verdict stays up this long through frames that give none, so one
+    // frame where the row or the bolt was not found does not blank it.
+    const HOLD_MS = 1200;
+    // Radio: a connector is marked not home when at least half of the last
+    // whole reads say so. One read marks it at once when it is the only read,
+    // and a tie goes to not home, which is the direction that gets a hand.
+    const VOTE_READS = 3;
+    const VOTE_MS = 4000;
+    // Bolts: the least time between two asks of which bolt is which, and how
+    // long an answer goes on marking the boxes. An answer takes about a
+    // second and a half, so one is on the screen while the next is out.
+    const CALL_GAP_MS = 300;
+    const CALL_IDLE_MS = 3000;
+    const CALL_FRESH_MS = 4000;
+    // Bolts: the number of boxes has to differ from the number when the call
+    // was asked for this many frames in a row before the call is set aside.
+    // One frame where the detector drops a box is not a bolt taken away.
+    const MOVED_READS = 3;
+    // Bolts: a call marks a box only when the box is this near where the
+    // bolt was seen, as a share of the picture's width.
+    const CALL_NEAR = 0.2;
 
     const $ = (id) => document.getElementById(id);
     const video = $('video');
@@ -231,12 +256,8 @@
     const frame = $('frame');
     const grab = document.createElement('canvas');
 
-    $('title').textContent = `Camera check · ${svc.title}`;
-    document.title = `${svc.title} · Emotiv`;
-    $('note').textContent = svc.note;
-    $('tabs').innerHTML = Object.entries(SERVICES).map(([id, s]) =>
-      `<a class="cc-tab${id === service ? ' on' : ''}" href="/live/?service=${id}">${s.title}</a>`).join('');
-
+    let service = null;
+    let svc = null;
     let stream = null;
     let facing = 'environment';
     let mirrored = false;
@@ -244,7 +265,64 @@
     let configured = true;
     let inFlight = false;
     let timer = null;
-    let last = null; // { read, at }
+    let fails = 0;
+    let last = null; // { read, at }: what is on the screen
+    let held = null; // { read, at }: the last read that gave a verdict
+    let wholeReads = []; // radio: [{ at, bad: [bool x9] }]
+    let seenAt = Date.now(); // when a frame last showed something
+    let found = null; // bolts: the last answer to where the bolts are
+    let calls = null; // bolts: { reply, at, took }, the last answer to which is which; false when the last ask failed
+    let callWhy = ''; // bolts: why the last ask failed
+    let callInFlight = false;
+    let callBackAt = 0; // bolts: when the last answer to which is which came in
+    let count = { n: 0, reads: 0 }; // bolts: boxes in the last frame, and for how many frames running
+
+    const isBolt = () => service !== 'radio-seat';
+
+    function forget() {
+      last = null;
+      held = null;
+      wholeReads = [];
+      seenAt = Date.now();
+      fails = 0;
+      found = null;
+      calls = null;
+      callWhy = '';
+      callBackAt = 0;
+      count = { n: 0, reads: 0 };
+      configured = true;
+    }
+
+    // The service is changed in place: the camera stays open and the next
+    // frame goes to the new one.
+    function setService(id, fromTab) {
+      service = SERVICES[id] ? id : 'radio-seat';
+      svc = SERVICES[service];
+      $('title').textContent = `Camera check · ${svc.title}`;
+      document.title = `${svc.title} · Emotiv`;
+      $('note').textContent = svc.note;
+      for (const tab of $('tabs').children) tab.classList.toggle('on', tab.dataset.service === service);
+      forget();
+      if (!fromTab) return;
+      history.replaceState(null, '', `/live/?service=${service}`);
+      $('models').innerHTML = '<div class="row"><span class="v">—</span></div>';
+      $('kvLatency').textContent = '—';
+      draw();
+      if (stream && !paused) {
+        setRead('', 'Reading', 'Waiting for the first answer.');
+        schedule(0);
+      }
+    }
+
+    $('tabs').innerHTML = Object.entries(SERVICES).map(([id, s]) =>
+      `<a class="cc-tab" data-service="${id}" href="/live/?service=${id}">${s.title}</a>`).join('');
+    $('tabs').addEventListener('click', (e) => {
+      const tab = e.target.closest('[data-service]');
+      if (!tab) return;
+      e.preventDefault();
+      if (tab.dataset.service !== service) setService(tab.dataset.service, true);
+    });
+    setService(new URLSearchParams(location.search).get('service'), false);
 
     function setRead(tone, headline, detail) {
       $('read').className = `cc-read${tone ? ` ${tone}` : ''}`;
@@ -262,9 +340,13 @@
 
     // ── camera ──────────────────────────────────────────────────────────
 
+    // Stopping the tracks is what hands the camera back, so another page or
+    // another tab can open it.
     function stopCamera() {
+      clearTimeout(timer);
       if (stream) for (const t of stream.getTracks()) t.stop();
       stream = null;
+      video.srcObject = null;
     }
 
     async function startCamera() {
@@ -290,6 +372,8 @@
         setStatus('no camera');
         return;
       }
+      // Paused or put in the background while the camera was opening.
+      if (paused || document.hidden) { stopCamera(); return; }
       video.srcObject = stream;
       try { await video.play(); } catch { ask('Tap to start the camera.', true); return; }
 
@@ -374,34 +458,220 @@
       }
     }
 
-    function show(read, sentMs) {
+    // The nine housings of one whole radio read, each marked by the vote of
+    // the last few whole reads. The boxes are this read's; the marks and the
+    // count are the vote's. Housings are matched by their place along the
+    // row, left to right, which holds while the module is held one way round.
+    function voted(read, now) {
+      wholeReads.push({ at: now, bad: read.boxes.map((b) => b.tone === 'bad') });
+      wholeReads = wholeReads.filter((r) => now - r.at < VOTE_MS).slice(-VOTE_READS);
+      const bad = read.boxes.map((_, i) => wholeReads.filter((r) => r.bad[i]).length * 2 >= wholeReads.length);
+      const proud = bad.filter(Boolean).length;
+      const n = bad.length;
+      return {
+        ...read,
+        verdict: proud ? 'bad' : 'ok',
+        headline: proud ? `${proud} of ${n} not pushed home` : `${n} of ${n} read as pushed home`,
+        detail: proud ? 'Push the marked connectors home.' : 'No connector reads as standing proud.',
+        boxes: read.boxes.map((b, i) => ({ ...b, tone: bad[i] ? 'bad' : 'ok', label: bad[i] ? 'Not home' : '' })),
+      };
+    }
+
+    // What goes on the screen for one answer: the answer, or the last
+    // verdict when this frame gave none and that verdict is still fresh.
+    function settle(read) {
+      const now = Date.now();
+      const sees = read.ok && Array.isArray(read.boxes) && read.boxes.length > 0;
+      if (sees) seenAt = now;
+      if (read.ok && read.verdict) {
+        const shown = service === 'radio-seat' && read.boxes.length ? voted(read, now) : read;
+        held = { read: shown, at: now };
+        return shown;
+      }
+      if (held && now - held.at < HOLD_MS) return { ...held.read, heldOver: true };
+      held = null;
+      // Nothing in view: the next module starts its own vote.
+      if (!sees) wholeReads = [];
+      return read;
+    }
+
+    const WHY = {
+      not_configured: 'The vision service is not connected to this portal yet.',
+      vision_unreachable: 'The vision service did not answer.',
+      disabled: 'This read is switched off on the vision service.',
+      no_api_key: 'The vision service has no model key.',
+      no_detector_key: 'This portal has no key for the bolt detector.',
+      no_vlm_key: 'This portal has no Gemini key.',
+    };
+
+    function showModels(ids) {
+      if (!ids.length) return;
+      $('models').replaceChildren(...ids.map((m) => {
+        const row = document.createElement('div');
+        row.className = 'row';
+        const v = document.createElement('span');
+        v.className = 'v';
+        v.style.textAlign = 'left';
+        v.textContent = m;
+        row.appendChild(v);
+        return row;
+      }));
+    }
+
+    // ── bolts: two reads of one camera ──────────────────────────────────
+    //
+    // Where the bolts are comes back in about a tenth of a second and is
+    // asked for every frame sent. Which bolt each one is comes back in about
+    // a second and a half, one ask at a time. The boxes are the first
+    // read's. The words and the marks on the boxes are the second's.
+
+    const BOLT_MARK = {
+      wrong: { tone: 'bad', label: 'Wrong bolt' },
+      correct: { tone: 'ok', label: 'Correct bolt' },
+      unsure: { tone: 'unsure', label: 'Cannot tell' },
+    };
+
+    // The boxes that are bolts, each with its call. Both lists run left to
+    // right, so with as many boxes as calls they pair off in order, which
+    // holds while a hand moves. With a different number the detector has
+    // boxed something that is not a bolt or missed one, and each call marks
+    // the box nearest where that bolt was seen. A box no call lands on is
+    // not drawn.
+    function markBoxes(boxes, bolts, image) {
+      const mark = (box, bolt) => ({ ...box, ...(BOLT_MARK[bolt.call] || BOLT_MARK.unsure) });
+      if (boxes.length === bolts.length) return boxes.map((box, i) => mark(box, bolts[i]));
+      const free = [...boxes];
+      const out = [];
+      for (const bolt of bolts) {
+        if (!bolt.at || !free.length) continue;
+        const px = bolt.at.x * image.width;
+        const py = bolt.at.y * image.height;
+        const far = free.map((b) => Math.hypot(b.x + b.width / 2 - px, b.y + b.height / 2 - py));
+        const i = far.indexOf(Math.min(...far));
+        if (far[i] <= CALL_NEAR * image.width) out.push(mark(free.splice(i, 1)[0], bolt));
+      }
+      return out;
+    }
+
+    // What the bolt tab shows, from the last answer of each read.
+    //
+    // The call is what is said. It is made on a frame about a second and a
+    // half old, so when the number of boxes has changed since that frame and
+    // stayed changed, the picture has moved on: a bolt was added or taken
+    // away. The call is then set aside and the page says it is reading,
+    // rather than put the old call on the new picture.
+    function renderBolts() {
+      if (!found) return;
+      const now = Date.now();
+      const boxes = found.boxes || [];
+      const fresh = calls && now - calls.at < CALL_FRESH_MS ? calls : null;
+      const moved = fresh && count.n !== fresh.boxesAtAsk && count.reads >= MOVED_READS;
+      let drawn = [];
+      let said;
+      let status = 'read';
+      if (fresh && !moved) {
+        // A box the call does not land on is not drawn: the detector boxed
+        // something the slower read says is not a bolt.
+        said = fresh.reply;
+        drawn = fresh.reply.bolts.length ? markBoxes(boxes, fresh.reply.bolts, found.image) : [];
+      } else if (!boxes.length) {
+        // The bolts have gone. The call stays up for a moment, so a frame
+        // or two the detector missed does not blank it.
+        if (fresh && fresh.reply.bolts.length && now - seenAt < HOLD_MS) {
+          said = fresh.reply;
+          status = 'held';
+        } else {
+          said = { verdict: null, headline: 'No bolt in view', detail: 'Hold the bolt side on, so the thread and the head both show.' };
+        }
+      } else {
+        drawn = boxes.map((box) => ({ ...box, tone: 'unsure', label: '' }));
+        said = calls === false
+          ? { verdict: null, headline: 'Bolt in view', detail: WHY[callWhy] || 'Which bolt it is could not be read. Trying again.' }
+          : { verdict: null, headline: 'Reading', detail: 'A bolt is in view. Waiting for which one it is.' };
+        status = 'reading';
+      }
+      last = { read: { ok: true, boxes: drawn, image: found.image }, at: now };
+      setRead(said.verdict || '', said.headline || '', said.detail || '');
+      setStatus(status);
+      draw();
+    }
+
+    async function askCall() {
+      if (callInFlight || paused || !stream || !isBolt()) return;
+      const b64 = grabFrame();
+      if (!b64) return;
+      callInFlight = true;
+      const asked = service;
+      const boxesAtAsk = found ? found.boxes.length : 0;
+      const started = Date.now();
+      let reply;
+      try {
+        const res = await fetch(`/api/emotiv/live/${asked}/call`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ frame: b64 }),
+        });
+        if (res.status === 401) { location.replace('/login'); return; }
+        reply = await res.json();
+      } catch {
+        reply = { ok: false, reason: 'vision_unreachable' };
+      } finally {
+        callInFlight = false;
+      }
+      if (paused || !stream || asked !== service) return;
+      const now = Date.now();
+      if (reply.ok) {
+        calls = { reply, at: now, took: now - started, boxesAtAsk };
+        callBackAt = now;
+      } else {
+        // `false` is a call that failed, as against none asked yet. One that
+        // failed is asked again after two and a half seconds.
+        if (!calls || now - calls.at >= CALL_FRESH_MS) calls = false;
+        callWhy = reply.reason || '';
+        callBackAt = now + 2500 - CALL_GAP_MS;
+      }
+      renderBolts();
+    }
+
+    function showBolts(answer, sentMs) {
+      if (!answer.ok) {
+        found = null;
+        last = null;
+        setRead('', 'No read', WHY[answer.reason] || `The read failed (${answer.reason || 'unknown'}).`);
+        setStatus(answer.reason || 'failed');
+        draw();
+        return;
+      }
+      found = answer;
+      const n = answer.boxes.length;
+      count = n === count.n ? { n, reads: count.reads + 1 } : { n, reads: 1 };
+      if (n) seenAt = Date.now();
+      $('kvLatency').textContent = calls && calls.took ? `${sentMs} ms · which bolt ${calls.took} ms` : `${sentMs} ms`;
+      showModels([...(answer.models || []), ...((calls && calls.reply && calls.reply.models) || [])]);
+      renderBolts();
+      // Which bolt is which is asked again as soon as the last answer is in
+      // while a bolt is in view, by either read. With none in view it is
+      // still asked, slowly: the detector was trained on another camera, and
+      // a bolt it does not box would otherwise never be read.
+      const inView = n > 0 || Boolean(calls && calls.reply && calls.reply.bolts.length && Date.now() - calls.at < CALL_FRESH_MS);
+      if (!callInFlight && Date.now() - callBackAt >= (inView ? CALL_GAP_MS : CALL_IDLE_MS)) askCall();
+    }
+
+    // ── radio: one read ─────────────────────────────────────────────────
+
+    function show(answer, sentMs) {
+      if (isBolt()) { showBolts(answer, sentMs); return; }
+      const read = settle(answer);
       last = { read, at: Date.now() };
       if (read.ok) {
         setRead(read.verdict || '', read.headline || '', read.detail || '');
-        setStatus(read.preview ? 'preview' : 'read');
+        setStatus(read.heldOver ? 'held' : read.preview ? 'preview' : 'read');
       } else {
-        const why = {
-          not_configured: 'The vision service is not connected to this portal yet.',
-          vision_unreachable: 'The vision service did not answer.',
-          disabled: 'This read is switched off on the vision service.',
-          no_api_key: 'The vision service has no model key.',
-        }[read.reason] || `The read failed (${read.reason || 'unknown'}).`;
-        setRead('', 'No read', why);
+        setRead('', 'No read', WHY[read.reason] || `The read failed (${read.reason || 'unknown'}).`);
         setStatus(read.reason || 'failed');
       }
       $('kvLatency').textContent = `${sentMs} ms`;
-      if (Array.isArray(read.models) && read.models.length) {
-        $('models').replaceChildren(...read.models.map((m) => {
-          const row = document.createElement('div');
-          row.className = 'row';
-          const v = document.createElement('span');
-          v.className = 'v';
-          v.style.textAlign = 'left';
-          v.textContent = m;
-          row.appendChild(v);
-          return row;
-        }));
-      }
+      if (Array.isArray(read.models)) showModels(read.models);
       draw();
     }
 
@@ -434,10 +704,11 @@
       const b64 = grabFrame();
       if (!b64) { schedule(300); return; }
       inFlight = true;
+      const asked = service;
       const started = Date.now();
       let read;
       try {
-        const res = await fetch(`/api/emotiv/live/${service}`, {
+        const res = await fetch(`/api/emotiv/live/${asked}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ frame: b64 }),
@@ -449,29 +720,60 @@
       } finally {
         inFlight = false;
       }
+      // Paused or put in the background while this frame was out. The camera
+      // is off, so its answer is not put on the screen.
+      if (paused || !stream) return;
+      // The service was changed while this frame was out. Its answer is for
+      // the other one, so it is dropped.
+      if (asked !== service) { schedule(0); return; }
       const took = Date.now() - started;
       show(read, took);
       if (read.reason === 'not_configured') { configured = false; return; }
-      // A failed read backs off, so a service that is down is not hammered.
-      schedule(read.ok ? Math.max(0, svc.everyMs - took) : 5000);
+      if (!read.ok) {
+        // One failed read is retried in a second. A service that stays down
+        // is asked every five, so it is not hammered.
+        fails += 1;
+        schedule(fails > 2 ? 5000 : 1000);
+        return;
+      }
+      fails = 0;
+      const gap = Date.now() - seenAt > IDLE_AFTER_MS ? IDLE_GAP_MS : svc.gapMs;
+      schedule(Math.max(0, gap - took));
     }
 
     // A read left on a picture that has moved on is wrong, so it is cleared.
     setInterval(() => { if (last && Date.now() - last.at >= STALE_MS) draw(); }, 1000);
 
-    $('askBtn').onclick = startCamera;
+    function resume() {
+      paused = false;
+      $('pause').textContent = 'Pause';
+      forget();
+      startCamera();
+    }
+    $('askBtn').onclick = resume;
+    // Pause hands the camera back as well as stopping the reads.
     $('pause').onclick = () => {
-      paused = !paused;
-      $('pause').textContent = paused ? 'Resume' : 'Pause';
-      setStatus(paused ? 'paused' : '—');
-      if (!paused) schedule(0);
+      if (paused) { resume(); return; }
+      paused = true;
+      $('pause').textContent = 'Resume';
+      stopCamera();
+      forget();
+      draw();
+      setRead('', 'Paused', 'The camera is off, so another page can use it.');
+      setStatus('paused');
+      ask('Paused. The camera is off.', true);
     };
     $('flip').onclick = () => {
       facing = facing === 'environment' ? 'user' : 'environment';
-      last = null;
+      forget();
       startCamera();
     };
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) schedule(0); });
+    // A tab that is not on screen holds no camera and sends no frames.
+    document.addEventListener('visibilitychange', () => {
+      if (paused) return;
+      if (document.hidden) stopCamera();
+      else { forget(); startCamera(); }
+    });
     window.addEventListener('pagehide', stopCamera);
 
     // Asking which services can answer also starts their models loading, so

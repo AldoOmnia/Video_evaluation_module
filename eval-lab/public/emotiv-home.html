@@ -25,7 +25,7 @@
       <div class="hero">
         <img class="hero-logo" src="/lab/assets/emotiv-logo.png?v=2" alt="Emotiv" />
         <h1>Dakkota station intelligence</h1>
-        <p class="sub">Station replay plays recorded glasses sessions back through the Emotiv stack. The three camera checks read this device's own camera. The rail on the right lists the models that stack routes, as it reported them on the station replays.</p>
+        <p class="sub">Station replay plays recorded glasses sessions back through the Emotiv stack. Camera check reads this device's own camera. The rail on the right lists the models that stack routes, as it reported them on the station replays.</p>
       </div>
 
       <div class="svcs">
@@ -42,40 +42,17 @@
         <span class="cta">Open station replay</span>
       </a>
 
-      <a class="svc" href="/live/?service=radio-seat" data-live="radio-seat">
-        <div class="tag">02 · Camera check</div>
-        <h2>Radio connectors</h2>
-        <p>Hold the radio module up to this device's camera. The nine connectors are found and each one is marked pushed home or not. A preview: not yet measured through this camera.</p>
+      <a class="svc" href="/live/" id="svc-camera">
+        <div class="tag">02 · Service</div>
+        <h2>Camera check</h2>
+        <p>Hold a part up to this device's camera and the read is drawn on the picture. Three checks, switched on the page: the radio module's nine connectors, each marked pushed home or not, and the bolt in the hand for case 02 and for case 03. The radio check is a preview.</p>
         <div class="facts">
+          <div class="row"><span class="k">Checks</span><span class="v" id="cam-checks">—</span></div>
           <div class="row"><span class="k">Camera</span><span class="v">Back, or front on a laptop</span></div>
-          <div class="row"><span class="k">Vision service</span><span class="v" data-live-status>—</span></div>
+          <div class="row"><span class="k">Vision service</span><span class="v" id="cam-status">—</span></div>
         </div>
-        <span class="pill" data-live-pill>Camera</span>
-        <span class="cta">Open radio connectors</span>
-      </a>
-
-      <a class="svc" href="/live/?service=bolt-02" data-live="bolt-02">
-        <div class="tag">03 · Camera check</div>
-        <h2>Bolt case 02</h2>
-        <p>Hold a bolt up to this device's camera. The short bolt with the wide pink band is the wrong one for this pass, and the one with the washer is correct.</p>
-        <div class="facts">
-          <div class="row"><span class="k">Camera</span><span class="v">Back, or front on a laptop</span></div>
-          <div class="row"><span class="k">Vision service</span><span class="v" data-live-status>—</span></div>
-        </div>
-        <span class="pill" data-live-pill>Camera</span>
-        <span class="cta">Open bolt case 02</span>
-      </a>
-
-      <a class="svc" href="/live/?service=bolt-03" data-live="bolt-03">
-        <div class="tag">04 · Camera check</div>
-        <h2>Bolt case 03</h2>
-        <p>Hold a bolt up to this device's camera. The short blue bolt is the wrong one for this pass, and the long one is correct.</p>
-        <div class="facts">
-          <div class="row"><span class="k">Camera</span><span class="v">Back, or front on a laptop</span></div>
-          <div class="row"><span class="k">Vision service</span><span class="v" data-live-status>—</span></div>
-        </div>
-        <span class="pill" data-live-pill>Camera</span>
-        <span class="cta">Open bolt case 03</span>
+        <span class="pill" id="cam-pill">Camera</span>
+        <span class="cta">Open camera check</span>
       </a>
       </div>
     </main>
@@ -139,19 +116,19 @@
       })
       .catch(() => {});
 
-    // The camera cards say whether the vision service behind them answers,
-    // so a card that cannot read is known before it is opened.
+    // The camera card says whether the vision service behind it answers and
+    // how many of its checks can read, so that is known before it is opened.
     fetch('/api/emotiv/live/services', { cache: 'no-store' })
       .then((r) => r.json())
       .then((body) => {
-        for (const card of document.querySelectorAll('[data-live]')) {
-          const svc = (body.services || []).find((s) => s.id === card.dataset.live);
-          const ready = body.configured && body.reachable && svc && svc.enabled;
-          card.querySelector('[data-live-status]').textContent = !body.configured
-            ? 'Not connected'
-            : !body.reachable ? 'Not answering' : ready ? 'Ready' : 'Switched off';
-          card.querySelector('[data-live-pill]').classList.toggle('live', Boolean(ready));
-        }
+        const all = body.services || [];
+        const on = all.filter((s) => s.enabled);
+        const off = all.find((s) => !s.enabled);
+        document.getElementById('cam-checks').textContent = all.map((s) => s.title).join(', ') || '—';
+        document.getElementById('cam-status').textContent = !on.length
+          ? (off && off.why) || 'Not connected'
+          : on.length === all.length ? 'Ready' : `${on.length} of ${all.length} ready`;
+        document.getElementById('cam-pill').classList.toggle('live', on.length > 0);
       })
       .catch(() => {});
 

@@ -302,24 +302,51 @@ spikes / config rollouts stay isolated.
 
 ## 8. Emotiv camera checks (`platform-emotiv` only)
 
-`/live/?service=radio-seat|bolt-02|bolt-03` opens the device's camera, back
+`/live/` is one page with three checks, switched by the tabs on it or by
+`?service=radio-seat|bolt-02|bolt-03`. It opens the device's camera, back
 camera first and the front one where there is no back camera, and posts one
-frame at a time to `POST /api/emotiv/live/:service`. The portal forwards the
-frame to the Emotiv vision backend and returns its answer: a verdict, the
-words for it, and the boxes the page draws.
+frame at a time. The tab is the step: each bolt tab reads for its own case.
+Pause, and a tab in the background, turn the camera off and send nothing.
 
-The read itself is not in this repo. It is `POST /v1/emotiv/vision/read/:service`
-in `comer-rokid-demo`, the same code the glasses use, deployed as its own
-service. This portal needs two variables to reach it:
+**Bolt case 02 and 03** are read in this repo, by
+`backend/src/services/emotivBolts.ts`, with two reads of the same camera:
+
+| Route | What it answers | Model | Time |
+|-------|-----------------|-------|------|
+| `POST /api/emotiv/live/bolt-0X` | Where the bolts are, for the boxes | Roboflow detector | about 0.15 s |
+| `POST /api/emotiv/live/bolt-0X/call` | Which bolt each one is | Gemini, told the step in words | about 1.5 s |
+
+The boxes are asked for no sooner than 250 ms after the last answer, and
+every 1.2 s once nothing has been in view for 8 s. Which bolt is which is
+asked one at a time, again as soon as the last answer is in while a bolt is
+in view, and every 3 s while none is. That is about 40 Gemini calls a minute
+with a bolt held up and 20 with the page open on an empty table. Pause the
+page when it is not in use.
+
+The detector's class is not used. It was trained on footage from the
+glasses and names both bolts the same on other cameras. The measurements are
+in the header of `emotivBolts.ts`. The glasses do not call this code and it
+calls none of theirs.
+
+| Variable | Value |
+|----------|-------|
+| `GEMINI_API_KEY` | Already set for the Brain. Which bolt is which. |
+| `EMOTIV_ROBOFLOW_API_KEY` or `ROBOFLOW_API_KEY` | The Roboflow key of the `omnia-cvi0f` workspace. Where the bolts are. |
+
+**Radio connectors** is not read in this repo yet. The portal forwards the
+frame to `POST /v1/emotiv/vision/read/radio-seat` in `comer-rokid-demo` and
+returns its answer. A frame is sent no sooner than 300 ms after the last
+answer. It is one model call with nothing in view, ten when the row is found
+on the frame and twelve when it takes the zoom.
 
 | Variable | Value |
 |----------|-------|
 | `EMOTIV_VISION_URL` | Base URL of the vision backend, e.g. `https://<service>.onrender.com` |
 | `EMOTIV_VISION_API_KEY` | That backend's `BACKEND_API_KEY` |
 
-The key stays on this server and the browser never calls the vision backend.
-With either variable unset, the camera cards on `/home/` read "Not connected"
-and the page says so instead of reading.
+The keys stay on this server. With a variable unset, the check that needs it
+says so on its tab, the card on `/home/` counts it as not ready, and the
+other checks are unaffected.
 
 The camera needs `https`, which the Render URL and the custom domain both
 are. On `http://localhost` it works for local testing only.

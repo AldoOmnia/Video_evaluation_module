@@ -50,10 +50,16 @@ services:
         sync: false
       - key: EMOTIV_AUTH_PASSWORD_HASH
         sync: false
-      # Camera checks (/live). The Emotiv vision backend from comer-rokid-demo,
-      # its base URL with no trailing path, and that backend's BACKEND_API_KEY.
-      # With either unset the three camera cards say "Not connected" and the
-      # rest of the portal is unaffected.
+      # Camera checks (/live), the two bolt cases. Read in this service: a
+      # Roboflow detector finds the bolts and Gemini (GEMINI_API_KEY above)
+      # says which is which. This is the Roboflow key of the omnia-cvi0f
+      # workspace. Unset, the bolt tabs say they have no detector key.
+      - key: EMOTIV_ROBOFLOW_API_KEY
+        sync: false
+      # Camera checks (/live), the radio connectors. Still read by the Emotiv
+      # vision backend from comer-rokid-demo: its base URL with no trailing
+      # path, and that backend's BACKEND_API_KEY. With either unset the radio
+      # tab says it is not connected and the rest of the portal is unaffected.
       - key: EMOTIV_VISION_URL
         sync: false
       - key: EMOTIV_VISION_API_KEY

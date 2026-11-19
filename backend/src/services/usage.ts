@@ -39,6 +39,7 @@ export type UsageRoute =
   | "glasses-query"   // the Rokid APK /query endpoint (device, not platform)
   | "eval"            // eval lab runs
   | "spec"            // spec/taxonomy helpers
+  | "emotiv-camera"   // Emotiv camera check: which bolt is held up (vision)
   | "other";
 
 export interface UsageRecord {

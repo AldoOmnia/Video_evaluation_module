@@ -11,6 +11,7 @@ import { Router } from "express";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { EVAL_LAB_PUBLIC } from "../paths.js";
+import { boltsConfigured, callBolts, findBolts, isBoltService } from "../services/emotivBolts.js";
 
 export const emotivRouter = Router();
 
@@ -166,17 +167,18 @@ emotivRouter.get("/monitor", (_req, res) => {
 /* ── Camera checks ────────────────────────────────────────────────────────
  *
  * The page at /live opens this device's camera and posts one frame at a time
- * here. This forwards it to the Emotiv vision backend (comer-rokid-demo,
- * `POST /v1/emotiv/vision/read/:service`) and returns its answer unchanged:
- * a verdict, the words for it, and the boxes to draw.
+ * here. The keys stay on this server. The browser only ever calls these
+ * routes, behind the portal's own sign-in.
  *
- * The read is not done in the browser and not done here. The bolt verdict is
- * the detector's class together with the colour on the shank, and the radio
- * read is three passes with a fixed crop geometry. Both live in that backend
- * and are the same code the glasses use, so there is one copy.
+ * The two bolt checks are read here, by `services/emotivBolts.ts`:
  *
- * That backend's key stays on this server. The browser only ever calls this
- * route, behind the portal's own sign-in.
+ *   POST /live/bolt-02|bolt-03         where the bolts are (a detector)
+ *   POST /live/bolt-02|bolt-03/call    which bolt each one is (Gemini, told the step)
+ *
+ * The radio check is still forwarded to the Emotiv vision backend
+ * (comer-rokid-demo, `POST /v1/emotiv/vision/read/radio-seat`) and its
+ * answer returned unchanged. With `EMOTIV_VISION_URL` unset the radio check
+ * says it is not connected and the bolt checks are unaffected.
  */
 const VISION_URL = (process.env.EMOTIV_VISION_URL ?? "").trim().replace(/\/+$/, "");
 const VISION_KEY = (process.env.EMOTIV_VISION_API_KEY ?? "").trim();
@@ -193,13 +195,9 @@ function visionConfigured(): boolean {
   return Boolean(VISION_URL && VISION_KEY);
 }
 
-/** The three services, and whether the vision backend says each can answer. */
-emotivRouter.get("/live/services", async (_req, res) => {
-  const services = Object.entries(LIVE_SERVICES).map(([id, s]) => ({ id, ...s, enabled: null as boolean | null }));
-  if (!visionConfigured()) {
-    res.json({ ok: true, configured: false, reachable: false, services });
-    return;
-  }
+/** Whether the vision backend says the radio check can answer, and why not. */
+async function radioState(): Promise<{ enabled: boolean; why: string | null }> {
+  if (!visionConfigured()) return { enabled: false, why: "Not connected" };
   try {
     const up = await fetch(`${VISION_URL}/v1/emotiv/vision/read`, {
       headers: { "X-Api-Key": VISION_KEY },
@@ -207,16 +205,42 @@ emotivRouter.get("/live/services", async (_req, res) => {
     });
     if (!up.ok) throw new Error(`HTTP ${up.status}`);
     const body = (await up.json()) as { services?: Array<{ id: string; enabled?: boolean }> };
-    const enabled = new Map((body.services ?? []).map((s) => [s.id, Boolean(s.enabled)]));
-    res.json({
-      ok: true,
-      configured: true,
-      reachable: true,
-      services: services.map((s) => ({ ...s, enabled: enabled.get(s.id) ?? false })),
-    });
+    const on = (body.services ?? []).some((s) => s.id === "radio-seat" && s.enabled);
+    return { enabled: on, why: on ? null : "Switched off" };
   } catch {
-    res.json({ ok: true, configured: true, reachable: false, services });
+    return { enabled: false, why: "Not answering" };
   }
+}
+
+/** The three services, whether each can answer, and why not when it cannot. */
+emotivRouter.get("/live/services", async (_req, res) => {
+  const bolts = boltsConfigured();
+  const boltWhy = bolts.ready ? null : !bolts.detector ? "No detector key" : "No Gemini key";
+  const radio = await radioState();
+  res.json({
+    ok: true,
+    services: Object.entries(LIVE_SERVICES).map(([id, s]) => ({
+      id,
+      ...s,
+      enabled: isBoltService(id) ? bolts.ready : radio.enabled,
+      why: isBoltService(id) ? boltWhy : radio.why,
+    })),
+  });
+});
+
+/** Which bolt each one is, for the step. The slower of the two bolt reads. */
+emotivRouter.post("/live/:service/call", async (req, res) => {
+  const service = String(req.params.service ?? "");
+  if (!isBoltService(service)) {
+    res.status(404).json({ ok: false, reason: "unknown_service", service });
+    return;
+  }
+  const frame = (req.body as { frame?: unknown } | undefined)?.frame;
+  if (typeof frame !== "string" || !frame) {
+    res.status(400).json({ ok: false, reason: "no_frame", service });
+    return;
+  }
+  res.json(await callBolts(service, frame));
 });
 
 emotivRouter.post("/live/:service", async (req, res) => {
@@ -228,6 +252,10 @@ emotivRouter.post("/live/:service", async (req, res) => {
   const frame = (req.body as { frame?: unknown } | undefined)?.frame;
   if (typeof frame !== "string" || !frame) {
     res.status(400).json({ ok: false, reason: "no_frame", service });
+    return;
+  }
+  if (isBoltService(service)) {
+    res.json(await findBolts(service, frame));
     return;
   }
   // Answered 200 so the page reads the reason rather than a status code.
