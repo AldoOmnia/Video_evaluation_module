@@ -46,8 +46,10 @@ const S = {
   // asked for, kept so opening the file — or the right file, later — applies it.
   link: null, // { slug, name }
   linkRev: 0,
-  linkPending: null, // { slug, name, rev, savedAt, scan, setup }
+  linkPending: null, // { slug, name, rev, savedAt, scan, setup, hasScan }
   linkMissing: "",
+  linkLoading: false, // the link's scan is being fetched
+  linkScanError: false,
   linkWrong: null, // the scan a link wanted, when a different file was opened
   linkCountWarn: 0,
   linkNote: null, // { cls, html } a one-off message, such as a copied link
@@ -338,8 +340,11 @@ function renderScanState() {
     `<br>${ORIENT[data.orient] ?? "Z-up"} · floor at ${data.floor.toFixed(2)} m` +
     (data.sample
       ? `<br>Made-up station for trying the tool — not a Comer scan.<br><button class="btn" id="btn-sample-setup" style="margin-top:8px">Use its known pose and anchor</button>`
-      : `<br>Read in this browser; not uploaded. Only the setup you make on it is saved.` +
-        `<br><button class="btn" id="btn-flip" style="margin-top:8px" title="If the station shows upside down, turn the scan over. The camera pose and anchors turn with it.">Flip upside down</button>`);
+      : data.fromLink
+        ? `<br>This scan is part of the link.` +
+          `<br><button class="btn" id="btn-flip" style="margin-top:8px" title="If the station shows upside down, turn the scan over. The camera pose and anchors turn with it.">Flip upside down</button>`
+        : `<br>Read in this browser; not uploaded. Only the setup you make on it is saved.` +
+          `<br><button class="btn" id="btn-flip" style="margin-top:8px" title="If the station shows upside down, turn the scan over. The camera pose and anchors turn with it.">Flip upside down</button>`);
   $("btn-sample-setup")?.addEventListener("click", applySampleSetup);
   $("btn-flip")?.addEventListener("click", flipScan);
 }
@@ -465,18 +470,27 @@ function placeLight(c, r) {
   s.updateProjectionMatrix();
 }
 
-async function loadFile(file) {
-  if (!file) return;
+/** The file behind the scan on screen, so saving a link can store it. */
+let scanFile = null;
+
+async function loadFile(file, opts = {}) {
+  if (!file) return false;
   $("scan-state").textContent = `Reading ${file.name}…`;
   try {
     const buffer = await file.arrayBuffer();
     const data = await call("load", { buffer }, [buffer]);
+    data.fromLink = Boolean(opts.fromLink);
+    scanFile = file;
     setScan(data, file.name);
+    return true;
   } catch (err) {
-    $("scan-state").innerHTML = `<span class="state err">Could not read that file: ${esc(err.message)}</span>`;
+    $("scan-state").className = "state err";
+    $("scan-state").innerHTML = `Could not read that file: ${esc(err.message)}`;
+    return false;
   }
 }
 async function loadSample() {
+  scanFile = null;
   $("scan-state").textContent = "Building the sample scan…";
   setScan(await call("sample"), "Sample station");
 }
@@ -1951,16 +1965,33 @@ const linkSlug = () => S.link?.slug || S.linkPending?.slug || "";
 
 const EMPTY_COPY = "Open a station scan to begin. The camera stays exactly where it was scanned; the tool removes the temporary arm and grows a permanent support under it that you shape with sliders.";
 
+function linkFilePrompt(where) {
+  const n = S.linkPending.setup?.variations?.length || 1;
+  const file = `<b>${esc(S.linkPending.scan.name)}</b> (${fmtCount(S.linkPending.scan.count)} points)`;
+  if (S.linkLoading) {
+    return where === "center"
+      ? `Opening ${file}…`
+      : `<b>${esc(S.linkPending.name)}</b><br>Opening ${file}…`;
+  }
+  if (S.linkScanError) {
+    return where === "center"
+      ? `The scan did not load. Open ${file}.`
+      : `<b>${esc(S.linkPending.name)}</b><br>The scan did not load. Open ${file}.`;
+  }
+  const variations = n === 1 ? "One variation comes" : `${n} variations come`;
+  return where === "center"
+    ? `Open ${file}. ${n === 1 ? "One variation is" : `${n} variations are`} in this link. This link was saved before scans were stored with it.`
+    : `<b>${esc(S.linkPending.name)}</b><br>Open ${file}. ${variations} with the link. This link was saved before scans were stored with it.`;
+}
+
 function renderLinkPrompt() {
   const pending = !S.scan && S.linkPending?.scan;
   const title = $("empty-title");
   const lead = $("empty-copy");
   if (title && lead) {
     if (pending) {
-      const n = S.linkPending.setup?.variations?.length || 1;
-      const variations = n === 1 ? "One variation is in this link." : `${n} variations are in this link.`;
       title.textContent = S.linkPending.name;
-      lead.innerHTML = `Open <b>${esc(S.linkPending.scan.name)}</b> (${fmtCount(S.linkPending.scan.count)} points). ${variations} The scan is read in this browser and is not uploaded.`;
+      lead.innerHTML = linkFilePrompt("center");
     } else if (!S.scan && S.linkMissing) {
       title.textContent = "Camera support";
       lead.textContent = "No configuration at this link. It may have been deleted.";
@@ -1977,10 +2008,8 @@ function renderLinkPrompt() {
   if (S.scan) return;
   const el = $("scan-state");
   if (pending) {
-    const n = S.linkPending.setup?.variations?.length || 1;
-    el.className = "state";
-    const variations = n === 1 ? "One variation comes" : `${n} variations come`;
-    el.innerHTML = `<b>${esc(S.linkPending.name)}</b><br>Open <b>${esc(S.linkPending.scan.name)}</b> (${fmtCount(S.linkPending.scan.count)} points). ${variations} with the link. The scan is read in this browser and is not uploaded.`;
+    el.className = S.linkScanError ? "state err" : "state";
+    el.innerHTML = linkFilePrompt("side");
   } else if (S.linkMissing) {
     el.className = "state err";
     el.innerHTML = `No configuration at this link. It may have been deleted.`;
@@ -2001,7 +2030,7 @@ function renderLinks() {
   else if (!S.pose) why = "Place the camera first: a link saves its pose and the variations";
   else if (!typed) why = "Name it with letters or numbers";
   save.disabled = Boolean(why);
-  save.title = why || "Saves this setup under the name and opens its link";
+  save.title = why || "Saves this setup and the scan under the name, and opens its link";
   $("btn-link-copy").hidden = !current;
   $("btn-link-delete").hidden = !current;
   const url = $("link-url");
@@ -2010,9 +2039,10 @@ function renderLinks() {
   const note = S.linkNote
     ?? (S.linkWrong && S.scan ? { cls: "state warn", html: `This file is <b>${esc(S.scan.name)}</b>. The link is for <b>${esc(S.linkWrong.name)}</b> (${fmtCount(S.linkWrong.count)} points), so nothing from it was applied.` }
       : S.link && S.linkCountWarn ? { cls: "state warn", html: `This file has ${fmtCount(S.scan.count)} points; the link was saved with ${fmtCount(S.linkCountWarn)}. The pose is applied — check the camera still sits on the scan.` }
-        : current && !S.scan ? { cls: "state", html: "Open the scan file named above. The camera pose and the variations are in this link, and changes update it." }
-          : current ? { cls: "state", html: "Changes here update this link. The scan file is not part of it, so send the .ply with the link." }
-            : { cls: "state", html: "A link opens this setup after sign-in. The scan file stays on disk." });
+        : S.linkLoading ? { cls: "state", html: "Opening the scan…" }
+          : current && !S.scan ? { cls: "state", html: S.linkScanError ? "The scan did not load. Open the .ply named above." : "Open the scan file named above. This link was saved before scans were stored with it." }
+            : current ? { cls: "state", html: S.linkPending?.hasScan ? "Changes here update this link. Opening it shows this scene." : "Changes here update this link. The scan file is not part of it, so send the .ply with the link." }
+              : { cls: "state", html: "A link opens this setup after sign-in, scan included, so the scene is already there." });
   const state = $("link-state");
   state.className = note.cls;
   state.innerHTML = note.html;
@@ -2022,7 +2052,8 @@ function renderLinks() {
     const on = l.slug === current;
     const when = new Date(l.savedAt).toLocaleDateString([], { day: "numeric", month: "short" });
     const what = l.variations?.length ? l.variations.join(" · ") : "one design";
-    return `<button class="btn" data-link="${esc(l.slug)}" ${on ? "disabled" : ""} title="${on ? "This page" : `${esc(what)} · ${esc(when)}. Opens the link; the scan file is opened again afterwards.`}">${esc(l.name)}</button>`;
+    const opens = l.hasScan ? "Opens the link with the scan." : "Opens the link; the scan file is opened afterwards.";
+    return `<button class="btn" data-link="${esc(l.slug)}" ${on ? "disabled" : ""} title="${on ? "This page" : `${esc(what)} · ${esc(when)}. ${opens}`}">${esc(l.name)}</button>`;
   }).join("");
   renderLinkPrompt();
 }
@@ -2037,12 +2068,50 @@ async function refreshLinkList() {
   renderLinks();
 }
 
+/** Put the open scan with a link. Without it, opening the link would ask for the file. */
+async function storeLinkScan(slug) {
+  if (!scanFile) return { ok: false, error: "Open the .ply again, then save the link. This page no longer has the file." };
+  const res = await fetch(`/api/fixture/links/${slug}/scan`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/octet-stream" },
+    body: scanFile,
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, error: data.error || "" };
+}
+
+/** The scan stored with the link in the address, so the scene is there on arrival. */
+async function openLinkedScan() {
+  const pending = S.linkPending;
+  if (!pending?.hasScan || S.scan) {
+    S.linkLoading = false;
+    return;
+  }
+  try {
+    const res = await fetch(`/api/fixture/links/${pending.slug}/scan`);
+    if (!res.ok) throw new Error("missing");
+    const blob = await res.blob();
+    const file = new File([blob], pending.scan.name);
+    const ok = await loadFile(file, { fromLink: true });
+    if (!ok) S.linkScanError = true;
+  } catch {
+    S.linkScanError = true;
+  } finally {
+    S.linkLoading = false;
+    renderLinks();
+  }
+}
+
 async function publishLink() {
   const name = $("link-name").value.trim();
   if (!S.scan || S.scan.sample || !S.pose || !slugify(name)) return;
   S.linkNote = null;
   $("btn-link-save").disabled = true;
   try {
+    if (!scanFile) {
+      S.linkNote = { cls: "state err", html: "Open the .ply again, then save the link. This page no longer has the file." };
+      return;
+    }
     const setup = snapshot();
     const res = await fetch("/api/fixture/links", {
       method: "POST",
@@ -2058,14 +2127,26 @@ async function publishLink() {
       S.linkNote = { cls: "state err", html: esc(data.error || "The link was not saved.") };
       return;
     }
+    $("link-state").className = "state";
+    $("link-state").textContent = "Storing the scan…";
+    const stored = await storeLinkScan(data.slug);
+    S.linkNote = null;
+    if (!stored.ok) {
+      await fetch(`/api/fixture/links/${data.slug}`, { method: "DELETE" }).catch(() => {});
+      S.linkNote = { cls: "state err", html: esc(stored.error || "The scan was not stored, so the link was not kept.") };
+      return;
+    }
     S.link = { slug: data.slug, name: data.name };
     S.linkRev = data.rev ?? 1;
-    S.linkPending = { slug: data.slug, name: data.name, rev: S.linkRev, savedAt: data.savedAt, scan: scanRef(), setup };
+    S.linkPending = { slug: data.slug, name: data.name, rev: S.linkRev, savedAt: data.savedAt, scan: scanRef(), setup, hasScan: true };
+    S.scan.fromLink = true;
     S.linkMissing = "";
     S.linkWrong = null;
+    S.linkScanError = false;
     history.pushState({ slug: data.slug }, "", data.path);
     $("link-name").value = data.name;
     delete $("link-name").dataset.edited;
+    renderScanState();
     await refreshLinkList();
   } catch {
     S.linkNote = { cls: "state err", html: "The server could not be reached. The link was not saved." };
@@ -2188,12 +2269,17 @@ async function boot() {
   $("btn-step").addEventListener("click", exportStep);
 
   const asked = linkSlugFromPath();
+  let openScan = false;
   if (asked) {
     try {
       const d = await (await fetch(`/api/fixture/links/${asked}`)).json();
       if (d.ok && d.link) {
         S.linkPending = d.link;
         $("link-name").value = d.link.name;
+        if (d.link.hasScan) {
+          S.linkLoading = true;
+          openScan = true;
+        }
       } else S.linkMissing = asked;
     } catch {
       S.linkMissing = asked;
@@ -2230,6 +2316,7 @@ async function boot() {
   });
   window.addEventListener("popstate", () => location.reload());
   await refreshLinkList();
+  if (openScan) await openLinkedScan();
 
   applyTheme();
   resize();

@@ -42,23 +42,25 @@ Up to twelve. Exports are named after the variation on screen.
 
 ## What is saved
 
-The scan is never stored. What was decided about it is: camera model and pose,
-target, arm corrections, and every variation's anchors and slider values, a
-few hundred numbers.
+Opening a scan on its own does not upload it. What was decided about it is
+stored: camera model and pose, target, arm corrections, and every variation's
+anchors and slider values, a few hundred numbers.
 The page writes them half a second after any change to `localStorage` and to
 `PUT /api/fixture/setup`, keyed by the scan's file name and point count, and
 says under the scan when and where it saved. Opening the same file again, in
 any browser, brings the setup back; **Start over** deletes both copies.
 
-**A named link** keeps a setup under a name. *Save as link* writes it and
-opens `/fixture/<name>` — `Comer cognex camera 2800` is
-`/fixture/comer-cognex-camera-2800`. The scan file is not in the link: the
-page names the file to open, and once that file is open the pose, the anchors
-and every variation come from the link. Later changes update the link, so
-anyone with the address sees them. Renaming does not change the address. A
-name that is already used is refused rather than overwritten. **Delete link**
-removes it; the setup saved against the scan file stays. On a link, **Start
-over** is not offered, because opening the link would bring the setup back.
+**A named link** keeps a setup under a name, and the scan with it. *Save as
+link* writes both and opens `/fixture/<name>` — `Comer cognex camera 2800` is
+`/fixture/comer-cognex-camera-2800`. Opening that address signs in and shows
+the scene: the point cloud, the camera pose, the anchors and every variation.
+Later changes update the link, so anyone with the address sees them. The scan
+is stored once; edits after that update the setup only. Renaming does not
+change the address. A name that is already used is refused rather than
+overwritten. **Delete link** removes the setup and the scan; the setup saved
+against the scan file on its own stays. On a link, **Start over** is not
+offered, because opening the link would bring the setup back. A link saved
+before scans were stored still names the file to open.
 
 Server copies are files under `backend/.fixture-setups/` (gitignored: they are
 a client's station coordinates). On a host without a persistent disk they last

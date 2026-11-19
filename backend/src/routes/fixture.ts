@@ -15,14 +15,17 @@
  *                                   pose, target, anchors, slider values — so
  *                                   it survives a reload and another browser
  *   GET | POST | PUT | DELETE /api/fixture/links
- *                                   the same, under a name, opened by
+ *                                   a named configuration, opened by
  *                                   /fixture/<name>
+ *   GET | PUT /api/fixture/links/:slug/scan
+ *                                   the .ply that configuration was made on,
+ *                                   so opening the link shows the scene
  *
- * Nothing here stores the scan. Locate receives rendered views, not points;
- * step receives the generated structure only; a saved setup is a few hundred
- * numbers, keyed by the scan's file name and point count.
+ * Locate receives rendered views, not points, and step receives the generated
+ * structure only. A setup saved against a scan is a few hundred numbers. A
+ * named link also keeps the scan file, on the same disk as the setups.
  */
-import { Router, type NextFunction, type Request, type Response } from "express";
+import express, { Router, type NextFunction, type Request, type Response } from "express";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -532,6 +535,20 @@ function sharePath(slug: string): string | null {
   return join(SHARE_DIR, `${slug}.json`);
 }
 
+/** The scan stored with a link. A sibling of the JSON, so a setup rewrite leaves it. */
+function shareScanPath(slug: string): string | null {
+  const file = sharePath(slug);
+  if (!file) return null;
+  return `${file.slice(0, -".json".length)}.ply`;
+}
+
+const linkHasScan = (slug: string) => {
+  const ply = shareScanPath(slug);
+  return Boolean(ply && existsSync(ply));
+};
+
+const SCAN_LIMIT = 80 * 1024 * 1024;
+
 interface ShareRecord {
   slug: string;
   name: string;
@@ -565,6 +582,7 @@ fixtureRouter.get("/links", (_req, res) => {
       savedAt: d.savedAt,
       rev: d.rev ?? 0,
       scan: d.scan,
+      hasScan: linkHasScan(d.slug),
       variations: Array.isArray((d.setup as { variations?: { name?: string }[] }).variations)
         ? (d.setup as { variations: { name?: string }[] }).variations.map((v) => v.name).filter((n): n is string => typeof n === "string")
         : [],
@@ -578,7 +596,31 @@ fixtureRouter.get("/links/:slug", (req, res) => {
   if (!file || !existsSync(file)) return res.status(404).json({ ok: false, error: "no configuration at this link" });
   const link = readShare(file);
   if (!link) return res.status(404).json({ ok: false, error: "no configuration at this link" });
-  res.json({ ok: true, link });
+  res.json({ ok: true, link: { ...link, hasScan: linkHasScan(link.slug) } });
+});
+
+fixtureRouter.get("/links/:slug/scan", (req, res) => {
+  const ply = shareScanPath(req.params.slug);
+  if (!ply || !existsSync(ply)) return res.status(404).json({ ok: false, error: "this link has no scan" });
+  const name = (readShare(sharePath(req.params.slug) ?? "")?.scan.name ?? "scan.ply").replace(/[^\w.\- ]+/g, "");
+  res.set("Content-Type", "application/octet-stream");
+  res.set("Content-Disposition", `inline; filename="${name || "scan.ply"}"`);
+  res.set("Cache-Control", "private, max-age=86400");
+  res.sendFile(ply);
+});
+
+fixtureRouter.put("/links/:slug/scan", express.raw({ type: "*/*", limit: SCAN_LIMIT }), (req, res) => {
+  const json = sharePath(req.params.slug);
+  const ply = shareScanPath(req.params.slug);
+  if (!json || !ply) return res.status(400).json({ ok: false, error: "no configuration at this link" });
+  if (!existsSync(json)) return res.status(404).json({ ok: false, error: "no configuration at this link" });
+  const body = req.body;
+  if (!Buffer.isBuffer(body) || body.length < 16 || body.subarray(0, 3).toString("ascii") !== "ply") {
+    return res.status(400).json({ ok: false, error: "the scan has to be a .ply file" });
+  }
+  writeFileSync(`${ply}.tmp`, body);
+  renameSync(`${ply}.tmp`, ply);
+  res.json({ ok: true, bytes: body.length });
 });
 
 fixtureRouter.post("/links", (req, res) => {
@@ -633,12 +675,16 @@ fixtureRouter.delete("/links/:slug", (req, res) => {
   const file = sharePath(req.params.slug);
   if (!file) return res.status(400).json({ ok: false, error: "no configuration at this link" });
   rmSync(file, { force: true });
+  const ply = shareScanPath(req.params.slug);
+  if (ply) rmSync(ply, { force: true });
   res.json({ ok: true });
 });
 
 /* Failures from this router answer in JSON with a sentence the page can show.
    Express's default handler would send an HTML stack trace instead. */
 fixtureRouter.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  const status = typeof err === "object" && err && "status" in err ? Number((err as { status?: number }).status) : 0;
+  if (status === 413) return res.status(413).json({ ok: false, error: "the scan is larger than 80 MB" });
   // eslint-disable-next-line no-console
   console.error("[fixture]", err);
   const message = err instanceof Error ? err.message : "unexpected error";

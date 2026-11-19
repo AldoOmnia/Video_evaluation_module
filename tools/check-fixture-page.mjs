@@ -387,7 +387,9 @@ console.log("\nSaved setup");
     await page.click("#btn-link-save");
     await page.waitForFunction(() => location.pathname === "/fixture/check-saved-link" && /check saved link/i.test(document.getElementById("link-list").innerText), { timeout: 10000 });
     const via = await (await fetch(`${base}/api/fixture/links/${linkSlug}`)).json();
-    ok("saving gives the configuration an address", via.link?.name === "Check saved link" && via.link?.setup?.values?.rigidity === 70 && via.link?.scan?.name === "check-saved-setup.ply", via.link?.name);
+    const storedScan = Buffer.from(await (await fetch(`${base}/api/fixture/links/${linkSlug}/scan`)).arrayBuffer());
+    ok("saving gives the configuration an address", via.link?.name === "Check saved link" && via.link?.hasScan === true && via.link?.setup?.values?.rigidity === 70 && via.link?.scan?.name === "check-saved-setup.ply", via.link?.name);
+    ok("the link keeps the scan", storedScan.equals(readFileSync(scanFile)));
     ok("the address is shown on the page", (await page.$eval("#link-url", (el) => el.value)).endsWith("/fixture/check-saved-link") && !(await page.$eval("#btn-link-copy", (el) => el.hidden)));
     ok("the configuration is listed, and the one on screen cannot be opened over itself", await page.$eval("#link-list", (el) => /check saved link/i.test(el.innerText) && el.querySelector('[data-link="check-saved-link"]').disabled));
     const again = await fetch(`${base}/api/fixture/links`, {
@@ -401,18 +403,16 @@ console.log("\nSaved setup");
     ok("a change on the page updates the link", true);
 
     await page.goto(`${base}/fixture/${linkSlug}`, { waitUntil: "networkidle2" });
-    await page.waitForFunction(() => window.__fixture?.S.linkPending?.name === "Check saved link", { timeout: 20000 });
-    const prompt = (await text("scan-state")).replace(/\s+/g, " ");
-    ok("the link, opened on its own, names the scan file to open", /Check saved link/.test(prompt) && /check-saved-setup\.ply/.test(prompt), prompt);
-    await open();
+    await page.waitForFunction(() => window.__fixture?.S.scan?.name === "check-saved-setup.ply" && window.__fixture.S.setupReady && window.__fixture.S.link?.slug === "check-saved-link" && window.__fixture.S.pose, { timeout: 20000 });
     await waitResult();
     const back = await page.evaluate((before) => {
       const pose = window.__fixture.S.pose;
       const was = JSON.parse(before);
       const off = Math.max(...["center", "view", "up"].map((k) => Math.hypot(...pose[k].map((v, i) => v - was[k][i]))));
-      return { off, rigidity: window.__fixture.S.values.rigidity, slug: window.__fixture.S.link?.slug ?? "" };
+      const state = document.getElementById("scan-state").innerText.replace(/\s+/g, " ");
+      return { off, rigidity: window.__fixture.S.values.rigidity, slug: window.__fixture.S.link?.slug ?? "", empty: document.getElementById("empty").hidden, state, fromLink: Boolean(window.__fixture.S.scan.fromLink) };
     }, poseBefore);
-    ok("opening that file brings the configuration back", back.off < 1e-9 && back.rigidity === 55 && back.slug === linkSlug, `slug ${back.slug} · pose off ${(back.off * 1000).toFixed(3)} mm · rigidity ${back.rigidity}`);
+    ok("opening the link shows the scan and the configuration, without asking for the file", back.off < 1e-9 && back.rigidity === 55 && back.slug === linkSlug && back.empty && back.fromLink && /part of the link/.test(back.state), `slug ${back.slug} · pose off ${(back.off * 1000).toFixed(3)} mm · rigidity ${back.rigidity} · ${back.state}`);
 
     const otherFile = join(shots, "check-link-other.ply");
     writeFileSync(otherFile, readFileSync(scanFile));
@@ -425,7 +425,7 @@ console.log("\nSaved setup");
     const armed = await page.$eval("#btn-link-delete", (el) => el.textContent);
     await page.click("#btn-link-delete");
     await page.waitForFunction(() => /^\/fixture\/?$/.test(location.pathname), { timeout: 10000 });
-    ok("Delete link asks once and then removes it", /delete\?/.test(armed) && (await fetch(`${base}/api/fixture/links/${linkSlug}`)).status === 404);
+    ok("Delete link asks once and then removes it", /delete\?/.test(armed) && (await fetch(`${base}/api/fixture/links/${linkSlug}`)).status === 404 && (await fetch(`${base}/api/fixture/links/${linkSlug}/scan`)).status === 404);
   } finally {
     await fetch(`${base}/api/fixture/links/${linkSlug}`, { method: "DELETE" });
   }
