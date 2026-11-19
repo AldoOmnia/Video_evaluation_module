@@ -382,6 +382,12 @@ app.use(
     setHeaders(res, filePath) {
       if (/\.(spz|glb|jpe?g|mp4|webp|ply|svg)$/i.test(filePath)) {
         res.setHeader("Cache-Control", "public, max-age=604800, immutable");
+      } else if (/[\\/]fixture[\\/].*\.js$/i.test(filePath)) {
+        // The camera-support tool is a graph of modules that import each
+        // other by plain path, with no version stamp to change. Checked with
+        // the server on every load, so a deploy never leaves a browser running
+        // this week's page on last week's solver.
+        res.setHeader("Cache-Control", "no-cache");
       }
     },
   }),
