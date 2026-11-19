@@ -41,3 +41,4 @@ export const RESHIM_HTML = join(EVAL_LAB_PUBLIC, "reshim.html");
 export const SETTINGS_HTML = join(EVAL_LAB_PUBLIC, "settings.html");
 export const SYNTHETIC_POV_HTML = join(EVAL_LAB_PUBLIC, "synthetic-pov.html");
 export const VISION_CASES_HTML = join(EVAL_LAB_PUBLIC, "vision-cases.html");
+export const FIXTURE_HTML = join(EVAL_LAB_PUBLIC, "fixture.html");

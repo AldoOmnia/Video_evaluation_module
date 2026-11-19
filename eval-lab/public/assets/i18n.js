@@ -65,6 +65,7 @@
     'home.navLiveLine': 'Linea live',
     'home.navReports': 'Report',
     'home.navTools': 'Strumenti',
+    'home.navFixture': 'Supporto telecamera',
     'home.navPilot': 'Pilota Rockford',
     'home.navSettings': 'Impostazioni',
     'home.signOut': 'Esci',
@@ -428,6 +429,10 @@
     'set.rEvalSub': 'valutazione procedura',
     'set.rGlasses': 'Occhiali in officina',
     'set.rGlassesSub': 'dispositivo Rokid /query',
+    'set.rFixAssist': 'Supporto telecamera · assistente',
+    'set.rFixAssistSub': 'richiesta scritta → valori dei cursori',
+    'set.rFixLocate': 'Supporto telecamera · localizzazione automatica',
+    'set.rFixLocateSub': 'viste della scansione → Gemini vision',
     'set.rOther': 'Altro',
     'set.rOtherSub': 'non etichettato',
 

@@ -9,6 +9,9 @@
  * Load it in <head> BEFORE the page's own <style>, so page rules win on
  * specificity ties and a page can still override a token deliberately.
  *
+ * Also holds the few components more than one page uses: the vendor mark, the
+ * theme toggle, and the slider.
+ *
  * Deliberate non-members:
  *   - synthetic-pov.html keeps its own green-tinted neutrals (--ink-1 #f1f4f3,
  *     --line #1d2120, …). That is a designed difference for the 3D viewer
@@ -186,4 +189,70 @@ html.light img[alt="Comer Industries"] { filter: invert(1); }
 
 @media (prefers-reduced-motion: reduce) {
   body, .theme-toggle, .theme-toggle .knob { transition: none; }
+}
+
+/* ── Slider ───────────────────────────────────────────────────────────────
+   One labelled range control, for any page that needs a tunable number.
+
+     <label class="slider">
+       <span class="slider-head">
+         <span class="slider-name">Rigidity</span>
+         <output class="slider-val">45<span class="u">%</span></output>
+       </span>
+       <input type="range" min="0" max="100" step="1" value="45" style="--fill:45%" />
+     </label>
+
+   The filled part of the track is drawn from --fill, which the page sets to
+   the value's position (0%–100%) whenever it changes; a native range input
+   cannot style the two sides of the thumb differently in every browser.
+   The name uses the label register and the value the mono face, like a KPI. */
+.slider { display: grid; gap: 5px; }
+.slider-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.slider-name {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.slider-val {
+  font-family: var(--mono); font-size: 12px; color: var(--ink-1);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.slider-val .u { font-size: 10px; color: var(--ink-3); margin-left: 3px; }
+/* Marks a value an assistant or preset just set, until the user touches it. */
+.slider.is-changed .slider-val { color: var(--primary); }
+.slider input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 16px; margin: 0; background: transparent; cursor: pointer;
+}
+.slider input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px; border-radius: 1px;
+  background: linear-gradient(90deg, var(--primary) var(--fill, 0%), var(--line-2) var(--fill, 0%));
+}
+.slider input[type="range"]::-moz-range-track {
+  height: 2px; border-radius: 1px;
+  background: linear-gradient(90deg, var(--primary) var(--fill, 0%), var(--line-2) var(--fill, 0%));
+}
+.slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 12px; height: 12px; margin-top: -5px; border-radius: 50%;
+  background: var(--bg); border: 1.5px solid var(--primary);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.slider input[type="range"]::-moz-range-thumb {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--bg); border: 1.5px solid var(--primary);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.slider input[type="range"]:hover::-webkit-slider-thumb { box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 16%, transparent); }
+.slider input[type="range"]:hover::-moz-range-thumb { box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 16%, transparent); }
+.slider input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.15); background: var(--primary); }
+.slider input[type="range"]:active::-moz-range-thumb { transform: scale(1.15); background: var(--primary); }
+.slider input[type="range"]:focus-visible { outline: none; }
+.slider input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--primary); }
+.slider input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--primary); }
+.slider input[type="range"]:disabled { cursor: not-allowed; }
+.slider:has(input:disabled) { opacity: 0.4; }
+
+@media (prefers-reduced-motion: reduce) {
+  .slider input[type="range"]::-webkit-slider-thumb,
+  .slider input[type="range"]::-moz-range-thumb { transition: none; }
 }

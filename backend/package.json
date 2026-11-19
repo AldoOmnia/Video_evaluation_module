@@ -17,6 +17,8 @@
     "express": "^4.19.2",
     "jszip": "^3.10.1",
     "mssql": "^12.7.0",
+    "replicad": "^1.2.1",
+    "replicad-opencascadejs": "^1.2.1",
     "yaml": "^2.4.5",
     "zod": "^3.23.8"
   },

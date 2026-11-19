@@ -1,0 +1,411 @@
+{
+  "_comment": "Single source of truth for the camera-support generator's controls. The page builds its sliders from this, the worker converts UI values to metres with `scale`, and the backend clamps anything the assistant proposes to these ranges. Change a range here and all three follow.",
+  "sliders": [
+    {
+      "id": "rigidity",
+      "label": "Rigidity",
+      "unit": "",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 45,
+      "scale": 1,
+      "group": "main",
+      "help": "How little the camera may move under a 1 g load. 0 allows 2 mm, 50 allows 0.2 mm, 100 allows 0.02 mm. Struts thicken to meet it."
+    },
+    {
+      "id": "feet",
+      "label": "Feet per anchor",
+      "unit": "",
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "default": 3,
+      "scale": 1,
+      "group": "main",
+      "help": "How many legs the structure splits into at each anchor point."
+    },
+    {
+      "id": "footprint",
+      "label": "Base spread",
+      "unit": "mm",
+      "min": 40,
+      "max": 300,
+      "step": 5,
+      "default": 120,
+      "scale": 0.001,
+      "group": "main",
+      "help": "Radius of the circle the feet land on around each anchor. Wider resists tipping and twisting; feet that would fall off the surface are pulled in. On a ring anchor: the spacing between neighbouring legs along the ring."
+    },
+    {
+      "id": "split",
+      "label": "Branch point",
+      "unit": "%",
+      "min": 15,
+      "max": 85,
+      "step": 1,
+      "default": 55,
+      "scale": 0.01,
+      "group": "main",
+      "help": "How far from the camera the trunk divides into legs. Low splits early into a wide tripod; high keeps a single trunk most of the way."
+    },
+    {
+      "id": "sweep",
+      "label": "Sweep",
+      "unit": "%",
+      "min": 0,
+      "max": 60,
+      "step": 1,
+      "default": 18,
+      "scale": 0.01,
+      "group": "main",
+      "help": "How strongly the trunk arcs away from the camera before heading to the base. 0 is a straight run."
+    },
+    {
+      "id": "ties",
+      "label": "Cross ties",
+      "unit": "",
+      "min": 0,
+      "max": 3,
+      "step": 1,
+      "default": 1,
+      "scale": 1,
+      "group": "main",
+      "help": "Rings of struts joining neighbouring legs. Adds torsional stiffness and the webbed look."
+    },
+    {
+      "id": "blend",
+      "label": "Blend",
+      "unit": "mm",
+      "min": 2,
+      "max": 40,
+      "step": 1,
+      "default": 14,
+      "scale": 0.001,
+      "group": "main",
+      "help": "Size of the fillets where members meet. Small reads as a welded frame, large as a grown form."
+    },
+    {
+      "id": "clearance",
+      "label": "Clearance",
+      "unit": "mm",
+      "min": 5,
+      "max": 120,
+      "step": 5,
+      "default": 30,
+      "scale": 0.001,
+      "group": "main",
+      "help": "Gap kept between the structure and anything in the scan, and from the camera's field of view."
+    },
+    {
+      "id": "ringWidth",
+      "label": "Ring width",
+      "unit": "%",
+      "min": 40,
+      "max": 160,
+      "step": 5,
+      "default": 70,
+      "scale": 0.01,
+      "group": "main",
+      "needs": "ring",
+      "help": "Width of the base ring, as a share of the flat round face it sits on. 100 covers the face from edge to edge."
+    },
+    {
+      "id": "ringThickness",
+      "label": "Ring thickness",
+      "unit": "mm",
+      "min": 4,
+      "max": 30,
+      "step": 1,
+      "default": 8,
+      "scale": 0.001,
+      "group": "main",
+      "needs": "ring",
+      "help": "Thickness of the base ring."
+    },
+    {
+      "id": "cableClearance",
+      "label": "Cable room",
+      "unit": "mm",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 150,
+      "legacy": 0,
+      "scale": 0.001,
+      "group": "main",
+      "help": "Straight space kept free behind the camera for the connectors and cables. Nothing is routed through it. Cognex asks for 150 mm before the first bend."
+    },
+    {
+      "id": "standoff",
+      "label": "Standoff",
+      "unit": "mm",
+      "min": 10,
+      "max": 150,
+      "step": 5,
+      "default": 40,
+      "scale": 0.001,
+      "group": "advanced",
+      "help": "Straight neck length behind the camera plate before the trunk starts to curve."
+    },
+    {
+      "id": "minDiameter",
+      "label": "Min strut",
+      "unit": "mm",
+      "min": 6,
+      "max": 30,
+      "step": 1,
+      "default": 10,
+      "scale": 0.001,
+      "group": "advanced",
+      "help": "Thinnest strut the process can make. Sizing never goes below it."
+    },
+    {
+      "id": "maxDiameter",
+      "label": "Max strut",
+      "unit": "mm",
+      "min": 20,
+      "max": 90,
+      "step": 2,
+      "default": 60,
+      "scale": 0.001,
+      "group": "advanced",
+      "help": "Thickest strut allowed. If the rigidity target needs more, the target is reported as not met."
+    },
+    {
+      "id": "plateThickness",
+      "label": "Plate / floor",
+      "unit": "mm",
+      "min": 4,
+      "max": 16,
+      "step": 1,
+      "default": 8,
+      "scale": 0.001,
+      "group": "advanced",
+      "help": "Thickness of the camera mounting plate, or of a cradle's or sleeve's floor. Their walls and roof are 0.6 of it, never under 3 mm."
+    },
+    {
+      "id": "gripLength",
+      "label": "Grip length",
+      "unit": "mm",
+      "min": 40,
+      "max": 80,
+      "step": 2,
+      "default": 46,
+      "scale": 0.001,
+      "group": "advanced",
+      "needs": "holder",
+      "help": "How much of the camera body a cradle or sleeve wraps, centred on the bolt pattern. It never reaches the connectors."
+    }
+  ],
+  "materials": [
+    {
+      "id": "al6061",
+      "label": "Aluminium 6061-T6 (machined)",
+      "short": "Al 6061-T6"
+    },
+    {
+      "id": "pa12",
+      "label": "PA12 (SLS / MJF print)",
+      "short": "PA12"
+    },
+    {
+      "id": "ss316l",
+      "label": "Stainless 316L (metal print)",
+      "short": "316L"
+    },
+    {
+      "id": "ti64",
+      "label": "Titanium Ti-6Al-4V (metal print)",
+      "short": "Ti-6Al-4V"
+    }
+  ],
+  "defaultMaterial": "al6061",
+  "_holders": "How the support holds the camera. All three bolt to the camera's own M3 pattern; a cradle or sleeve also wraps the body so the camera cannot rock or peel off the screws. They need a camera with a drawn body (body_mm and grip_mm). legacyHolder is what a setup saved before holders existed was drawn with.",
+  "holders": [
+    {
+      "id": "plate",
+      "label": "Plate",
+      "help": "A flat plate under the camera, held by its four screws alone."
+    },
+    {
+      "id": "cradle",
+      "label": "Cradle, open top",
+      "help": "A channel the camera body lies in: floor and two side walls, open above and behind. The four screws go through the floor."
+    },
+    {
+      "id": "sleeve",
+      "label": "Sleeve, camera slides in",
+      "help": "A closed band round the camera body: floor, walls and roof, open in front and behind. The body slides in connectors first until the light head meets it; the four screws go through the floor."
+    }
+  ],
+  "defaultHolder": "sleeve",
+  "legacyHolder": "plate",
+  "mountFaces": [
+    "bottom",
+    "back",
+    "top",
+    "left",
+    "right"
+  ],
+  "_cameras": "Camera frame for body_mm and mount_mm: x along the view (front face at +x), y across, z up, origin on the optical axis at mid length. body_mm are the solids the support must stay out of; mount_mm is the centre of the bolt pattern on the mounting face. Cameras without body_mm are a plain box of size_mm with the plate centred on the chosen face. grip_mm is the stretch of the body, along x, that a cradle or sleeve may wrap: the housing behind the lens or light head, stopping short of the connectors. It is scaled from the outline drawing, good to about a millimetre.",
+  "cameras": [
+    {
+      "id": "is2800-multitorch",
+      "label": "In-Sight 2800 / 2801 · Multi Torch",
+      "size_mm": [
+        109.7,
+        69.0,
+        66.0
+      ],
+      "mass_g": 290,
+      "mountFace": "bottom",
+      "holes_mm": [
+        21.1,
+        37.0
+      ],
+      "holeThread": "M3",
+      "holeDepth_mm": 4.0,
+      "body_mm": [
+        {
+          "name": "light head",
+          "x": [
+            11.35,
+            54.85
+          ],
+          "y": [
+            -34.5,
+            34.5
+          ],
+          "z": [
+            -33.0,
+            33.0
+          ],
+          "relief_mm": 1.0
+        },
+        {
+          "name": "body and connectors",
+          "x": [
+            -54.85,
+            11.35
+          ],
+          "y": [
+            -21.2,
+            21.2
+          ],
+          "z": [
+            -11.1,
+            12.5
+          ]
+        }
+      ],
+      "mount_mm": [
+        -10.7,
+        0,
+        -11.1
+      ],
+      "grip_mm": [
+        -38.0,
+        11.35
+      ],
+      "lenses": [
+        "f8",
+        "f12",
+        "f16"
+      ],
+      "defaultLens": "f8",
+      "source": "In-Sight 2800 Reference Manual, p. 19",
+      "note": "Body and bolt pattern from the In-Sight 2800 Reference Manual, p. 19: four M3 holes on the bottom plate, 21.1 × 37.0 mm, threads 4 mm deep. Use screws no longer than the plate thickness plus 4 mm. Weight per Cognex: 290 g in the Multi Torch configuration; a right-angle configuration adds 50 g. The two M12 connectors (power and I/O, Ethernet) leave straight out of the back; Cognex asks for 150 mm of straight cable behind them before the first bend."
+    },
+    {
+      "id": "is2800-mini",
+      "label": "In-Sight 2800 · Mini 6.2 mm",
+      "size_mm": [
+        75.5,
+        42.4,
+        25.0
+      ],
+      "mass_g": 141,
+      "mountFace": "bottom",
+      "holes_mm": [
+        21.1,
+        37.0
+      ],
+      "holeThread": "M3",
+      "holeDepth_mm": 4.0,
+      "body_mm": [
+        {
+          "name": "body",
+          "x": [
+            -37.75,
+            37.75
+          ],
+          "y": [
+            -21.2,
+            21.2
+          ],
+          "z": [
+            -11.1,
+            12.5
+          ]
+        }
+      ],
+      "mount_mm": [
+        2.2,
+        0,
+        -11.1
+      ],
+      "grip_mm": [
+        -29.0,
+        37.75
+      ],
+      "lenses": [
+        "f6"
+      ],
+      "defaultLens": "f6",
+      "source": "In-Sight 2800 Reference Manual, p. 16",
+      "note": "Body, bolt pattern and weight from the In-Sight 2800 Reference Manual, p. 16 and 61: four M3 holes on the bottom plate, 21.1 × 37.0 mm, threads 4 mm deep. Use screws no longer than the plate thickness plus 4 mm. The two M12 connectors leave straight out of the back; Cognex asks for 150 mm of straight cable behind them before the first bend."
+    },
+    {
+      "id": "custom",
+      "label": "Custom",
+      "size_mm": [
+        100,
+        50,
+        50
+      ],
+      "mass_g": 250,
+      "mountFace": "bottom",
+      "holes_mm": [
+        30,
+        24
+      ],
+      "holeThread": "M3",
+      "note": "Enter the body envelope, mass and hole spacing from the camera's drawing. The plate is centred on the chosen face."
+    }
+  ],
+  "_lenses": "fovDeg is the diagonal field of view, from the working-distance tables in the In-Sight 2800 Reference Manual (p. 29–33): the keep-out cone has to contain the whole image, corners included.",
+  "lenses": [
+    {
+      "id": "f6",
+      "label": "6.2 mm",
+      "fovDeg": 44.2
+    },
+    {
+      "id": "f8",
+      "label": "8 mm",
+      "fovDeg": 35.0
+    },
+    {
+      "id": "f12",
+      "label": "12 mm",
+      "fovDeg": 23.7
+    },
+    {
+      "id": "f16",
+      "label": "16 mm",
+      "fovDeg": 17.9
+    }
+  ],
+  "defaultLens": "f8"
+}

@@ -39,6 +39,8 @@ export type UsageRoute =
   | "glasses-query"   // the Rokid APK /query endpoint (device, not platform)
   | "eval"            // eval lab runs
   | "spec"            // spec/taxonomy helpers
+  | "fixture-assist"  // camera-support generator: typed request → slider values
+  | "fixture-locate"  // camera-support generator: find the camera in scan renders (vision)
   | "other";
 
 export interface UsageRecord {

@@ -18,6 +18,7 @@ import { worldLabsRouter } from "./routes/worldlabs.js";
 import { usageRouter } from "./routes/usage.js";
 import { mesRouter } from "./routes/mes.js";
 import { reshimRouter } from "./routes/reshim.js";
+import { fixtureRouter } from "./routes/fixture.js";
 import { worldLabsConfigured } from "./services/worldlabs.js";
 import { geminiConfigured, VISION_MODEL } from "./services/gemini.js";
 import { loadLedger } from "./services/usage.js";
@@ -31,6 +32,7 @@ import {
   KNOWLEDGE_HTML,
   REPORTS_HTML,
   RESHIM_HTML,
+  FIXTURE_HTML,
   SETTINGS_HTML,
   SYNTHETIC_POV_HTML,
   VISION_CASES_HTML,
@@ -97,6 +99,7 @@ app.use("/api/worldlabs", worldLabsRouter);
 app.use("/api/usage", usageRouter);
 app.use("/api/mes", mesRouter);
 app.use("/api/reshim", reshimRouter);
+app.use("/api/fixture", fixtureRouter);
 app.use("/query", queryRouter); // Rokid APK compatibility
 
 // Dev-only: browser posts calibrated splat capture from localStorage (localhost).
@@ -436,6 +439,13 @@ app.get(["/reshim", "/reshim/"], (_req, res) => {
 app.get(["/settings", "/settings/"], (_req, res) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
   res.sendFile(SETTINGS_HTML);
+});
+
+// Camera-support generator — scan in, fixture out (OBJ in the browser, STEP
+// through /api/fixture/step).
+app.get(["/fixture", "/fixture/"], (_req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.sendFile(FIXTURE_HTML);
 });
 
 // GlassKit vision cases imported from comer-rokid-demo #61 (vision-eval).
