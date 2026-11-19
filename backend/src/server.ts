@@ -37,6 +37,7 @@ import {
   EMOTIV_HOME_HTML,
   EMOTIV_AGENT_HTML,
   EMOTIV_MONITOR_HTML,
+  EMOTIV_LIVE_HTML,
   SHARED_DIR,
 } from "./paths.js";
 
@@ -474,6 +475,13 @@ app.get(["/agent", "/agent/"], (_req, res) => {
 app.get(["/monitor", "/monitor/"], (_req, res) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
   res.sendFile(EMOTIV_MONITOR_HTML);
+});
+
+// Camera checks — this device's camera, read by the Emotiv vision backend.
+// One page for the three services; `?service=` picks which.
+app.get(["/live", "/live/"], (_req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.sendFile(EMOTIV_LIVE_HTML);
 });
 
 // Facility knowledge base — per-station node graphs + component references.

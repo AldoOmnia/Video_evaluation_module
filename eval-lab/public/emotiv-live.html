@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Camera check · Emotiv</title>
+  <link rel="icon" href="/lab/assets/daedalus-mark.svg?v=1" type="image/svg+xml" />
+  <link rel="stylesheet" href="/lab/assets/platform.css?v=2" />
+  <link rel="stylesheet" href="/lab/assets/emotiv-portal.css?v=3" />
+  <script src="/lab/assets/platform.js?v=2"></script>
+  <style>
+    /* Camera check: this device's camera, with the read drawn on the picture.
+       The picture takes the space and the read sits beside it, or under it on
+       a narrow screen. */
+    .cc {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+    }
+    @media (max-width: 900px), (orientation: portrait) {
+      .cc { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; }
+      .cc-side { border-left: 0; border-top: 1px solid var(--line); max-height: 44vh; }
+    }
+    .cc-stage {
+      min-height: 0;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+      background: #000;
+      position: relative;
+    }
+    /* The frame takes the camera's own shape, set from the stream, so the
+       boxes and the picture share one rectangle. */
+    .cc-frame {
+      position: relative;
+      max-width: 100%;
+      max-height: 100%;
+      aspect-ratio: 4 / 3;
+      height: 100%;
+      background: #0a0a0a;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .cc-frame video, .cc-frame canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .cc-frame video { object-fit: fill; }
+    .cc-frame.mirror video { transform: scaleX(-1); }
+    .cc-ask {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 24px;
+      text-align: center;
+      color: #d4d4d4;
+      font-size: 14px;
+      line-height: 1.5;
+      background: rgba(0, 0, 0, 0.72);
+    }
+    .cc-ask[hidden] { display: none; }
+    .cc-btn {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-1);
+      background: var(--bg-3);
+      border: 1px solid var(--line-2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+    .cc-btn:hover { border-color: var(--primary-dim); color: var(--primary); }
+    .cc-btn[hidden] { display: none; }
+    .cc-side {
+      min-height: 0;
+      overflow: auto;
+      border-left: 1px solid var(--line);
+      background: var(--bg-2);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .cc-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+    .cc-tab {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: var(--ink-2);
+      border: 1px solid var(--line-2);
+      border-radius: 6px;
+      padding: 7px 10px;
+    }
+    .cc-tab.on { color: var(--primary); border-color: var(--primary-dim); }
+    .cc-read {
+      border: 1px solid var(--line-2);
+      border-left-width: 4px;
+      border-radius: 10px;
+      padding: 14px;
+      background: var(--bg-3);
+    }
+    .cc-read.ok { border-left-color: var(--ok); }
+    .cc-read.bad { border-left-color: var(--err); }
+    .cc-read h2 { margin: 0 0 6px; font-size: 20px; font-weight: 500; letter-spacing: -0.01em; }
+    .cc-read p { margin: 0; color: var(--ink-2); font-size: 14px; line-height: 1.45; }
+    .cc-cap {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+    }
+    .cc-kv { display: grid; gap: 6px; font-family: var(--mono); font-size: 11px; }
+    .cc-kv .row { display: flex; justify-content: space-between; gap: 12px; }
+    .cc-kv .k { color: var(--ink-3); letter-spacing: 0.06em; text-transform: uppercase; flex-shrink: 0; }
+    .cc-kv .v { color: var(--ink-1); text-align: right; overflow-wrap: anywhere; }
+    .cc-note { color: var(--ink-3); font-size: 12px; line-height: 1.45; margin: 0; }
+    .cc-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="mark" href="/home/"><img class="brand" src="/lab/assets/emotiv-logo.png?v=2" alt="Emotiv" /></a>
+    <span class="topbar-title" id="title">Camera check</span>
+    <div class="topbar-right">
+      <a class="nav-link" href="/home/">Services</a>
+      <button class="theme-toggle" type="button"></button>
+      <button class="signout" id="signout" type="button">Sign out</button>
+    </div>
+  </header>
+
+  <div class="cc">
+    <section class="cc-stage" aria-label="Camera">
+      <div class="cc-frame" id="frame">
+        <video id="video" muted playsinline autoplay></video>
+        <canvas id="overlay"></canvas>
+        <div class="cc-ask" id="ask">
+          <div id="askText">Starting the camera…</div>
+          <button class="cc-btn" id="askBtn" type="button" hidden>Start camera</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="cc-side" aria-label="Read">
+      <nav class="cc-tabs" id="tabs"></nav>
+
+      <div class="cc-read" id="read">
+        <h2 id="headline">Waiting for the camera</h2>
+        <p id="detail"></p>
+      </div>
+
+      <div class="cc-row">
+        <button class="cc-btn" id="pause" type="button">Pause</button>
+        <button class="cc-btn" id="flip" type="button" hidden>Switch camera</button>
+      </div>
+
+      <div class="cc-cap">This read</div>
+      <div class="cc-kv">
+        <div class="row"><span class="k">Camera</span><span class="v" id="kvCamera">—</span></div>
+        <div class="row"><span class="k">Frame sent</span><span class="v" id="kvFrame">—</span></div>
+        <div class="row"><span class="k">Answer in</span><span class="v" id="kvLatency">—</span></div>
+        <div class="row"><span class="k">Status</span><span class="v" id="kvStatus">—</span></div>
+      </div>
+
+      <div class="cc-cap">Models asked</div>
+      <div class="cc-kv" id="models"><div class="row"><span class="v">—</span></div></div>
+
+      <p class="cc-note" id="note"></p>
+    </aside>
+  </div>
+
+  <script>
+    try {
+      const s = JSON.parse(localStorage.getItem('omnia.session') || 'null');
+      if (!s || s.tenant !== 'emotiv' || s.expiresAt <= Date.now()) location.replace('/login');
+    } catch { location.replace('/login'); }
+
+    document.getElementById('signout').onclick = () => {
+      localStorage.removeItem('omnia.session');
+      fetch('/api/auth/logout', { method: 'POST', keepalive: true }).finally(() => location.replace('/login'));
+    };
+
+    // The three services. `everyMs` is the least time between two frames
+    // sent. The radio read is eleven model calls a frame, so it runs slower.
+    const SERVICES = {
+      'radio-seat': {
+        title: 'Radio connectors',
+        everyMs: 2500,
+        note: 'Hold the radio module so all nine connectors face the camera. Each one is marked pushed home or not. This read is a preview: it has not been measured through this camera, and a housing with nothing in it is still marked one way or the other.',
+      },
+      'bolt-02': {
+        title: 'Bolt case 02',
+        everyMs: 1000,
+        note: 'Hold one bolt side on, with the thread toward the camera. The wrong bolt for this pass is the short one with the wide pink band. The correct one has a washer.',
+      },
+      'bolt-03': {
+        title: 'Bolt case 03',
+        everyMs: 1000,
+        note: 'Hold one bolt side on, with the thread toward the camera. The wrong bolt for this pass is the short blue one. The long one is correct.',
+      },
+    };
+    const wanted = new URLSearchParams(location.search).get('service');
+    const service = SERVICES[wanted] ? wanted : 'radio-seat';
+    const svc = SERVICES[service];
+
+    // The longest edge of the frame that is sent. The bolt read checks the
+    // colour of the shank, so this is not cut further.
+    const MAX_EDGE = 1280;
+    const JPEG_QUALITY = 0.85;
+    // A read older than this is not left on the picture.
+    const STALE_MS = 6000;
+
+    const $ = (id) => document.getElementById(id);
+    const video = $('video');
+    const overlay = $('overlay');
+    const frame = $('frame');
+    const grab = document.createElement('canvas');
+
+    $('title').textContent = `Camera check · ${svc.title}`;
+    document.title = `${svc.title} · Emotiv`;
+    $('note').textContent = svc.note;
+    $('tabs').innerHTML = Object.entries(SERVICES).map(([id, s]) =>
+      `<a class="cc-tab${id === service ? ' on' : ''}" href="/live/?service=${id}">${s.title}</a>`).join('');
+
+    let stream = null;
+    let facing = 'environment';
+    let mirrored = false;
+    let paused = false;
+    let configured = true;
+    let inFlight = false;
+    let timer = null;
+    let last = null; // { read, at }
+
+    function setRead(tone, headline, detail) {
+      $('read').className = `cc-read${tone ? ` ${tone}` : ''}`;
+      $('headline').textContent = headline;
+      $('detail').textContent = detail || '';
+    }
+
+    function setStatus(text) { $('kvStatus').textContent = text; }
+
+    function ask(text, button) {
+      $('askText').textContent = text;
+      $('askBtn').hidden = !button;
+      $('ask').hidden = false;
+    }
+
+    // ── camera ──────────────────────────────────────────────────────────
+
+    function stopCamera() {
+      if (stream) for (const t of stream.getTracks()) t.stop();
+      stream = null;
+    }
+
+    async function startCamera() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        ask('This browser cannot open a camera on this page. The page has to be served over https.', false);
+        return;
+      }
+      stopCamera();
+      ask('Starting the camera…', false);
+      try {
+        // `ideal`, not `exact`: the back camera where there is one, and
+        // whatever the device has where there is not, which is a laptop's
+        // front camera.
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: { facingMode: { ideal: facing }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        });
+      } catch (err) {
+        const denied = err?.name === 'NotAllowedError' || err?.name === 'SecurityError';
+        ask(denied
+          ? 'The camera was not allowed. Allow it for this site in the browser, then start it again.'
+          : `The camera did not start (${err?.name || 'error'}).`, true);
+        setStatus('no camera');
+        return;
+      }
+      video.srcObject = stream;
+      try { await video.play(); } catch { ask('Tap to start the camera.', true); return; }
+
+      const track = stream.getVideoTracks()[0];
+      const got = track.getSettings?.().facingMode || '';
+      // A camera that faces the user is shown as a mirror. A laptop camera
+      // reports no facing at all, and it faces the user.
+      mirrored = got !== 'environment';
+      frame.classList.toggle('mirror', mirrored);
+      $('kvCamera').textContent = got === 'environment' ? 'back' : got === 'user' ? 'front' : (track.label || 'front');
+      $('ask').hidden = true;
+      // The first answer can take several seconds when a model has been idle.
+      if (!last) setRead('', 'Reading', 'Waiting for the first answer.');
+
+      try {
+        const cams = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput');
+        $('flip').hidden = cams.length < 2;
+      } catch { $('flip').hidden = true; }
+      schedule(0);
+    }
+
+    function fitFrame() {
+      if (!video.videoWidth || !video.videoHeight) return;
+      frame.style.aspectRatio = `${video.videoWidth} / ${video.videoHeight}`;
+      // Height-led in a wide stage and width-led in a tall one, so the frame
+      // is as large as fits either way.
+      const stage = frame.parentElement.getBoundingClientRect();
+      const wide = (stage.width - 28) / (stage.height - 28) > video.videoWidth / video.videoHeight;
+      frame.style.height = wide ? '100%' : 'auto';
+      frame.style.width = wide ? 'auto' : '100%';
+      draw();
+    }
+    video.addEventListener('loadedmetadata', fitFrame);
+    video.addEventListener('resize', fitFrame);
+    window.addEventListener('resize', fitFrame);
+
+    // ── the read, drawn ─────────────────────────────────────────────────
+
+    const TONE = { ok: '#4ade80', bad: '#ef4444', unsure: '#f5f5f5' };
+
+    function draw() {
+      const rect = frame.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      overlay.width = Math.round(rect.width * dpr);
+      overlay.height = Math.round(rect.height * dpr);
+      const ctx = overlay.getContext('2d');
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+      const read = last && Date.now() - last.at < STALE_MS ? last.read : null;
+      if (!read?.ok || !read.image?.width || !Array.isArray(read.boxes)) return;
+
+      const sx = overlay.width / read.image.width;
+      const sy = overlay.height / read.image.height;
+      ctx.lineWidth = Math.max(2, 3 * dpr);
+      ctx.font = `600 ${Math.round(13 * dpr)}px Inter, system-ui, sans-serif`;
+      ctx.textBaseline = 'bottom';
+      // Nine housings sit closer together than their labels are wide. A label
+      // that would land on one already drawn is left off, and its box still
+      // carries the colour.
+      const labelled = [];
+      for (const box of read.boxes) {
+        const w = box.width * sx;
+        const h = box.height * sy;
+        // The picture is flipped for a camera that faces the user, so the
+        // box is flipped with it. The words are not.
+        const x = mirrored ? overlay.width - (box.x * sx) - w : box.x * sx;
+        const y = box.y * sy;
+        const colour = TONE[box.tone] || TONE.unsure;
+        ctx.strokeStyle = colour;
+        ctx.strokeRect(x, y, w, h);
+        if (!box.label) continue;
+        const pad = 4 * dpr;
+        const tw = ctx.measureText(box.label).width + pad * 2;
+        const th = 18 * dpr;
+        const ty = y - th < 0 ? y + h : y - th;
+        const tx = x - ctx.lineWidth / 2;
+        if (labelled.some((r) => tx < r.x + r.w && r.x < tx + tw && ty < r.y + r.h && r.y < ty + th)) continue;
+        labelled.push({ x: tx, y: ty, w: tw, h: th });
+        ctx.fillStyle = colour;
+        ctx.fillRect(tx, ty, tw, th);
+        ctx.fillStyle = '#000';
+        ctx.fillText(box.label, x + pad - ctx.lineWidth / 2, ty + th - 2 * dpr);
+      }
+    }
+
+    function show(read, sentMs) {
+      last = { read, at: Date.now() };
+      if (read.ok) {
+        setRead(read.verdict || '', read.headline || '', read.detail || '');
+        setStatus(read.preview ? 'preview' : 'read');
+      } else {
+        const why = {
+          not_configured: 'The vision service is not connected to this portal yet.',
+          vision_unreachable: 'The vision service did not answer.',
+          disabled: 'This read is switched off on the vision service.',
+          no_api_key: 'The vision service has no model key.',
+        }[read.reason] || `The read failed (${read.reason || 'unknown'}).`;
+        setRead('', 'No read', why);
+        setStatus(read.reason || 'failed');
+      }
+      $('kvLatency').textContent = `${sentMs} ms`;
+      if (Array.isArray(read.models) && read.models.length) {
+        $('models').replaceChildren(...read.models.map((m) => {
+          const row = document.createElement('div');
+          row.className = 'row';
+          const v = document.createElement('span');
+          v.className = 'v';
+          v.style.textAlign = 'left';
+          v.textContent = m;
+          row.appendChild(v);
+          return row;
+        }));
+      }
+      draw();
+    }
+
+    // ── one frame out, one read back ────────────────────────────────────
+
+    function grabFrame() {
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+      if (!vw || !vh) return null;
+      const scale = Math.min(1, MAX_EDGE / Math.max(vw, vh));
+      grab.width = Math.round(vw * scale);
+      grab.height = Math.round(vh * scale);
+      // Never flipped. The read is of the scene as it is, and the boxes come
+      // back in these pixels.
+      grab.getContext('2d').drawImage(video, 0, 0, grab.width, grab.height);
+      $('kvFrame').textContent = `${grab.width}×${grab.height}`;
+      const url = grab.toDataURL('image/jpeg', JPEG_QUALITY);
+      return url.slice(url.indexOf('base64,') + 7);
+    }
+
+    function schedule(ms) {
+      clearTimeout(timer);
+      timer = setTimeout(tick, ms);
+    }
+
+    // One frame in flight, and the next is taken after the answer. A slow
+    // answer slows the page down and never queues frames behind it.
+    async function tick() {
+      if (paused || document.hidden || !stream || !configured || inFlight) return;
+      const b64 = grabFrame();
+      if (!b64) { schedule(300); return; }
+      inFlight = true;
+      const started = Date.now();
+      let read;
+      try {
+        const res = await fetch(`/api/emotiv/live/${service}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ frame: b64 }),
+        });
+        if (res.status === 401) { location.replace('/login'); return; }
+        read = await res.json();
+      } catch {
+        read = { ok: false, reason: 'vision_unreachable' };
+      } finally {
+        inFlight = false;
+      }
+      const took = Date.now() - started;
+      show(read, took);
+      if (read.reason === 'not_configured') { configured = false; return; }
+      // A failed read backs off, so a service that is down is not hammered.
+      schedule(read.ok ? Math.max(0, svc.everyMs - took) : 5000);
+    }
+
+    // A read left on a picture that has moved on is wrong, so it is cleared.
+    setInterval(() => { if (last && Date.now() - last.at >= STALE_MS) draw(); }, 1000);
+
+    $('askBtn').onclick = startCamera;
+    $('pause').onclick = () => {
+      paused = !paused;
+      $('pause').textContent = paused ? 'Resume' : 'Pause';
+      setStatus(paused ? 'paused' : '—');
+      if (!paused) schedule(0);
+    };
+    $('flip').onclick = () => {
+      facing = facing === 'environment' ? 'user' : 'environment';
+      last = null;
+      startCamera();
+    };
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) schedule(0); });
+    window.addEventListener('pagehide', stopCamera);
+
+    // Asking which services can answer also starts their models loading, so
+    // they are on the way up while the camera is being allowed.
+    fetch('/api/emotiv/live/services', { cache: 'no-store' }).catch(() => {});
+
+    startCamera();
+  </script>
+</body>
+</html>

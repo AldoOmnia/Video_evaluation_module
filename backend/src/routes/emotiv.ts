@@ -163,6 +163,95 @@ emotivRouter.get("/monitor", (_req, res) => {
   });
 });
 
+/* ── Camera checks ────────────────────────────────────────────────────────
+ *
+ * The page at /live opens this device's camera and posts one frame at a time
+ * here. This forwards it to the Emotiv vision backend (comer-rokid-demo,
+ * `POST /v1/emotiv/vision/read/:service`) and returns its answer unchanged:
+ * a verdict, the words for it, and the boxes to draw.
+ *
+ * The read is not done in the browser and not done here. The bolt verdict is
+ * the detector's class together with the colour on the shank, and the radio
+ * read is three passes with a fixed crop geometry. Both live in that backend
+ * and are the same code the glasses use, so there is one copy.
+ *
+ * That backend's key stays on this server. The browser only ever calls this
+ * route, behind the portal's own sign-in.
+ */
+const VISION_URL = (process.env.EMOTIV_VISION_URL ?? "").trim().replace(/\/+$/, "");
+const VISION_KEY = (process.env.EMOTIV_VISION_API_KEY ?? "").trim();
+/** The radio read is three passes and nine crops, and a cold model is slow. */
+const VISION_TIMEOUT_MS = 25_000;
+
+const LIVE_SERVICES: Record<string, { title: string; preview?: boolean }> = {
+  "radio-seat": { title: "Radio connectors", preview: true },
+  "bolt-02": { title: "Bolt case 02" },
+  "bolt-03": { title: "Bolt case 03" },
+};
+
+function visionConfigured(): boolean {
+  return Boolean(VISION_URL && VISION_KEY);
+}
+
+/** The three services, and whether the vision backend says each can answer. */
+emotivRouter.get("/live/services", async (_req, res) => {
+  const services = Object.entries(LIVE_SERVICES).map(([id, s]) => ({ id, ...s, enabled: null as boolean | null }));
+  if (!visionConfigured()) {
+    res.json({ ok: true, configured: false, reachable: false, services });
+    return;
+  }
+  try {
+    const up = await fetch(`${VISION_URL}/v1/emotiv/vision/read`, {
+      headers: { "X-Api-Key": VISION_KEY },
+      signal: AbortSignal.timeout(6_000),
+    });
+    if (!up.ok) throw new Error(`HTTP ${up.status}`);
+    const body = (await up.json()) as { services?: Array<{ id: string; enabled?: boolean }> };
+    const enabled = new Map((body.services ?? []).map((s) => [s.id, Boolean(s.enabled)]));
+    res.json({
+      ok: true,
+      configured: true,
+      reachable: true,
+      services: services.map((s) => ({ ...s, enabled: enabled.get(s.id) ?? false })),
+    });
+  } catch {
+    res.json({ ok: true, configured: true, reachable: false, services });
+  }
+});
+
+emotivRouter.post("/live/:service", async (req, res) => {
+  const service = String(req.params.service ?? "");
+  if (!LIVE_SERVICES[service]) {
+    res.status(404).json({ ok: false, reason: "unknown_service", service });
+    return;
+  }
+  const frame = (req.body as { frame?: unknown } | undefined)?.frame;
+  if (typeof frame !== "string" || !frame) {
+    res.status(400).json({ ok: false, reason: "no_frame", service });
+    return;
+  }
+  // Answered 200 so the page reads the reason rather than a status code.
+  if (!visionConfigured()) {
+    res.json({ ok: false, reason: "not_configured", service });
+    return;
+  }
+  try {
+    const up = await fetch(`${VISION_URL}/v1/emotiv/vision/read/${service}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Api-Key": VISION_KEY },
+      body: JSON.stringify({ frame }),
+      signal: AbortSignal.timeout(VISION_TIMEOUT_MS),
+    });
+    if (!up.ok) {
+      res.json({ ok: false, reason: `vision_http_${up.status}`, service });
+      return;
+    }
+    res.json(await up.json());
+  } catch {
+    res.json({ ok: false, reason: "vision_unreachable", service });
+  }
+});
+
 emotivRouter.get("/models", (_req, res) => {
   const { rows, source } = routedModels();
   res.json({

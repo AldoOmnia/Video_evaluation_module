@@ -300,6 +300,32 @@ spikes / config rollouts stay isolated.
 
 ---
 
+## 8. Emotiv camera checks (`platform-emotiv` only)
+
+`/live/?service=radio-seat|bolt-02|bolt-03` opens the device's camera, back
+camera first and the front one where there is no back camera, and posts one
+frame at a time to `POST /api/emotiv/live/:service`. The portal forwards the
+frame to the Emotiv vision backend and returns its answer: a verdict, the
+words for it, and the boxes the page draws.
+
+The read itself is not in this repo. It is `POST /v1/emotiv/vision/read/:service`
+in `comer-rokid-demo`, the same code the glasses use, deployed as its own
+service. This portal needs two variables to reach it:
+
+| Variable | Value |
+|----------|-------|
+| `EMOTIV_VISION_URL` | Base URL of the vision backend, e.g. `https://<service>.onrender.com` |
+| `EMOTIV_VISION_API_KEY` | That backend's `BACKEND_API_KEY` |
+
+The key stays on this server and the browser never calls the vision backend.
+With either variable unset, the camera cards on `/home/` read "Not connected"
+and the page says so instead of reading.
+
+The camera needs `https`, which the Render URL and the custom domain both
+are. On `http://localhost` it works for local testing only.
+
+---
+
 ## Monitor deploys from Cursor (Render MCP)
 
 To check deploy status, logs, and metrics without leaving the editor, wire

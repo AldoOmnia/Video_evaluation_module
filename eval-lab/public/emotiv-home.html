@@ -6,7 +6,7 @@
   <title>Emotiv · Platform</title>
   <link rel="icon" href="/lab/assets/daedalus-mark.svg?v=1" type="image/svg+xml" />
   <link rel="stylesheet" href="/lab/assets/platform.css?v=2" />
-  <link rel="stylesheet" href="/lab/assets/emotiv-portal.css?v=2" />
+  <link rel="stylesheet" href="/lab/assets/emotiv-portal.css?v=3" />
   <script src="/lab/assets/platform.js?v=2"></script>
 </head>
 <body>
@@ -25,9 +25,10 @@
       <div class="hero">
         <img class="hero-logo" src="/lab/assets/emotiv-logo.png?v=2" alt="Emotiv" />
         <h1>Dakkota station intelligence</h1>
-        <p class="sub">One service for the Emotiv stack so far: station replay. The rail on the right lists the models that stack routes, as it reported them on the newest replay.</p>
+        <p class="sub">Station replay plays recorded glasses sessions back through the Emotiv stack. The three camera checks read this device's own camera. The rail on the right lists the models that stack routes, as it reported them on the station replays.</p>
       </div>
 
+      <div class="svcs">
       <a class="svc" href="/monitor/" id="svc-live">
         <div class="tag">01 · Service</div>
         <h2>Station replay</h2>
@@ -40,6 +41,43 @@
         <span class="pill" id="live-pill">Recorded</span>
         <span class="cta">Open station replay</span>
       </a>
+
+      <a class="svc" href="/live/?service=radio-seat" data-live="radio-seat">
+        <div class="tag">02 · Camera check</div>
+        <h2>Radio connectors</h2>
+        <p>Hold the radio module up to this device's camera. The nine connectors are found and each one is marked pushed home or not. A preview: not yet measured through this camera.</p>
+        <div class="facts">
+          <div class="row"><span class="k">Camera</span><span class="v">Back, or front on a laptop</span></div>
+          <div class="row"><span class="k">Vision service</span><span class="v" data-live-status>—</span></div>
+        </div>
+        <span class="pill" data-live-pill>Camera</span>
+        <span class="cta">Open radio connectors</span>
+      </a>
+
+      <a class="svc" href="/live/?service=bolt-02" data-live="bolt-02">
+        <div class="tag">03 · Camera check</div>
+        <h2>Bolt case 02</h2>
+        <p>Hold a bolt up to this device's camera. The short bolt with the wide pink band is the wrong one for this pass, and the one with the washer is correct.</p>
+        <div class="facts">
+          <div class="row"><span class="k">Camera</span><span class="v">Back, or front on a laptop</span></div>
+          <div class="row"><span class="k">Vision service</span><span class="v" data-live-status>—</span></div>
+        </div>
+        <span class="pill" data-live-pill>Camera</span>
+        <span class="cta">Open bolt case 02</span>
+      </a>
+
+      <a class="svc" href="/live/?service=bolt-03" data-live="bolt-03">
+        <div class="tag">04 · Camera check</div>
+        <h2>Bolt case 03</h2>
+        <p>Hold a bolt up to this device's camera. The short blue bolt is the wrong one for this pass, and the long one is correct.</p>
+        <div class="facts">
+          <div class="row"><span class="k">Camera</span><span class="v">Back, or front on a laptop</span></div>
+          <div class="row"><span class="k">Vision service</span><span class="v" data-live-status>—</span></div>
+        </div>
+        <span class="pill" data-live-pill>Camera</span>
+        <span class="cta">Open bolt case 03</span>
+      </a>
+      </div>
     </main>
 
     <aside class="side" aria-label="Routed models">
@@ -98,6 +136,22 @@
         if (!done.length) return;
         const trace = await fetch(`/lab/assets/emotiv/traces/${done[0].id}.json`).then((r) => r.json());
         document.getElementById('lf-stack').textContent = `${trace.source.branch} ${trace.source.commit}`;
+      })
+      .catch(() => {});
+
+    // The camera cards say whether the vision service behind them answers,
+    // so a card that cannot read is known before it is opened.
+    fetch('/api/emotiv/live/services', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((body) => {
+        for (const card of document.querySelectorAll('[data-live]')) {
+          const svc = (body.services || []).find((s) => s.id === card.dataset.live);
+          const ready = body.configured && body.reachable && svc && svc.enabled;
+          card.querySelector('[data-live-status]').textContent = !body.configured
+            ? 'Not connected'
+            : !body.reachable ? 'Not answering' : ready ? 'Ready' : 'Switched off';
+          card.querySelector('[data-live-pill]').classList.toggle('live', Boolean(ready));
+        }
       })
       .catch(() => {});
 

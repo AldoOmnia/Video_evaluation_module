@@ -113,6 +113,14 @@ html.light .hero-logo { filter: invert(1); }
   transition: border-color 140ms ease;
 }
 .svc:hover { border-color: var(--primary-dim); }
+/* More than one service card: side by side where there is room. */
+.svcs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 18px;
+  max-width: 1060px;
+  align-items: start;
+}
 .tag {
   font-family: var(--mono);
   font-size: 9px;

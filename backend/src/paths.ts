@@ -44,3 +44,4 @@ export const VISION_CASES_HTML = join(EVAL_LAB_PUBLIC, "vision-cases.html");
 export const EMOTIV_HOME_HTML = join(EVAL_LAB_PUBLIC, "emotiv-home.html");
 export const EMOTIV_AGENT_HTML = join(EVAL_LAB_PUBLIC, "emotiv-agent.html");
 export const EMOTIV_MONITOR_HTML = join(EVAL_LAB_PUBLIC, "emotiv-monitor.html");
+export const EMOTIV_LIVE_HTML = join(EVAL_LAB_PUBLIC, "emotiv-live.html");
