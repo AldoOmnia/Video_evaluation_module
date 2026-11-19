@@ -448,8 +448,14 @@ app.get(["/settings", "/settings/"], (_req, res) => {
 });
 
 // Camera-support generator — scan in, fixture out (OBJ in the browser, STEP
-// through /api/fixture/step).
+// through /api/fixture/step). /fixture/<slug> is a named configuration: the
+// same page, which reads the slug and loads that one.
 app.get(["/fixture", "/fixture/"], (_req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.sendFile(FIXTURE_HTML);
+});
+app.get("/fixture/:slug", (req, res, next) => {
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(req.params.slug)) return next();
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
   res.sendFile(FIXTURE_HTML);
 });

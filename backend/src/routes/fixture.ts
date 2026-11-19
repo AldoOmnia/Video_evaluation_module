@@ -14,6 +14,9 @@
  *                                   what was decided about one scan — camera
  *                                   pose, target, anchors, slider values — so
  *                                   it survives a reload and another browser
+ *   GET | POST | PUT | DELETE /api/fixture/links
+ *                                   the same, under a name, opened by
+ *                                   /fixture/<name>
  *
  * Nothing here stores the scan. Locate receives rendered views, not points;
  * step receives the generated structure only; a saved setup is a few hundred
@@ -21,7 +24,7 @@
  */
 import { Router, type NextFunction, type Request, type Response } from "express";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 
@@ -493,6 +496,143 @@ fixtureRouter.delete("/setup", (req, res) => {
   const scan = ScanRef.safeParse(req.query);
   if (!scan.success) return res.status(400).json({ ok: false, error: "name and count of the scan are required" });
   rmSync(setupFile(scan.data), { force: true });
+  res.json({ ok: true });
+});
+
+/* ── Named configurations ───────────────────────────────────────────────────
+   A setup under a name, so /fixture/<slug> opens it. The scan file is not
+   stored: the link remembers which file, and whoever opens it picks that
+   file from their own disk. Slugs are the name folded to lowercase words,
+   and they never change, so a link that has been sent keeps working when
+   the configuration is renamed. */
+
+const SHARE_DIR = join(SETUP_DIR, "shares");
+const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+const ShareWrite = z.object({
+  name: z.string().trim().min(1).max(80),
+  scan: ScanRef,
+  setup: SetupBody.shape.setup,
+  base: z.number().int().min(0).optional(),
+});
+
+/** The address form of a name: "Comer cognex camera 2800" → comer-cognex-camera-2800. */
+function slugify(name: string): string {
+  return name
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+}
+
+function sharePath(slug: string): string | null {
+  if (!SLUG.test(slug) || slug.length > 60) return null;
+  return join(SHARE_DIR, `${slug}.json`);
+}
+
+interface ShareRecord {
+  slug: string;
+  name: string;
+  savedAt: string;
+  rev: number;
+  scan: z.infer<typeof ScanRef>;
+  setup: unknown;
+}
+
+function readShare(file: string): ShareRecord | null {
+  try {
+    const d = JSON.parse(readFileSync(file, "utf8")) as ShareRecord;
+    if (!d || typeof d.slug !== "string" || !d.setup) return null;
+    return d;
+  } catch {
+    return null;
+  }
+}
+
+const ShareCreate = ShareWrite.omit({ base: true });
+
+fixtureRouter.get("/links", (_req, res) => {
+  if (!existsSync(SHARE_DIR)) return res.json({ ok: true, links: [] });
+  const links = readdirSync(SHARE_DIR)
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => readShare(join(SHARE_DIR, f)))
+    .filter((d): d is ShareRecord => Boolean(d))
+    .map((d) => ({
+      slug: d.slug,
+      name: d.name,
+      savedAt: d.savedAt,
+      rev: d.rev ?? 0,
+      scan: d.scan,
+      variations: Array.isArray((d.setup as { variations?: { name?: string }[] }).variations)
+        ? (d.setup as { variations: { name?: string }[] }).variations.map((v) => v.name).filter((n): n is string => typeof n === "string")
+        : [],
+    }))
+    .sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)));
+  res.json({ ok: true, links });
+});
+
+fixtureRouter.get("/links/:slug", (req, res) => {
+  const file = sharePath(req.params.slug);
+  if (!file || !existsSync(file)) return res.status(404).json({ ok: false, error: "no configuration at this link" });
+  const link = readShare(file);
+  if (!link) return res.status(404).json({ ok: false, error: "no configuration at this link" });
+  res.json({ ok: true, link });
+});
+
+fixtureRouter.post("/links", (req, res) => {
+  const body = ShareCreate.safeParse(req.body);
+  if (!body.success) {
+    const issue = body.error.issues[0];
+    return res.status(400).json({ ok: false, error: `link not saved: ${issue.path.join(".")} ${issue.message}` });
+  }
+  const slug = slugify(body.data.name);
+  if (!slug) return res.status(400).json({ ok: false, error: "name the configuration with letters or numbers" });
+  const file = sharePath(slug);
+  if (!file) return res.status(400).json({ ok: false, error: "name the configuration with letters or numbers" });
+  if (existsSync(file)) {
+    return res.status(409).json({ ok: false, slug, error: "a configuration with this name already exists" });
+  }
+  mkdirSync(SHARE_DIR, { recursive: true });
+  const savedAt = new Date().toISOString();
+  const record: ShareRecord = { slug, name: body.data.name, savedAt, rev: 1, scan: body.data.scan, setup: body.data.setup };
+  writeFileSync(`${file}.tmp`, JSON.stringify(record, null, 1));
+  renameSync(`${file}.tmp`, file);
+  res.json({ ok: true, slug, name: record.name, savedAt, rev: 1, path: `/fixture/${slug}` });
+});
+
+fixtureRouter.put("/links/:slug", (req, res) => {
+  const file = sharePath(req.params.slug);
+  if (!file) return res.status(400).json({ ok: false, error: "no configuration at this link" });
+  const body = ShareWrite.safeParse(req.body);
+  if (!body.success) {
+    const issue = body.error.issues[0];
+    return res.status(400).json({ ok: false, error: `link not saved: ${issue.path.join(".")} ${issue.message}` });
+  }
+  // Same rule as the per-scan save: a write names the revision it started
+  // from, and one based on an older revision is refused.
+  let rev = 0;
+  if (existsSync(file)) {
+    rev = readShare(file)?.rev ?? 0;
+    if ((body.data.base ?? 0) !== rev) {
+      return res.status(409).json({ ok: false, rev, error: "link not saved: it was changed somewhere else after this page opened it — reload to continue from that version" });
+    }
+  } else {
+    return res.status(404).json({ ok: false, error: "no configuration at this link" });
+  }
+  rev += 1;
+  const savedAt = new Date().toISOString();
+  const record: ShareRecord = { slug: req.params.slug, name: body.data.name, savedAt, rev, scan: body.data.scan, setup: body.data.setup };
+  writeFileSync(`${file}.tmp`, JSON.stringify(record, null, 1));
+  renameSync(`${file}.tmp`, file);
+  res.json({ ok: true, slug: record.slug, name: record.name, savedAt, rev, path: `/fixture/${record.slug}` });
+});
+
+fixtureRouter.delete("/links/:slug", (req, res) => {
+  const file = sharePath(req.params.slug);
+  if (!file) return res.status(400).json({ ok: false, error: "no configuration at this link" });
+  rmSync(file, { force: true });
   res.json({ ok: true });
 });
 

@@ -41,6 +41,17 @@ const S = {
   active: null,
   rev: 0, // revision of the saved setup this page started from, as the server counts them
   conflict: false, // the server's copy was changed by someone else since
+  // A named configuration (/fixture/<slug>). `link` is set once its scan file
+  // is open and this page is saving into it; `linkPending` is what the address
+  // asked for, kept so opening the file — or the right file, later — applies it.
+  link: null, // { slug, name }
+  linkRev: 0,
+  linkPending: null, // { slug, name, rev, savedAt, scan, setup }
+  linkMissing: "",
+  linkWrong: null, // the scan a link wanted, when a different file was opened
+  linkCountWarn: 0,
+  linkNote: null, // { cls, html } a one-off message, such as a copied link
+  links: [],
   sceneReady: false,
   result: null,
   mode: null, // camera | target | anchor | ring | erase | keep
@@ -257,6 +268,13 @@ function setScan(data, name) {
   S.active = "v1";
   S.rev = 0;
   S.conflict = false;
+  // The address still names the link. Whether this file is the one it belongs
+  // to is decided once the file is read; until then it is not bound, so a
+  // different file cannot be written over it.
+  S.link = null;
+  S.linkRev = 0;
+  S.linkWrong = null;
+  S.linkCountWarn = 0;
   lastSaved = "";
   S.sceneReady = false;
   S.result = null;
@@ -1522,6 +1540,7 @@ function renderAll() {
     renderHolderState();
     renderVariations();
     $("sec-variations").classList.toggle("is-off", !S.pose);
+    renderLinks();
   }
   const met = {
     ring: S.anchors.some((a) => a.kind === "ring"),
@@ -1644,15 +1663,44 @@ async function writeSetup(setup) {
   // from is refused, so a tab left open cannot overwrite newer work.
   if (!S.conflict) {
     try {
-      const res = await fetch("/api/fixture/setup", {
+      const send = (base) => fetch("/api/fixture/setup", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scan: scanRef(), setup, base: S.rev }),
+        body: JSON.stringify({ scan: scanRef(), setup, base }),
       });
+      let res = await send(S.rev);
       if (S.scan !== scan) return;
+      // A link is the copy that matters. The scan's own copy moving on does
+      // not freeze the link: take its new revision and write this one.
+      if (res.status === 409 && S.link) {
+        try {
+          const d = await (await fetch(`/api/fixture/setup?${new URLSearchParams(scanRef())}`)).json();
+          S.rev = d.setup?.rev ?? 0;
+        } catch { /* keep the revision we had */ }
+        res = await send(S.rev);
+      }
       if (res.ok) { server = true; S.rev = (await res.json()).rev ?? S.rev; }
-      else if (res.status === 409) S.conflict = true;
+      else if (res.status === 409 && !S.link) S.conflict = true;
     } catch { /* offline */ }
+    if (S.link && !S.conflict) {
+      try {
+        // A name being typed for a new link must not rename this one.
+        const typed = $("link-name").value.trim();
+        const name = typed && slugify(typed) === S.link.slug ? typed : S.link.name;
+        const res = await fetch(`/api/fixture/links/${S.link.slug}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, scan: scanRef(), setup, base: S.linkRev }),
+        });
+        if (S.scan !== scan) return;
+        if (res.ok) {
+          const d = await res.json();
+          server = true;
+          S.linkRev = d.rev ?? S.linkRev;
+          S.link.name = d.name ?? name;
+        } else if (res.status === 409) S.conflict = true;
+      } catch { /* offline */ }
+    }
   }
   try {
     localStorage.setItem(setupKey(), JSON.stringify({ savedAt, rev: S.rev, ...setup }));
@@ -1669,7 +1717,9 @@ function renderSaveState(info) {
   let text, cls = "state";
   const count = info.variations > 1 ? ` and ${info.variations} variations` : "";
   if (info.conflict) {
-    text = "Not saved to the server: this setup was changed in another tab or session after this page opened it. What you change here stays in this page only.";
+    text = S.link
+      ? "Not saved to the link: it was changed somewhere else after this page opened it. What you change here stays in this page only."
+      : "Not saved to the server: this setup was changed in another tab or session after this page opened it. What you change here stays in this page only.";
     cls = "state warn";
   } else if (info.restored) text = `Setup from <b>${esc(day)} ${esc(at)}</b> reopened: camera pose, anchors and slider values${count}.`;
   else if (info.server && info.local) text = `Setup saved <b>${esc(at)}</b> on the server and in this browser.`;
@@ -1678,14 +1728,32 @@ function renderSaveState(info) {
   else { text = "Setup not saved: neither this browser nor the server took it."; cls = "state err"; }
   el.className = cls;
   el.hidden = false;
-  el.innerHTML = `${text}<br>` + (info.conflict
+  // On a link, Start over would not stay: opening the link brings it back.
+  // The link itself is removed from its own control.
+  const action = info.conflict
     ? `<button class="btn" id="btn-reload-setup" style="margin-top:8px" title="Drops what was changed in this page since, and shows the version on the server">Load the newer version</button>`
-    : `<button class="btn" id="btn-forget" style="margin-top:8px" title="Deletes the saved pose, anchors and every variation for this scan">Start over</button>`);
+    : S.link ? ""
+      : `<button class="btn" id="btn-forget" style="margin-top:8px" title="Deletes the saved pose, anchors and every variation for this scan">Start over</button>`;
+  el.innerHTML = `${text}${action ? `<br>${action}` : ""}`;
   $("btn-forget")?.addEventListener("click", forgetSetup);
   $("btn-reload-setup")?.addEventListener("click", () => {
     try { localStorage.removeItem(setupKey()); } catch { /* nothing stored */ }
-    setScan(S.scan, S.scan.name);
+    reloadNewer();
   });
+}
+
+/** The server's copy of what this page is editing: the link, when this page
+ *  is one, otherwise the scan's own saved setup. */
+async function reloadNewer() {
+  const slug = S.link?.slug || S.linkPending?.slug;
+  if (slug) {
+    try {
+      const d = await (await fetch(`/api/fixture/links/${slug}`)).json();
+      if (d.ok) S.linkPending = d.link;
+    } catch { /* setScan below reopens whatever this page already has */ }
+    S.conflict = false;
+  }
+  setScan(S.scan, S.scan.name);
 }
 
 async function forgetSetup() {
@@ -1697,6 +1765,46 @@ async function forgetSetup() {
 
 async function restoreSetup() {
   const scan = S.scan;
+  S.linkWrong = null;
+  S.linkCountWarn = 0;
+  const pending = S.linkPending;
+  if (pending?.setup && S.scan.name.toLowerCase() === pending.scan.name.toLowerCase()) {
+    S.link = { slug: pending.slug, name: pending.name };
+    S.linkRev = pending.rev ?? 0;
+    try {
+      await applySetup({ ...pending.setup, savedAt: pending.savedAt, rev: pending.rev ?? 0 });
+      if (S.scan !== scan) return;
+      // applySetup kept the link's revision. The scan's own copy counts its
+      // own, and gets this one written over it when the two differ.
+      S.linkRev = pending.rev ?? 0;
+      let scanRev = 0, same = false;
+      try {
+        const d = await (await fetch(`/api/fixture/setup?${new URLSearchParams(scanRef())}`)).json();
+        if (d.ok && d.setup) {
+          scanRev = d.setup.rev ?? 0;
+          const rest = { ...d.setup };
+          delete rest.savedAt;
+          delete rest.rev;
+          same = fingerprint(snapshot()) === fingerprint(rest);
+        }
+      } catch { /* offline: the link is already on screen */ }
+      if (S.scan !== scan) return;
+      S.rev = scanRev;
+      S.linkCountWarn = S.scan.count === pending.scan.count ? 0 : pending.scan.count;
+      if (!same) await mirrorScan(snapshot());
+      renderLinks();
+    } finally {
+      if (S.scan === scan) S.setupReady = true;
+    }
+    return;
+  }
+  if (pending?.scan) {
+    // A different file: nothing from the link is applied, and nothing typed
+    // here is written back to it.
+    S.link = null;
+    S.linkWrong = pending.scan;
+    renderLinks();
+  }
   let best = null;
   try {
     const raw = localStorage.getItem(setupKey());
@@ -1813,6 +1921,192 @@ function applySampleSetup() {
   findArm(); // schedules the scene once the mask is in
 }
 
+/** The scan's own saved copy, written to match the link. A refusal leaves the
+ *  link on screen and the scan's copy as it was. */
+async function mirrorScan(setup) {
+  const scan = S.scan;
+  const send = (base) => fetch("/api/fixture/setup", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ scan: scanRef(), setup, base }),
+  });
+  try {
+    let res = await send(S.rev);
+    if (S.scan !== scan) return;
+    if (res.status === 409) {
+      const d = await (await fetch(`/api/fixture/setup?${new URLSearchParams(scanRef())}`)).json();
+      S.rev = d.setup?.rev ?? 0;
+      res = await send(S.rev);
+    }
+    if (res.ok && S.scan === scan) S.rev = (await res.json()).rev ?? S.rev;
+  } catch { /* the link itself is already loaded */ }
+}
+
+/** The address form of a name. The server folds a name the same way. */
+function slugify(name) {
+  return name.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48);
+}
+
+const linkSlug = () => S.link?.slug || S.linkPending?.slug || "";
+
+const EMPTY_COPY = "Open a station scan to begin. The camera stays exactly where it was scanned; the tool removes the temporary arm and grows a permanent support under it that you shape with sliders.";
+
+function renderLinkPrompt() {
+  const pending = !S.scan && S.linkPending?.scan;
+  const title = $("empty-title");
+  const lead = $("empty-copy");
+  if (title && lead) {
+    if (pending) {
+      const n = S.linkPending.setup?.variations?.length || 1;
+      const variations = n === 1 ? "One variation is in this link." : `${n} variations are in this link.`;
+      title.textContent = S.linkPending.name;
+      lead.innerHTML = `Open <b>${esc(S.linkPending.scan.name)}</b> (${fmtCount(S.linkPending.scan.count)} points). ${variations} The scan is read in this browser and is not uploaded.`;
+    } else if (!S.scan && S.linkMissing) {
+      title.textContent = "Camera support";
+      lead.textContent = "No configuration at this link. It may have been deleted.";
+    } else if (!S.scan) {
+      title.textContent = "Camera support";
+      lead.textContent = EMPTY_COPY;
+    }
+  }
+  // A shared link is for one file. The sample scan cannot be that file.
+  for (const id of ["btn-sample", "btn-sample-2"]) {
+    const b = $(id);
+    if (b) b.hidden = Boolean(pending);
+  }
+  if (S.scan) return;
+  const el = $("scan-state");
+  if (pending) {
+    const n = S.linkPending.setup?.variations?.length || 1;
+    el.className = "state";
+    const variations = n === 1 ? "One variation comes" : `${n} variations come`;
+    el.innerHTML = `<b>${esc(S.linkPending.name)}</b><br>Open <b>${esc(S.linkPending.scan.name)}</b> (${fmtCount(S.linkPending.scan.count)} points). ${variations} with the link. The scan is read in this browser and is not uploaded.`;
+  } else if (S.linkMissing) {
+    el.className = "state err";
+    el.innerHTML = `No configuration at this link. It may have been deleted.`;
+  }
+}
+
+function renderLinks() {
+  const nameEl = $("link-name");
+  if (!nameEl) return;
+  const current = linkSlug();
+  const typed = slugify(nameEl.value.trim());
+  const same = Boolean(current) && typed === current;
+  const save = $("btn-link-save");
+  save.hidden = same;
+  let why = "";
+  if (!S.scan) why = "Open a scan first";
+  else if (S.scan.sample) why = "The sample scan is not a file anyone else can open";
+  else if (!S.pose) why = "Place the camera first: a link saves its pose and the variations";
+  else if (!typed) why = "Name it with letters or numbers";
+  save.disabled = Boolean(why);
+  save.title = why || "Saves this setup under the name and opens its link";
+  $("btn-link-copy").hidden = !current;
+  $("btn-link-delete").hidden = !current;
+  const url = $("link-url");
+  url.hidden = !current;
+  if (current) url.value = `${location.origin}/fixture/${current}`;
+  const note = S.linkNote
+    ?? (S.linkWrong && S.scan ? { cls: "state warn", html: `This file is <b>${esc(S.scan.name)}</b>. The link is for <b>${esc(S.linkWrong.name)}</b> (${fmtCount(S.linkWrong.count)} points), so nothing from it was applied.` }
+      : S.link && S.linkCountWarn ? { cls: "state warn", html: `This file has ${fmtCount(S.scan.count)} points; the link was saved with ${fmtCount(S.linkCountWarn)}. The pose is applied — check the camera still sits on the scan.` }
+        : current && !S.scan ? { cls: "state", html: "Open the scan file named above. The camera pose and the variations are in this link, and changes update it." }
+          : current ? { cls: "state", html: "Changes here update this link. The scan file is not part of it, so send the .ply with the link." }
+            : { cls: "state", html: "A link opens this setup after sign-in. The scan file stays on disk." });
+  const state = $("link-state");
+  state.className = note.cls;
+  state.innerHTML = note.html;
+  const list = $("link-list");
+  $("link-saved").hidden = S.links.length === 0;
+  list.innerHTML = S.links.map((l) => {
+    const on = l.slug === current;
+    const when = new Date(l.savedAt).toLocaleDateString([], { day: "numeric", month: "short" });
+    const what = l.variations?.length ? l.variations.join(" · ") : "one design";
+    return `<button class="btn" data-link="${esc(l.slug)}" ${on ? "disabled" : ""} title="${on ? "This page" : `${esc(what)} · ${esc(when)}. Opens the link; the scan file is opened again afterwards.`}">${esc(l.name)}</button>`;
+  }).join("");
+  renderLinkPrompt();
+}
+
+async function refreshLinkList() {
+  try {
+    const d = await (await fetch("/api/fixture/links")).json();
+    S.links = d.links ?? [];
+  } catch {
+    S.links = S.links ?? [];
+  }
+  renderLinks();
+}
+
+async function publishLink() {
+  const name = $("link-name").value.trim();
+  if (!S.scan || S.scan.sample || !S.pose || !slugify(name)) return;
+  S.linkNote = null;
+  $("btn-link-save").disabled = true;
+  try {
+    const setup = snapshot();
+    const res = await fetch("/api/fixture/links", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, scan: scanRef(), setup }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 409 && data.slug) {
+      S.linkNote = { cls: "state warn", html: `${esc(data.error || "A configuration with this name already exists.")} <button class="btn" data-link="${esc(data.slug)}" style="margin-top:8px">Open it</button>` };
+      return;
+    }
+    if (!res.ok || !data.slug) {
+      S.linkNote = { cls: "state err", html: esc(data.error || "The link was not saved.") };
+      return;
+    }
+    S.link = { slug: data.slug, name: data.name };
+    S.linkRev = data.rev ?? 1;
+    S.linkPending = { slug: data.slug, name: data.name, rev: S.linkRev, savedAt: data.savedAt, scan: scanRef(), setup };
+    S.linkMissing = "";
+    S.linkWrong = null;
+    history.pushState({ slug: data.slug }, "", data.path);
+    $("link-name").value = data.name;
+    delete $("link-name").dataset.edited;
+    await refreshLinkList();
+  } catch {
+    S.linkNote = { cls: "state err", html: "The server could not be reached. The link was not saved." };
+  } finally {
+    renderLinks();
+  }
+}
+
+async function copyLink() {
+  const slug = linkSlug();
+  if (!slug) return;
+  const url = `${location.origin}/fixture/${slug}`;
+  try {
+    await navigator.clipboard.writeText(url);
+    S.linkNote = { cls: "state ok", html: "Copied." };
+  } catch {
+    $("link-url").focus();
+    $("link-url").select();
+    S.linkNote = { cls: "state", html: "Select the address and copy it." };
+  }
+  renderLinks();
+}
+
+async function deleteLink() {
+  const slug = linkSlug();
+  if (!slug) return;
+  const res = await fetch(`/api/fixture/links/${slug}`, { method: "DELETE" });
+  if (!res.ok) {
+    S.linkNote = { cls: "state err", html: "The link was not deleted." };
+    renderLinks();
+    return;
+  }
+  location.replace("/fixture/");
+}
+
+/** The slug in /fixture/<slug>, or "" on the plain tool. */
+function linkSlugFromPath() {
+  const rest = decodeURIComponent(location.pathname).replace(/^\/fixture\/?/, "").replace(/\/$/, "");
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(rest) ? rest : "";
+}
+
 /* ── Boot ─────────────────────────────────────────────────────────────────── */
 
 async function boot() {
@@ -1893,6 +2187,50 @@ async function boot() {
   $("btn-obj").addEventListener("click", exportObj);
   $("btn-step").addEventListener("click", exportStep);
 
+  const asked = linkSlugFromPath();
+  if (asked) {
+    try {
+      const d = await (await fetch(`/api/fixture/links/${asked}`)).json();
+      if (d.ok && d.link) {
+        S.linkPending = d.link;
+        $("link-name").value = d.link.name;
+      } else S.linkMissing = asked;
+    } catch {
+      S.linkMissing = asked;
+    }
+  }
+  $("btn-link-save").addEventListener("click", publishLink);
+  $("btn-link-copy").addEventListener("click", copyLink);
+  $("btn-link-delete").addEventListener("click", (e) => {
+    // Deleting is not undone: the first click asks, the second deletes.
+    if (e.target.dataset.armed) { deleteLink(); return; }
+    e.target.dataset.armed = "1";
+    e.target.textContent = "delete?";
+    setTimeout(() => { if (e.target.isConnected) { delete e.target.dataset.armed; e.target.textContent = "Delete link"; } }, 3000);
+  });
+  $("links").addEventListener("click", (e) => {
+    const slug = e.target.dataset?.link;
+    if (slug) location.assign(`/fixture/${slug}`);
+  });
+  $("link-name").addEventListener("input", () => {
+    $("link-name").dataset.edited = "1";
+    if (S.linkNote) S.linkNote = null;
+    renderLinks();
+  });
+  $("link-name").addEventListener("change", () => {
+    const name = $("link-name").value.trim();
+    if (!name) {
+      $("link-name").value = S.link?.name || S.linkPending?.name || "";
+      delete $("link-name").dataset.edited;
+      renderLinks();
+      return;
+    }
+    // The same link, renamed. A different name is a new link, made by the button.
+    if (S.link && name !== S.link.name && slugify(name) === S.link.slug) { lastSaved = ""; scheduleSave(); }
+  });
+  window.addEventListener("popstate", () => location.reload());
+  await refreshLinkList();
+
   applyTheme();
   resize();
   renderAll();
@@ -1911,7 +2249,7 @@ async function boot() {
 window.__fixture = {
   S, call, loadSample, applySampleSetup, applyValues, requestGenerate, exportObj, exportStep, frame, cam3, orbit, redraw,
   setPose, handlePick, toggleLock, renderAll, pickAt, saveSetup, flipScan,
-  newVariation, openVariation, removeVariation, renameVariation,
+  newVariation, openVariation, removeVariation, renameVariation, renderLinks, publishLink,
   /** True when nothing is being generated or waiting to be. */
   idle: () => !genBusy && !genPending && !settleTimer && S.result?.quality === "settle",
 };

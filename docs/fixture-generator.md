@@ -50,6 +50,16 @@ The page writes them half a second after any change to `localStorage` and to
 says under the scan when and where it saved. Opening the same file again, in
 any browser, brings the setup back; **Start over** deletes both copies.
 
+**A named link** keeps a setup under a name. *Save as link* writes it and
+opens `/fixture/<name>` — `Comer cognex camera 2800` is
+`/fixture/comer-cognex-camera-2800`. The scan file is not in the link: the
+page names the file to open, and once that file is open the pose, the anchors
+and every variation come from the link. Later changes update the link, so
+anyone with the address sees them. Renaming does not change the address. A
+name that is already used is refused rather than overwritten. **Delete link**
+removes it; the setup saved against the scan file stays. On a link, **Start
+over** is not offered, because opening the link would bring the setup back.
+
 Server copies are files under `backend/.fixture-setups/` (gitignored: they are
 a client's station coordinates). On a host without a persistent disk they last
 until the next deploy; the browser's copy remains.

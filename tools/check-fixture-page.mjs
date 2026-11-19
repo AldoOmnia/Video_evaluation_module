@@ -10,7 +10,7 @@
  * drew. `--step` also builds a STEP through the server (slow: 15–45 s).
  * `--ai` exercises the assistant and auto-locate, which spend API tokens.
  */
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import puppeteer from "puppeteer";
 
@@ -82,6 +82,12 @@ console.log("Sign-in");
   const away = await signIn(`${base}/login?next=${encodeURIComponent("//example.com/fixture")}`);
   const away2 = await signIn(`${base}/login?next=${encodeURIComponent("https://example.com/")}`);
   ok("sign-in only ever returns to a page on this site", [away, away2].every((u) => u.host === new URL(base).host && u.pathname.startsWith("/home")), `${away.pathname}, ${away2.pathname}`);
+  await page.goto(`${base}/fixture/comer-cognex-camera-2800`, { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => location.pathname.startsWith("/login"), { timeout: 10000 }).catch(() => {});
+  const named = new URL(page.url());
+  ok("a configuration link, opened without a session, remembers the configuration", named.pathname === "/login" && named.searchParams.get("next") === "/fixture/comer-cognex-camera-2800", named.pathname + named.search);
+  const namedLanded = await signIn(named.href);
+  ok("…and sign-in opens that configuration", namedLanded.pathname === "/fixture/comer-cognex-camera-2800", namedLanded.pathname);
   // The gated page stops its own script with "no session" on the way to
   // sign-in: expected here, an error anywhere after this.
   errors.length = 0;
@@ -366,6 +372,67 @@ console.log("\nSaved setup");
   ok("the page says the setup was reopened", /reopened/.test(await text("save-state")));
   await shot("12-setup-reopened");
 
+  /* A name on the setup, and a link that opens it. */
+  console.log("\nLink");
+  const linkSlug = "check-saved-link";
+  await fetch(`${base}/api/fixture/links/${linkSlug}`, { method: "DELETE" });
+  try {
+    const poseBefore = await page.evaluate(() => JSON.stringify(window.__fixture.S.pose));
+    await page.evaluate(() => {
+      const el = document.getElementById("link-name");
+      el.value = "Check saved link";
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    ok("Save as link is available once the camera is placed and named", !(await page.$eval("#btn-link-save", (el) => el.disabled || el.hidden)));
+    await page.click("#btn-link-save");
+    await page.waitForFunction(() => location.pathname === "/fixture/check-saved-link" && /check saved link/i.test(document.getElementById("link-list").innerText), { timeout: 10000 });
+    const via = await (await fetch(`${base}/api/fixture/links/${linkSlug}`)).json();
+    ok("saving gives the configuration an address", via.link?.name === "Check saved link" && via.link?.setup?.values?.rigidity === 70 && via.link?.scan?.name === "check-saved-setup.ply", via.link?.name);
+    ok("the address is shown on the page", (await page.$eval("#link-url", (el) => el.value)).endsWith("/fixture/check-saved-link") && !(await page.$eval("#btn-link-copy", (el) => el.hidden)));
+    ok("the configuration is listed, and the one on screen cannot be opened over itself", await page.$eval("#link-list", (el) => /check saved link/i.test(el.innerText) && el.querySelector('[data-link="check-saved-link"]').disabled));
+    const again = await fetch(`${base}/api/fixture/links`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Check saved link", scan: via.link.scan, setup: via.link.setup }),
+    });
+    ok("the same name is refused rather than overwriting the link", again.status === 409);
+
+    await page.evaluate(() => window.__fixture.applyValues({ rigidity: 55 }));
+    await page.waitForFunction(async () => (await (await fetch("/api/fixture/links/check-saved-link")).json()).link?.setup?.values?.rigidity === 55, { timeout: 10000 });
+    ok("a change on the page updates the link", true);
+
+    await page.goto(`${base}/fixture/${linkSlug}`, { waitUntil: "networkidle2" });
+    await page.waitForFunction(() => window.__fixture?.S.linkPending?.name === "Check saved link", { timeout: 20000 });
+    const prompt = (await text("scan-state")).replace(/\s+/g, " ");
+    ok("the link, opened on its own, names the scan file to open", /Check saved link/.test(prompt) && /check-saved-setup\.ply/.test(prompt), prompt);
+    await open();
+    await waitResult();
+    const back = await page.evaluate((before) => {
+      const pose = window.__fixture.S.pose;
+      const was = JSON.parse(before);
+      const off = Math.max(...["center", "view", "up"].map((k) => Math.hypot(...pose[k].map((v, i) => v - was[k][i]))));
+      return { off, rigidity: window.__fixture.S.values.rigidity, slug: window.__fixture.S.link?.slug ?? "" };
+    }, poseBefore);
+    ok("opening that file brings the configuration back", back.off < 1e-9 && back.rigidity === 55 && back.slug === linkSlug, `slug ${back.slug} · pose off ${(back.off * 1000).toFixed(3)} mm · rigidity ${back.rigidity}`);
+
+    const otherFile = join(shots, "check-link-other.ply");
+    writeFileSync(otherFile, readFileSync(scanFile));
+    await (await page.$("#file")).uploadFile(otherFile);
+    await page.waitForFunction(() => window.__fixture.S.scan?.name === "check-link-other.ply" && window.__fixture.S.setupReady, { timeout: 20000 });
+    const wrong = await page.evaluate(() => ({ pose: Boolean(window.__fixture.S.pose), link: Boolean(window.__fixture.S.link), text: document.getElementById("link-state").innerText.replace(/\s+/g, " ") }));
+    ok("a different file does not take the configuration, and the page says which file the link is for", !wrong.pose && !wrong.link && /check-saved-setup\.ply/.test(wrong.text), `pose ${wrong.pose} link ${wrong.link} · ${wrong.text}`);
+
+    await page.click("#btn-link-delete");
+    const armed = await page.$eval("#btn-link-delete", (el) => el.textContent);
+    await page.click("#btn-link-delete");
+    await page.waitForFunction(() => /^\/fixture\/?$/.test(location.pathname), { timeout: 10000 });
+    ok("Delete link asks once and then removes it", /delete\?/.test(armed) && (await fetch(`${base}/api/fixture/links/${linkSlug}`)).status === 404);
+  } finally {
+    await fetch(`${base}/api/fixture/links/${linkSlug}`, { method: "DELETE" });
+  }
+
+  await page.goto(`${base}/fixture/`, { waitUntil: "networkidle2" });
+  await open();
+  await waitResult();
   await page.click("#btn-forget");
   await page.waitForFunction(() => !window.__fixture.S.pose && window.__fixture.S.setupReady, { timeout: 10000 });
   ok("Start over clears it everywhere", (await stored()) === null && await page.evaluate(() => Object.keys(localStorage).every((k) => !k.startsWith("fixture.setup:check-saved-setup"))));

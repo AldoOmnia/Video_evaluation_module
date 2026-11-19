@@ -64,6 +64,8 @@
     .btn:disabled:hover { color: var(--ink-2); border-color: var(--line-2); }
     .btn.primary:disabled:hover { color: var(--primary); border-color: var(--primary-dim); }
     .btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    /* .btn sets display, which would otherwise paint a button that is hidden. */
+    .btn[hidden] { display: none; }
     .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
 
     .stage { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 304px minmax(0, 1fr) 328px; }
@@ -91,8 +93,12 @@
     .state.warn { color: var(--warn); }
     .state.err { color: var(--err); }
     .state.ok { color: var(--ok); }
+    #link-url { margin-top: 8px; }
+    #link-list { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 8px; }
+    #link-list:empty { display: none; }
 
     .field { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; gap: 8px; margin-top: 8px; }
+    .field.stack { grid-template-columns: 1fr; gap: 6px; }
     .field > span { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
     select, input[type="number"], input[type="text"] {
       width: 100%; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: 6px;
@@ -283,6 +289,19 @@
         </div>
         <div class="state" id="scan-state">No scan loaded. The file is read in this browser and is not uploaded.</div>
         <div class="state" id="save-state" hidden></div>
+        <div id="links">
+          <p class="lead" style="margin-top:14px">Name this setup and it gets a link. Opening the link comes back to it; the scan file is opened from disk, and changes update the link.</p>
+          <label class="field stack"><span>Name</span><input type="text" id="link-name" maxlength="80" placeholder="Comer cognex camera 2800" aria-label="Name of this configuration" /></label>
+          <div class="btn-row" style="margin-top:8px">
+            <button class="btn primary" id="btn-link-save">Save as link</button>
+            <button class="btn" id="btn-link-copy" hidden>Copy link</button>
+            <button class="btn" id="btn-link-delete" hidden>Delete link</button>
+          </div>
+          <input type="text" id="link-url" readonly hidden aria-label="Link to this configuration" />
+          <div class="state" id="link-state"></div>
+          <div class="state" id="link-saved" hidden>Saved</div>
+          <div id="link-list"></div>
+        </div>
       </section>
 
       <section class="sec is-off" id="sec-camera">
@@ -353,8 +372,8 @@
     <main class="view" id="view">
       <canvas id="canvas" tabindex="0" aria-label="3D view of the scan and the generated support"></canvas>
       <div class="empty" id="empty">
-        <h1>Camera support</h1>
-        <p>Open a station scan to begin. The camera stays exactly where it was scanned; the tool removes the temporary arm and grows a permanent support under it that you shape with sliders.</p>
+        <h1 id="empty-title">Camera support</h1>
+        <p id="empty-copy">Open a station scan to begin. The camera stays exactly where it was scanned; the tool removes the temporary arm and grows a permanent support under it that you shape with sliders.</p>
         <div class="btn-row">
           <label class="btn primary" for="file">Open .ply</label>
           <button class="btn" id="btn-sample-2">Use sample scan</button>
@@ -437,6 +456,6 @@
     </aside>
   </div>
 
-  <script type="module" src="/lab/assets/fixture/app.js?v=5"></script>
+  <script type="module" src="/lab/assets/fixture/app.js?v=6"></script>
 </body>
 </html>
