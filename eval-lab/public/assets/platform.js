@@ -120,7 +120,8 @@
    *  Call at the top of an inline script, before rendering anything. */
   const requireSession = () => {
     const s = getSession();
-    if (!s) location.replace('/login/');
+    // The page that was asked for opens once the person has signed in.
+    if (!s) location.replace('/login?next=' + encodeURIComponent(location.pathname + location.search));
     return s;
   };
 

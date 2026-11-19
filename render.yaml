@@ -58,6 +58,10 @@ services:
       # checkout, so a deploy does not wipe the history.
       - key: RESHIM_RUN_ROOT
         value: /var/reshim/runs
+      # Saved camera-support setups (pose, anchors, variations per scan) — on
+      # the same disk, for the same reason.
+      - key: FIXTURE_SETUP_ROOT
+        value: /var/reshim/fixture-setups
       # Live line (MES) — declared here so switching the home card off demo
       # data is only a matter of filling in the credentials below, with no
       # code or blueprint change. They are deliberately unset today.
@@ -88,6 +92,10 @@ services:
       - key: RESHIM_INGEST_TOKEN
         sync: false
       - key: AUTH_TOKEN_SECRET
+        sync: false
+      # People who may sign in besides the first account: a JSON array of
+      # {"email","name","hash"}. See DEPLOY.md § Sign-in accounts.
+      - key: COMER_AUTH_USERS
         sync: false
       - key: WORLDLABS_API_KEY
         sync: false

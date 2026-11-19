@@ -442,8 +442,18 @@
       const errEl = document.getElementById('error-msg');
       const btn = document.getElementById('btn-login');
 
+      // A page that sent the visitor here to sign in (?next=/fixture/) opens
+      // afterwards. Only a path on this site: never another host.
+      const next = (() => {
+        const raw = new URLSearchParams(location.search).get('next') || '';
+        if (!/^\/[A-Za-z0-9_\-./?=&%]*$/.test(raw) || raw.startsWith('//') || /^\/login(\/|\?|$)/.test(raw)) return '';
+        return raw;
+      })();
+
       function resumeSessionRedirect() {
-        if (localStorage.getItem('omnia.introSeen') === '1') {
+        if (next) {
+          window.location.replace(next);
+        } else if (localStorage.getItem('omnia.introSeen') === '1') {
           window.location.replace('/home/');
         } else {
           window.location.replace('/welcome/');
@@ -498,9 +508,10 @@
               expiresAt: Date.now() + (data.ttlSec ?? 60 * 60 * 8) * 1000,
             }),
           );
-          // Fresh sign-in always shows the welcome tour (reset one-time skip flag).
+          // Fresh sign-in shows the welcome tour (reset one-time skip flag),
+          // unless a particular page was asked for: then that page.
           localStorage.removeItem('omnia.introSeen');
-          window.location.replace('/welcome/');
+          window.location.replace(next || '/welcome/');
         } catch (err) {
           errEl.textContent = err.message || 'Sign-in failed';
           setLoading(false);

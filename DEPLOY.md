@@ -151,12 +151,27 @@ verdict, you're done.
 
 ---
 
-## 6. Sign-in account
+## 6. Sign-in accounts
 
 Comer uses the same account as the Emotiv portal. Set `EMOTIV_AUTH_EMAIL`,
 `EMOTIV_AUTH_NAME`, and `EMOTIV_AUTH_PASSWORD_HASH` on the service. The hash
-is `scrypt$N$r$p$salt$hash`. With either the email or the hash missing, login
-stays closed. The password is not in source and not on the sign-in page.
+is `scrypt$N$r$p$salt$hash`. Passwords are not in source and not on the
+sign-in page.
+
+Further people go in `COMER_AUTH_USERS`, a JSON array on one line:
+
+```
+[{"email":"name@comerindustries.com","name":"Full Name","hash":"scrypt$16384$8$1$…"}]
+```
+
+`npm run auth:hash` asks for a password and prints its hash. To add someone,
+append an entry and save the variable; Render restarts the service and the
+account works. To remove someone, delete their entry. An entry with a
+malformed hash is ignored; with no valid account at all, login stays closed.
+
+A link to a page that needs a session, such as
+`https://comer.daedalusiq.com/fixture`, goes to sign-in first and opens that
+page afterwards.
 
 ---
 

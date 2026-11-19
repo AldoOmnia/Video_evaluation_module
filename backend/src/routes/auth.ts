@@ -1,11 +1,13 @@
 /**
  * Sign-in for the Comer portal.
  *
- * The account is the same one the Emotiv portal uses, and it is not in
- * source. Set EMOTIV_AUTH_EMAIL and EMOTIV_AUTH_PASSWORD_HASH
- * (scrypt$N$r$p$salt$hash, base64url). With either missing, login stays
- * closed. The token issued here is an HMAC over tenant+username+exp, stored
- * in localStorage and accepted by /api/auth/session.
+ * Accounts are not in source. The first is the one the Emotiv portal uses:
+ * EMOTIV_AUTH_EMAIL and EMOTIV_AUTH_PASSWORD_HASH (scrypt$N$r$p$salt$hash,
+ * base64url). Further people are listed in COMER_AUTH_USERS, a JSON array of
+ * {"email", "name", "hash"} with the same kind of hash; `npm run auth:hash`
+ * makes one. With no valid account at all, login stays closed. The token
+ * issued here is an HMAC over tenant+username+exp, stored in localStorage and
+ * accepted by /api/auth/session.
  */
 import { Router, type NextFunction, type Request, type Response } from "express";
 import { z } from "zod";
@@ -49,12 +51,13 @@ authRouter.post("/login", (req, res) => {
     res.status(401).json({ ok: false, error: "Invalid email or password" });
     return;
   }
-  const account = comerAccount();
-  if (!account) {
+  const accounts = comerAccounts();
+  if (!accounts.length) {
     res.status(503).json({ ok: false, error: "Sign-in is not configured" });
     return;
   }
-  const user = account.username === body.username.trim().toLowerCase() ? account : null;
+  const wanted = body.username.trim().toLowerCase();
+  const user = accounts.find((a) => a.username === wanted) ?? null;
   let ok = false;
   try {
     ok = checkPassword(body.password, user ? user.passwordHash : DUMMY_HASH);
@@ -132,12 +135,32 @@ function verify(
   return { tenant, username, exp };
 }
 
-function comerAccount(): Account | null {
-  const username = (process.env.EMOTIV_AUTH_EMAIL || "").trim().toLowerCase();
-  const passwordHash = (process.env.EMOTIV_AUTH_PASSWORD_HASH || "").trim();
-  if (!username || !passwordHash || !hashLooksValid(passwordHash)) return null;
-  const display = (process.env.EMOTIV_AUTH_NAME || "").trim() || username;
-  return { username, passwordHash, display, role: "admin" };
+/** Everyone who may sign in. Read per request: an account added to the
+ *  environment works from the next restart without a code change. */
+function comerAccounts(): Account[] {
+  const out: Account[] = [];
+  const add = (email: unknown, hash: unknown, name: unknown): void => {
+    const username = typeof email === "string" ? email.trim().toLowerCase() : "";
+    const passwordHash = typeof hash === "string" ? hash.trim() : "";
+    if (!username || !hashLooksValid(passwordHash) || out.some((a) => a.username === username)) return;
+    const display = (typeof name === "string" && name.trim()) || username;
+    out.push({ username, passwordHash, display, role: "admin" });
+  };
+  add(process.env.EMOTIV_AUTH_EMAIL, process.env.EMOTIV_AUTH_PASSWORD_HASH, process.env.EMOTIV_AUTH_NAME);
+  const listed = (process.env.COMER_AUTH_USERS || "").trim();
+  if (listed) {
+    try {
+      const users: unknown = JSON.parse(listed);
+      if (Array.isArray(users)) {
+        for (const u of users) {
+          if (u && typeof u === "object") add((u as Record<string, unknown>).email, (u as Record<string, unknown>).hash, (u as Record<string, unknown>).name);
+        }
+      }
+    } catch {
+      // Unreadable list: the first account still works, the listed ones do not.
+    }
+  }
+  return out;
 }
 
 function hashPassword(password: string): string {

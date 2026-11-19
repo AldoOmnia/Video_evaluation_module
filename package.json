@@ -20,6 +20,7 @@
     "mes:check": "tsx tools/mes-check.mjs",
     "test:sql-guard": "tsx tools/test-sql-guard.mjs",
     "check:design": "node tools/check-design-language.mjs",
+    "auth:hash": "node tools/auth-hash.mjs",
     "import:glasskit": "tsx annotation-pipeline/src/from-glasskit.ts"
   },
   "devDependencies": {
